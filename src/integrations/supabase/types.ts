@@ -14,7 +14,247 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      businesses: {
+        Row: {
+          address: string
+          campaign_id: string
+          category: string | null
+          created_at: string
+          email: string | null
+          id: string
+          name: string
+          phone: string | null
+          place_id: string | null
+          rating: number | null
+          review_count: number | null
+          selected: boolean
+          website: string | null
+        }
+        Insert: {
+          address: string
+          campaign_id: string
+          category?: string | null
+          created_at?: string
+          email?: string | null
+          id?: string
+          name: string
+          phone?: string | null
+          place_id?: string | null
+          rating?: number | null
+          review_count?: number | null
+          selected?: boolean
+          website?: string | null
+        }
+        Update: {
+          address?: string
+          campaign_id?: string
+          category?: string | null
+          created_at?: string
+          email?: string | null
+          id?: string
+          name?: string
+          phone?: string | null
+          place_id?: string | null
+          rating?: number | null
+          review_count?: number | null
+          selected?: boolean
+          website?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "businesses_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "campaigns"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      campaigns: {
+        Row: {
+          business_type: string
+          created_at: string
+          emails_opened: number
+          emails_sent: number
+          id: string
+          location: string
+          name: string
+          replies: number
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          business_type: string
+          created_at?: string
+          emails_opened?: number
+          emails_sent?: number
+          id?: string
+          location: string
+          name: string
+          replies?: number
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          business_type?: string
+          created_at?: string
+          emails_opened?: number
+          emails_sent?: number
+          id?: string
+          location?: string
+          name?: string
+          replies?: number
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      emails: {
+        Row: {
+          business_id: string
+          campaign_id: string
+          created_at: string
+          error_message: string | null
+          id: string
+          opened_at: string | null
+          pitch_id: string
+          replied_at: string | null
+          sent_at: string | null
+          status: string
+          to_email: string
+        }
+        Insert: {
+          business_id: string
+          campaign_id: string
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          opened_at?: string | null
+          pitch_id: string
+          replied_at?: string | null
+          sent_at?: string | null
+          status?: string
+          to_email: string
+        }
+        Update: {
+          business_id?: string
+          campaign_id?: string
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          opened_at?: string | null
+          pitch_id?: string
+          replied_at?: string | null
+          sent_at?: string | null
+          status?: string
+          to_email?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "emails_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "businesses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "emails_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "campaigns"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "emails_pitch_id_fkey"
+            columns: ["pitch_id"]
+            isOneToOne: false
+            referencedRelation: "pitches"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pitches: {
+        Row: {
+          approved: boolean
+          body: string
+          business_id: string
+          created_at: string
+          edited: boolean
+          id: string
+          subject: string
+          updated_at: string
+        }
+        Insert: {
+          approved?: boolean
+          body: string
+          business_id: string
+          created_at?: string
+          edited?: boolean
+          id?: string
+          subject: string
+          updated_at?: string
+        }
+        Update: {
+          approved?: boolean
+          body?: string
+          business_id?: string
+          created_at?: string
+          edited?: boolean
+          id?: string
+          subject?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pitches_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "businesses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      website_analyses: {
+        Row: {
+          analyzed: boolean
+          analyzed_at: string | null
+          business_id: string
+          created_at: string
+          id: string
+          issues: Json
+          overall_score: number
+        }
+        Insert: {
+          analyzed?: boolean
+          analyzed_at?: string | null
+          business_id: string
+          created_at?: string
+          id?: string
+          issues?: Json
+          overall_score?: number
+        }
+        Update: {
+          analyzed?: boolean
+          analyzed_at?: string | null
+          business_id?: string
+          created_at?: string
+          id?: string
+          issues?: Json
+          overall_score?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "website_analyses_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "businesses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
