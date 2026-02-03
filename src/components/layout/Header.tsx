@@ -24,13 +24,16 @@ export function Header({ isAuthenticated, onLogout }: HeaderProps) {
 
         {/* Desktop Navigation */}
         <nav className="hidden md:flex items-center gap-6">
+          <Link to="/pricing" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
+            Pricing
+          </Link>
           {isAuthenticated ? (
             <>
               <Link to="/dashboard" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
                 Dashboard
               </Link>
-              <Link to="/campaigns" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
-                Campaigns
+              <Link to="/campaigns/new" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
+                New Campaign
               </Link>
               <Button variant="ghost" onClick={onLogout}>
                 Log Out
@@ -67,13 +70,16 @@ export function Header({ isAuthenticated, onLogout }: HeaderProps) {
             className="md:hidden glass border-t"
           >
             <nav className="container mx-auto px-4 py-4 flex flex-col gap-3">
+              <Link to="/pricing" className="py-2 text-sm font-medium text-muted-foreground hover:text-foreground">
+                Pricing
+              </Link>
               {isAuthenticated ? (
                 <>
                   <Link to="/dashboard" className="py-2 text-sm font-medium text-muted-foreground hover:text-foreground">
                     Dashboard
                   </Link>
-                  <Link to="/campaigns" className="py-2 text-sm font-medium text-muted-foreground hover:text-foreground">
-                    Campaigns
+                  <Link to="/campaigns/new" className="py-2 text-sm font-medium text-muted-foreground hover:text-foreground">
+                    New Campaign
                   </Link>
                   <Button variant="ghost" onClick={onLogout} className="justify-start">
                     Log Out

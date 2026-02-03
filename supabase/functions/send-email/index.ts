@@ -75,6 +75,16 @@ serve(async (req) => {
       throw new Error("Failed to create email record");
     }
 
+    // Generate unique reply-to address for reply tracking
+    const replyToId = emailRecord.id.replace(/-/g, "").substring(0, 16);
+    const replyToAddress = `reply-${replyToId}@inbound.outreachpro.app`;
+
+    // Create email_reply record for tracking
+    await supabase.from("email_replies").insert({
+      email_id: emailRecord.id,
+      reply_to_address: replyToAddress,
+    });
+
     // Generate tracking URL and unsubscribe link
     const baseUrl = SUPABASE_URL.replace('.supabase.co', '.supabase.co/functions/v1');
     const trackingPixelUrl = `${baseUrl}/email-webhook?type=open&emailId=${emailRecord.id}`;
@@ -102,10 +112,11 @@ serve(async (req) => {
       </html>
     `;
 
-    // Send email via Resend
+    // Send email via Resend with unique reply-to
     const { data: emailResponse, error: sendError } = await resend.emails.send({
       from: `${fromName} <${fromEmail}>`,
       to: [toEmail],
+      reply_to: replyToAddress,
       subject: subject,
       html: htmlBody,
       headers: {

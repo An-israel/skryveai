@@ -86,7 +86,7 @@ export default function Landing() {
                 </Link>
               </Button>
               <Button variant="hero-outline" size="xl" asChild>
-                <Link to="/login">Sign In</Link>
+                <Link to="/pricing">View Pricing</Link>
               </Button>
             </div>
           </motion.div>
@@ -213,7 +213,7 @@ export default function Landing() {
               </span>
               <span className="flex items-center gap-1">
                 <CheckCircle2 className="w-4 h-4" />
-                5 free campaigns
+                First 30 users get 14 days free
               </span>
             </div>
           </motion.div>
@@ -228,6 +228,11 @@ export default function Landing() {
               <Zap className="w-4 h-4 text-primary-foreground" />
             </div>
             <span className="font-semibold">OutreachPro</span>
+          </div>
+          <div className="flex items-center gap-6 text-sm">
+            <Link to="/pricing" className="text-muted-foreground hover:text-foreground transition-colors">Pricing</Link>
+            <Link to="/login" className="text-muted-foreground hover:text-foreground transition-colors">Login</Link>
+            <Link to="/signup" className="text-muted-foreground hover:text-foreground transition-colors">Sign Up</Link>
           </div>
           <div className="text-sm text-muted-foreground">
             © {new Date().getFullYear()} OutreachPro. All rights reserved.
