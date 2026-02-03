@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { 
   ArrowLeft, 
   Send, 
@@ -14,17 +15,20 @@ import {
   Loader2,
   PartyPopper,
   Settings,
-  Calendar
+  Calendar,
+  FlaskConical
 } from "lucide-react";
 import type { Business, GeneratedPitch } from "@/types/campaign";
 import { EmailSettingsDialog, type UserSettings } from "@/components/settings/EmailSettingsDialog";
+import { EmailScheduler, type ScheduleSettings } from "@/components/campaign/EmailScheduler";
+import { ABTestingPanel, type ABTestSettings } from "@/components/campaign/ABTestingPanel";
 import { supabase } from "@/integrations/supabase/client";
 
 interface SendStepProps {
   businesses: Business[];
   pitches: Record<string, GeneratedPitch>;
   campaignId?: string;
-  onSend: (settings: UserSettings | null) => void;
+  onSend: (settings: UserSettings | null, scheduleSettings?: ScheduleSettings, abTestSettings?: ABTestSettings) => void;
   onBack: () => void;
   isSending: boolean;
   sendProgress: number;
@@ -46,10 +50,26 @@ export function SendStep({
   const [confirmed, setConfirmed] = useState(false);
   const [userSettings, setUserSettings] = useState<UserSettings | null>(null);
   const [isLoadingSettings, setIsLoadingSettings] = useState(true);
+  const [scheduleSettings, setScheduleSettings] = useState<ScheduleSettings>({
+    type: "immediate",
+    respectBusinessHours: true,
+    businessHoursStart: "09:00",
+    businessHoursEnd: "17:00",
+    pauseOnWeekends: true,
+  });
+  const [abTestSettings, setAbTestSettings] = useState<ABTestSettings>({
+    enabled: false,
+    variants: [],
+    testSize: 50,
+    winnerCriteria: "opens",
+    autoSelectWinner: true,
+    testDuration: 24,
+  });
   
   const approvedBusinesses = businesses.filter((b) => pitches[b.id]?.approved);
   const isComplete = sentCount === approvedBusinesses.length && sentCount > 0;
   const isQueued = queuedCount > 0 && !isSending;
+  const firstPitch = approvedBusinesses[0] ? pitches[approvedBusinesses[0].id] : null;
 
   useEffect(() => {
     loadUserSettings();
@@ -173,104 +193,141 @@ export function SendStep({
           </p>
         </Card>
       ) : (
-        <>
-          {/* Settings Preview */}
-          <Card className="p-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <Settings className="w-5 h-5 text-muted-foreground" />
-                <div>
-                  <div className="font-medium text-sm">
-                    Sending as: {userSettings?.sender_name || "Not configured"}
-                  </div>
-                  <div className="text-xs text-muted-foreground">
-                    Delay: {userSettings?.delay_between_emails || 30}s • 
-                    Estimated time: ~{estimatedMinutes} min
+        <Tabs defaultValue="overview" className="space-y-6">
+          <TabsList className="grid w-full grid-cols-3">
+            <TabsTrigger value="overview" className="gap-2">
+              <Mail className="w-4 h-4" />
+              Overview
+            </TabsTrigger>
+            <TabsTrigger value="schedule" className="gap-2">
+              <Calendar className="w-4 h-4" />
+              Schedule
+            </TabsTrigger>
+            <TabsTrigger value="abtest" className="gap-2">
+              <FlaskConical className="w-4 h-4" />
+              A/B Test
+            </TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="overview" className="space-y-6">
+            {/* Settings Preview */}
+            <Card className="p-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <Settings className="w-5 h-5 text-muted-foreground" />
+                  <div>
+                    <div className="font-medium text-sm">
+                      Sending as: {userSettings?.sender_name || "Not configured"}
+                    </div>
+                    <div className="text-xs text-muted-foreground">
+                      Delay: {userSettings?.delay_between_emails || 30}s • 
+                      Estimated time: ~{estimatedMinutes} min
+                    </div>
                   </div>
                 </div>
+                <EmailSettingsDialog 
+                  onSettingsSaved={setUserSettings}
+                  trigger={
+                    <Button variant="ghost" size="sm">
+                      <Settings className="w-4 h-4" />
+                    </Button>
+                  }
+                />
               </div>
-              <EmailSettingsDialog 
-                onSettingsSaved={setUserSettings}
-                trigger={
-                  <Button variant="ghost" size="sm">
-                    <Settings className="w-4 h-4" />
-                  </Button>
-                }
-              />
-            </div>
-          </Card>
+            </Card>
 
-          <Card className="p-6">
-            <h3 className="font-semibold mb-4 flex items-center gap-2">
-              <Mail className="w-5 h-5 text-primary" />
-              Email Preview Summary
-            </h3>
-            <div className="space-y-3 max-h-72 overflow-y-auto">
-              {approvedBusinesses.map((business, index) => {
-                const pitch = pitches[business.id];
-                const scheduledDelay = index * (userSettings?.delay_between_emails || 30);
-                
-                return (
-                  <div
-                    key={business.id}
-                    className="flex items-center gap-3 p-3 bg-muted/50 rounded-lg"
-                  >
-                    <CheckCircle2 className="w-5 h-5 text-success shrink-0" />
-                    <div className="flex-1 min-w-0">
-                      <div className="font-medium text-sm truncate">{business.name}</div>
-                      <div className="text-xs text-muted-foreground truncate">
-                        {business.email || "Email will be extracted"} • {pitch?.subject}
+            <Card className="p-6">
+              <h3 className="font-semibold mb-4 flex items-center gap-2">
+                <Mail className="w-5 h-5 text-primary" />
+                Email Preview Summary
+              </h3>
+              <div className="space-y-3 max-h-72 overflow-y-auto">
+                {approvedBusinesses.map((business, index) => {
+                  const pitch = pitches[business.id];
+                  const scheduledDelay = index * (userSettings?.delay_between_emails || 30);
+                  
+                  return (
+                    <div
+                      key={business.id}
+                      className="flex items-center gap-3 p-3 bg-muted/50 rounded-lg"
+                    >
+                      <CheckCircle2 className="w-5 h-5 text-success shrink-0" />
+                      <div className="flex-1 min-w-0">
+                        <div className="font-medium text-sm truncate">{business.name}</div>
+                        <div className="text-xs text-muted-foreground truncate">
+                          {business.email || "Email will be extracted"} • {pitch?.subject}
+                        </div>
                       </div>
+                      <Badge variant="outline" className="text-xs shrink-0">
+                        +{Math.floor(scheduledDelay / 60)}:{String(scheduledDelay % 60).padStart(2, '0')}
+                      </Badge>
                     </div>
-                    <Badge variant="outline" className="text-xs shrink-0">
-                      +{Math.floor(scheduledDelay / 60)}:{String(scheduledDelay % 60).padStart(2, '0')}
-                    </Badge>
-                  </div>
-                );
-              })}
-            </div>
-          </Card>
-
-          <Card className="p-6 border-warning/50 bg-warning/5">
-            <div className="flex items-start gap-3">
-              <AlertCircle className="w-5 h-5 text-warning shrink-0 mt-0.5" />
-              <div>
-                <h4 className="font-medium mb-1">Scheduled Sending</h4>
-                <ul className="text-sm text-muted-foreground space-y-1">
-                  <li className="flex items-center gap-2">
-                    <Clock className="w-3.5 h-3.5" />
-                    Emails will be sent with {userSettings?.delay_between_emails || 30}s delays
-                  </li>
-                  <li className="flex items-center gap-2">
-                    <Calendar className="w-3.5 h-3.5" />
-                    Total time: approximately {estimatedMinutes} minutes
-                  </li>
-                  <li className="flex items-center gap-2">
-                    <Mail className="w-3.5 h-3.5" />
-                    Each email includes an unsubscribe link
-                  </li>
-                  <li className="flex items-center gap-2">
-                    <CheckCircle2 className="w-3.5 h-3.5" />
-                    Open and click tracking enabled
-                  </li>
-                </ul>
+                  );
+                })}
               </div>
-            </div>
-          </Card>
+            </Card>
 
-          <div className="flex items-center gap-3 p-4 bg-muted rounded-lg">
-            <input
-              type="checkbox"
-              id="confirm"
-              checked={confirmed}
-              onChange={(e) => setConfirmed(e.target.checked)}
-              className="w-4 h-4 rounded border-input"
+            <Card className="p-6 border-warning/50 bg-warning/5">
+              <div className="flex items-start gap-3">
+                <AlertCircle className="w-5 h-5 text-warning shrink-0 mt-0.5" />
+                <div>
+                  <h4 className="font-medium mb-1">Scheduled Sending</h4>
+                  <ul className="text-sm text-muted-foreground space-y-1">
+                    <li className="flex items-center gap-2">
+                      <Clock className="w-3.5 h-3.5" />
+                      Emails will be sent with {userSettings?.delay_between_emails || 30}s delays
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <Calendar className="w-3.5 h-3.5" />
+                      Total time: approximately {estimatedMinutes} minutes
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <Mail className="w-3.5 h-3.5" />
+                      Each email includes an unsubscribe link
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <CheckCircle2 className="w-3.5 h-3.5" />
+                      Open and click tracking enabled
+                    </li>
+                  </ul>
+                </div>
+              </div>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="schedule">
+            <EmailScheduler 
+              settings={scheduleSettings}
+              onChange={setScheduleSettings}
+              emailCount={approvedBusinesses.length}
+              delayBetweenEmails={userSettings?.delay_between_emails || 30}
             />
-            <label htmlFor="confirm" className="text-sm cursor-pointer">
-              I confirm these emails are compliant with anti-spam regulations and recipients have a legitimate interest in my services.
-            </label>
-          </div>
-        </>
+          </TabsContent>
+
+          <TabsContent value="abtest">
+            <ABTestingPanel 
+              settings={abTestSettings}
+              onChange={setAbTestSettings}
+              baseSubject={firstPitch?.subject || ""}
+              baseBody={firstPitch?.body || ""}
+            />
+          </TabsContent>
+        </Tabs>
+      )}
+
+      {!isSending && (
+        <div className="flex items-center gap-3 p-4 bg-muted rounded-lg">
+          <input
+            type="checkbox"
+            id="confirm"
+            checked={confirmed}
+            onChange={(e) => setConfirmed(e.target.checked)}
+            className="w-4 h-4 rounded border-input"
+          />
+          <label htmlFor="confirm" className="text-sm cursor-pointer">
+            I confirm these emails are compliant with anti-spam regulations and recipients have a legitimate interest in my services.
+          </label>
+        </div>
       )}
 
       <div className="flex items-center justify-between pt-4 border-t">
@@ -279,13 +336,18 @@ export function SendStep({
           Back
         </Button>
         <Button
-          onClick={() => onSend(userSettings)}
+          onClick={() => onSend(userSettings, scheduleSettings, abTestSettings)}
           disabled={!confirmed || isSending || isLoadingSettings}
           size="lg"
           variant="hero"
         >
           <Send className="w-4 h-4 mr-2" />
-          Schedule {approvedBusinesses.length} Emails
+          {scheduleSettings.type === "immediate" 
+            ? `Schedule ${approvedBusinesses.length} Emails`
+            : scheduleSettings.type === "scheduled"
+              ? `Schedule for ${scheduleSettings.scheduledDate ? scheduleSettings.scheduledDate.toLocaleDateString() : "later"}`
+              : `Send at Optimal Time`
+          }
         </Button>
       </div>
     </motion.div>
