@@ -28,12 +28,14 @@ import {
   Mail,
   Target,
   Send,
+  Shield,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar } from "recharts";
 import { CMSPageEditor } from "@/components/admin/CMSPageEditor";
 import { CMSImageUploader } from "@/components/admin/CMSImageUploader";
+import { IPAddressManager } from "@/components/admin/IPAddressManager";
 import { EmailQueueManager } from "@/components/admin/EmailQueueManager";
 
 interface AdminStats {
@@ -397,6 +399,9 @@ export default function Admin() {
             </TabsTrigger>
             <TabsTrigger value="activity" className="gap-2">
               <Activity className="w-4 h-4" /> Activity
+            </TabsTrigger>
+            <TabsTrigger value="ip-addresses" className="gap-2">
+              <Shield className="w-4 h-4" /> IP Addresses
             </TabsTrigger>
             <TabsTrigger value="analytics" className="gap-2">
               <BarChart3 className="w-4 h-4" /> Analytics
@@ -802,6 +807,11 @@ export default function Admin() {
                 </Table>
               </CardContent>
             </Card>
+          </TabsContent>
+
+          {/* IP Addresses Tab */}
+          <TabsContent value="ip-addresses">
+            <IPAddressManager />
           </TabsContent>
 
           {/* Analytics Tab */}
