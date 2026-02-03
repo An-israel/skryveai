@@ -308,7 +308,7 @@ export default function Admin() {
             </div>
             <div>
               <h1 className="font-bold text-xl">Admin Panel</h1>
-              <p className="text-xs text-muted-foreground">OutreachPro Management</p>
+              <p className="text-xs text-muted-foreground">SkryveAI Management</p>
             </div>
           </div>
           <Button variant="outline" onClick={() => navigate("/dashboard")}>
