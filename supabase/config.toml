@@ -39,6 +39,9 @@ verify_jwt = false
 [functions.send-password-reset]
 verify_jwt = false
 
+[functions.notify-admin-failed-emails]
+verify_jwt = false
+
 [crons.process-email-queue]
 schedule = "*/2 * * * *"
 function = "process-email-queue"
@@ -46,3 +49,7 @@ function = "process-email-queue"
 [crons.process-trial-reminders]
 schedule = "0 9 * * *"
 function = "process-trial-reminders"
+
+[crons.notify-admin-failed-emails]
+schedule = "0 */4 * * *"
+function = "notify-admin-failed-emails"

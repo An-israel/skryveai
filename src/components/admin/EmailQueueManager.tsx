@@ -12,7 +12,8 @@ import {
   Clock, 
   Loader2,
   Trash2,
-  RotateCcw
+  RotateCcw,
+  Bell
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -43,6 +44,7 @@ export function EmailQueueManager() {
   const [stats, setStats] = useState<QueueStats>({ pending: 0, processing: 0, sent: 0, failed: 0 });
   const [loading, setLoading] = useState(true);
   const [processing, setProcessing] = useState(false);
+  const [notifying, setNotifying] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -142,6 +144,30 @@ export function EmailQueueManager() {
     }
   };
 
+  const notifyAdmins = async () => {
+    if (stats.failed === 0) {
+      toast({ title: "No failed emails to report" });
+      return;
+    }
+    
+    setNotifying(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("notify-admin-failed-emails");
+      
+      if (error) throw error;
+
+      toast({
+        title: "Admin Notification Sent",
+        description: `Notified ${data?.notifiedAdmins || 0} admin(s) about ${data?.failedCount || 0} failed emails`,
+      });
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : "Failed to send notification";
+      toast({ title: message, variant: "destructive" });
+    } finally {
+      setNotifying(false);
+    }
+  };
+
   const getStatusBadge = (status: string) => {
     switch (status) {
       case "pending":
@@ -220,30 +246,40 @@ export function EmailQueueManager() {
             </CardDescription>
           </div>
           <div className="flex gap-2">
-            <Button variant="outline" size="sm" onClick={loadQueue}>
-              <RefreshCw className="w-4 h-4 mr-2" />
-              Refresh
-            </Button>
-            {stats.failed > 0 && (
-              <Button variant="outline" size="sm" onClick={retryFailed}>
-                <RotateCcw className="w-4 h-4 mr-2" />
-                Retry Failed ({stats.failed})
+              <Button variant="outline" size="sm" onClick={loadQueue}>
+                <RefreshCw className="w-4 h-4 mr-2" />
+                Refresh
               </Button>
-            )}
-            {stats.sent > 0 && (
-              <Button variant="outline" size="sm" onClick={deleteProcessed}>
-                <Trash2 className="w-4 h-4 mr-2" />
-                Clear Sent
-              </Button>
-            )}
-            <Button onClick={processQueue} disabled={processing || stats.pending === 0}>
-              {processing ? (
-                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-              ) : (
-                <Play className="w-4 h-4 mr-2" />
+              {stats.failed > 0 && (
+                <>
+                  <Button variant="outline" size="sm" onClick={retryFailed}>
+                    <RotateCcw className="w-4 h-4 mr-2" />
+                    Retry Failed ({stats.failed})
+                  </Button>
+                  <Button variant="outline" size="sm" onClick={notifyAdmins} disabled={notifying}>
+                    {notifying ? (
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    ) : (
+                      <Bell className="w-4 h-4 mr-2" />
+                    )}
+                    Notify Admins
+                  </Button>
+                </>
               )}
-              Process Now ({stats.pending})
-            </Button>
+              {stats.sent > 0 && (
+                <Button variant="outline" size="sm" onClick={deleteProcessed}>
+                  <Trash2 className="w-4 h-4 mr-2" />
+                  Clear Sent
+                </Button>
+              )}
+              <Button onClick={processQueue} disabled={processing || stats.pending === 0}>
+                {processing ? (
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                ) : (
+                  <Play className="w-4 h-4 mr-2" />
+                )}
+                Process Now ({stats.pending})
+              </Button>
           </div>
         </CardHeader>
         <CardContent>

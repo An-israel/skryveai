@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { CampaignCharts } from "@/components/dashboard/CampaignCharts";
 import { SubscriptionStats } from "@/components/dashboard/SubscriptionStats";
+import { EmailQueueStatus } from "@/components/dashboard/EmailQueueStatus";
 import { EmailSettingsDialog } from "@/components/settings/EmailSettingsDialog";
 import { OnboardingTour } from "@/components/onboarding/OnboardingTour";
 import { useOnboarding } from "@/hooks/use-onboarding";
@@ -299,6 +300,16 @@ export default function Dashboard() {
           className="mb-8"
         >
           <SubscriptionStats />
+        </motion.div>
+
+        {/* Email Queue Status - Real-time updates */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.15 }}
+          className="mb-8"
+        >
+          <EmailQueueStatus />
         </motion.div>
 
         {/* Stats Grid */}

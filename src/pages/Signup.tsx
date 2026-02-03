@@ -99,12 +99,18 @@ export default function Signup() {
 
     try {
       // Sign up with Supabase Auth
+      // The database trigger handle_new_user() automatically creates:
+      // - profile, subscription, and user_settings records
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email: formData.email,
         password: formData.password,
         options: {
           data: {
             full_name: formData.fullName,
+            phone: formData.phone || null,
+            portfolio_url: formData.portfolioUrl || null,
+            bio: formData.bio || null,
+            expertise: formData.expertise,
           },
           emailRedirectTo: window.location.origin,
         },
@@ -113,58 +119,47 @@ export default function Signup() {
       if (authError) throw authError;
 
       if (authData.user) {
-        // Get signup order for trial duration
-        const { data: signupOrder } = await supabase.rpc("get_signup_order");
-        const trialDays = (signupOrder && signupOrder <= 30) ? 14 : 3;
-        const trialEndsAt = new Date();
-        trialEndsAt.setDate(trialEndsAt.getDate() + trialDays);
-
-        // Upload CV if provided
-        let cvUrl = null;
+        // Upload CV if provided (after signup since we need the user ID)
         if (cvFile) {
           const filePath = `${authData.user.id}/${Date.now()}_${cvFile.name}`;
-          const { data: uploadData, error: uploadError } = await supabase.storage
+          const { error: uploadError } = await supabase.storage
             .from("cv-uploads")
             .upload(filePath, cvFile);
           
           if (uploadError) {
             console.error("CV upload error:", uploadError);
           } else {
-            cvUrl = uploadData.path;
+            // Update profile with CV URL after the trigger has created it
+            await supabase.from("profiles")
+              .update({ 
+                cv_url: filePath,
+                phone: formData.phone || null,
+                portfolio_url: formData.portfolioUrl || null,
+                bio: formData.bio || null,
+                expertise: formData.expertise,
+              })
+              .eq("user_id", authData.user.id);
           }
+        } else {
+          // Update profile with additional data not handled by trigger
+          await supabase.from("profiles")
+            .update({ 
+              phone: formData.phone || null,
+              portfolio_url: formData.portfolioUrl || null,
+              bio: formData.bio || null,
+              expertise: formData.expertise,
+            })
+            .eq("user_id", authData.user.id);
         }
 
-        // Create profile
-        await supabase.from("profiles").insert({
-          user_id: authData.user.id,
-          full_name: formData.fullName,
-          email: formData.email,
-          phone: formData.phone || null,
-          portfolio_url: formData.portfolioUrl || null,
-          bio: formData.bio || null,
-          expertise: formData.expertise,
-          cv_url: cvUrl,
-        });
-
-        // Create subscription with trial
-        await supabase.from("subscriptions").insert({
-          user_id: authData.user.id,
-          status: "trial",
-          trial_ends_at: trialEndsAt.toISOString(),
-        });
-
-        // Create default user settings
-        await supabase.from("user_settings").insert({
-          user_id: authData.user.id,
-          sender_name: formData.fullName,
-          service_description: formData.expertise.join(", "),
-        });
+        // Update user settings with service description
+        await supabase.from("user_settings")
+          .update({ service_description: formData.expertise.join(", ") })
+          .eq("user_id", authData.user.id);
 
         toast({
-          title: `Welcome! You have ${trialDays} days free trial`,
-          description: signupOrder && signupOrder <= 30 
-            ? "You're one of our first 30 users - enjoy 14 days free!"
-            : "Check your email to verify your account.",
+          title: "Account created successfully!",
+          description: "Please check your email to verify your account before signing in.",
         });
         navigate("/login");
       }
