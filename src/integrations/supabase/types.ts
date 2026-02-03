@@ -260,7 +260,18 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      increment_campaign_emails_opened: {
+        Args: { campaign_id: string }
+        Returns: undefined
+      }
+      increment_campaign_emails_sent: {
+        Args: { campaign_id: string }
+        Returns: undefined
+      }
+      increment_campaign_replies: {
+        Args: { campaign_id: string }
+        Returns: undefined
+      }
     }
     Enums: {
       [_ in never]: never
