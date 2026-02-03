@@ -7,6 +7,7 @@ import { Header } from "@/components/layout/Header";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { CampaignCharts } from "@/components/dashboard/CampaignCharts";
+import { SubscriptionStats } from "@/components/dashboard/SubscriptionStats";
 import { EmailSettingsDialog } from "@/components/settings/EmailSettingsDialog";
 import { 
   Plus, 
@@ -275,6 +276,16 @@ export default function Dashboard() {
               </Button>
             </div>
           </div>
+        </motion.div>
+
+        {/* Subscription Status */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.1 }}
+          className="mb-8"
+        >
+          <SubscriptionStats />
         </motion.div>
 
         {/* Stats Grid */}

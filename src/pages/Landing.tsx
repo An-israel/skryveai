@@ -3,7 +3,6 @@ import { Button } from "@/components/ui/button";
 import { Header } from "@/components/layout/Header";
 import { Link } from "react-router-dom";
 import { 
-  Zap, 
   Search, 
   BarChart3, 
   FileText, 
@@ -12,7 +11,6 @@ import {
   CheckCircle2,
   Sparkles,
   Target,
-  TrendingUp
 } from "lucide-react";
 
 const features = [
@@ -76,7 +74,7 @@ export default function Landing() {
               <span className="text-gradient">Perfect Pitches</span>
             </h1>
             <p className="text-lg md:text-xl text-primary-foreground/80 mb-8 max-w-2xl mx-auto">
-              OutreachPro helps freelancers automatically find businesses, analyze their websites for problems, and send personalized cold emails that get responses.
+              SkryveAI helps freelancers automatically find businesses, analyze their websites for problems, and send personalized cold emails that get responses.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Button variant="hero" size="xl" asChild>
@@ -224,10 +222,7 @@ export default function Landing() {
       <footer className="py-8 border-t">
         <div className="container mx-auto px-4 flex flex-col md:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-lg bg-gradient-accent flex items-center justify-center">
-              <Zap className="w-4 h-4 text-primary-foreground" />
-            </div>
-            <span className="font-semibold">OutreachPro</span>
+            <span className="font-bold text-xl text-gradient">SkryveAI</span>
           </div>
           <div className="flex items-center gap-6 text-sm">
             <Link to="/pricing" className="text-muted-foreground hover:text-foreground transition-colors">Pricing</Link>
@@ -235,7 +230,7 @@ export default function Landing() {
             <Link to="/signup" className="text-muted-foreground hover:text-foreground transition-colors">Sign Up</Link>
           </div>
           <div className="text-sm text-muted-foreground">
-            © {new Date().getFullYear()} OutreachPro. All rights reserved.
+            © {new Date().getFullYear()} SkryveAI. All rights reserved.
           </div>
         </div>
       </footer>

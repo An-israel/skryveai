@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Zap, Mail, Lock, Loader2 } from "lucide-react";
+import { Mail, Lock, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
@@ -52,10 +52,7 @@ export default function Login() {
         className="w-full max-w-md"
       >
         <Link to="/" className="flex items-center justify-center gap-2 mb-8">
-          <div className="w-10 h-10 rounded-xl bg-gradient-accent flex items-center justify-center shadow-glow">
-            <Zap className="w-5 h-5 text-primary-foreground" />
-          </div>
-          <span className="font-bold text-2xl">OutreachPro</span>
+          <span className="font-bold text-3xl text-gradient">SkryveAI</span>
         </Link>
 
         <Card className="border-0 shadow-xl">
