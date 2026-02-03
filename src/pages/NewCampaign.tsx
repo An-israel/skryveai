@@ -12,6 +12,7 @@ import type { Business, WebsiteAnalysis, GeneratedPitch, CampaignStep } from "@/
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { campaignApi } from "@/lib/api/campaign";
+import type { UserSettings } from "@/components/settings/EmailSettingsDialog";
 
 export default function NewCampaign() {
   const [currentStep, setCurrentStep] = useState<CampaignStep>('search');
@@ -27,6 +28,9 @@ export default function NewCampaign() {
   const [isSending, setIsSending] = useState(false);
   const [sendProgress, setSendProgress] = useState(0);
   const [sentCount, setSentCount] = useState(0);
+  const [queuedCount, setQueuedCount] = useState(0);
+  const [campaignId, setCampaignId] = useState<string>();
+  const [searchParams, setSearchParams] = useState({ businessType: "", location: "" });
 
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -43,6 +47,7 @@ export default function NewCampaign() {
 
   const handleSearch = async (businessType: string, location: string) => {
     setIsLoading(true);
+    setSearchParams({ businessType, location });
     try {
       const result = await campaignApi.searchBusinesses(businessType, location);
       setBusinesses(result.businesses);
@@ -80,7 +85,6 @@ export default function NewCampaign() {
       setCurrentAnalyzing(business.name);
       setAnalysisProgress((i / selectedBusinesses.length) * 100);
 
-      // Skip businesses without websites
       if (!business.website) {
         newAnalyses[business.id] = {
           businessId: business.id,
@@ -99,7 +103,6 @@ export default function NewCampaign() {
       }
 
       try {
-        // Analyze the website
         const analysisResult = await campaignApi.analyzeWebsite(business.website, business.name);
         
         newAnalyses[business.id] = {
@@ -110,7 +113,6 @@ export default function NewCampaign() {
           analyzedAt: analysisResult.analyzedAt,
         };
         
-        // Update email if found
         if (analysisResult.email && !business.email) {
           const updatedBusiness = { ...business, email: analysisResult.email };
           setSelectedBusinesses(prev => 
@@ -120,7 +122,6 @@ export default function NewCampaign() {
 
         setAnalyses({ ...newAnalyses });
 
-        // Generate pitch for this business
         try {
           const pitchResult = await campaignApi.generatePitch(
             business.name,
@@ -214,23 +215,132 @@ export default function NewCampaign() {
     setCurrentStep('send');
   };
 
-  const handleSend = async () => {
+  const handleSend = async (userSettings: UserSettings | null) => {
     setIsSending(true);
-    const approvedBusinesses = selectedBusinesses.filter((b) => pitches[b.id]?.approved);
+    setSentCount(0);
+    setQueuedCount(0);
     
-    for (let i = 0; i < approvedBusinesses.length; i++) {
-      // TODO: Integrate email sending API
-      await new Promise((r) => setTimeout(r, 500 + Math.random() * 500));
-      setSentCount(i + 1);
-      setSendProgress(((i + 1) / approvedBusinesses.length) * 100);
-    }
+    const approvedBusinesses = selectedBusinesses.filter((b) => pitches[b.id]?.approved);
+    const delaySeconds = userSettings?.delay_between_emails || 30;
 
-    setIsSending(false);
-    setCompletedSteps([...completedSteps, 'send']);
-    toast({
-      title: "Emails sent!",
-      description: `Successfully sent ${approvedBusinesses.length} personalized emails.`,
-    });
+    try {
+      // Get current user
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("Not authenticated");
+
+      // Create campaign record
+      const campaignName = `${searchParams.businessType} in ${searchParams.location}`;
+      const { data: campaign, error: campaignError } = await supabase
+        .from("campaigns")
+        .insert({
+          user_id: user.id,
+          name: campaignName,
+          business_type: searchParams.businessType,
+          location: searchParams.location,
+          status: "sending",
+        })
+        .select()
+        .single();
+
+      if (campaignError) throw campaignError;
+      setCampaignId(campaign.id);
+
+      // Insert businesses into database
+      const businessInserts = approvedBusinesses.map(b => ({
+        campaign_id: campaign.id,
+        name: b.name,
+        address: b.address,
+        phone: b.phone,
+        website: b.website,
+        rating: b.rating,
+        review_count: b.reviewCount,
+        category: b.category,
+        place_id: b.placeId,
+        email: b.email,
+        selected: true,
+      }));
+
+      const { data: insertedBusinesses, error: businessError } = await supabase
+        .from("businesses")
+        .insert(businessInserts)
+        .select();
+
+      if (businessError) throw businessError;
+
+      // Create pitch records and queue emails
+      for (let i = 0; i < approvedBusinesses.length; i++) {
+        const business = approvedBusinesses[i];
+        const pitch = pitches[business.id];
+        const dbBusiness = insertedBusinesses?.find(b => b.name === business.name);
+        
+        if (!dbBusiness || !pitch) continue;
+
+        // Create pitch record
+        const { data: pitchRecord, error: pitchError } = await supabase
+          .from("pitches")
+          .insert({
+            business_id: dbBusiness.id,
+            subject: pitch.subject,
+            body: pitch.body,
+            edited: pitch.edited,
+            approved: true,
+          })
+          .select()
+          .single();
+
+        if (pitchError) {
+          console.error("Error creating pitch:", pitchError);
+          continue;
+        }
+
+        // Calculate scheduled time with delay
+        const scheduledFor = new Date(Date.now() + (i * delaySeconds * 1000));
+
+        // Queue the email
+        const { error: queueError } = await supabase
+          .from("email_queue")
+          .insert({
+            campaign_id: campaign.id,
+            business_id: dbBusiness.id,
+            pitch_id: pitchRecord.id,
+            to_email: business.email || `contact@${business.website?.replace(/^https?:\/\//, '').replace(/^www\./, '').split('/')[0]}`,
+            subject: pitch.subject,
+            body: pitch.body + (userSettings?.email_signature ? `\n\n${userSettings.email_signature}` : ''),
+            sender_name: userSettings?.sender_name,
+            sender_email: userSettings?.sender_email,
+            scheduled_for: scheduledFor.toISOString(),
+          });
+
+        if (queueError) {
+          console.error("Error queuing email:", queueError);
+          continue;
+        }
+
+        setSentCount(i + 1);
+        setSendProgress(((i + 1) / approvedBusinesses.length) * 100);
+      }
+
+      setQueuedCount(approvedBusinesses.length);
+      setIsSending(false);
+      setCompletedSteps([...completedSteps, 'send']);
+      
+      toast({
+        title: "Emails Scheduled!",
+        description: `${approvedBusinesses.length} emails queued with ${delaySeconds}s delays.`,
+      });
+
+      // Trigger queue processing
+      supabase.functions.invoke("process-email-queue").catch(console.error);
+
+    } catch (error) {
+      console.error("Send error:", error);
+      setIsSending(false);
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to schedule emails",
+        variant: "destructive",
+      });
+    }
   };
 
   const handleLogout = async () => {
@@ -292,11 +402,13 @@ export default function NewCampaign() {
                 key="send"
                 businesses={selectedBusinesses}
                 pitches={pitches}
+                campaignId={campaignId}
                 onSend={handleSend}
                 onBack={() => setCurrentStep('pitch')}
                 isSending={isSending}
                 sendProgress={sendProgress}
                 sentCount={sentCount}
+                queuedCount={queuedCount}
               />
             )}
           </AnimatePresence>
