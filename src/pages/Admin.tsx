@@ -144,11 +144,24 @@ export default function Admin() {
         .order("created_at", { ascending: false });
       setImages(imagesData || []);
 
-      // Fetch staff
-      const { data: staffData } = await supabase
+      // Fetch staff with profiles
+      const { data: rolesData } = await supabase
         .from("user_roles")
-        .select("*, profiles(full_name, email)");
-      setStaff(staffData || []);
+        .select("*");
+      
+      if (rolesData) {
+        const staffWithProfiles = await Promise.all(
+          rolesData.map(async (role) => {
+            const { data: profile } = await supabase
+              .from("profiles")
+              .select("full_name, email")
+              .eq("user_id", role.user_id)
+              .single();
+            return { ...role, profiles: profile };
+          })
+        );
+        setStaff(staffWithProfiles);
+      }
     } catch (error) {
       console.error("Failed to load admin data:", error);
     } finally {

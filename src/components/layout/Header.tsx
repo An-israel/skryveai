@@ -1,8 +1,9 @@
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Zap, Menu, X, Settings } from "lucide-react";
-import { useState } from "react";
+import { Zap, Menu, X, Settings, Shield } from "lucide-react";
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { supabase } from "@/integrations/supabase/client";
 
 interface HeaderProps {
   isAuthenticated?: boolean;
@@ -11,6 +12,28 @@ interface HeaderProps {
 
 export function Header({ isAuthenticated, onLogout }: HeaderProps) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
+
+  useEffect(() => {
+    if (isAuthenticated) {
+      checkAdminRole();
+    }
+  }, [isAuthenticated]);
+
+  const checkAdminRole = async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (user) {
+      const { data: roles } = await supabase
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", user.id);
+      
+      const hasAdminRole = roles?.some(r => 
+        ["super_admin", "content_editor", "support_agent"].includes(r.role)
+      );
+      setIsAdmin(!!hasAdminRole);
+    }
+  };
 
   return (
     <header className="fixed top-0 left-0 right-0 z-50 glass border-b">
@@ -35,6 +58,11 @@ export function Header({ isAuthenticated, onLogout }: HeaderProps) {
               <Link to="/campaigns/new" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
                 New Campaign
               </Link>
+              {isAdmin && (
+                <Link to="/admin" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
+                  <Shield className="w-4 h-4" />
+                </Link>
+              )}
               <Link to="/settings" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
                 <Settings className="w-4 h-4" />
               </Link>
@@ -84,6 +112,12 @@ export function Header({ isAuthenticated, onLogout }: HeaderProps) {
                   <Link to="/campaigns/new" className="py-2 text-sm font-medium text-muted-foreground hover:text-foreground">
                     New Campaign
                   </Link>
+                  {isAdmin && (
+                    <Link to="/admin" className="py-2 text-sm font-medium text-muted-foreground hover:text-foreground flex items-center gap-2">
+                      <Shield className="w-4 h-4" />
+                      Admin
+                    </Link>
+                  )}
                   <Link to="/settings" className="py-2 text-sm font-medium text-muted-foreground hover:text-foreground">
                     Settings
                   </Link>
