@@ -112,6 +112,79 @@ export type Database = {
         }
         Relationships: []
       }
+      email_queue: {
+        Row: {
+          body: string
+          business_id: string
+          campaign_id: string
+          created_at: string
+          error_message: string | null
+          id: string
+          pitch_id: string
+          processed_at: string | null
+          scheduled_for: string
+          sender_email: string | null
+          sender_name: string | null
+          status: string
+          subject: string
+          to_email: string
+        }
+        Insert: {
+          body: string
+          business_id: string
+          campaign_id: string
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          pitch_id: string
+          processed_at?: string | null
+          scheduled_for?: string
+          sender_email?: string | null
+          sender_name?: string | null
+          status?: string
+          subject: string
+          to_email: string
+        }
+        Update: {
+          body?: string
+          business_id?: string
+          campaign_id?: string
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          pitch_id?: string
+          processed_at?: string | null
+          scheduled_for?: string
+          sender_email?: string | null
+          sender_name?: string | null
+          status?: string
+          subject?: string
+          to_email?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "email_queue_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "businesses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "email_queue_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "campaigns"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "email_queue_pitch_id_fkey"
+            columns: ["pitch_id"]
+            isOneToOne: false
+            referencedRelation: "pitches"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       emails: {
         Row: {
           business_id: string
@@ -216,6 +289,48 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      user_settings: {
+        Row: {
+          company_name: string | null
+          created_at: string
+          daily_send_limit: number | null
+          delay_between_emails: number | null
+          email_signature: string | null
+          id: string
+          sender_email: string | null
+          sender_name: string | null
+          service_description: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          company_name?: string | null
+          created_at?: string
+          daily_send_limit?: number | null
+          delay_between_emails?: number | null
+          email_signature?: string | null
+          id?: string
+          sender_email?: string | null
+          sender_name?: string | null
+          service_description?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          company_name?: string | null
+          created_at?: string
+          daily_send_limit?: number | null
+          delay_between_emails?: number | null
+          email_signature?: string | null
+          id?: string
+          sender_email?: string | null
+          sender_name?: string | null
+          service_description?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
       }
       website_analyses: {
         Row: {
