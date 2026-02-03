@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -17,6 +18,35 @@ serve(async (req) => {
   }
 
   try {
+    // Authentication check
+    const authHeader = req.headers.get("authorization");
+    if (!authHeader?.startsWith("Bearer ")) {
+      return new Response(
+        JSON.stringify({ error: "Unauthorized" }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
+    const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY");
+    
+    if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
+      throw new Error("Supabase environment variables not configured");
+    }
+
+    const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+      global: { headers: { Authorization: authHeader } }
+    });
+
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    
+    if (authError || !user) {
+      return new Response(
+        JSON.stringify({ error: "Unauthorized" }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
     const GOOGLE_PLACES_API_KEY = Deno.env.get("GOOGLE_PLACES_API_KEY");
     if (!GOOGLE_PLACES_API_KEY) {
       throw new Error("GOOGLE_PLACES_API_KEY is not configured");
@@ -24,12 +54,24 @@ serve(async (req) => {
 
     const { businessType, location, limit = 20 }: SearchRequest = await req.json();
 
+    // Input validation
     if (!businessType || !location) {
       return new Response(
         JSON.stringify({ error: "businessType and location are required" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
+
+    // Validate input lengths to prevent abuse
+    if (businessType.length > 100 || location.length > 200) {
+      return new Response(
+        JSON.stringify({ error: "Input too long" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // Sanitize and validate limit
+    const sanitizedLimit = Math.min(Math.max(1, Number(limit) || 20), 30);
 
     // Step 1: Text search to find places
     const query = `${businessType} in ${location}`;
@@ -43,7 +85,7 @@ serve(async (req) => {
       throw new Error(`Google Places API error: ${searchData.status}`);
     }
 
-    const places = searchData.results?.slice(0, limit) || [];
+    const places = searchData.results?.slice(0, sanitizedLimit) || [];
     
     // Step 2: Get details for each place (website, phone, etc.)
     const businesses = await Promise.all(

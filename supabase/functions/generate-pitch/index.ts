@@ -1,5 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -16,7 +16,6 @@ interface PitchRequest {
     description: string;
   }>;
   freelancerService?: string;
-  userId?: string;
 }
 
 serve(async (req) => {
@@ -25,16 +24,47 @@ serve(async (req) => {
   }
 
   try {
+    // Authentication check
+    const authHeader = req.headers.get("authorization");
+    if (!authHeader?.startsWith("Bearer ")) {
+      return new Response(
+        JSON.stringify({ error: "Unauthorized" }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
+    const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY");
+    const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+    
+    if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
+      throw new Error("Supabase environment variables not configured");
+    }
+
+    const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+      global: { headers: { Authorization: authHeader } }
+    });
+
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    
+    if (authError || !user) {
+      return new Response(
+        JSON.stringify({ error: "Unauthorized" }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // Get authenticated user ID
+    const userId = user.id;
+
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) {
       throw new Error("LOVABLE_API_KEY is not configured");
     }
 
-    const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
-    const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+    const { businessName, website, issues, freelancerService }: PitchRequest = await req.json();
 
-    const { businessName, website, issues, freelancerService, userId }: PitchRequest = await req.json();
-
+    // Input validation
     if (!businessName || !issues || issues.length === 0) {
       return new Response(
         JSON.stringify({ error: "businessName and issues are required" }),
@@ -42,7 +72,37 @@ serve(async (req) => {
       );
     }
 
-    // Fetch user profile for personalized pitches
+    // Validate input lengths
+    if (businessName.length > 200) {
+      return new Response(
+        JSON.stringify({ error: "Business name too long" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    if (website && website.length > 500) {
+      return new Response(
+        JSON.stringify({ error: "Website URL too long" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // Limit issues array size
+    if (issues.length > 20) {
+      return new Response(
+        JSON.stringify({ error: "Too many issues provided" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    if (freelancerService && freelancerService.length > 500) {
+      return new Response(
+        JSON.stringify({ error: "Service description too long" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // Fetch user profile for personalized pitches using service role (to bypass RLS)
     let profileData = {
       fullName: "Your Name",
       expertise: [] as string[],
@@ -51,16 +111,16 @@ serve(async (req) => {
       serviceDescription: freelancerService || "web development and digital marketing"
     };
 
-    if (userId && SUPABASE_URL && SUPABASE_SERVICE_ROLE_KEY) {
-      const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+    if (userId && SUPABASE_SERVICE_ROLE_KEY) {
+      const serviceClient = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
       
-      const { data: profile } = await supabase
+      const { data: profile } = await serviceClient
         .from("profiles")
         .select("full_name, expertise, bio, portfolio_url")
         .eq("user_id", userId)
         .single();
 
-      const { data: settings } = await supabase
+      const { data: settings } = await serviceClient
         .from("user_settings")
         .select("sender_name, service_description")
         .eq("user_id", userId)
@@ -79,27 +139,37 @@ serve(async (req) => {
       }
     }
 
-    // Format issues for the prompt
-    const issuesSummary = issues
+    // Sanitize inputs for AI prompt
+    const sanitizedBusinessName = businessName.replace(/[<>{}[\]\\]/g, '').substring(0, 100);
+    const sanitizedWebsite = (website || "No website found").replace(/[<>{}[\]\\]/g, '').substring(0, 200);
+
+    // Format issues for the prompt (limit and sanitize)
+    const sanitizedIssues = issues.slice(0, 6).map(issue => ({
+      ...issue,
+      title: (issue.title || "").replace(/[<>{}[\]\\]/g, '').substring(0, 100),
+      description: (issue.description || "").replace(/[<>{}[\]\\]/g, '').substring(0, 200)
+    }));
+
+    const issuesSummary = sanitizedIssues
       .slice(0, 4)
       .map(issue => `- ${issue.title}: ${issue.description}`)
       .join("\n");
 
-    const topIssues = issues
+    const topIssues = sanitizedIssues
       .filter(i => i.severity === 'high' || i.severity === 'medium')
       .slice(0, 2);
 
     const pitchPrompt = `You are a friendly freelancer writing a cold outreach email. Write a personalized pitch email for a potential client.
 
 About the Freelancer:
-- Name: ${profileData.fullName}
-- Expertise: ${profileData.expertise.length > 0 ? profileData.expertise.join(", ") : profileData.serviceDescription}
-- Bio: ${profileData.bio || "Professional freelancer with experience in digital services"}
-- Portfolio: ${profileData.portfolioUrl || "Available upon request"}
+- Name: ${profileData.fullName.substring(0, 100)}
+- Expertise: ${profileData.expertise.length > 0 ? profileData.expertise.slice(0, 5).join(", ") : profileData.serviceDescription.substring(0, 200)}
+- Bio: ${(profileData.bio || "Professional freelancer with experience in digital services").substring(0, 300)}
+- Portfolio: ${(profileData.portfolioUrl || "Available upon request").substring(0, 200)}
 
 Business Details:
-- Name: ${businessName}
-- Website: ${website || "No website found"}
+- Name: ${sanitizedBusinessName}
+- Website: ${sanitizedWebsite}
 
 Website Issues Found:
 ${issuesSummary}
@@ -185,7 +255,7 @@ Do NOT promise specific results or use superlatives.`;
     const aiData = await aiResponse.json();
     const toolCall = aiData.choices?.[0]?.message?.tool_calls?.[0];
     
-    let subject = `Quick question about ${businessName}'s website`;
+    let subject = `Quick question about ${sanitizedBusinessName}'s website`;
     let body = "";
 
     if (toolCall?.function?.arguments) {
@@ -202,7 +272,7 @@ Do NOT promise specific results or use superlatives.`;
       throw new Error("Failed to generate pitch content");
     }
 
-    console.log(`Pitch generated for ${businessName}`);
+    console.log(`Pitch generated for ${sanitizedBusinessName}`);
 
     return new Response(
       JSON.stringify({
