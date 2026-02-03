@@ -1,6 +1,6 @@
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Zap, Menu, X } from "lucide-react";
+import { Zap, Menu, X, Settings } from "lucide-react";
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -34,6 +34,9 @@ export function Header({ isAuthenticated, onLogout }: HeaderProps) {
               </Link>
               <Link to="/campaigns/new" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
                 New Campaign
+              </Link>
+              <Link to="/settings" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
+                <Settings className="w-4 h-4" />
               </Link>
               <Button variant="ghost" onClick={onLogout}>
                 Log Out
@@ -80,6 +83,9 @@ export function Header({ isAuthenticated, onLogout }: HeaderProps) {
                   </Link>
                   <Link to="/campaigns/new" className="py-2 text-sm font-medium text-muted-foreground hover:text-foreground">
                     New Campaign
+                  </Link>
+                  <Link to="/settings" className="py-2 text-sm font-medium text-muted-foreground hover:text-foreground">
+                    Settings
                   </Link>
                   <Button variant="ghost" onClick={onLogout} className="justify-start">
                     Log Out
