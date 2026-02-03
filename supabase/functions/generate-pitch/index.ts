@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -15,6 +16,7 @@ interface PitchRequest {
     description: string;
   }>;
   freelancerService?: string;
+  userId?: string;
 }
 
 serve(async (req) => {
@@ -28,13 +30,53 @@ serve(async (req) => {
       throw new Error("LOVABLE_API_KEY is not configured");
     }
 
-    const { businessName, website, issues, freelancerService = "web development and digital marketing" }: PitchRequest = await req.json();
+    const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
+    const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+
+    const { businessName, website, issues, freelancerService, userId }: PitchRequest = await req.json();
 
     if (!businessName || !issues || issues.length === 0) {
       return new Response(
         JSON.stringify({ error: "businessName and issues are required" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
+    }
+
+    // Fetch user profile for personalized pitches
+    let profileData = {
+      fullName: "Your Name",
+      expertise: [] as string[],
+      bio: "",
+      portfolioUrl: "",
+      serviceDescription: freelancerService || "web development and digital marketing"
+    };
+
+    if (userId && SUPABASE_URL && SUPABASE_SERVICE_ROLE_KEY) {
+      const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+      
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("full_name, expertise, bio, portfolio_url")
+        .eq("user_id", userId)
+        .single();
+
+      const { data: settings } = await supabase
+        .from("user_settings")
+        .select("sender_name, service_description")
+        .eq("user_id", userId)
+        .single();
+
+      if (profile) {
+        profileData.fullName = profile.full_name || profileData.fullName;
+        profileData.expertise = profile.expertise || [];
+        profileData.bio = profile.bio || "";
+        profileData.portfolioUrl = profile.portfolio_url || "";
+      }
+
+      if (settings) {
+        profileData.fullName = settings.sender_name || profileData.fullName;
+        profileData.serviceDescription = settings.service_description || profileData.serviceDescription;
+      }
     }
 
     // Format issues for the prompt
@@ -49,10 +91,15 @@ serve(async (req) => {
 
     const pitchPrompt = `You are a friendly freelancer writing a cold outreach email. Write a personalized pitch email for a potential client.
 
+About the Freelancer:
+- Name: ${profileData.fullName}
+- Expertise: ${profileData.expertise.length > 0 ? profileData.expertise.join(", ") : profileData.serviceDescription}
+- Bio: ${profileData.bio || "Professional freelancer with experience in digital services"}
+- Portfolio: ${profileData.portfolioUrl || "Available upon request"}
+
 Business Details:
 - Name: ${businessName}
 - Website: ${website || "No website found"}
-- Service you offer: ${freelancerService}
 
 Website Issues Found:
 ${issuesSummary}
@@ -63,11 +110,13 @@ ${topIssues.map(i => `- ${i.title} (${i.severity} severity)`).join("\n")}
 Write a cold email that:
 1. Opens with a specific observation about their website (reference an actual issue found)
 2. Briefly explains how this affects their business
-3. Offers your help without being pushy
-4. Includes a soft call-to-action (suggest a quick call or reply)
-5. Is conversational and friendly, NOT salesy
-6. Is between 150-200 words maximum
-7. Uses short paragraphs for readability
+3. Mentions your specific expertise that's relevant to their issues
+4. Offers your help without being pushy
+5. Includes a soft call-to-action (suggest a quick call or reply)
+6. Is conversational and friendly, NOT salesy
+7. Is between 150-200 words maximum
+8. Uses short paragraphs for readability
+9. Signs off with the freelancer's name
 
 Do NOT use phrases like "I noticed" at the very start - be more creative.
 Do NOT use exclamation marks excessively.
