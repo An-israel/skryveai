@@ -9,6 +9,8 @@ import { Progress } from "@/components/ui/progress";
 import { CampaignCharts } from "@/components/dashboard/CampaignCharts";
 import { SubscriptionStats } from "@/components/dashboard/SubscriptionStats";
 import { EmailSettingsDialog } from "@/components/settings/EmailSettingsDialog";
+import { OnboardingTour } from "@/components/onboarding/OnboardingTour";
+import { useOnboarding } from "@/hooks/use-onboarding";
 import { 
   Plus, 
   Mail, 
@@ -75,6 +77,9 @@ export default function Dashboard() {
   const [performanceData, setPerformanceData] = useState<Array<{ date: string; sent: number; opened: number; replies: number }>>([]);
   const navigate = useNavigate();
   const { toast } = useToast();
+  
+  // Onboarding
+  const { showTour, markOnboardingComplete } = useOnboarding(user?.id);
 
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
@@ -244,6 +249,8 @@ export default function Dashboard() {
     <div className="min-h-screen bg-background">
       <Header isAuthenticated={true} onLogout={handleLogout} />
       
+      {/* Onboarding Tour */}
+      {showTour && <OnboardingTour onComplete={markOnboardingComplete} />}
       <main className="container mx-auto px-4 pt-24 pb-12">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
