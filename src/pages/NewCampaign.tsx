@@ -11,75 +11,7 @@ import { SendStep } from "@/components/campaign/SendStep";
 import type { Business, WebsiteAnalysis, GeneratedPitch, CampaignStep } from "@/types/campaign";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-
-// Mock data for demo purposes (will be replaced with real API calls)
-function generateMockBusinesses(type: string, location: string): Business[] {
-  const names = [
-    `${type} Pro`, `Elite ${type}`, `${location} ${type}`, `Premier ${type}`,
-    `${type} Plus`, `Best ${type}`, `Top ${type}`, `${type} Masters`,
-    `Quality ${type}`, `${type} Experts`, `The ${type} Co`, `${type} Hub`,
-    `Local ${type}`, `${type} Direct`, `${type} Central`, `Metro ${type}`,
-    `${type} Works`, `${type} Solutions`, `${type} Group`, `Prime ${type}`,
-    `${type} Nation`, `${type} First`, `City ${type}`, `${type} One`,
-    `${type} Pros`, `Superior ${type}`, `${type} Connect`, `Express ${type}`,
-    `${type} Now`, `Smart ${type}`
-  ];
-
-  return names.map((name, i) => ({
-    id: `business-${i}`,
-    name,
-    address: `${100 + i * 12} Main Street, ${location}`,
-    phone: `(555) ${100 + i}-${1000 + i}`,
-    website: `www.${name.toLowerCase().replace(/\s+/g, '')}.com`,
-    rating: Math.round((3.5 + Math.random() * 1.5) * 10) / 10,
-    reviewCount: Math.floor(10 + Math.random() * 200),
-    category: type,
-  }));
-}
-
-function generateMockAnalysis(businessId: string): WebsiteAnalysis {
-  const issues = [
-    { category: 'seo' as const, severity: 'high' as const, title: 'Missing Meta Description', description: 'No meta description found, hurting search visibility' },
-    { category: 'seo' as const, severity: 'medium' as const, title: 'No H1 Tag', description: 'Primary heading is missing from the page' },
-    { category: 'performance' as const, severity: 'high' as const, title: 'Slow Page Load', description: 'Page takes over 4 seconds to load' },
-    { category: 'design' as const, severity: 'medium' as const, title: 'Not Mobile Responsive', description: 'Website doesn\'t adapt to mobile screens' },
-    { category: 'copywriting' as const, severity: 'low' as const, title: 'Weak Headlines', description: 'Headlines lack compelling value propositions' },
-    { category: 'cta' as const, severity: 'high' as const, title: 'No Clear CTA', description: 'Missing call-to-action buttons' },
-    { category: 'social' as const, severity: 'low' as const, title: 'Missing Social Links', description: 'No social media presence linked' },
-  ];
-
-  const selectedIssues = issues.filter(() => Math.random() > 0.4);
-  
-  return {
-    businessId,
-    issues: selectedIssues.slice(0, Math.floor(2 + Math.random() * 4)),
-    overallScore: Math.round(40 + Math.random() * 40),
-    analyzed: true,
-    analyzedAt: new Date().toISOString(),
-  };
-}
-
-function generateMockPitch(business: Business, analysis: WebsiteAnalysis): GeneratedPitch {
-  const topIssue = analysis.issues[0];
-  
-  return {
-    businessId: business.id,
-    subject: `Quick win for ${business.name}'s website`,
-    body: `Hi there,
-
-I came across ${business.name}'s website and noticed a few areas where I could help improve your online presence.
-
-Specifically, I noticed ${topIssue?.title.toLowerCase() || 'some optimization opportunities'} that could be affecting your visibility and customer conversions.
-
-I specialize in helping ${business.category?.toLowerCase() || 'businesses'} improve their websites to attract more customers. I'd love to share a few quick recommendations - no strings attached.
-
-Would you have 15 minutes this week for a quick call?
-
-Best regards`,
-    approved: false,
-    edited: false,
-  };
-}
+import { campaignApi } from "@/lib/api/campaign";
 
 export default function NewCampaign() {
   const [currentStep, setCurrentStep] = useState<CampaignStep>('search');
@@ -111,13 +43,25 @@ export default function NewCampaign() {
 
   const handleSearch = async (businessType: string, location: string) => {
     setIsLoading(true);
-    // Simulate API delay
-    await new Promise((r) => setTimeout(r, 1500));
-    const results = generateMockBusinesses(businessType, location);
-    setBusinesses(results);
-    setIsLoading(false);
-    setCompletedSteps([...completedSteps, 'search']);
-    setCurrentStep('select');
+    try {
+      const result = await campaignApi.searchBusinesses(businessType, location);
+      setBusinesses(result.businesses);
+      setCompletedSteps([...completedSteps, 'search']);
+      setCurrentStep('select');
+      toast({
+        title: "Search Complete",
+        description: `Found ${result.total} businesses matching your criteria.`,
+      });
+    } catch (error) {
+      console.error("Search error:", error);
+      toast({
+        title: "Search Failed",
+        description: error instanceof Error ? error.message : "Failed to search businesses",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleSelect = (selected: Business[]) => {
@@ -129,29 +73,93 @@ export default function NewCampaign() {
   const handleStartAnalysis = async () => {
     setIsAnalyzing(true);
     const newAnalyses: Record<string, WebsiteAnalysis> = {};
+    const newPitches: Record<string, GeneratedPitch> = {};
 
     for (let i = 0; i < selectedBusinesses.length; i++) {
       const business = selectedBusinesses[i];
       setCurrentAnalyzing(business.name);
       setAnalysisProgress((i / selectedBusinesses.length) * 100);
-      
-      // Simulate analysis time
-      await new Promise((r) => setTimeout(r, 800 + Math.random() * 700));
-      
-      newAnalyses[business.id] = generateMockAnalysis(business.id);
-      setAnalyses({ ...newAnalyses });
+
+      // Skip businesses without websites
+      if (!business.website) {
+        newAnalyses[business.id] = {
+          businessId: business.id,
+          issues: [{ 
+            category: 'design', 
+            severity: 'high', 
+            title: 'No Website Found', 
+            description: 'This business doesn\'t have a website listed' 
+          }],
+          overallScore: 0,
+          analyzed: true,
+          analyzedAt: new Date().toISOString(),
+        };
+        setAnalyses({ ...newAnalyses });
+        continue;
+      }
+
+      try {
+        // Analyze the website
+        const analysisResult = await campaignApi.analyzeWebsite(business.website, business.name);
+        
+        newAnalyses[business.id] = {
+          businessId: business.id,
+          issues: analysisResult.issues,
+          overallScore: analysisResult.overallScore,
+          analyzed: true,
+          analyzedAt: analysisResult.analyzedAt,
+        };
+        
+        // Update email if found
+        if (analysisResult.email && !business.email) {
+          const updatedBusiness = { ...business, email: analysisResult.email };
+          setSelectedBusinesses(prev => 
+            prev.map(b => b.id === business.id ? updatedBusiness : b)
+          );
+        }
+
+        setAnalyses({ ...newAnalyses });
+
+        // Generate pitch for this business
+        try {
+          const pitchResult = await campaignApi.generatePitch(
+            business.name,
+            business.website,
+            analysisResult.issues
+          );
+          
+          newPitches[business.id] = {
+            businessId: business.id,
+            subject: pitchResult.subject,
+            body: pitchResult.body,
+            edited: false,
+            approved: false,
+          };
+          setPitches({ ...newPitches });
+        } catch (pitchError) {
+          console.error(`Pitch generation failed for ${business.name}:`, pitchError);
+        }
+      } catch (error) {
+        console.error(`Analysis failed for ${business.name}:`, error);
+        newAnalyses[business.id] = {
+          businessId: business.id,
+          issues: [{ 
+            category: 'performance', 
+            severity: 'medium', 
+            title: 'Analysis Failed', 
+            description: 'Could not analyze website - it may be offline or blocking scrapers' 
+          }],
+          overallScore: 0,
+          analyzed: true,
+          analyzedAt: new Date().toISOString(),
+        };
+        setAnalyses({ ...newAnalyses });
+      }
     }
 
     setAnalysisProgress(100);
     setCurrentAnalyzing(undefined);
     setIsAnalyzing(false);
-
-    // Auto-generate pitches
-    const newPitches: Record<string, GeneratedPitch> = {};
-    for (const business of selectedBusinesses) {
-      newPitches[business.id] = generateMockPitch(business, newAnalyses[business.id]);
-    }
-    setPitches(newPitches);
 
     toast({
       title: "Analysis Complete",
@@ -171,11 +179,33 @@ export default function NewCampaign() {
   const handleRegeneratePitch = async (businessId: string) => {
     const business = selectedBusinesses.find((b) => b.id === businessId);
     const analysis = analyses[businessId];
-    if (business && analysis) {
-      await new Promise((r) => setTimeout(r, 500));
-      const newPitch = generateMockPitch(business, analysis);
-      setPitches({ ...pitches, [businessId]: { ...newPitch, body: newPitch.body + "\n\n(Regenerated)" } });
-      toast({ title: "Pitch regenerated" });
+    
+    if (business && analysis && business.website) {
+      try {
+        const pitchResult = await campaignApi.generatePitch(
+          business.name,
+          business.website,
+          analysis.issues
+        );
+        
+        setPitches({ 
+          ...pitches, 
+          [businessId]: {
+            businessId,
+            subject: pitchResult.subject,
+            body: pitchResult.body,
+            edited: false,
+            approved: false,
+          }
+        });
+        toast({ title: "Pitch regenerated" });
+      } catch (error) {
+        toast({ 
+          title: "Regeneration failed", 
+          description: error instanceof Error ? error.message : "Unknown error",
+          variant: "destructive" 
+        });
+      }
     }
   };
 
@@ -189,6 +219,7 @@ export default function NewCampaign() {
     const approvedBusinesses = selectedBusinesses.filter((b) => pitches[b.id]?.approved);
     
     for (let i = 0; i < approvedBusinesses.length; i++) {
+      // TODO: Integrate email sending API
       await new Promise((r) => setTimeout(r, 500 + Math.random() * 500));
       setSentCount(i + 1);
       setSendProgress(((i + 1) / approvedBusinesses.length) * 100);
