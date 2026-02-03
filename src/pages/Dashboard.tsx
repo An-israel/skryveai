@@ -267,6 +267,12 @@ export default function Dashboard() {
               </p>
             </div>
             <div className="flex items-center gap-3">
+              <Button asChild variant="outline" size="sm">
+                <Link to="/analytics">
+                  <BarChart3 className="w-4 h-4 mr-2" />
+                  Analytics
+                </Link>
+              </Button>
               <EmailSettingsDialog 
                 trigger={
                   <Button variant="outline" size="sm">
