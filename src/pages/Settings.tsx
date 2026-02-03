@@ -26,20 +26,82 @@ import { useAuth } from "@/hooks/use-auth";
 import { Header } from "@/components/layout/Header";
 
 const EXPERTISE_OPTIONS = [
+  // Development
   "Web Development",
-  "Mobile App Development", 
-  "UI/UX Design",
-  "Graphic Design",
-  "SEO",
-  "Content Writing",
-  "Social Media Marketing",
-  "Email Marketing",
-  "Video Production",
-  "Photography",
-  "E-commerce",
+  "Mobile App Development",
+  "Frontend Development",
+  "Backend Development",
+  "Full Stack Development",
+  "Custom Software",
   "WordPress",
   "Shopify",
-  "Custom Software",
+  "Webflow",
+  "No-Code Development",
+  "API Development",
+  "DevOps",
+  
+  // Design
+  "UI/UX Design",
+  "Graphic Design",
+  "Logo Design",
+  "Brand Identity",
+  "Web Design",
+  "Product Design",
+  "Motion Graphics",
+  "3D Design",
+  "Illustration",
+  
+  // Marketing
+  "SEO",
+  "Social Media Marketing",
+  "Email Marketing",
+  "Content Marketing",
+  "PPC Advertising",
+  "Influencer Marketing",
+  "Affiliate Marketing",
+  "Growth Hacking",
+  
+  // Content
+  "Content Writing",
+  "Copywriting",
+  "Technical Writing",
+  "Blog Writing",
+  "Ghostwriting",
+  "Scriptwriting",
+  "Translation",
+  "Proofreading",
+  
+  // Media
+  "Video Production",
+  "Video Editing",
+  "Photography",
+  "Podcast Production",
+  "Animation",
+  "Voice Over",
+  
+  // Business
+  "Virtual Assistant",
+  "Project Management",
+  "Business Consulting",
+  "Data Entry",
+  "Customer Support",
+  "Sales",
+  "Lead Generation",
+  "Market Research",
+  
+  // Tech
+  "Data Science",
+  "Machine Learning",
+  "Cybersecurity",
+  "Cloud Services",
+  "Blockchain",
+  "AI Development",
+  
+  // E-commerce
+  "E-commerce",
+  "Dropshipping",
+  "Amazon FBA",
+  "Product Listing",
 ];
 
 interface Profile {

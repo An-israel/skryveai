@@ -105,8 +105,8 @@ serve(async (req) => {
         `;
 
         // Send via Resend
-        const fromEmail = queuedEmail.sender_email || "outreach@resend.dev";
-        const fromName = queuedEmail.sender_name || "OutreachPro";
+        const fromEmail = queuedEmail.sender_email || "outreach@skryveai.com"; // Update to your verified domain
+        const fromName = queuedEmail.sender_name || "SkryveAI";
 
         const { data: emailResponse, error: sendError } = await resend.emails.send({
           from: `${fromName} <${fromEmail}>`,

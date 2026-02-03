@@ -46,8 +46,8 @@ serve(async (req) => {
       toEmail, 
       subject, 
       body,
-      fromName = "OutreachPro",
-      fromEmail = "outreach@resend.dev" // Change to your verified domain
+      fromName = "SkryveAI",
+      fromEmail = "outreach@skryveai.com" // Update to your verified domain
     }: SendEmailRequest = await req.json();
 
     if (!campaignId || !businessId || !pitchId || !toEmail || !subject || !body) {

@@ -4,7 +4,6 @@ import { Menu, X, Settings, Shield } from "lucide-react";
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { supabase } from "@/integrations/supabase/client";
-import { ThemeToggle } from "@/components/ThemeToggle";
 
 interface HeaderProps {
   isAuthenticated?: boolean;
@@ -64,7 +63,6 @@ export function Header({ isAuthenticated, onLogout }: HeaderProps) {
               <Link to="/settings" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
                 <Settings className="w-4 h-4" />
               </Link>
-              <ThemeToggle />
               <Button variant="ghost" onClick={onLogout}>
                 Log Out
               </Button>
@@ -74,7 +72,6 @@ export function Header({ isAuthenticated, onLogout }: HeaderProps) {
               <Link to="/login" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
                 Sign In
               </Link>
-              <ThemeToggle />
               <Button asChild>
                 <Link to="/signup">Get Started</Link>
               </Button>
