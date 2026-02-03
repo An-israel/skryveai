@@ -1,6 +1,5 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { motion } from "framer-motion";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -32,6 +31,8 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar } from "recharts";
+import { CMSPageEditor } from "@/components/admin/CMSPageEditor";
+import { CMSImageUploader } from "@/components/admin/CMSImageUploader";
 
 interface AdminStats {
   totalUsers: number;
@@ -42,11 +43,23 @@ interface AdminStats {
   totalRevenue: number;
 }
 
+interface CMSPage {
+  id: string;
+  title: string;
+  slug: string;
+  meta_title: string | null;
+  meta_description: string | null;
+  content: unknown;
+  is_published: boolean | null;
+  created_at: string;
+  updated_at: string;
+}
+
 export default function Admin() {
   const [stats, setStats] = useState<AdminStats | null>(null);
   const [users, setUsers] = useState<any[]>([]);
   const [campaigns, setCampaigns] = useState<any[]>([]);
-  const [pages, setPages] = useState<any[]>([]);
+  const [pages, setPages] = useState<CMSPage[]>([]);
   const [images, setImages] = useState<any[]>([]);
   const [staff, setStaff] = useState<any[]>([]);
   const [activityLog, setActivityLog] = useState<any[]>([]);
@@ -57,6 +70,12 @@ export default function Admin() {
   const [showAddStaffDialog, setShowAddStaffDialog] = useState(false);
   const [newStaffEmail, setNewStaffEmail] = useState("");
   const [newStaffRole, setNewStaffRole] = useState<string>("");
+  
+  // CMS state
+  const [showPageEditor, setShowPageEditor] = useState(false);
+  const [editingPage, setEditingPage] = useState<CMSPage | null>(null);
+  const [showImageUploader, setShowImageUploader] = useState(false);
+  
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -228,6 +247,32 @@ export default function Admin() {
       loadData();
     } catch {
       toast({ title: "Failed to delete user", variant: "destructive" });
+    }
+  };
+
+  const handleDeletePage = async (pageId: string) => {
+    if (!confirm("Are you sure you want to delete this page?")) return;
+    
+    try {
+      const { error } = await supabase.from("cms_pages").delete().eq("id", pageId);
+      if (error) throw error;
+      toast({ title: "Page deleted" });
+      loadData();
+    } catch {
+      toast({ title: "Failed to delete page", variant: "destructive" });
+    }
+  };
+
+  const handleDeleteImage = async (imageId: string) => {
+    if (!confirm("Are you sure you want to delete this image?")) return;
+    
+    try {
+      const { error } = await supabase.from("cms_images").delete().eq("id", imageId);
+      if (error) throw error;
+      toast({ title: "Image deleted" });
+      loadData();
+    } catch {
+      toast({ title: "Failed to delete image", variant: "destructive" });
     }
   };
 
@@ -491,7 +536,10 @@ export default function Admin() {
                   <CardTitle>CMS Pages</CardTitle>
                   <CardDescription>Manage website content and pages</CardDescription>
                 </div>
-                <Button className="gap-2">
+                <Button className="gap-2" onClick={() => {
+                  setEditingPage(null);
+                  setShowPageEditor(true);
+                }}>
                   <Plus className="w-4 h-4" /> Add Page
                 </Button>
               </CardHeader>
@@ -524,10 +572,21 @@ export default function Admin() {
                           <TableCell>{new Date(page.updated_at).toLocaleDateString()}</TableCell>
                           <TableCell>
                             <div className="flex gap-2">
-                              <Button variant="ghost" size="icon">
+                              <Button 
+                                variant="ghost" 
+                                size="icon"
+                                onClick={() => {
+                                  setEditingPage(page);
+                                  setShowPageEditor(true);
+                                }}
+                              >
                                 <Edit className="w-4 h-4" />
                               </Button>
-                              <Button variant="ghost" size="icon">
+                              <Button 
+                                variant="ghost" 
+                                size="icon"
+                                onClick={() => handleDeletePage(page.id)}
+                              >
                                 <Trash2 className="w-4 h-4 text-destructive" />
                               </Button>
                             </div>
@@ -549,7 +608,7 @@ export default function Admin() {
                   <CardTitle>Image Library</CardTitle>
                   <CardDescription>Manage all uploaded images</CardDescription>
                 </div>
-                <Button className="gap-2">
+                <Button className="gap-2" onClick={() => setShowImageUploader(true)}>
                   <Plus className="w-4 h-4" /> Upload Image
                 </Button>
               </CardHeader>
@@ -568,13 +627,24 @@ export default function Admin() {
                           className="w-full h-32 object-cover rounded-lg"
                         />
                         <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity rounded-lg flex items-center justify-center gap-2">
-                          <Button size="icon" variant="ghost" className="text-white">
+                          <Button 
+                            size="icon" 
+                            variant="ghost" 
+                            className="text-white"
+                            onClick={() => window.open(image.url, "_blank")}
+                          >
                             <Download className="w-4 h-4" />
                           </Button>
-                          <Button size="icon" variant="ghost" className="text-white">
+                          <Button 
+                            size="icon" 
+                            variant="ghost" 
+                            className="text-white"
+                            onClick={() => handleDeleteImage(image.id)}
+                          >
                             <Trash2 className="w-4 h-4" />
                           </Button>
                         </div>
+                        <p className="text-xs text-muted-foreground mt-1 truncate">{image.name}</p>
                       </div>
                     ))}
                   </div>
@@ -781,6 +851,21 @@ export default function Admin() {
           </TabsContent>
         </Tabs>
       </div>
+
+      {/* CMS Page Editor Dialog */}
+      <CMSPageEditor
+        open={showPageEditor}
+        onOpenChange={setShowPageEditor}
+        page={editingPage}
+        onSave={loadData}
+      />
+
+      {/* CMS Image Uploader Dialog */}
+      <CMSImageUploader
+        open={showImageUploader}
+        onOpenChange={setShowImageUploader}
+        onUpload={loadData}
+      />
     </div>
   );
 }
