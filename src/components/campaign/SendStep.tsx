@@ -145,16 +145,27 @@ export function SendStep({
         >
           <Calendar className="w-12 h-12 text-info" />
         </motion.div>
-        <h2 className="text-3xl font-bold mb-2">Emails Scheduled! 📅</h2>
+        <h2 className="text-3xl font-bold mb-2">Emails Queued Successfully! 📅</h2>
         <p className="text-muted-foreground mb-4 max-w-md mx-auto">
-          {queuedCount} emails have been queued and will be sent with {userSettings?.delay_between_emails || 30} second delays between each.
+          Your {queuedCount} emails have been queued and are being sent automatically with {userSettings?.delay_between_emails || 30} second intervals.
         </p>
-        <Badge variant="secondary" className="mb-8">
-          Estimated completion: ~{estimatedMinutes} minutes
-        </Badge>
+        
+        <Card className="max-w-md mx-auto mb-6 p-4 border-info/30 bg-info/5">
+          <div className="flex items-start gap-3 text-left">
+            <Clock className="w-5 h-5 text-info shrink-0 mt-0.5" />
+            <div>
+              <h4 className="font-medium text-sm mb-1">Delivery Status</h4>
+              <p className="text-xs text-muted-foreground">
+                Emails are processed automatically every 2 minutes. Estimated completion time: <strong>~{estimatedMinutes} minutes</strong>. 
+                You'll see delivery stats in your dashboard once complete.
+              </p>
+            </div>
+          </div>
+        </Card>
+        
         <div className="flex justify-center gap-4">
           <Button variant="outline" asChild>
-            <a href="/dashboard">View Dashboard</a>
+            <a href="/dashboard">Track Progress</a>
           </Button>
           <Button asChild>
             <a href="/campaigns/new">New Campaign</a>
