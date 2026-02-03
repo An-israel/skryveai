@@ -27,12 +27,14 @@ import {
   BarChart3,
   Mail,
   Target,
+  Send,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar } from "recharts";
 import { CMSPageEditor } from "@/components/admin/CMSPageEditor";
 import { CMSImageUploader } from "@/components/admin/CMSImageUploader";
+import { EmailQueueManager } from "@/components/admin/EmailQueueManager";
 
 interface AdminStats {
   totalUsers: number;
@@ -374,12 +376,15 @@ export default function Admin() {
 
         {/* Main Tabs */}
         <Tabs defaultValue="users">
-          <TabsList className="mb-4">
+          <TabsList className="mb-4 flex-wrap">
             <TabsTrigger value="users" className="gap-2">
               <Users className="w-4 h-4" /> Users
             </TabsTrigger>
             <TabsTrigger value="campaigns" className="gap-2">
               <Target className="w-4 h-4" /> Campaigns
+            </TabsTrigger>
+            <TabsTrigger value="email-queue" className="gap-2">
+              <Send className="w-4 h-4" /> Email Queue
             </TabsTrigger>
             <TabsTrigger value="pages" className="gap-2">
               <FileText className="w-4 h-4" /> Pages
@@ -526,6 +531,11 @@ export default function Admin() {
                 </Table>
               </CardContent>
             </Card>
+          </TabsContent>
+
+          {/* Email Queue Tab */}
+          <TabsContent value="email-queue">
+            <EmailQueueManager />
           </TabsContent>
 
           {/* Pages Tab */}
