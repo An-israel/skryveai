@@ -1,9 +1,10 @@
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Zap, Menu, X, Settings, Shield } from "lucide-react";
+import { Menu, X, Settings, Shield } from "lucide-react";
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { supabase } from "@/integrations/supabase/client";
+import { ThemeToggle } from "@/components/ThemeToggle";
 
 interface HeaderProps {
   isAuthenticated?: boolean;
@@ -39,10 +40,7 @@ export function Header({ isAuthenticated, onLogout }: HeaderProps) {
     <header className="fixed top-0 left-0 right-0 z-50 glass border-b">
       <div className="container mx-auto px-4 h-16 flex items-center justify-between">
         <Link to="/" className="flex items-center gap-2 group">
-          <div className="w-9 h-9 rounded-lg bg-gradient-accent flex items-center justify-center shadow-md group-hover:shadow-glow transition-shadow">
-            <Zap className="w-5 h-5 text-primary-foreground" />
-          </div>
-          <span className="font-bold text-xl text-foreground">OutreachPro</span>
+          <span className="font-bold text-2xl text-gradient">SkryveAI</span>
         </Link>
 
         {/* Desktop Navigation */}
@@ -66,6 +64,7 @@ export function Header({ isAuthenticated, onLogout }: HeaderProps) {
               <Link to="/settings" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
                 <Settings className="w-4 h-4" />
               </Link>
+              <ThemeToggle />
               <Button variant="ghost" onClick={onLogout}>
                 Log Out
               </Button>
@@ -75,6 +74,7 @@ export function Header({ isAuthenticated, onLogout }: HeaderProps) {
               <Link to="/login" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
                 Sign In
               </Link>
+              <ThemeToggle />
               <Button asChild>
                 <Link to="/signup">Get Started</Link>
               </Button>

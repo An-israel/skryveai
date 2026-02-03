@@ -35,3 +35,14 @@ verify_jwt = false
 
 [functions.admin-stats]
 verify_jwt = false
+
+[functions.send-password-reset]
+verify_jwt = false
+
+[crons.process-email-queue]
+schedule = "*/2 * * * *"
+function = "process-email-queue"
+
+[crons.process-trial-reminders]
+schedule = "0 9 * * *"
+function = "process-trial-reminders"
