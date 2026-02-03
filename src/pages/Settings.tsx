@@ -18,12 +18,14 @@ import {
   Upload,
   X,
   ArrowLeft,
-  Settings as SettingsIcon
+  Settings as SettingsIcon,
+  Mail
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/use-auth";
 import { Header } from "@/components/layout/Header";
+import { EmailVerificationStatus } from "@/components/settings/EmailVerificationStatus";
 
 const EXPERTISE_OPTIONS = [
   // Development
@@ -311,7 +313,7 @@ export default function Settings() {
           </div>
 
           <Tabs defaultValue="profile" className="space-y-6">
-            <TabsList className="grid w-full grid-cols-3">
+            <TabsList className="grid w-full grid-cols-4">
               <TabsTrigger value="profile" className="gap-2">
                 <User className="w-4 h-4" />
                 Profile
@@ -323,6 +325,10 @@ export default function Settings() {
               <TabsTrigger value="documents" className="gap-2">
                 <FileText className="w-4 h-4" />
                 Documents
+              </TabsTrigger>
+              <TabsTrigger value="email" className="gap-2">
+                <Mail className="w-4 h-4" />
+                Email
               </TabsTrigger>
             </TabsList>
 
@@ -516,6 +522,10 @@ export default function Settings() {
                   </div>
                 </CardContent>
               </Card>
+            </TabsContent>
+
+            <TabsContent value="email">
+              <EmailVerificationStatus />
             </TabsContent>
           </Tabs>
 
