@@ -490,6 +490,7 @@ export type Database = {
           id: string
           phone: string | null
           portfolio_url: string | null
+          signup_ip: string | null
           updated_at: string
           user_id: string
         }
@@ -505,6 +506,7 @@ export type Database = {
           id?: string
           phone?: string | null
           portfolio_url?: string | null
+          signup_ip?: string | null
           updated_at?: string
           user_id: string
         }
@@ -520,7 +522,29 @@ export type Database = {
           id?: string
           phone?: string | null
           portfolio_url?: string | null
+          signup_ip?: string | null
           updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      signup_ips: {
+        Row: {
+          created_at: string
+          id: string
+          ip_address: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          ip_address: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          ip_address?: string
           user_id?: string
         }
         Relationships: []

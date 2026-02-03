@@ -98,71 +98,62 @@ export default function Signup() {
     setIsLoading(true);
 
     try {
-      // Sign up with Supabase Auth
-      // The database trigger handle_new_user() automatically creates:
-      // - profile, subscription, and user_settings records
-      const { data: authData, error: authError } = await supabase.auth.signUp({
-        email: formData.email,
-        password: formData.password,
-        options: {
-          data: {
-            full_name: formData.fullName,
+      // Use edge function for signup with IP validation
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/signup-with-ip-check`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "apikey": import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+          },
+          body: JSON.stringify({
+            email: formData.email,
+            password: formData.password,
+            fullName: formData.fullName,
             phone: formData.phone || null,
-            portfolio_url: formData.portfolioUrl || null,
+            portfolioUrl: formData.portfolioUrl || null,
             bio: formData.bio || null,
             expertise: formData.expertise,
-          },
-          emailRedirectTo: window.location.origin,
-        },
-      });
+          }),
+        }
+      );
 
-      if (authError) throw authError;
+      const result = await response.json();
 
-      if (authData.user) {
-        // Upload CV if provided (after signup since we need the user ID)
-        if (cvFile) {
-          const filePath = `${authData.user.id}/${Date.now()}_${cvFile.name}`;
+      if (!response.ok) {
+        throw new Error(result.error || "Signup failed");
+      }
+
+      // Upload CV if provided
+      if (cvFile && result.user?.id) {
+        const { data: sessionData } = await supabase.auth.signInWithPassword({
+          email: formData.email,
+          password: formData.password,
+        });
+        
+        if (sessionData?.session) {
+          const filePath = `${result.user.id}/${Date.now()}_${cvFile.name}`;
           const { error: uploadError } = await supabase.storage
             .from("cv-uploads")
             .upload(filePath, cvFile);
           
-          if (uploadError) {
-            console.error("CV upload error:", uploadError);
-          } else {
-            // Update profile with CV URL after the trigger has created it
+          if (!uploadError) {
             await supabase.from("profiles")
-              .update({ 
-                cv_url: filePath,
-                phone: formData.phone || null,
-                portfolio_url: formData.portfolioUrl || null,
-                bio: formData.bio || null,
-                expertise: formData.expertise,
-              })
-              .eq("user_id", authData.user.id);
+              .update({ cv_url: filePath })
+              .eq("user_id", result.user.id);
           }
-        } else {
-          // Update profile with additional data not handled by trigger
-          await supabase.from("profiles")
-            .update({ 
-              phone: formData.phone || null,
-              portfolio_url: formData.portfolioUrl || null,
-              bio: formData.bio || null,
-              expertise: formData.expertise,
-            })
-            .eq("user_id", authData.user.id);
+          
+          // Sign out since email isn't verified yet
+          await supabase.auth.signOut();
         }
-
-        // Update user settings with service description
-        await supabase.from("user_settings")
-          .update({ service_description: formData.expertise.join(", ") })
-          .eq("user_id", authData.user.id);
-
-        toast({
-          title: "Account created successfully!",
-          description: "Please check your email to verify your account before signing in.",
-        });
-        navigate("/login");
       }
+
+      toast({
+        title: "Account created successfully!",
+        description: "Please check your email to verify your account before signing in.",
+      });
+      navigate("/login");
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : "Something went wrong";
       toast({
