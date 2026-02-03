@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -17,12 +18,88 @@ interface AnalysisIssue {
   description: string;
 }
 
+// Validate URL and prevent SSRF
+function isValidUrl(urlString: string): boolean {
+  try {
+    const url = new URL(urlString);
+    
+    // Only allow http/https
+    if (!['http:', 'https:'].includes(url.protocol)) {
+      return false;
+    }
+    
+    // Block localhost and private IPs
+    const hostname = url.hostname.toLowerCase();
+    if (
+      hostname === 'localhost' ||
+      hostname === '127.0.0.1' ||
+      hostname === '0.0.0.0' ||
+      hostname.startsWith('192.168.') ||
+      hostname.startsWith('10.') ||
+      hostname.startsWith('172.16.') ||
+      hostname.startsWith('172.17.') ||
+      hostname.startsWith('172.18.') ||
+      hostname.startsWith('172.19.') ||
+      hostname.startsWith('172.20.') ||
+      hostname.startsWith('172.21.') ||
+      hostname.startsWith('172.22.') ||
+      hostname.startsWith('172.23.') ||
+      hostname.startsWith('172.24.') ||
+      hostname.startsWith('172.25.') ||
+      hostname.startsWith('172.26.') ||
+      hostname.startsWith('172.27.') ||
+      hostname.startsWith('172.28.') ||
+      hostname.startsWith('172.29.') ||
+      hostname.startsWith('172.30.') ||
+      hostname.startsWith('172.31.') ||
+      hostname.startsWith('169.254.') || // AWS metadata
+      hostname.endsWith('.local') ||
+      hostname.endsWith('.internal')
+    ) {
+      return false;
+    }
+    
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
+    // Authentication check
+    const authHeader = req.headers.get("authorization");
+    if (!authHeader?.startsWith("Bearer ")) {
+      return new Response(
+        JSON.stringify({ error: "Unauthorized" }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
+    const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY");
+    
+    if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
+      throw new Error("Supabase environment variables not configured");
+    }
+
+    const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+      global: { headers: { Authorization: authHeader } }
+    });
+
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    
+    if (authError || !user) {
+      return new Response(
+        JSON.stringify({ error: "Unauthorized" }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
     const FIRECRAWL_API_KEY = Deno.env.get("FIRECRAWL_API_KEY");
     if (!FIRECRAWL_API_KEY) {
       throw new Error("FIRECRAWL_API_KEY is not configured");
@@ -35,9 +112,26 @@ serve(async (req) => {
 
     const { url, businessName }: AnalyzeRequest = await req.json();
 
+    // Input validation
     if (!url) {
       return new Response(
         JSON.stringify({ error: "URL is required" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // Validate URL length
+    if (url.length > 500) {
+      return new Response(
+        JSON.stringify({ error: "URL too long" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // Validate business name length
+    if (businessName && businessName.length > 200) {
+      return new Response(
+        JSON.stringify({ error: "Business name too long" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
@@ -46,6 +140,14 @@ serve(async (req) => {
     let formattedUrl = url.trim();
     if (!formattedUrl.startsWith("http://") && !formattedUrl.startsWith("https://")) {
       formattedUrl = `https://${formattedUrl}`;
+    }
+
+    // Validate URL to prevent SSRF
+    if (!isValidUrl(formattedUrl)) {
+      return new Response(
+        JSON.stringify({ error: "Invalid or disallowed URL" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
     }
 
     console.log(`Scraping website: ${formattedUrl}`);
@@ -78,13 +180,16 @@ serve(async (req) => {
 
     console.log(`Scraped ${websiteContent.length} characters of content`);
 
+    // Sanitize business name for AI prompt (remove special characters that could be injection vectors)
+    const sanitizedBusinessName = (businessName || "Unknown Business").replace(/[<>{}[\]\\]/g, '').substring(0, 100);
+
     // Step 2: Use AI to analyze the website
     const analysisPrompt = `You are a website auditor analyzing a business website. Analyze the following website content and identify specific issues that a freelance web developer or marketer could help fix.
 
-Business Name: ${businessName}
+Business Name: ${sanitizedBusinessName}
 Website URL: ${formattedUrl}
-Page Title: ${metadata.title || "Unknown"}
-Meta Description: ${metadata.description || "None found"}
+Page Title: ${(metadata.title || "Unknown").substring(0, 200)}
+Meta Description: ${(metadata.description || "None found").substring(0, 300)}
 
 Website Content:
 ${websiteContent.substring(0, 8000)}
@@ -93,7 +198,7 @@ HTML Snippet (for technical analysis):
 ${htmlContent.substring(0, 3000)}
 
 Links found: ${links.length}
-Social media links: ${links.filter((l: string) => l.includes('facebook') || l.includes('twitter') || l.includes('instagram') || l.includes('linkedin')).join(', ') || 'None detected'}
+Social media links: ${links.filter((l: string) => l.includes('facebook') || l.includes('twitter') || l.includes('instagram') || l.includes('linkedin')).slice(0, 10).join(', ') || 'None detected'}
 
 Analyze this website and identify 3-6 specific issues across these categories:
 - SEO: Missing meta tags, poor headings structure, no alt text, missing sitemap

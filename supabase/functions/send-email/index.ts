@@ -18,26 +18,75 @@ interface SendEmailRequest {
   fromEmail?: string;
 }
 
+// Simple email validation
+function isValidEmail(email: string): boolean {
+  const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+  return emailRegex.test(email) && email.length <= 254;
+}
+
+// Simple UUID validation
+function isValidUUID(uuid: string): boolean {
+  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+  return uuidRegex.test(uuid);
+}
+
+// Escape HTML to prevent XSS in emails
+function escapeHtml(text: string): string {
+  const htmlEscapes: Record<string, string> = {
+    '&': '&amp;',
+    '<': '&lt;',
+    '>': '&gt;',
+    '"': '&quot;',
+    "'": '&#39;'
+  };
+  return text.replace(/[&<>"']/g, char => htmlEscapes[char]);
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
+    // Authentication check
+    const authHeader = req.headers.get("authorization");
+    if (!authHeader?.startsWith("Bearer ")) {
+      return new Response(
+        JSON.stringify({ error: "Unauthorized" }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
+    const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY");
+    const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+    
+    if (!SUPABASE_URL || !SUPABASE_ANON_KEY || !SUPABASE_SERVICE_ROLE_KEY) {
+      throw new Error("Supabase environment variables not configured");
+    }
+
+    const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+      global: { headers: { Authorization: authHeader } }
+    });
+
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    
+    if (authError || !user) {
+      return new Response(
+        JSON.stringify({ error: "Unauthorized" }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    const userId = user.id;
+
     const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
     if (!RESEND_API_KEY) {
       throw new Error("RESEND_API_KEY is not configured");
     }
 
-    const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
-    const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
-    
-    if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
-      throw new Error("Supabase environment variables not configured");
-    }
-
     const resend = new Resend(RESEND_API_KEY);
-    const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+    const serviceClient = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
     const { 
       campaignId, 
@@ -47,9 +96,10 @@ serve(async (req) => {
       subject, 
       body,
       fromName = "SkryveAI",
-      fromEmail = "outreach@skryveai.com" // Update to your verified domain
+      fromEmail = "outreach@skryveai.com"
     }: SendEmailRequest = await req.json();
 
+    // Input validation
     if (!campaignId || !businessId || !pitchId || !toEmail || !subject || !body) {
       return new Response(
         JSON.stringify({ error: "Missing required fields" }),
@@ -57,8 +107,53 @@ serve(async (req) => {
       );
     }
 
+    // Validate UUIDs
+    if (!isValidUUID(campaignId) || !isValidUUID(businessId) || !isValidUUID(pitchId)) {
+      return new Response(
+        JSON.stringify({ error: "Invalid ID format" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // Validate email
+    if (!isValidEmail(toEmail)) {
+      return new Response(
+        JSON.stringify({ error: "Invalid email address" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // Validate subject and body lengths
+    if (subject.length > 200) {
+      return new Response(
+        JSON.stringify({ error: "Subject too long" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    if (body.length > 10000) {
+      return new Response(
+        JSON.stringify({ error: "Email body too long" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // Verify user owns the campaign
+    const { data: campaign, error: campaignError } = await serviceClient
+      .from("campaigns")
+      .select("id, user_id")
+      .eq("id", campaignId)
+      .single();
+
+    if (campaignError || !campaign || campaign.user_id !== userId) {
+      return new Response(
+        JSON.stringify({ error: "Unauthorized: Campaign not found or access denied" }),
+        { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
     // Create email record first
-    const { data: emailRecord, error: insertError } = await supabase
+    const { data: emailRecord, error: insertError } = await serviceClient
       .from("emails")
       .insert({
         pitch_id: pitchId,
@@ -80,7 +175,7 @@ serve(async (req) => {
     const replyToAddress = `reply-${replyToId}@inbound.outreachpro.app`;
 
     // Create email_reply record for tracking
-    await supabase.from("email_replies").insert({
+    await serviceClient.from("email_replies").insert({
       email_id: emailRecord.id,
       reply_to_address: replyToAddress,
     });
@@ -90,7 +185,8 @@ serve(async (req) => {
     const trackingPixelUrl = `${baseUrl}/email-webhook?type=open&emailId=${emailRecord.id}`;
     const unsubscribeUrl = `${baseUrl}/email-webhook?type=unsubscribe&emailId=${emailRecord.id}`;
 
-    // Convert plain text body to HTML with tracking
+    // Escape HTML in body to prevent XSS, then convert to HTML with tracking
+    const escapedBody = escapeHtml(body);
     const htmlBody = `
       <!DOCTYPE html>
       <html>
@@ -99,7 +195,7 @@ serve(async (req) => {
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
       </head>
       <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
-        ${body.split('\n').map(line => `<p style="margin: 0 0 16px 0;">${line}</p>`).join('')}
+        ${escapedBody.split('\n').map(line => `<p style="margin: 0 0 16px 0;">${line}</p>`).join('')}
         
         <hr style="border: none; border-top: 1px solid #eee; margin: 32px 0;">
         <p style="font-size: 12px; color: #666;">
@@ -128,7 +224,7 @@ serve(async (req) => {
       console.error("Resend API error:", sendError);
       
       // Update email record with failure
-      await supabase
+      await serviceClient
         .from("emails")
         .update({ 
           status: "failed", 
@@ -140,7 +236,7 @@ serve(async (req) => {
     }
 
     // Update email record with success
-    await supabase
+    await serviceClient
       .from("emails")
       .update({ 
         status: "sent", 
@@ -149,7 +245,7 @@ serve(async (req) => {
       .eq("id", emailRecord.id);
 
     // Update campaign sent count
-    await supabase.rpc("increment_campaign_emails_sent", { 
+    await serviceClient.rpc("increment_campaign_emails_sent", { 
       campaign_id: campaignId 
     });
 
