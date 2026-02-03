@@ -1,0 +1,80 @@
+import { supabase } from "@/integrations/supabase/client";
+import type { Business, WebsiteAnalysis, GeneratedPitch, AnalysisIssue } from "@/types/campaign";
+
+export interface SearchBusinessesResult {
+  businesses: Business[];
+  total: number;
+}
+
+export interface AnalyzeWebsiteResult {
+  issues: AnalysisIssue[];
+  overallScore: number;
+  email: string | null;
+  analyzed: boolean;
+  analyzedAt: string;
+}
+
+export interface GeneratePitchResult {
+  subject: string;
+  body: string;
+  edited: boolean;
+  approved: boolean;
+}
+
+export const campaignApi = {
+  async searchBusinesses(businessType: string, location: string): Promise<SearchBusinessesResult> {
+    const { data, error } = await supabase.functions.invoke<SearchBusinessesResult>("search-businesses", {
+      body: { businessType, location, limit: 30 },
+    });
+
+    if (error) {
+      console.error("Search businesses error:", error);
+      throw new Error(error.message || "Failed to search businesses");
+    }
+
+    if (!data) {
+      throw new Error("No data returned from search");
+    }
+
+    return data;
+  },
+
+  async analyzeWebsite(url: string, businessName: string): Promise<AnalyzeWebsiteResult> {
+    const { data, error } = await supabase.functions.invoke<AnalyzeWebsiteResult>("analyze-website", {
+      body: { url, businessName },
+    });
+
+    if (error) {
+      console.error("Analyze website error:", error);
+      throw new Error(error.message || "Failed to analyze website");
+    }
+
+    if (!data) {
+      throw new Error("No data returned from analysis");
+    }
+
+    return data;
+  },
+
+  async generatePitch(
+    businessName: string,
+    website: string,
+    issues: AnalysisIssue[],
+    freelancerService?: string
+  ): Promise<GeneratePitchResult> {
+    const { data, error } = await supabase.functions.invoke<GeneratePitchResult>("generate-pitch", {
+      body: { businessName, website, issues, freelancerService },
+    });
+
+    if (error) {
+      console.error("Generate pitch error:", error);
+      throw new Error(error.message || "Failed to generate pitch");
+    }
+
+    if (!data) {
+      throw new Error("No data returned from pitch generation");
+    }
+
+    return data;
+  },
+};
