@@ -21,6 +21,12 @@ export interface GeneratePitchResult {
   approved: boolean;
 }
 
+export interface SendEmailResult {
+  success: boolean;
+  emailId: string;
+  resendId?: string;
+}
+
 export const campaignApi = {
   async searchBusinesses(businessType: string, location: string): Promise<SearchBusinessesResult> {
     const { data, error } = await supabase.functions.invoke<SearchBusinessesResult>("search-businesses", {
@@ -73,6 +79,32 @@ export const campaignApi = {
 
     if (!data) {
       throw new Error("No data returned from pitch generation");
+    }
+
+    return data;
+  },
+
+  async sendEmail(params: {
+    campaignId: string;
+    businessId: string;
+    pitchId: string;
+    toEmail: string;
+    subject: string;
+    body: string;
+    fromName?: string;
+    fromEmail?: string;
+  }): Promise<SendEmailResult> {
+    const { data, error } = await supabase.functions.invoke<SendEmailResult>("send-email", {
+      body: params,
+    });
+
+    if (error) {
+      console.error("Send email error:", error);
+      throw new Error(error.message || "Failed to send email");
+    }
+
+    if (!data) {
+      throw new Error("No data returned from email sending");
     }
 
     return data;
