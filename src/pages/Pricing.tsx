@@ -292,15 +292,6 @@ export default function Pricing() {
           </motion.div>
         </div>
 
-        <div className="text-center mt-12 text-muted-foreground">
-          <p>All plans include 5 free daily credits. No credit card required to start.</p>
-          <p className="mt-2">
-            First 30 users get <strong>10 campaigns</strong>, others get 3 campaigns during trial.
-          </p>
-          <p className="mt-1 text-sm">
-            Everyone gets <strong>3 days free trial</strong> to explore all features.
-          </p>
-        </div>
       </div>
     </div>
   );
