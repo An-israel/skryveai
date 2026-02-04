@@ -9,6 +9,8 @@ import { Progress } from "@/components/ui/progress";
 import { CampaignCharts } from "@/components/dashboard/CampaignCharts";
 import { SubscriptionStats } from "@/components/dashboard/SubscriptionStats";
 import { EmailQueueStatus } from "@/components/dashboard/EmailQueueStatus";
+import { CreditsDisplay } from "@/components/dashboard/CreditsDisplay";
+import { ReferralCard } from "@/components/dashboard/ReferralCard";
 import { EmailSettingsDialog } from "@/components/settings/EmailSettingsDialog";
 import { OnboardingTour } from "@/components/onboarding/OnboardingTour";
 import { useOnboarding } from "@/hooks/use-onboarding";
@@ -297,9 +299,20 @@ export default function Dashboard() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 }}
-          className="mb-8"
+          className="mb-8 grid gap-4 md:grid-cols-2"
         >
           <SubscriptionStats />
+          <CreditsDisplay userId={user?.id} />
+        </motion.div>
+
+        {/* Referral Card */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.12 }}
+          className="mb-8"
+        >
+          <ReferralCard userId={user?.id} />
         </motion.div>
 
         {/* Email Queue Status - Real-time updates */}
