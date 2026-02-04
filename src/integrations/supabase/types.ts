@@ -701,6 +701,7 @@ export type Database = {
       }
       user_settings: {
         Row: {
+          calendly_url: string | null
           company_name: string | null
           created_at: string
           daily_send_limit: number | null
@@ -714,6 +715,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          calendly_url?: string | null
           company_name?: string | null
           created_at?: string
           daily_send_limit?: number | null
@@ -727,6 +729,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          calendly_url?: string | null
           company_name?: string | null
           created_at?: string
           daily_send_limit?: number | null

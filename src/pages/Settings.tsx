@@ -19,7 +19,8 @@ import {
   X,
   ArrowLeft,
   Settings as SettingsIcon,
-  Mail
+  Mail,
+  Calendar
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -452,6 +453,21 @@ export default function Settings() {
                       onChange={(e) => setPortfolioUrl(e.target.value)}
                       placeholder="https://yourportfolio.com"
                     />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="calendly" className="flex items-center gap-2">
+                      <Calendar className="w-4 h-4" />
+                      Calendly URL (Optional)
+                    </Label>
+                    <Input
+                      id="calendly"
+                      type="url"
+                      placeholder="https://calendly.com/yourusername"
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Add your Calendly link to include meeting scheduling in your pitches
+                    </p>
                   </div>
 
                   <div className="space-y-2">
