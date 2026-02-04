@@ -167,10 +167,11 @@ export default function Pricing() {
                 <CardDescription>Perfect for getting started</CardDescription>
                 <div className="mt-4">
                   <span className="text-4xl font-bold">
-                    {pricing?.prices.monthly.display || "₦12,000"}
+                    {pricing?.prices.monthly.display || "₦7,000"}
                   </span>
                   <span className="text-muted-foreground">/month</span>
                 </div>
+                <p className="text-xs text-muted-foreground mt-1">100 credits/month</p>
               </CardHeader>
               <CardContent>
                 <ul className="space-y-3 mb-6">
@@ -211,10 +212,11 @@ export default function Pricing() {
                 <CardDescription>Best value for serious freelancers</CardDescription>
                 <div className="mt-4">
                   <span className="text-4xl font-bold">
-                    {pricing?.prices.yearly.display || "₦135,000"}
+                    {pricing?.prices.yearly.display || "₦85,000"}
                   </span>
                   <span className="text-muted-foreground">/year</span>
                 </div>
+                <p className="text-xs text-muted-foreground mt-1">1,200 credits/year</p>
               </CardHeader>
               <CardContent>
                 <ul className="space-y-3 mb-6">
@@ -260,6 +262,7 @@ export default function Pricing() {
                   </span>
                   <span className="text-muted-foreground"> one-time</span>
                 </div>
+                <p className="text-xs text-muted-foreground mt-1">Unlimited credits forever</p>
               </CardHeader>
               <CardContent>
                 <ul className="space-y-3 mb-6">
@@ -290,9 +293,12 @@ export default function Pricing() {
         </div>
 
         <div className="text-center mt-12 text-muted-foreground">
-          <p>All plans include a free trial. No credit card required.</p>
+          <p>All plans include 5 free daily credits. No credit card required to start.</p>
           <p className="mt-2">
-            First 30 users get <strong>14 days free</strong>, others get 3 days.
+            First 30 users get <strong>10 campaigns</strong>, others get 3 campaigns during trial.
+          </p>
+          <p className="mt-1 text-sm">
+            Everyone gets <strong>3 days free trial</strong> to explore all features.
           </p>
         </div>
       </div>

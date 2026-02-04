@@ -29,6 +29,8 @@ import {
   Target,
   Send,
   Shield,
+  Coins,
+  Gift,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -37,6 +39,8 @@ import { CMSPageEditor } from "@/components/admin/CMSPageEditor";
 import { CMSImageUploader } from "@/components/admin/CMSImageUploader";
 import { IPAddressManager } from "@/components/admin/IPAddressManager";
 import { EmailQueueManager } from "@/components/admin/EmailQueueManager";
+import { CreditManager } from "@/components/admin/CreditManager";
+import { ReferralManager } from "@/components/admin/ReferralManager";
 
 interface AdminStats {
   totalUsers: number;
@@ -402,6 +406,12 @@ export default function Admin() {
             </TabsTrigger>
             <TabsTrigger value="ip-addresses" className="gap-2">
               <Shield className="w-4 h-4" /> IP Addresses
+            </TabsTrigger>
+            <TabsTrigger value="credits" className="gap-2">
+              <Coins className="w-4 h-4" /> Credits
+            </TabsTrigger>
+            <TabsTrigger value="referrals" className="gap-2">
+              <Gift className="w-4 h-4" /> Referrals
             </TabsTrigger>
             <TabsTrigger value="analytics" className="gap-2">
               <BarChart3 className="w-4 h-4" /> Analytics
@@ -868,6 +878,16 @@ export default function Admin() {
                 </CardContent>
               </Card>
             </div>
+          </TabsContent>
+
+          {/* Credits Tab */}
+          <TabsContent value="credits">
+            <CreditManager />
+          </TabsContent>
+
+          {/* Referrals Tab */}
+          <TabsContent value="referrals">
+            <ReferralManager />
           </TabsContent>
         </Tabs>
       </div>

@@ -47,6 +47,13 @@ serve(async (req) => {
     const event = JSON.parse(body);
     console.log("Paystack webhook event:", event.event);
 
+    // Credits per plan
+    const PLAN_CREDITS: Record<string, number> = {
+      monthly: 100,
+      yearly: 1200,
+      lifetime: -1, // -1 means unlimited
+    };
+
     switch (event.event) {
       case "charge.success": {
         const { reference, customer, amount, currency, authorization } = event.data;
@@ -54,7 +61,7 @@ serve(async (req) => {
         // Get user by email
         const { data: profile } = await supabase
           .from("profiles")
-          .select("user_id")
+          .select("user_id, referred_by")
           .eq("email", customer.email)
           .single();
 
@@ -85,11 +92,25 @@ serve(async (req) => {
               periodEnd = new Date("2099-12-31");
             }
 
-            // Update subscription
+            // Calculate credits to add
+            const creditsToAdd = PLAN_CREDITS[payment.plan] || 0;
+            const isUnlimited = payment.plan === "lifetime";
+
+            // Get current credits
+            const { data: currentSub } = await supabase
+              .from("subscriptions")
+              .select("credits")
+              .eq("user_id", profile.user_id)
+              .single();
+
+            const newCredits = isUnlimited ? 999999 : (currentSub?.credits || 0) + creditsToAdd;
+
+            // Update subscription with credits
             await supabase
               .from("subscriptions")
               .update({
                 status: "active",
+                plan: payment.plan,
                 current_period_start: new Date().toISOString(),
                 current_period_end: periodEnd.toISOString(),
                 paystack_customer_code: customer.customer_code,
@@ -97,8 +118,53 @@ serve(async (req) => {
                 amount_paid: amount,
                 currency: currency,
                 reminder_sent: false,
+                credits: newCredits,
+                campaign_limit: null, // Remove limit on paid plans
               })
               .eq("user_id", profile.user_id);
+
+            // Handle referral commission
+            if (profile.referred_by) {
+              // Get referral record
+              const { data: referral } = await supabase
+                .from("referrals")
+                .select("id, commission_rate, status")
+                .eq("referred_id", profile.user_id)
+                .single();
+
+              if (referral && referral.status === "pending") {
+                const commissionRate = referral.commission_rate || 0.20;
+                const commissionAmount = Math.floor(amount * commissionRate);
+
+                // Update referral with commission
+                await supabase
+                  .from("referrals")
+                  .update({
+                    status: "completed",
+                    commission_amount: commissionAmount,
+                    commission_currency: currency,
+                    completed_at: new Date().toISOString(),
+                  })
+                  .eq("id", referral.id);
+
+                // Add bonus credits to referrer (10% of plan credits)
+                const bonusCredits = Math.floor(creditsToAdd * 0.1);
+                if (bonusCredits > 0) {
+                  const { data: referrerSub } = await supabase
+                    .from("subscriptions")
+                    .select("credits")
+                    .eq("user_id", profile.referred_by)
+                    .single();
+
+                  if (referrerSub) {
+                    await supabase
+                      .from("subscriptions")
+                      .update({ credits: (referrerSub.credits || 0) + bonusCredits })
+                      .eq("user_id", profile.referred_by);
+                  }
+                }
+              }
+            }
           }
         }
         break;

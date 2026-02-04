@@ -1,15 +1,16 @@
-import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Mail, Lock, User, Loader2, Phone, Globe, FileText, Upload } from "lucide-react";
+import { Mail, Lock, User, Loader2, Phone, Globe, FileText, Upload, Gift } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Badge } from "@/components/ui/badge";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 const EXPERTISE_OPTIONS = [
   "Web Development",
@@ -27,6 +28,9 @@ const EXPERTISE_OPTIONS = [
 ];
 
 export default function Signup() {
+  const [searchParams] = useSearchParams();
+  const referralCode = searchParams.get("ref") || "";
+  
   const [step, setStep] = useState(1);
   const [formData, setFormData] = useState({
     fullName: "",
@@ -36,11 +40,31 @@ export default function Signup() {
     portfolioUrl: "",
     bio: "",
     expertise: [] as string[],
+    referralCode: referralCode,
   });
   const [cvFile, setCvFile] = useState<File | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [referrerName, setReferrerName] = useState<string | null>(null);
   const navigate = useNavigate();
   const { toast } = useToast();
+
+  // Check if referral code is valid
+  useEffect(() => {
+    if (referralCode) {
+      const checkReferrer = async () => {
+        const { data } = await supabase
+          .from("profiles")
+          .select("full_name")
+          .eq("referral_code", referralCode.toUpperCase())
+          .single();
+        
+        if (data) {
+          setReferrerName(data.full_name);
+        }
+      };
+      checkReferrer();
+    }
+  }, [referralCode]);
 
   const handleExpertiseToggle = (skill: string) => {
     setFormData(prev => ({
@@ -115,6 +139,7 @@ export default function Signup() {
             portfolioUrl: formData.portfolioUrl || null,
             bio: formData.bio || null,
             expertise: formData.expertise,
+            referralCode: formData.referralCode || null,
           }),
         }
       );
@@ -190,6 +215,14 @@ export default function Signup() {
         </div>
 
         <Card className="border-0 shadow-xl">
+          {referrerName && (
+            <Alert className="mx-6 mt-6 bg-primary/5 border-primary/20">
+              <Gift className="h-4 w-4 text-primary" />
+              <AlertDescription>
+                You were referred by <strong>{referrerName}</strong>! You both get rewards when you subscribe.
+              </AlertDescription>
+            </Alert>
+          )}
           <CardHeader className="text-center">
             <CardTitle className="text-2xl">
               {step === 1 && "Create Your Account"}

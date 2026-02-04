@@ -55,7 +55,7 @@ Deno.serve(async (req) => {
 
     // Parse request body
     const body = await req.json();
-    const { email, password, fullName, phone, portfolioUrl, bio, expertise } = body;
+    const { email, password, fullName, phone, portfolioUrl, bio, expertise, referralCode } = body;
 
     // Validate required fields
     if (!email || !password || !fullName) {
@@ -93,6 +93,7 @@ Deno.serve(async (req) => {
         portfolio_url: portfolioUrl || null,
         bio: bio || null,
         expertise: expertise || [],
+        referral_code: referralCode ? referralCode.toUpperCase() : null,
       },
     });
 

@@ -13,17 +13,25 @@ const paystackSecretKey = Deno.env.get("PAYSTACK_SECRET_KEY")!;
 const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
 // Pricing in kobo (NGN smallest unit) - base prices
-const PRICING = {
-  monthly: 1200000, // 12,000 NGN
-  yearly: 13500000, // 135,000 NGN
-  lifetime: 25000000, // 250,000 NGN
+// Africa prices (discounted by 5000 NGN)
+const PRICING_NGN = {
+  monthly: 700000, // 7,000 NGN (was 12,000)
+  yearly: 8500000, // 85,000 NGN (was 135,000)
+  lifetime: 25000000, // 250,000 NGN (unchanged)
 };
 
-// Base USD prices for conversion
+// Base USD prices for conversion (US/Europe)
 const PRICING_USD = {
   monthly: 800, // $8 USD in cents
   yearly: 9000, // $90 USD in cents
   lifetime: 16700, // $167 USD in cents
+};
+
+// Credits per plan
+const PLAN_CREDITS = {
+  monthly: 100,
+  yearly: 1200,
+  lifetime: -1, // -1 means unlimited
 };
 
 interface InitPaymentRequest {
@@ -65,7 +73,7 @@ serve(async (req) => {
     // Calculate amount based on currency
     let amount: number;
     if (currency === "NGN") {
-      amount = PRICING[plan];
+      amount = PRICING_NGN[plan];
     } else {
       // For other currencies, use USD pricing (Paystack will convert)
       amount = PRICING_USD[plan];

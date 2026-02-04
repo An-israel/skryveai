@@ -490,6 +490,8 @@ export type Database = {
           id: string
           phone: string | null
           portfolio_url: string | null
+          referral_code: string | null
+          referred_by: string | null
           signup_ip: string | null
           updated_at: string
           user_id: string
@@ -506,6 +508,8 @@ export type Database = {
           id?: string
           phone?: string | null
           portfolio_url?: string | null
+          referral_code?: string | null
+          referred_by?: string | null
           signup_ip?: string | null
           updated_at?: string
           user_id: string
@@ -522,9 +526,53 @@ export type Database = {
           id?: string
           phone?: string | null
           portfolio_url?: string | null
+          referral_code?: string | null
+          referred_by?: string | null
           signup_ip?: string | null
           updated_at?: string
           user_id?: string
+        }
+        Relationships: []
+      }
+      referrals: {
+        Row: {
+          commission_amount: number | null
+          commission_currency: string | null
+          commission_rate: number
+          completed_at: string | null
+          created_at: string
+          id: string
+          paid_at: string | null
+          referral_code: string
+          referred_id: string
+          referrer_id: string
+          status: string
+        }
+        Insert: {
+          commission_amount?: number | null
+          commission_currency?: string | null
+          commission_rate?: number
+          completed_at?: string | null
+          created_at?: string
+          id?: string
+          paid_at?: string | null
+          referral_code: string
+          referred_id: string
+          referrer_id: string
+          status?: string
+        }
+        Update: {
+          commission_amount?: number | null
+          commission_currency?: string | null
+          commission_rate?: number
+          completed_at?: string | null
+          created_at?: string
+          id?: string
+          paid_at?: string | null
+          referral_code?: string
+          referred_id?: string
+          referrer_id?: string
+          status?: string
         }
         Relationships: []
       }
@@ -552,11 +600,14 @@ export type Database = {
       subscriptions: {
         Row: {
           amount_paid: number | null
+          campaign_limit: number | null
           created_at: string
+          credits: number
           currency: string | null
           current_period_end: string | null
           current_period_start: string | null
           id: string
+          last_daily_credit: string | null
           paystack_authorization_code: string | null
           paystack_customer_code: string | null
           paystack_subscription_code: string | null
@@ -569,11 +620,14 @@ export type Database = {
         }
         Insert: {
           amount_paid?: number | null
+          campaign_limit?: number | null
           created_at?: string
+          credits?: number
           currency?: string | null
           current_period_end?: string | null
           current_period_start?: string | null
           id?: string
+          last_daily_credit?: string | null
           paystack_authorization_code?: string | null
           paystack_customer_code?: string | null
           paystack_subscription_code?: string | null
@@ -586,11 +640,14 @@ export type Database = {
         }
         Update: {
           amount_paid?: number | null
+          campaign_limit?: number | null
           created_at?: string
+          credits?: number
           currency?: string | null
           current_period_end?: string | null
           current_period_start?: string | null
           id?: string
+          last_daily_credit?: string | null
           paystack_authorization_code?: string | null
           paystack_customer_code?: string | null
           paystack_subscription_code?: string | null
@@ -727,6 +784,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      add_daily_credits: { Args: never; Returns: undefined }
       get_signup_order: { Args: never; Returns: number }
       has_role: {
         Args: {
@@ -750,7 +808,7 @@ export type Database = {
       is_admin: { Args: { _user_id: string }; Returns: boolean }
     }
     Enums: {
-      app_role: "super_admin" | "content_editor" | "support_agent"
+      app_role: "super_admin" | "content_editor" | "support_agent" | "staff"
       subscription_plan: "monthly" | "yearly" | "lifetime"
       subscription_status: "trial" | "active" | "expired" | "cancelled"
     }
@@ -880,7 +938,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      app_role: ["super_admin", "content_editor", "support_agent"],
+      app_role: ["super_admin", "content_editor", "support_agent", "staff"],
       subscription_plan: ["monthly", "yearly", "lifetime"],
       subscription_status: ["trial", "active", "expired", "cancelled"],
     },
