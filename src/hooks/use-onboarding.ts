@@ -10,6 +10,7 @@ export function useOnboarding(userId: string | undefined) {
   useEffect(() => {
     if (!userId) {
       setLoading(false);
+      setShowTour(false);
       return;
     }
 
@@ -17,6 +18,11 @@ export function useOnboarding(userId: string | undefined) {
   }, [userId]);
 
   const checkOnboardingStatus = async () => {
+    if (!userId) {
+      setLoading(false);
+      return;
+    }
+
     try {
       // Check local storage first for quick response
       const localCompleted = localStorage.getItem(`${ONBOARDING_COMPLETED_KEY}_${userId}`);
@@ -28,11 +34,18 @@ export function useOnboarding(userId: string | undefined) {
       }
 
       // Check if user has completed any campaigns (indicating they're not new)
-      const { data: campaigns } = await supabase
+      const { data: campaigns, error } = await supabase
         .from("campaigns")
         .select("id")
         .eq("user_id", userId)
         .limit(1);
+
+      if (error) {
+        console.error("Error checking campaigns:", error);
+        setShowTour(false);
+        setLoading(false);
+        return;
+      }
 
       if (campaigns && campaigns.length > 0) {
         // User has campaigns, mark as completed and don't show tour

@@ -108,6 +108,8 @@ serve(async (req) => {
       expertise: [] as string[],
       bio: "",
       portfolioUrl: "",
+      cvUrl: "",
+      calendlyUrl: "",
       serviceDescription: freelancerService || "web development and digital marketing"
     };
 
@@ -116,13 +118,13 @@ serve(async (req) => {
       
       const { data: profile } = await serviceClient
         .from("profiles")
-        .select("full_name, expertise, bio, portfolio_url")
+        .select("full_name, expertise, bio, portfolio_url, cv_url")
         .eq("user_id", userId)
         .single();
 
       const { data: settings } = await serviceClient
         .from("user_settings")
-        .select("sender_name, service_description")
+        .select("sender_name, service_description, calendly_url")
         .eq("user_id", userId)
         .single();
 
@@ -131,11 +133,13 @@ serve(async (req) => {
         profileData.expertise = profile.expertise || [];
         profileData.bio = profile.bio || "";
         profileData.portfolioUrl = profile.portfolio_url || "";
+        profileData.cvUrl = profile.cv_url || "";
       }
 
       if (settings) {
         profileData.fullName = settings.sender_name || profileData.fullName;
         profileData.serviceDescription = settings.service_description || profileData.serviceDescription;
+        profileData.calendlyUrl = settings.calendly_url || "";
       }
     }
 
@@ -164,8 +168,9 @@ serve(async (req) => {
 About the Freelancer:
 - Name: ${profileData.fullName.substring(0, 100)}
 - Expertise: ${profileData.expertise.length > 0 ? profileData.expertise.slice(0, 5).join(", ") : profileData.serviceDescription.substring(0, 200)}
-- Bio: ${(profileData.bio || "Professional freelancer with experience in digital services").substring(0, 300)}
-- Portfolio: ${(profileData.portfolioUrl || "Available upon request").substring(0, 200)}
+- Bio/Experience: ${(profileData.bio || "Professional freelancer with experience in digital services").substring(0, 500)}
+- Portfolio: ${profileData.portfolioUrl ? profileData.portfolioUrl.substring(0, 200) : "Available upon request"}
+${profileData.calendlyUrl ? `- Booking Link: ${profileData.calendlyUrl.substring(0, 200)}` : ""}
 
 Business Details:
 - Name: ${sanitizedBusinessName}
@@ -180,17 +185,19 @@ ${topIssues.map(i => `- ${i.title} (${i.severity} severity)`).join("\n")}
 Write a cold email that:
 1. Opens with a specific observation about their website (reference an actual issue found)
 2. Briefly explains how this affects their business
-3. Mentions your specific expertise that's relevant to their issues
-4. Offers your help without being pushy
-5. Includes a soft call-to-action (suggest a quick call or reply)
-6. Is conversational and friendly, NOT salesy
-7. Is between 150-200 words maximum
-8. Uses short paragraphs for readability
-9. Signs off with the freelancer's name
+3. Mentions your specific expertise from your bio that's relevant to their issues
+4. References your portfolio link naturally if available
+5. Offers your help without being pushy
+6. Includes a soft call-to-action - ${profileData.calendlyUrl ? "suggest they book a call using your Calendly link" : "suggest a quick call or reply"}
+7. Is conversational and friendly, NOT salesy
+8. Is between 150-200 words maximum
+9. Uses short paragraphs for readability
+10. Signs off with the freelancer's name
 
 Do NOT use phrases like "I noticed" at the very start - be more creative.
 Do NOT use exclamation marks excessively.
-Do NOT promise specific results or use superlatives.`;
+Do NOT promise specific results or use superlatives.
+Make the pitch feel personal and based on the freelancer's actual experience from their bio.`;
 
     const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
