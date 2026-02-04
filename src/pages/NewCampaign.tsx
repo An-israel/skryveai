@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
-import { AnimatePresence } from "framer-motion";
+import { useNavigate, Link } from "react-router-dom";
+import { AnimatePresence, motion } from "framer-motion";
 import { Header } from "@/components/layout/Header";
 import { StepIndicator } from "@/components/campaign/StepIndicator";
 import { SearchStep } from "@/components/campaign/SearchStep";
@@ -13,11 +13,28 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { campaignApi } from "@/lib/api/campaign";
 import type { UserSettings } from "@/components/settings/EmailSettingsDialog";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { AlertTriangle, FileText, Briefcase, User } from "lucide-react";
+
+interface ProfileStatus {
+  hasBio: boolean;
+  hasExpertise: boolean;
+  hasCv: boolean;
+  isComplete: boolean;
+}
 
 export default function NewCampaign() {
   const [currentStep, setCurrentStep] = useState<CampaignStep>('search');
   const [completedSteps, setCompletedSteps] = useState<CampaignStep[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [checkingProfile, setCheckingProfile] = useState(true);
+  const [profileStatus, setProfileStatus] = useState<ProfileStatus>({
+    hasBio: false,
+    hasExpertise: false,
+    hasCv: false,
+    isComplete: false,
+  });
   const [businesses, setBusinesses] = useState<Business[]>([]);
   const [selectedBusinesses, setSelectedBusinesses] = useState<Business[]>([]);
   const [analyses, setAnalyses] = useState<Record<string, WebsiteAnalysis>>({});
@@ -40,7 +57,27 @@ export default function NewCampaign() {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) {
         navigate("/login");
+        return;
       }
+      
+      // Check profile completion
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("bio, expertise, cv_url")
+        .eq("user_id", session.user.id)
+        .single();
+
+      const hasBio = !!(profile?.bio && profile.bio.trim().length > 10);
+      const hasExpertise = !!(profile?.expertise && profile.expertise.length > 0);
+      const hasCv = !!profile?.cv_url;
+
+      setProfileStatus({
+        hasBio,
+        hasExpertise,
+        hasCv,
+        isComplete: hasBio && hasExpertise,
+      });
+      setCheckingProfile(false);
     };
     checkAuth();
   }, [navigate]);
@@ -347,6 +384,96 @@ export default function NewCampaign() {
     await supabase.auth.signOut();
     navigate("/");
   };
+
+  if (checkingProfile) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
+  }
+
+  // Show profile completion requirement if not complete
+  if (!profileStatus.isComplete) {
+    return (
+      <div className="min-h-screen bg-background">
+        <Header isAuthenticated={true} onLogout={handleLogout} />
+        
+        <main className="container mx-auto px-4 pt-24 pb-12 max-w-2xl">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+          >
+            <Card className="border-warning/50">
+              <CardHeader>
+                <div className="flex items-center gap-3">
+                  <div className="p-3 rounded-full bg-warning/10">
+                    <AlertTriangle className="w-6 h-6 text-warning" />
+                  </div>
+                  <div>
+                    <CardTitle>Complete Your Profile First</CardTitle>
+                    <CardDescription>
+                      To create personalized pitches, we need some information about you
+                    </CardDescription>
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <p className="text-muted-foreground">
+                  Our AI uses your profile information to craft personalized outreach emails that highlight your unique skills and experience.
+                </p>
+                
+                <div className="space-y-3 py-4">
+                  <div className={`flex items-center gap-3 p-3 rounded-lg border ${profileStatus.hasExpertise ? 'bg-success/5 border-success/30' : 'bg-muted/50'}`}>
+                    <Briefcase className={`w-5 h-5 ${profileStatus.hasExpertise ? 'text-success' : 'text-muted-foreground'}`} />
+                    <div className="flex-1">
+                      <p className="font-medium">Expertise</p>
+                      <p className="text-sm text-muted-foreground">Select the services you offer</p>
+                    </div>
+                    {profileStatus.hasExpertise ? (
+                      <span className="text-success text-sm">✓ Complete</span>
+                    ) : (
+                      <span className="text-warning text-sm">Required</span>
+                    )}
+                  </div>
+                  
+                  <div className={`flex items-center gap-3 p-3 rounded-lg border ${profileStatus.hasBio ? 'bg-success/5 border-success/30' : 'bg-muted/50'}`}>
+                    <User className={`w-5 h-5 ${profileStatus.hasBio ? 'text-success' : 'text-muted-foreground'}`} />
+                    <div className="flex-1">
+                      <p className="font-medium">Bio</p>
+                      <p className="text-sm text-muted-foreground">Tell us about your experience</p>
+                    </div>
+                    {profileStatus.hasBio ? (
+                      <span className="text-success text-sm">✓ Complete</span>
+                    ) : (
+                      <span className="text-warning text-sm">Required</span>
+                    )}
+                  </div>
+                  
+                  <div className={`flex items-center gap-3 p-3 rounded-lg border ${profileStatus.hasCv ? 'bg-success/5 border-success/30' : 'bg-muted/50'}`}>
+                    <FileText className={`w-5 h-5 ${profileStatus.hasCv ? 'text-success' : 'text-muted-foreground'}`} />
+                    <div className="flex-1">
+                      <p className="font-medium">CV / Resume</p>
+                      <p className="text-sm text-muted-foreground">Upload your CV for better pitches</p>
+                    </div>
+                    {profileStatus.hasCv ? (
+                      <span className="text-success text-sm">✓ Complete</span>
+                    ) : (
+                      <span className="text-muted-foreground text-sm">Optional</span>
+                    )}
+                  </div>
+                </div>
+                
+                <Button asChild className="w-full" size="lg">
+                  <Link to="/settings">Complete Your Profile</Link>
+                </Button>
+              </CardContent>
+            </Card>
+          </motion.div>
+        </main>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background">
