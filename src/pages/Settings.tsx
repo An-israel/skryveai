@@ -27,6 +27,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/use-auth";
 import { Header } from "@/components/layout/Header";
 import { EmailVerificationStatus } from "@/components/settings/EmailVerificationStatus";
+import { GmailConnection } from "@/components/settings/GmailConnection";
 import { useQuery } from "@tanstack/react-query";
 
 const EXPERTISE_OPTIONS = [
@@ -259,7 +260,7 @@ export default function Settings() {
           </div>
 
           <Tabs defaultValue="profile" className="space-y-6">
-            <TabsList className={`grid w-full ${isAdmin ? 'grid-cols-4' : 'grid-cols-3'}`}>
+            <TabsList className={`grid w-full ${isAdmin ? 'grid-cols-5' : 'grid-cols-4'}`}>
               <TabsTrigger value="profile" className="gap-2">
                 <User className="w-4 h-4" />
                 Profile
@@ -272,10 +273,14 @@ export default function Settings() {
                 <FileText className="w-4 h-4" />
                 Documents
               </TabsTrigger>
+              <TabsTrigger value="gmail" className="gap-2">
+                <Mail className="w-4 h-4" />
+                Gmail
+              </TabsTrigger>
               {isAdmin && (
-                <TabsTrigger value="email" className="gap-2">
+                <TabsTrigger value="email-admin" className="gap-2">
                   <Mail className="w-4 h-4" />
-                  Email
+                  Admin
                 </TabsTrigger>
               )}
             </TabsList>
@@ -414,8 +419,12 @@ export default function Settings() {
               </Card>
             </TabsContent>
 
+            <TabsContent value="gmail">
+              <GmailConnection />
+            </TabsContent>
+
             {isAdmin && (
-              <TabsContent value="email">
+              <TabsContent value="email-admin">
                 <EmailVerificationStatus />
               </TabsContent>
             )}
