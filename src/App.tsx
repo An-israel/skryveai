@@ -17,6 +17,7 @@ import ResetPassword from "./pages/ResetPassword";
 import Settings from "./pages/Settings";
 import Analytics from "./pages/Analytics";
 import PrivacyPolicy from "./pages/PrivacyPolicy";
+import TermsOfService from "./pages/TermsOfService";
 
 const queryClient = new QueryClient();
 
@@ -40,6 +41,7 @@ const App = () => (
           <Route path="/settings" element={<Settings />} />
           <Route path="/analytics" element={<Analytics />} />
           <Route path="/privacy-policy" element={<PrivacyPolicy />} />
+          <Route path="/terms" element={<TermsOfService />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>
