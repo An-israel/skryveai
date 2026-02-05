@@ -224,12 +224,13 @@ export default function Landing() {
           <div className="flex items-center gap-2">
             <span className="font-bold text-xl text-gradient">SkryveAI</span>
           </div>
-          <div className="flex items-center gap-6 text-sm">
-            <Link to="/pricing" className="text-muted-foreground hover:text-foreground transition-colors">Pricing</Link>
-            <Link to="/privacy-policy" className="text-muted-foreground hover:text-foreground transition-colors">Privacy Policy</Link>
-            <Link to="/login" className="text-muted-foreground hover:text-foreground transition-colors">Login</Link>
-            <Link to="/signup" className="text-muted-foreground hover:text-foreground transition-colors">Sign Up</Link>
-          </div>
+    <div className="flex items-center gap-6 text-sm">
+      <Link to="/pricing" className="text-muted-foreground hover:text-foreground transition-colors">Pricing</Link>
+      <Link to="/terms" className="text-muted-foreground hover:text-foreground transition-colors">Terms of Service</Link>
+      <Link to="/privacy-policy" className="text-muted-foreground hover:text-foreground transition-colors">Privacy Policy</Link>
+      <Link to="/login" className="text-muted-foreground hover:text-foreground transition-colors">Login</Link>
+      <Link to="/signup" className="text-muted-foreground hover:text-foreground transition-colors">Sign Up</Link>
+    </div>
           <div className="text-sm text-muted-foreground">
             © {new Date().getFullYear()} SkryveAI. All rights reserved.
           </div>
