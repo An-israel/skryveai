@@ -1,6 +1,7 @@
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Header } from "@/components/layout/Header";
+import { Footer } from "@/components/layout/Footer";
 import { Link } from "react-router-dom";
 import { 
   Search, 
@@ -218,24 +219,7 @@ export default function Landing() {
         </div>
       </section>
 
-      {/* Footer */}
-      <footer className="py-8 border-t">
-        <div className="container mx-auto px-4 flex flex-col md:flex-row items-center justify-between gap-4">
-          <div className="flex items-center gap-2">
-            <span className="font-bold text-xl text-gradient">SkryveAI</span>
-          </div>
-    <div className="flex items-center gap-6 text-sm">
-      <Link to="/pricing" className="text-muted-foreground hover:text-foreground transition-colors">Pricing</Link>
-      <Link to="/terms" className="text-muted-foreground hover:text-foreground transition-colors">Terms of Service</Link>
-      <Link to="/privacy-policy" className="text-muted-foreground hover:text-foreground transition-colors">Privacy Policy</Link>
-      <Link to="/login" className="text-muted-foreground hover:text-foreground transition-colors">Login</Link>
-      <Link to="/signup" className="text-muted-foreground hover:text-foreground transition-colors">Sign Up</Link>
-    </div>
-          <div className="text-sm text-muted-foreground">
-            © {new Date().getFullYear()} SkryveAI. All rights reserved.
-          </div>
-        </div>
-      </footer>
+      <Footer />
     </div>
   );
 }
