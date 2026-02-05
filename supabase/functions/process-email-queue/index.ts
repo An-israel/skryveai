@@ -7,6 +7,147 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
+const GOOGLE_CLIENT_ID = Deno.env.get("GOOGLE_CLIENT_ID");
+const GOOGLE_CLIENT_SECRET = Deno.env.get("GOOGLE_CLIENT_SECRET");
+
+async function refreshGmailToken(refreshToken: string): Promise<{ access_token: string; expires_in: number }> {
+  if (!GOOGLE_CLIENT_ID || !GOOGLE_CLIENT_SECRET) {
+    throw new Error("Google OAuth credentials not configured");
+  }
+  
+  const response = await fetch("https://oauth2.googleapis.com/token", {
+    method: "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body: new URLSearchParams({
+      client_id: GOOGLE_CLIENT_ID,
+      client_secret: GOOGLE_CLIENT_SECRET,
+      refresh_token: refreshToken,
+      grant_type: "refresh_token",
+    }),
+  });
+
+  const data = await response.json();
+  if (data.error) {
+    throw new Error(`Failed to refresh token: ${data.error_description}`);
+  }
+  return data;
+}
+
+function createEmailRaw(to: string, from: string, subject: string, body: string): string {
+  const boundary = "boundary_" + Date.now();
+  
+  const emailLines = [
+    `From: ${from}`,
+    `To: ${to}`,
+    `Subject: ${subject}`,
+    `MIME-Version: 1.0`,
+    `Content-Type: multipart/alternative; boundary="${boundary}"`,
+    ``,
+    `--${boundary}`,
+    `Content-Type: text/plain; charset="UTF-8"`,
+    ``,
+    body.replace(/<[^>]*>/g, ''),
+    ``,
+    `--${boundary}`,
+    `Content-Type: text/html; charset="UTF-8"`,
+    ``,
+    body,
+    ``,
+    `--${boundary}--`,
+  ];
+
+  const rawEmail = emailLines.join("\r\n");
+  const encoder = new TextEncoder();
+  const data = encoder.encode(rawEmail);
+  let base64 = btoa(String.fromCharCode(...data));
+  base64 = base64.replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+  
+  return base64;
+}
+
+interface GmailToken {
+  user_id: string;
+  access_token: string;
+  refresh_token: string;
+  token_expiry: string;
+  gmail_email: string;
+}
+
+async function sendViaGmail(
+  supabaseUrl: string,
+  supabaseKey: string,
+  userId: string,
+  to: string,
+  subject: string,
+  htmlBody: string,
+  senderName: string
+): Promise<{ success: boolean; messageId?: string; error?: string }> {
+  try {
+    const supabaseClient = createClient(supabaseUrl, supabaseKey);
+    
+    // Get user's Gmail tokens
+    const { data: tokens, error: tokensError } = await supabaseClient
+      .from("gmail_tokens")
+      .select("*")
+      .eq("user_id", userId)
+      .single();
+
+    if (tokensError || !tokens) {
+      return { success: false, error: "Gmail not connected" };
+    }
+
+    const gmailTokens = tokens as unknown as GmailToken;
+    let accessToken = gmailTokens.access_token;
+    const tokenExpiry = new Date(gmailTokens.token_expiry);
+
+    // Refresh if expired
+    if (tokenExpiry < new Date(Date.now() + 5 * 60 * 1000)) {
+      console.log("Refreshing Gmail token...");
+      const newTokens = await refreshGmailToken(gmailTokens.refresh_token);
+      accessToken = newTokens.access_token;
+      
+      const newExpiry = new Date(Date.now() + newTokens.expires_in * 1000);
+      // Use raw fetch to update tokens to avoid type issues
+      await fetch(`${supabaseUrl}/rest/v1/gmail_tokens?user_id=eq.${userId}`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          "apikey": supabaseKey,
+          "Authorization": `Bearer ${supabaseKey}`,
+        },
+        body: JSON.stringify({
+          access_token: accessToken,
+          token_expiry: newExpiry.toISOString(),
+        }),
+      });
+    }
+
+    const fromAddress = `${senderName} <${gmailTokens.gmail_email}>`;
+    const rawEmail = createEmailRaw(to, fromAddress, subject, htmlBody);
+
+    const sendResponse = await fetch("https://gmail.googleapis.com/gmail/v1/users/me/messages/send", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ raw: rawEmail }),
+    });
+
+    const sendResult = await sendResponse.json();
+
+    if (!sendResponse.ok) {
+      console.error("Gmail send error:", sendResult);
+      return { success: false, error: sendResult.error?.message || "Gmail API error" };
+    }
+
+    return { success: true, messageId: sendResult.id };
+  } catch (error) {
+    console.error("Gmail send exception:", error);
+    return { success: false, error: error instanceof Error ? error.message : "Unknown error" };
+  }
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -35,7 +176,7 @@ serve(async (req) => {
       .eq("status", "pending")
       .lte("scheduled_for", new Date().toISOString())
       .order("scheduled_for", { ascending: true })
-      .limit(10); // Process 10 at a time
+      .limit(10);
 
     if (fetchError) {
       console.error("Error fetching queue:", fetchError);
@@ -52,6 +193,24 @@ serve(async (req) => {
     console.log(`Processing ${pendingEmails.length} queued emails`);
     let successCount = 0;
     let failCount = 0;
+
+    // Group emails by campaign to get user IDs
+    const campaignIds = [...new Set(pendingEmails.map(e => e.campaign_id))];
+    const { data: campaigns } = await supabase
+      .from("campaigns")
+      .select("id, user_id")
+      .in("id", campaignIds);
+    
+    const campaignUserMap = new Map(campaigns?.map(c => [c.id, c.user_id]) || []);
+
+    // Check which users have Gmail connected
+    const userIds = [...new Set(campaigns?.map(c => c.user_id) || [])];
+    const { data: gmailTokens } = await supabase
+      .from("gmail_tokens")
+      .select("user_id, gmail_email")
+      .in("user_id", userIds);
+    
+    const gmailConnectedUsers = new Set(gmailTokens?.map(t => t.user_id) || []);
 
     for (const queuedEmail of pendingEmails) {
       // Mark as processing
@@ -104,23 +263,48 @@ serve(async (req) => {
           </html>
         `;
 
-        // Send via Resend
-        // Always use verified domain for sending - user's sender_email is stored but not used as from address
-        const fromEmail = "outreach@skryveai.com"; 
-        const fromName = queuedEmail.sender_name || "SkryveAI";
+        const userId = campaignUserMap.get(queuedEmail.campaign_id);
+        const senderName = queuedEmail.sender_name || "SkryveAI";
+        let emailSent = false;
 
-        const { data: emailResponse, error: sendError } = await resend.emails.send({
-          from: `${fromName} <${fromEmail}>`,
-          to: [queuedEmail.to_email],
-          subject: queuedEmail.subject,
-          html: htmlBody,
-          headers: {
-            "X-Entity-Ref-ID": emailRecord.id,
-          },
-        });
+        // Try Gmail first if user has it connected
+        if (userId && gmailConnectedUsers.has(userId)) {
+          console.log(`Sending via Gmail for user ${userId}`);
+          const gmailResult = await sendViaGmail(
+            SUPABASE_URL,
+            SUPABASE_SERVICE_ROLE_KEY,
+            userId,
+            queuedEmail.to_email,
+            queuedEmail.subject,
+            htmlBody,
+            senderName
+          );
 
-        if (sendError) {
-          throw new Error(sendError.message || "Failed to send");
+          if (gmailResult.success) {
+            emailSent = true;
+            console.log(`Email sent via Gmail to ${queuedEmail.to_email}`);
+          } else {
+            console.log(`Gmail failed: ${gmailResult.error}, falling back to Resend`);
+          }
+        }
+
+        // Fallback to Resend if Gmail not available or failed
+        if (!emailSent) {
+          const fromEmail = "outreach@skryveai.com";
+          const { error: sendError } = await resend.emails.send({
+            from: `${senderName} <${fromEmail}>`,
+            to: [queuedEmail.to_email],
+            subject: queuedEmail.subject,
+            html: htmlBody,
+            headers: {
+              "X-Entity-Ref-ID": emailRecord.id,
+            },
+          });
+
+          if (sendError) {
+            throw new Error(sendError.message || "Failed to send");
+          }
+          console.log(`Email sent via Resend to ${queuedEmail.to_email}`);
         }
 
         // Update records
@@ -138,7 +322,6 @@ serve(async (req) => {
           campaign_id: queuedEmail.campaign_id 
         });
 
-        console.log(`Email sent to ${queuedEmail.to_email}`);
         successCount++;
 
       } catch (error) {
@@ -156,7 +339,7 @@ serve(async (req) => {
         failCount++;
       }
 
-      // Small delay between emails to avoid rate limits
+      // Small delay between emails
       await new Promise(r => setTimeout(r, 1000));
     }
 

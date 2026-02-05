@@ -53,3 +53,12 @@ function = "process-trial-reminders"
 [crons.notify-admin-failed-emails]
 schedule = "0 */4 * * *"
 function = "notify-admin-failed-emails"
+
+[functions.gmail-auth]
+verify_jwt = false
+
+[functions.send-gmail]
+verify_jwt = false
+
+[functions.send-test-email]
+verify_jwt = false
