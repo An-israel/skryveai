@@ -87,7 +87,8 @@ export default function NewCampaign() {
         hasExpertise,
         hasCv,
         hasGmail,
-        isComplete: hasBio && hasExpertise && hasCv && hasGmail,
+        // Gmail is optional until OAuth verification is complete
+        isComplete: hasBio && hasExpertise && hasCv,
       });
       setCheckingProfile(false);
     };
@@ -500,16 +501,16 @@ export default function NewCampaign() {
                     )}
                   </div>
                   
-                  <div className={`flex items-center gap-3 p-3 rounded-lg border ${profileStatus.hasGmail ? 'bg-success/5 border-success/30' : 'bg-muted/50'}`}>
+                  <div className={`flex items-center gap-3 p-3 rounded-lg border ${profileStatus.hasGmail ? 'bg-success/5 border-success/30' : 'bg-muted/30'}`}>
                     <Mail className={`w-5 h-5 ${profileStatus.hasGmail ? 'text-success' : 'text-muted-foreground'}`} />
                     <div className="flex-1">
                       <p className="font-medium">Gmail Connection</p>
-                      <p className="text-sm text-muted-foreground">Connect Gmail for email delivery</p>
+                      <p className="text-sm text-muted-foreground">Connect Gmail for better deliverability</p>
                     </div>
                     {profileStatus.hasGmail ? (
                       <span className="text-success text-sm">✓ Connected</span>
                     ) : (
-                      <span className="text-warning text-sm">Required</span>
+                      <span className="text-muted-foreground text-sm">Optional</span>
                     )}
                   </div>
                 </div>
