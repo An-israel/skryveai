@@ -15,12 +15,13 @@ import { campaignApi } from "@/lib/api/campaign";
 import type { UserSettings } from "@/components/settings/EmailSettingsDialog";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { AlertTriangle, FileText, Briefcase, User } from "lucide-react";
+import { AlertTriangle, FileText, Briefcase, User, Mail } from "lucide-react";
 
 interface ProfileStatus {
   hasBio: boolean;
   hasExpertise: boolean;
   hasCv: boolean;
+  hasGmail: boolean;
   isComplete: boolean;
 }
 
@@ -33,6 +34,7 @@ export default function NewCampaign() {
     hasBio: false,
     hasExpertise: false,
     hasCv: false,
+    hasGmail: false,
     isComplete: false,
   });
   const [businesses, setBusinesses] = useState<Business[]>([]);
@@ -60,22 +62,32 @@ export default function NewCampaign() {
         return;
       }
       
-      // Check profile completion
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("bio, expertise, cv_url")
-        .eq("user_id", session.user.id)
-        .single();
+      // Check profile completion and Gmail connection in parallel
+      const [profileResult, gmailResult] = await Promise.all([
+        supabase
+          .from("profiles")
+          .select("bio, expertise, cv_url")
+          .eq("user_id", session.user.id)
+          .single(),
+        supabase
+          .from("gmail_tokens")
+          .select("id")
+          .eq("user_id", session.user.id)
+          .maybeSingle()
+      ]);
 
+      const profile = profileResult.data;
       const hasBio = !!(profile?.bio && profile.bio.trim().length > 10);
       const hasExpertise = !!(profile?.expertise && profile.expertise.length > 0);
       const hasCv = !!profile?.cv_url;
+      const hasGmail = !!gmailResult.data;
 
       setProfileStatus({
         hasBio,
         hasExpertise,
         hasCv,
-        isComplete: hasBio && hasExpertise,
+        hasGmail,
+        isComplete: hasBio && hasExpertise && hasCv && hasGmail,
       });
       setCheckingProfile(false);
     };
@@ -459,7 +471,20 @@ export default function NewCampaign() {
                     {profileStatus.hasCv ? (
                       <span className="text-success text-sm">✓ Complete</span>
                     ) : (
-                      <span className="text-muted-foreground text-sm">Optional</span>
+                      <span className="text-warning text-sm">Required</span>
+                    )}
+                  </div>
+                  
+                  <div className={`flex items-center gap-3 p-3 rounded-lg border ${profileStatus.hasGmail ? 'bg-success/5 border-success/30' : 'bg-muted/50'}`}>
+                    <Mail className={`w-5 h-5 ${profileStatus.hasGmail ? 'text-success' : 'text-muted-foreground'}`} />
+                    <div className="flex-1">
+                      <p className="font-medium">Gmail Connection</p>
+                      <p className="text-sm text-muted-foreground">Connect Gmail for email delivery</p>
+                    </div>
+                    {profileStatus.hasGmail ? (
+                      <span className="text-success text-sm">✓ Connected</span>
+                    ) : (
+                      <span className="text-warning text-sm">Required</span>
                     )}
                   </div>
                 </div>
