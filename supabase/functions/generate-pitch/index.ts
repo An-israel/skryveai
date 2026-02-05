@@ -26,39 +26,48 @@ serve(async (req) => {
   try {
     // Authentication check
     const authHeader = req.headers.get("authorization");
+    console.log("Auth header present:", !!authHeader);
+    
     if (!authHeader?.startsWith("Bearer ")) {
+      console.error("Missing or invalid authorization header");
       return new Response(
-        JSON.stringify({ error: "Unauthorized" }),
+        JSON.stringify({ error: "Unauthorized - missing authorization header" }),
         { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
+    const token = authHeader.replace("Bearer ", "");
+
     const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
-    const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY");
     const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
     
-    if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
+    if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
+      console.error("Missing Supabase environment variables");
       throw new Error("Supabase environment variables not configured");
     }
 
-    const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-      global: { headers: { Authorization: authHeader } }
-    });
+    // Use service role to validate the user's token
+    const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    // Validate the user's JWT token
+    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
     
     if (authError || !user) {
+      console.error("JWT validation failed:", authError);
       return new Response(
-        JSON.stringify({ error: "Unauthorized" }),
+        JSON.stringify({ error: "Unauthorized - invalid token" }),
         { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
+
+    console.log("User authenticated:", user.id);
 
     // Get authenticated user ID
     const userId = user.id;
 
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) {
+      console.error("LOVABLE_API_KEY not configured");
       throw new Error("LOVABLE_API_KEY is not configured");
     }
 
@@ -113,16 +122,15 @@ serve(async (req) => {
       serviceDescription: freelancerService || "web development and digital marketing"
     };
 
-    if (userId && SUPABASE_SERVICE_ROLE_KEY) {
-      const serviceClient = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
-      
-      const { data: profile } = await serviceClient
+    if (userId) {
+      // Use the already-created service role client
+      const { data: profile } = await supabase
         .from("profiles")
         .select("full_name, expertise, bio, portfolio_url, cv_url")
         .eq("user_id", userId)
         .single();
 
-      const { data: settings } = await serviceClient
+      const { data: settings } = await supabase
         .from("user_settings")
         .select("sender_name, service_description, calendly_url")
         .eq("user_id", userId)
