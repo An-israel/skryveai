@@ -29,12 +29,22 @@ export interface SendEmailResult {
 
 export const campaignApi = {
   async searchBusinesses(businessType: string, location: string): Promise<SearchBusinessesResult> {
+    // Ensure user is authenticated before making the request
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) {
+      throw new Error("Please log in to search for businesses");
+    }
+
     const { data, error } = await supabase.functions.invoke<SearchBusinessesResult>("search-businesses", {
       body: { businessType, location, limit: 30 },
     });
 
     if (error) {
       console.error("Search businesses error:", error);
+      // Check if it's an auth error
+      if (error.message?.includes("401") || error.message?.includes("Unauthorized")) {
+        throw new Error("Session expired. Please log in again.");
+      }
       throw new Error(error.message || "Failed to search businesses");
     }
 
