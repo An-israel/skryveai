@@ -98,6 +98,18 @@ export default function NewCampaign() {
     setIsLoading(true);
     setSearchParams({ businessType, location });
     try {
+      // Ensure we have a fresh session before making the request
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      if (sessionError || !session) {
+        toast({
+          title: "Session Expired",
+          description: "Please log in again to continue.",
+          variant: "destructive",
+        });
+        navigate("/login");
+        return;
+      }
+
       const result = await campaignApi.searchBusinesses(businessType, location);
       setBusinesses(result.businesses);
       setCompletedSteps([...completedSteps, 'search']);
@@ -108,9 +120,22 @@ export default function NewCampaign() {
       });
     } catch (error) {
       console.error("Search error:", error);
+      const errorMessage = error instanceof Error ? error.message : "Failed to search businesses";
+      
+      // If it's an auth error, redirect to login
+      if (errorMessage.includes("Session expired") || errorMessage.includes("log in")) {
+        toast({
+          title: "Session Expired",
+          description: "Please log in again to continue.",
+          variant: "destructive",
+        });
+        navigate("/login");
+        return;
+      }
+      
       toast({
         title: "Search Failed",
-        description: error instanceof Error ? error.message : "Failed to search businesses",
+        description: errorMessage,
         variant: "destructive",
       });
     } finally {

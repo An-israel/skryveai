@@ -20,35 +20,52 @@ serve(async (req) => {
   try {
     // Authentication check
     const authHeader = req.headers.get("authorization");
+    console.log("Auth header present:", !!authHeader);
+    
     if (!authHeader?.startsWith("Bearer ")) {
+      console.error("Missing or invalid authorization header");
       return new Response(
-        JSON.stringify({ error: "Unauthorized" }),
+        JSON.stringify({ error: "Authorization header required" }),
         { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
     const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
-    const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY");
+    const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
     
-    if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
+    if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
+      console.error("Missing Supabase environment variables");
       throw new Error("Supabase environment variables not configured");
     }
 
-    const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-      global: { headers: { Authorization: authHeader } }
-    });
-
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    // Use service role key to validate the user's JWT
+    const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
     
-    if (authError || !user) {
+    // Extract the token and validate it
+    const token = authHeader.replace("Bearer ", "");
+    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+    
+    if (authError) {
+      console.error("Auth error:", authError.message);
       return new Response(
-        JSON.stringify({ error: "Unauthorized" }),
+        JSON.stringify({ error: "Invalid or expired session. Please log in again." }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+    
+    if (!user) {
+      console.error("No user found for token");
+      return new Response(
+        JSON.stringify({ error: "User not found" }),
         { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
+    console.log("User authenticated:", user.id);
+
     const GOOGLE_PLACES_API_KEY = Deno.env.get("GOOGLE_PLACES_API_KEY");
     if (!GOOGLE_PLACES_API_KEY) {
+      console.error("GOOGLE_PLACES_API_KEY not configured");
       throw new Error("GOOGLE_PLACES_API_KEY is not configured");
     }
 
@@ -75,6 +92,8 @@ serve(async (req) => {
 
     // Step 1: Text search to find places
     const query = `${businessType} in ${location}`;
+    console.log(`Searching for: "${query}"`);
+    
     const textSearchUrl = `https://maps.googleapis.com/maps/api/place/textsearch/json?query=${encodeURIComponent(query)}&key=${GOOGLE_PLACES_API_KEY}`;
     
     const searchResponse = await fetch(textSearchUrl);
@@ -86,6 +105,7 @@ serve(async (req) => {
     }
 
     const places = searchData.results?.slice(0, sanitizedLimit) || [];
+    console.log(`Found ${places.length} places from Google`);
     
     // Step 2: Get details for each place (website, phone, etc.)
     const businesses = await Promise.all(
@@ -127,7 +147,7 @@ serve(async (req) => {
       })
     );
 
-    console.log(`Found ${businesses.length} businesses for "${query}"`);
+    console.log(`Returning ${businesses.length} businesses for "${query}"`);
 
     return new Response(
       JSON.stringify({ businesses, total: businesses.length }),
