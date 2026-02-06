@@ -116,13 +116,14 @@ export function EmailWarmupSettings() {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) throw new Error("Not authenticated");
 
-      const updateData: any = {
+      const updateData = {
         daily_send_limit: settings.warmup_max_volume,
+        warmup_enabled: settings.warmup_enabled,
+        warmup_start_volume: settings.warmup_start_volume,
+        warmup_daily_increase: settings.warmup_daily_increase,
+        warmup_started_at: settings.warmup_started_at,
         updated_at: new Date().toISOString(),
       };
-
-      // Note: These fields would need to be added to the user_settings table
-      // For now, we'll store in daily_send_limit and use local state
       
       const { error } = await supabase
         .from("user_settings")

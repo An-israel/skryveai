@@ -788,12 +788,18 @@ export type Database = {
           daily_send_limit: number | null
           delay_between_emails: number | null
           email_signature: string | null
+          emails_sent_today: number | null
           id: string
+          last_send_date: string | null
           sender_email: string | null
           sender_name: string | null
           service_description: string | null
           updated_at: string
           user_id: string
+          warmup_daily_increase: number | null
+          warmup_enabled: boolean | null
+          warmup_start_volume: number | null
+          warmup_started_at: string | null
         }
         Insert: {
           calendly_url?: string | null
@@ -802,12 +808,18 @@ export type Database = {
           daily_send_limit?: number | null
           delay_between_emails?: number | null
           email_signature?: string | null
+          emails_sent_today?: number | null
           id?: string
+          last_send_date?: string | null
           sender_email?: string | null
           sender_name?: string | null
           service_description?: string | null
           updated_at?: string
           user_id: string
+          warmup_daily_increase?: number | null
+          warmup_enabled?: boolean | null
+          warmup_start_volume?: number | null
+          warmup_started_at?: string | null
         }
         Update: {
           calendly_url?: string | null
@@ -816,12 +828,18 @@ export type Database = {
           daily_send_limit?: number | null
           delay_between_emails?: number | null
           email_signature?: string | null
+          emails_sent_today?: number | null
           id?: string
+          last_send_date?: string | null
           sender_email?: string | null
           sender_name?: string | null
           service_description?: string | null
           updated_at?: string
           user_id?: string
+          warmup_daily_increase?: number | null
+          warmup_enabled?: boolean | null
+          warmup_start_volume?: number | null
+          warmup_started_at?: string | null
         }
         Relationships: []
       }
