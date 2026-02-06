@@ -6,9 +6,10 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { Mail, Check, Loader2, Unlink, Eye, EyeOff, ChevronDown, ExternalLink, Settings } from "lucide-react";
+import { Mail, Check, Loader2, Unlink, Eye, EyeOff, ChevronDown, ExternalLink, Settings, HelpCircle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { AppPasswordGuide } from "./AppPasswordGuide";
 
 const PROVIDERS = {
   gmail: {
@@ -46,6 +47,7 @@ export function SMTPConnection() {
   const [isTesting, setIsTesting] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showAdvanced, setShowAdvanced] = useState(false);
+  const [showGuide, setShowGuide] = useState(false);
   const { toast } = useToast();
 
   // Form state
@@ -269,14 +271,33 @@ export function SMTPConnection() {
           </div>
         ) : (
           <div className="space-y-6">
-            {/* Info Banner */}
+            {/* Info Banner with Guide Link */}
             <div className="p-4 bg-blue-50 dark:bg-blue-950/20 rounded-lg border border-blue-200 dark:border-blue-900">
-              <p className="text-sm text-blue-800 dark:text-blue-200">
-                <strong>Why App Password?</strong> This method sends emails directly from your inbox,
-                ensuring better deliverability and avoiding spam folders. It's the industry standard
-                used by professional cold outreach tools.
-              </p>
+              <div className="flex items-start justify-between gap-4">
+                <p className="text-sm text-blue-800 dark:text-blue-200">
+                  <strong>Why App Password?</strong> This method sends emails directly from your inbox,
+                  ensuring better deliverability and avoiding spam folders. It's the industry standard
+                  used by professional cold outreach tools.
+                </p>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setShowGuide(!showGuide)}
+                  className="flex-shrink-0 gap-2"
+                >
+                  <HelpCircle className="h-4 w-4" />
+                  {showGuide ? "Hide Guide" : "Setup Guide"}
+                </Button>
+              </div>
             </div>
+
+            {/* App Password Guide */}
+            {showGuide && (
+              <AppPasswordGuide 
+                provider={formData.provider_type === "outlook" ? "outlook" : "gmail"} 
+                onClose={() => setShowGuide(false)}
+              />
+            )}
 
             {/* Provider Selection */}
             <div className="space-y-2">
