@@ -195,6 +195,24 @@ async function sendViaGmail(
   }
 }
 
+// Calculate warmup limit based on settings
+function calculateWarmupLimit(settings: {
+  warmup_enabled: boolean;
+  warmup_start_volume: number;
+  warmup_daily_increase: number;
+  warmup_started_at: string | null;
+}): number {
+  if (!settings.warmup_enabled || !settings.warmup_started_at) {
+    return Infinity; // No limit if warmup is disabled
+  }
+  
+  const startDate = new Date(settings.warmup_started_at);
+  const today = new Date();
+  const daysSinceStart = Math.floor((today.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
+  
+  return settings.warmup_start_volume + (daysSinceStart * settings.warmup_daily_increase);
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -223,7 +241,7 @@ serve(async (req) => {
       .eq("status", "pending")
       .lte("scheduled_for", new Date().toISOString())
       .order("scheduled_for", { ascending: true })
-      .limit(10);
+      .limit(50); // Fetch more, we'll filter by warmup limits
 
     if (fetchError) {
       console.error("Error fetching queue:", fetchError);
@@ -251,6 +269,29 @@ serve(async (req) => {
     const campaignUserMap = new Map(campaigns?.map(c => [c.id, c.user_id]) || []);
     const userIds = [...new Set(campaigns?.map(c => c.user_id) || [])];
 
+    // Get user settings for warmup limits
+    const { data: userSettings } = await supabase
+      .from("user_settings")
+      .select("user_id, warmup_enabled, warmup_start_volume, warmup_daily_increase, warmup_started_at, emails_sent_today, last_send_date, daily_send_limit")
+      .in("user_id", userIds);
+    
+    const userSettingsMap = new Map(
+      (userSettings || []).map(s => [s.user_id, s])
+    );
+
+    // Reset daily counters if it's a new day
+    const today = new Date().toISOString().split('T')[0];
+    for (const settings of userSettings || []) {
+      if (settings.last_send_date !== today) {
+        await supabase
+          .from("user_settings")
+          .update({ emails_sent_today: 0, last_send_date: today })
+          .eq("user_id", settings.user_id);
+        settings.emails_sent_today = 0;
+        settings.last_send_date = today;
+      }
+    }
+
     // Check for SMTP credentials (primary method)
     const { data: smtpCredentials } = await supabase
       .from("smtp_credentials")
@@ -269,7 +310,33 @@ serve(async (req) => {
     
     const gmailConnectedUsers = new Set(gmailTokens?.map(t => t.user_id) || []);
 
+    // Track emails sent per user in this batch
+    const userEmailsSentThisBatch = new Map<string, number>();
+
     for (const queuedEmail of pendingEmails) {
+      const userId = campaignUserMap.get(queuedEmail.campaign_id);
+      
+      // Check warmup and daily limits
+      if (userId) {
+        const settings = userSettingsMap.get(userId);
+        if (settings) {
+          const warmupLimit = calculateWarmupLimit({
+            warmup_enabled: settings.warmup_enabled || false,
+            warmup_start_volume: settings.warmup_start_volume || 5,
+            warmup_daily_increase: settings.warmup_daily_increase || 2,
+            warmup_started_at: settings.warmup_started_at,
+          });
+          
+          const dailyLimit = Math.min(warmupLimit, settings.daily_send_limit || 50);
+          const sentToday = (settings.emails_sent_today || 0) + (userEmailsSentThisBatch.get(userId) || 0);
+          
+          if (sentToday >= dailyLimit) {
+            console.log(`User ${userId} has reached daily limit (${sentToday}/${dailyLimit}), skipping email ${queuedEmail.id}`);
+            continue; // Skip this email, don't mark as failed
+          }
+        }
+      }
+
       // Mark as processing
       await supabase
         .from("email_queue")
@@ -399,6 +466,20 @@ serve(async (req) => {
         await supabase.rpc("increment_campaign_emails_sent", { 
           campaign_id: queuedEmail.campaign_id 
         });
+
+        // Track emails sent for warmup/daily limits
+        if (userId) {
+          userEmailsSentThisBatch.set(userId, (userEmailsSentThisBatch.get(userId) || 0) + 1);
+          
+          // Update user's emails_sent_today counter
+          await supabase
+            .from("user_settings")
+            .update({ 
+              emails_sent_today: (userSettingsMap.get(userId)?.emails_sent_today || 0) + 
+                                 (userEmailsSentThisBatch.get(userId) || 0)
+            })
+            .eq("user_id", userId);
+        }
 
         successCount++;
 
