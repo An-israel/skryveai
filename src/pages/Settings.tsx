@@ -28,6 +28,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { Header } from "@/components/layout/Header";
 import { EmailVerificationStatus } from "@/components/settings/EmailVerificationStatus";
 import { SMTPConnection } from "@/components/settings/SMTPConnection";
+import { EmailWarmupSettings } from "@/components/settings/EmailWarmupSettings";
 import { useQuery } from "@tanstack/react-query";
 
 const EXPERTISE_OPTIONS = [
@@ -419,8 +420,9 @@ export default function Settings() {
               </Card>
             </TabsContent>
 
-            <TabsContent value="email">
+            <TabsContent value="email" className="space-y-6">
               <SMTPConnection />
+              <EmailWarmupSettings />
             </TabsContent>
 
             {isAdmin && (
