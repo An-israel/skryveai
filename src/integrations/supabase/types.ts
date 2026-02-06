@@ -630,6 +630,54 @@ export type Database = {
         }
         Relationships: []
       }
+      smtp_credentials: {
+        Row: {
+          app_password: string
+          created_at: string
+          email_address: string
+          id: string
+          imap_host: string
+          imap_port: number
+          is_verified: boolean
+          last_verified_at: string | null
+          provider_type: string
+          smtp_host: string
+          smtp_port: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          app_password: string
+          created_at?: string
+          email_address: string
+          id?: string
+          imap_host?: string
+          imap_port?: number
+          is_verified?: boolean
+          last_verified_at?: string | null
+          provider_type?: string
+          smtp_host?: string
+          smtp_port?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          app_password?: string
+          created_at?: string
+          email_address?: string
+          id?: string
+          imap_host?: string
+          imap_port?: number
+          is_verified?: boolean
+          last_verified_at?: string | null
+          provider_type?: string
+          smtp_host?: string
+          smtp_port?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       subscriptions: {
         Row: {
           amount_paid: number | null

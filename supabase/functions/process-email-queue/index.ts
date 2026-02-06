@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { Resend } from "https://esm.sh/resend@2.0.0";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
+import { SMTPClient } from "https://deno.land/x/denomailer@1.6.0/mod.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -9,6 +10,23 @@ const corsHeaders = {
 
 const GOOGLE_CLIENT_ID = Deno.env.get("GOOGLE_CLIENT_ID");
 const GOOGLE_CLIENT_SECRET = Deno.env.get("GOOGLE_CLIENT_SECRET");
+
+interface SMTPCredentials {
+  user_id: string;
+  email_address: string;
+  app_password: string;
+  smtp_host: string;
+  smtp_port: number;
+  is_verified: boolean;
+}
+
+interface GmailToken {
+  user_id: string;
+  access_token: string;
+  refresh_token: string;
+  token_expiry: string;
+  gmail_email: string;
+}
 
 async function refreshGmailToken(refreshToken: string): Promise<{ access_token: string; expires_in: number }> {
   if (!GOOGLE_CLIENT_ID || !GOOGLE_CLIENT_SECRET) {
@@ -65,14 +83,46 @@ function createEmailRaw(to: string, from: string, subject: string, body: string)
   return base64;
 }
 
-interface GmailToken {
-  user_id: string;
-  access_token: string;
-  refresh_token: string;
-  token_expiry: string;
-  gmail_email: string;
+// Send via SMTP with App Password (primary method)
+async function sendViaSMTP(
+  credentials: SMTPCredentials,
+  to: string,
+  subject: string,
+  htmlBody: string,
+  senderName: string
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    const client = new SMTPClient({
+      connection: {
+        hostname: credentials.smtp_host,
+        port: credentials.smtp_port,
+        tls: credentials.smtp_port === 465,
+        auth: {
+          username: credentials.email_address,
+          password: credentials.app_password,
+        },
+      },
+    });
+
+    const plainText = htmlBody.replace(/<[^>]*>/g, '');
+
+    await client.send({
+      from: `${senderName} <${credentials.email_address}>`,
+      to: to,
+      subject: subject,
+      content: plainText,
+      html: htmlBody,
+    });
+
+    await client.close();
+    return { success: true };
+  } catch (error) {
+    console.error("SMTP send error:", error);
+    return { success: false, error: error instanceof Error ? error.message : "SMTP error" };
+  }
 }
 
+// Send via Gmail API (legacy method for existing OAuth users)
 async function sendViaGmail(
   supabaseUrl: string,
   supabaseKey: string,
@@ -85,7 +135,6 @@ async function sendViaGmail(
   try {
     const supabaseClient = createClient(supabaseUrl, supabaseKey);
     
-    // Get user's Gmail tokens
     const { data: tokens, error: tokensError } = await supabaseClient
       .from("gmail_tokens")
       .select("*")
@@ -100,14 +149,12 @@ async function sendViaGmail(
     let accessToken = gmailTokens.access_token;
     const tokenExpiry = new Date(gmailTokens.token_expiry);
 
-    // Refresh if expired
     if (tokenExpiry < new Date(Date.now() + 5 * 60 * 1000)) {
       console.log("Refreshing Gmail token...");
       const newTokens = await refreshGmailToken(gmailTokens.refresh_token);
       accessToken = newTokens.access_token;
       
       const newExpiry = new Date(Date.now() + newTokens.expires_in * 1000);
-      // Use raw fetch to update tokens to avoid type issues
       await fetch(`${supabaseUrl}/rest/v1/gmail_tokens?user_id=eq.${userId}`, {
         method: "PATCH",
         headers: {
@@ -169,7 +216,7 @@ serve(async (req) => {
     const resend = new Resend(RESEND_API_KEY);
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
-    // Get pending emails from queue that are scheduled for now or earlier
+    // Get pending emails from queue
     const { data: pendingEmails, error: fetchError } = await supabase
       .from("email_queue")
       .select("*")
@@ -194,7 +241,7 @@ serve(async (req) => {
     let successCount = 0;
     let failCount = 0;
 
-    // Group emails by campaign to get user IDs
+    // Get campaign user mappings
     const campaignIds = [...new Set(pendingEmails.map(e => e.campaign_id))];
     const { data: campaigns } = await supabase
       .from("campaigns")
@@ -202,9 +249,19 @@ serve(async (req) => {
       .in("id", campaignIds);
     
     const campaignUserMap = new Map(campaigns?.map(c => [c.id, c.user_id]) || []);
-
-    // Check which users have Gmail connected
     const userIds = [...new Set(campaigns?.map(c => c.user_id) || [])];
+
+    // Check for SMTP credentials (primary method)
+    const { data: smtpCredentials } = await supabase
+      .from("smtp_credentials")
+      .select("*")
+      .in("user_id", userIds);
+    
+    const smtpCredentialsMap = new Map(
+      (smtpCredentials || []).map((c: SMTPCredentials) => [c.user_id, c])
+    );
+
+    // Check for Gmail tokens (legacy fallback)
     const { data: gmailTokens } = await supabase
       .from("gmail_tokens")
       .select("user_id, gmail_email")
@@ -267,9 +324,30 @@ serve(async (req) => {
         const senderName = queuedEmail.sender_name || "SkryveAI";
         let emailSent = false;
 
-        // Try Gmail first if user has it connected
-        if (userId && gmailConnectedUsers.has(userId)) {
-          console.log(`Sending via Gmail for user ${userId}`);
+        // Priority 1: SMTP with App Password (preferred method)
+        if (userId && smtpCredentialsMap.has(userId)) {
+          const creds = smtpCredentialsMap.get(userId)!;
+          console.log(`Sending via SMTP for user ${userId}`);
+          
+          const smtpResult = await sendViaSMTP(
+            creds,
+            queuedEmail.to_email,
+            queuedEmail.subject,
+            htmlBody,
+            senderName
+          );
+
+          if (smtpResult.success) {
+            emailSent = true;
+            console.log(`Email sent via SMTP to ${queuedEmail.to_email}`);
+          } else {
+            console.log(`SMTP failed: ${smtpResult.error}, trying next method`);
+          }
+        }
+
+        // Priority 2: Gmail API (legacy for existing OAuth users)
+        if (!emailSent && userId && gmailConnectedUsers.has(userId)) {
+          console.log(`Sending via Gmail API for user ${userId}`);
           const gmailResult = await sendViaGmail(
             SUPABASE_URL,
             SUPABASE_SERVICE_ROLE_KEY,
@@ -288,7 +366,7 @@ serve(async (req) => {
           }
         }
 
-        // Fallback to Resend if Gmail not available or failed
+        // Priority 3: Resend (fallback)
         if (!emailSent) {
           const fromEmail = "outreach@skryveai.com";
           const { error: sendError } = await resend.emails.send({

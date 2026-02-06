@@ -27,7 +27,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/use-auth";
 import { Header } from "@/components/layout/Header";
 import { EmailVerificationStatus } from "@/components/settings/EmailVerificationStatus";
-import { GmailConnection } from "@/components/settings/GmailConnection";
+import { SMTPConnection } from "@/components/settings/SMTPConnection";
 import { useQuery } from "@tanstack/react-query";
 
 const EXPERTISE_OPTIONS = [
@@ -273,9 +273,9 @@ export default function Settings() {
                 <FileText className="w-4 h-4" />
                 Documents
               </TabsTrigger>
-              <TabsTrigger value="gmail" className="gap-2">
+              <TabsTrigger value="email" className="gap-2">
                 <Mail className="w-4 h-4" />
-                Gmail
+                Email
               </TabsTrigger>
               {isAdmin && (
                 <TabsTrigger value="email-admin" className="gap-2">
@@ -419,8 +419,8 @@ export default function Settings() {
               </Card>
             </TabsContent>
 
-            <TabsContent value="gmail">
-              <GmailConnection />
+            <TabsContent value="email">
+              <SMTPConnection />
             </TabsContent>
 
             {isAdmin && (
