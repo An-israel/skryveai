@@ -463,7 +463,7 @@ serve(async (req) => {
       .eq("status", "pending")
       .lte("scheduled_for", new Date().toISOString())
       .order("scheduled_for", { ascending: true })
-      .limit(50);
+      .limit(10);
 
     if (fetchError) {
       console.error("Error fetching queue:", fetchError);
@@ -744,8 +744,8 @@ serve(async (req) => {
         failCount++;
       }
 
-      // Small delay between emails
-      await new Promise(r => setTimeout(r, 1000));
+      // Minimal delay between emails (avoid hammering SMTP server)
+      await new Promise(r => setTimeout(r, 200));
     }
 
     console.log(`Done: ${successCount} sent, ${failCount} failed, ${skippedCount} skipped`);

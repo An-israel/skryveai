@@ -43,7 +43,7 @@ verify_jwt = false
 verify_jwt = false
 
 [crons.process-email-queue]
-schedule = "*/2 * * * *"
+schedule = "* * * * *"
 function = "process-email-queue"
 
 [crons.process-trial-reminders]
