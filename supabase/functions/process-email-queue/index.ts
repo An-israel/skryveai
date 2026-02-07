@@ -382,14 +382,48 @@ function calculateWarmupLimit(settings: {
 
 // ─── Email validation ───
 
+const INVALID_EMAIL_TLDS = new Set([
+  'png', 'jpg', 'jpeg', 'gif', 'svg', 'webp', 'bmp', 'ico', 'tiff', 'avif',
+  'mp4', 'mp3', 'wav', 'avi', 'mov', 'wmv', 'flv', 'webm', 'ogg',
+  'pdf', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx', 'csv', 'txt',
+  'zip', 'rar', 'tar', 'gz', '7z',
+  'js', 'css', 'html', 'htm', 'xml', 'json', 'ts', 'tsx', 'jsx',
+  'woff', 'woff2', 'ttf', 'eot', 'otf', 'blink',
+  'exe', 'dll', 'dmg', 'apk', 'msi',
+]);
+
+const INVALID_LOCAL_PATTERNS = [
+  /^\d+x\d*$/i, /^image/i, /^img/i, /^photo/i, /^icon/i, /^logo/i,
+  /^banner/i, /^bg/i, /^thumb/i, /^screen/i, /^avatar/i, /^placeholder/i,
+  /^sprite/i, /^asset/i, /^file/i, /^\d+$/, /^[a-f0-9]{8,}$/i,
+  /^data$/i, /^no-?reply$/i, /^mailer-?daemon$/i, /^frame-/i,
+];
+
 function isValidEmail(email: string): boolean {
-  // Reject clearly invalid emails like frame-...@mhtml.blink
   if (!email || !email.includes("@")) return false;
-  const domain = email.split("@")[1];
-  if (!domain || !domain.includes(".")) return false;
-  // Reject known invalid patterns
-  if (domain === "mhtml.blink" || domain.endsWith(".blink")) return false;
-  if (email.startsWith("frame-")) return false;
+  const lower = email.toLowerCase().trim();
+  const parts = lower.split("@");
+  if (parts.length !== 2) return false;
+
+  const [localPart, domain] = parts;
+  if (!localPart || localPart.length < 1 || localPart.length > 64) return false;
+  if (localPart.startsWith('.') || localPart.endsWith('.') || localPart.includes('..')) return false;
+
+  if (!domain || domain.length < 3) return false;
+  const domainParts = domain.split(".");
+  if (domainParts.length < 2) return false;
+
+  const tld = domainParts[domainParts.length - 1];
+  if (!tld || tld.length < 2) return false;
+  if (INVALID_EMAIL_TLDS.has(tld)) return false;
+
+  for (const pattern of INVALID_LOCAL_PATTERNS) {
+    if (pattern.test(localPart)) return false;
+  }
+
+  if (domain.includes('/') || domain.includes('\\')) return false;
+  if (domainParts[0].length < 2) return false;
+
   return true;
 }
 
