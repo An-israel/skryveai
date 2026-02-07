@@ -1,4 +1,4 @@
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Menu, X, Settings, Shield } from "lucide-react";
 import { useState, useEffect } from "react";
@@ -10,30 +10,64 @@ interface HeaderProps {
   onLogout?: () => void;
 }
 
-export function Header({ isAuthenticated, onLogout }: HeaderProps) {
+export function Header({ isAuthenticated: isAuthenticatedProp, onLogout }: HeaderProps) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [authState, setAuthState] = useState<boolean>(isAuthenticatedProp ?? false);
+  const navigate = useNavigate();
 
+  // Self-detect auth state if not provided via props
   useEffect(() => {
-    if (isAuthenticated) {
-      checkAdminRole();
-    }
-  }, [isAuthenticated]);
+    const checkAuth = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      setAuthState(!!session);
+      if (session) {
+        checkAdminRole(session.user.id);
+      }
+    };
 
-  const checkAdminRole = async () => {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (user) {
-      const { data: roles } = await supabase
-        .from("user_roles")
-        .select("role")
-        .eq("user_id", user.id);
-      
-      const hasAdminRole = roles?.some(r => 
-        ["super_admin", "content_editor", "support_agent"].includes(r.role)
-      );
-      setIsAdmin(!!hasAdminRole);
+    if (isAuthenticatedProp !== undefined) {
+      setAuthState(isAuthenticatedProp);
+      if (isAuthenticatedProp) {
+        supabase.auth.getUser().then(({ data: { user } }) => {
+          if (user) checkAdminRole(user.id);
+        });
+      }
+    } else {
+      checkAuth();
+    }
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setAuthState(!!session);
+      if (session) checkAdminRole(session.user.id);
+      else setIsAdmin(false);
+    });
+
+    return () => subscription.unsubscribe();
+  }, [isAuthenticatedProp]);
+
+  const checkAdminRole = async (userId: string) => {
+    const { data: roles } = await supabase
+      .from("user_roles")
+      .select("role")
+      .eq("user_id", userId);
+    
+    const hasAdminRole = roles?.some(r => 
+      ["super_admin", "content_editor", "support_agent"].includes(r.role)
+    );
+    setIsAdmin(!!hasAdminRole);
+  };
+
+  const handleLogout = async () => {
+    if (onLogout) {
+      onLogout();
+    } else {
+      await supabase.auth.signOut();
+      navigate("/");
     }
   };
+
+  const isAuthenticated = authState;
 
   return (
     <header className="fixed top-0 left-0 right-0 z-50 glass border-b">
@@ -63,7 +97,7 @@ export function Header({ isAuthenticated, onLogout }: HeaderProps) {
               <Link to="/settings" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
                 <Settings className="w-4 h-4" />
               </Link>
-              <Button variant="ghost" onClick={onLogout}>
+              <Button variant="ghost" onClick={handleLogout}>
                 Log Out
               </Button>
             </>
@@ -118,7 +152,7 @@ export function Header({ isAuthenticated, onLogout }: HeaderProps) {
                   <Link to="/settings" className="py-2 text-sm font-medium text-muted-foreground hover:text-foreground">
                     Settings
                   </Link>
-                  <Button variant="ghost" onClick={onLogout} className="justify-start">
+                  <Button variant="ghost" onClick={handleLogout} className="justify-start">
                     Log Out
                   </Button>
                 </>
