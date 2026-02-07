@@ -16,13 +16,15 @@ import {
   PartyPopper,
   Settings,
   Calendar,
-  FlaskConical
+  FlaskConical,
+  Play
 } from "lucide-react";
 import type { Business, GeneratedPitch } from "@/types/campaign";
 import { EmailSettingsDialog, type UserSettings } from "@/components/settings/EmailSettingsDialog";
 import { EmailScheduler, type ScheduleSettings } from "@/components/campaign/EmailScheduler";
 import { ABTestingPanel, type ABTestSettings } from "@/components/campaign/ABTestingPanel";
 import { supabase } from "@/integrations/supabase/client";
+import { useEmailQueueRealtime } from "@/hooks/use-email-queue-realtime";
 
 interface SendStepProps {
   businesses: Business[];
@@ -71,6 +73,12 @@ export function SendStep({
   const isQueued = queuedCount > 0 && !isSending;
   const firstPitch = approvedBusinesses[0] ? pitches[approvedBusinesses[0].id] : null;
 
+  // Real-time queue tracking — must be called before any early returns
+  const { stats: queueStats } = useEmailQueueRealtime(campaignId);
+  const totalQueued = queueStats.pending + queueStats.processing + queueStats.sent + queueStats.failed;
+  const deliveryProgress = totalQueued > 0 ? ((queueStats.sent + queueStats.failed) / totalQueued) * 100 : 0;
+  const [triggeringQueue, setTriggeringQueue] = useState(false);
+
   useEffect(() => {
     loadUserSettings();
   }, []);
@@ -96,8 +104,54 @@ export function SendStep({
     }
   };
 
+  const triggerQueueProcessing = async () => {
+    setTriggeringQueue(true);
+    try {
+      await supabase.functions.invoke("process-email-queue");
+    } catch (e) {
+      console.error("Failed to trigger queue:", e);
+    } finally {
+      setTriggeringQueue(false);
+    }
+  };
+
   const estimatedTime = approvedBusinesses.length * (userSettings?.delay_between_emails || 30);
   const estimatedMinutes = Math.ceil(estimatedTime / 60);
+
+  // Auto-detect completion from real-time stats
+  const allDelivered = isQueued && totalQueued > 0 && queueStats.pending === 0 && queueStats.processing === 0;
+
+  if (allDelivered) {
+    return (
+      <motion.div
+        initial={{ opacity: 0, scale: 0.95 }}
+        animate={{ opacity: 1, scale: 1 }}
+        className="text-center py-12"
+      >
+        <motion.div
+          initial={{ scale: 0 }}
+          animate={{ scale: 1 }}
+          transition={{ type: "spring", delay: 0.2 }}
+          className="w-24 h-24 mx-auto mb-6 rounded-full bg-success/10 flex items-center justify-center"
+        >
+          <PartyPopper className="w-12 h-12 text-success" />
+        </motion.div>
+        <h2 className="text-3xl font-bold mb-2">All Emails Delivered! 🎉</h2>
+        <p className="text-muted-foreground mb-4 max-w-md mx-auto">
+          {queueStats.sent} emails sent successfully{queueStats.failed > 0 ? `, ${queueStats.failed} failed` : ""}.
+          You'll be notified when you receive replies.
+        </p>
+        <div className="flex justify-center gap-4">
+          <Button variant="outline" asChild>
+            <a href="/dashboard">View Dashboard</a>
+          </Button>
+          <Button asChild>
+            <a href="/campaigns/new">New Campaign</a>
+          </Button>
+        </div>
+      </motion.div>
+    );
+  }
 
   if (isComplete) {
     return (
@@ -127,8 +181,10 @@ export function SendStep({
           </Button>
         </div>
       </motion.div>
-    );
+    )
   }
+
+
 
   if (isQueued) {
     return (
@@ -141,33 +197,69 @@ export function SendStep({
           initial={{ scale: 0 }}
           animate={{ scale: 1 }}
           transition={{ type: "spring", delay: 0.2 }}
-          className="w-24 h-24 mx-auto mb-6 rounded-full bg-info/10 flex items-center justify-center"
+          className="w-24 h-24 mx-auto mb-6 rounded-full bg-primary/10 flex items-center justify-center"
         >
-          <Calendar className="w-12 h-12 text-info" />
+          <Loader2 className="w-12 h-12 text-primary animate-spin" />
         </motion.div>
-        <h2 className="text-3xl font-bold mb-2">Emails Queued Successfully! 📅</h2>
-        <p className="text-muted-foreground mb-4 max-w-md mx-auto">
-          Your {queuedCount} emails have been queued and are being sent automatically with {userSettings?.delay_between_emails || 30} second intervals.
+        <h2 className="text-3xl font-bold mb-2">Sending Emails...</h2>
+        <p className="text-muted-foreground mb-6 max-w-md mx-auto">
+          Your emails are being delivered in real-time
         </p>
         
-        <Card className="max-w-md mx-auto mb-6 p-4 border-info/30 bg-info/5">
-          <div className="flex items-start gap-3 text-left">
-            <Clock className="w-5 h-5 text-info shrink-0 mt-0.5" />
-            <div>
-              <h4 className="font-medium text-sm mb-1">Delivery Status</h4>
-              <p className="text-xs text-muted-foreground">
-                Emails are processed automatically every 2 minutes. Estimated completion time: <strong>~{estimatedMinutes} minutes</strong>. 
-                You'll see delivery stats in your dashboard once complete.
-              </p>
+        {/* Live progress */}
+        <Card className="max-w-md mx-auto mb-6 p-6">
+          <div className="flex justify-between text-sm mb-2">
+            <span className="text-muted-foreground">Delivery Progress</span>
+            <span className="font-bold text-primary">{queueStats.sent} of {totalQueued} sent</span>
+          </div>
+          <Progress value={deliveryProgress} className="h-3 mb-4" />
+          
+          <div className="grid grid-cols-4 gap-2 mb-4">
+            <div className="text-center p-2 rounded-lg bg-warning/5 border border-warning/20">
+              <div className="text-lg font-bold text-warning">{queueStats.pending}</div>
+              <div className="text-xs text-muted-foreground">Pending</div>
+            </div>
+            <div className="text-center p-2 rounded-lg bg-primary/5 border border-primary/20">
+              <div className="text-lg font-bold text-primary">{queueStats.processing}</div>
+              <div className="text-xs text-muted-foreground">Sending</div>
+            </div>
+            <div className="text-center p-2 rounded-lg bg-success/5 border border-success/20">
+              <div className="text-lg font-bold text-success">{queueStats.sent}</div>
+              <div className="text-xs text-muted-foreground">Sent</div>
+            </div>
+            <div className="text-center p-2 rounded-lg bg-destructive/5 border border-destructive/20">
+              <div className="text-lg font-bold text-destructive">{queueStats.failed}</div>
+              <div className="text-xs text-muted-foreground">Failed</div>
             </div>
           </div>
+
+          {queueStats.pending > 0 && (
+            <Button 
+              onClick={triggerQueueProcessing} 
+              disabled={triggeringQueue}
+              size="sm"
+              className="w-full"
+            >
+              {triggeringQueue ? (
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+              ) : (
+                <Play className="w-4 h-4 mr-2" />
+              )}
+              Send Now ({queueStats.pending} remaining)
+            </Button>
+          )}
+          
+          <p className="text-xs text-muted-foreground mt-3 flex items-center justify-center gap-1">
+            <Clock className="w-3 h-3" />
+            Auto-processing every minute • Updates in real-time
+          </p>
         </Card>
         
         <div className="flex justify-center gap-4">
           <Button variant="outline" asChild>
-            <a href="/dashboard">Track Progress</a>
+            <a href="/dashboard">View Dashboard</a>
           </Button>
-          <Button asChild>
+          <Button variant="outline" asChild>
             <a href="/campaigns/new">New Campaign</a>
           </Button>
         </div>

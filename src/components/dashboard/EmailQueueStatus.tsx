@@ -1,5 +1,7 @@
+import { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { 
   Mail, 
@@ -7,9 +9,12 @@ import {
   CheckCircle2, 
   AlertCircle, 
   Loader2,
-  Send
+  Send,
+  Play
 } from "lucide-react";
 import { useEmailQueueRealtime } from "@/hooks/use-email-queue-realtime";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
 import { formatDistanceToNow } from "date-fns";
 
 interface EmailQueueStatusProps {
@@ -18,9 +23,28 @@ interface EmailQueueStatusProps {
 
 export function EmailQueueStatus({ campaignId }: EmailQueueStatusProps) {
   const { emails, stats, loading } = useEmailQueueRealtime(campaignId);
+  const [triggering, setTriggering] = useState(false);
+  const { toast } = useToast();
 
   const totalEmails = stats.pending + stats.processing + stats.sent + stats.failed;
   const progress = totalEmails > 0 ? ((stats.sent + stats.failed) / totalEmails) * 100 : 0;
+
+  const triggerProcessing = async () => {
+    setTriggering(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("process-email-queue");
+      if (error) throw error;
+      toast({
+        title: "Queue Processing Triggered",
+        description: `Processed ${data?.success || 0} emails successfully`,
+      });
+    } catch (e) {
+      console.error("Failed to trigger queue:", e);
+      toast({ title: "Failed to trigger processing", variant: "destructive" });
+    } finally {
+      setTriggering(false);
+    }
+  };
 
   const getStatusIcon = (status: string) => {
     switch (status) {
@@ -145,11 +169,28 @@ export function EmailQueueStatus({ campaignId }: EmailQueueStatusProps) {
           </div>
         )}
 
-        {/* Info message */}
-        <p className="text-xs text-muted-foreground mt-3 flex items-center gap-1">
-          <Clock className="w-3 h-3" />
-          Emails are processed automatically every 2 minutes
-        </p>
+        {/* Send Now button + info */}
+        <div className="mt-3 space-y-2">
+          {stats.pending > 0 && (
+            <Button 
+              onClick={triggerProcessing} 
+              disabled={triggering}
+              size="sm"
+              className="w-full"
+            >
+              {triggering ? (
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+              ) : (
+                <Play className="w-4 h-4 mr-2" />
+              )}
+              Send Now ({stats.pending} pending)
+            </Button>
+          )}
+          <p className="text-xs text-muted-foreground flex items-center gap-1">
+            <Clock className="w-3 h-3" />
+            Auto-processing every minute • Updates in real-time
+          </p>
+        </div>
       </CardContent>
     </Card>
   );
