@@ -65,6 +65,113 @@ function isValidUrl(urlString: string): boolean {
   }
 }
 
+// File/image extensions that are NOT valid email TLDs
+const INVALID_EMAIL_TLDS = new Set([
+  'png', 'jpg', 'jpeg', 'gif', 'svg', 'webp', 'bmp', 'ico', 'tiff', 'avif',
+  'mp4', 'mp3', 'wav', 'avi', 'mov', 'wmv', 'flv', 'webm', 'ogg',
+  'pdf', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx', 'csv', 'txt',
+  'zip', 'rar', 'tar', 'gz', '7z',
+  'js', 'css', 'html', 'htm', 'xml', 'json', 'ts', 'tsx', 'jsx',
+  'woff', 'woff2', 'ttf', 'eot', 'otf',
+  'exe', 'dll', 'dmg', 'apk', 'msi',
+]);
+
+// Common non-email local parts (image naming patterns, CSS, code artifacts)
+const INVALID_LOCAL_PATTERNS = [
+  /^\d+x\d*$/i,          // "2x", "300x200" - image dimensions
+  /^image/i,             // "image", "image1"
+  /^img/i,               // "img", "img_hero"
+  /^photo/i,             // "photo", "photo1"
+  /^icon/i,              // "icon", "icon-set"
+  /^logo/i,              // "logo", "logo-dark"
+  /^banner/i,            // "banner", "banner-bg"
+  /^bg/i,                // "bg", "bg-hero"
+  /^thumb/i,             // "thumb", "thumbnail"
+  /^screen/i,            // "screen", "screenshot"
+  /^avatar/i,            // "avatar"
+  /^placeholder/i,       // "placeholder"
+  /^sprite/i,            // "sprite"
+  /^asset/i,             // "asset"
+  /^file/i,              // "file", "file1"
+  /^\d+$/,               // pure numbers like "123"
+  /^[a-f0-9]{8,}$/i,     // hex hashes like "a1b2c3d4e5f6"
+  /^data$/i,             // "data"
+  /^no-?reply$/i,        // "noreply", "no-reply"
+  /^mailer-?daemon$/i,   // "mailer-daemon"
+];
+
+// Known valid email domains (weighted higher)
+const TRUSTED_EMAIL_DOMAINS = new Set([
+  'gmail.com', 'yahoo.com', 'outlook.com', 'hotmail.com', 'aol.com',
+  'icloud.com', 'mail.com', 'protonmail.com', 'zoho.com', 'yandex.com',
+  'live.com', 'msn.com', 'me.com', 'mac.com',
+]);
+
+function isValidEmail(email: string): boolean {
+  const lower = email.toLowerCase().trim();
+  const parts = lower.split('@');
+  if (parts.length !== 2) return false;
+
+  const [localPart, domain] = parts;
+  if (!localPart || localPart.length < 1 || localPart.length > 64) return false;
+  if (localPart.startsWith('.') || localPart.endsWith('.') || localPart.includes('..')) return false;
+
+  if (!domain || domain.length < 3) return false;
+  const domainParts = domain.split('.');
+  if (domainParts.length < 2) return false;
+
+  const tld = domainParts[domainParts.length - 1];
+  if (!tld || tld.length < 2) return false;
+
+  // Reject file extensions masquerading as TLDs
+  if (INVALID_EMAIL_TLDS.has(tld)) return false;
+
+  // Reject invalid local part patterns (image filenames, hashes, etc.)
+  for (const pattern of INVALID_LOCAL_PATTERNS) {
+    if (pattern.test(localPart)) return false;
+  }
+
+  // Reject if domain looks like a path
+  if (domain.includes('/') || domain.includes('\\')) return false;
+  if (domainParts[0].length < 2) return false;
+
+  return true;
+}
+
+function scoreEmail(email: string, websiteUrl: string): number {
+  const lower = email.toLowerCase();
+  const [localPart, domain] = lower.split('@');
+  let score = 0;
+
+  // Prefer emails matching the website domain
+  try {
+    const siteDomain = new URL(websiteUrl).hostname.replace(/^www\./, '');
+    if (domain === siteDomain) score += 50;
+    if (domain.endsWith('.' + siteDomain) || siteDomain.endsWith('.' + domain)) score += 30;
+  } catch { /* ignore */ }
+
+  // Prefer common business-facing local parts
+  const businessPrefixes = ['info', 'contact', 'hello', 'support', 'sales', 'admin', 'office', 'team', 'help', 'enquir', 'booking'];
+  for (const prefix of businessPrefixes) {
+    if (localPart.startsWith(prefix)) { score += 20; break; }
+  }
+
+  if (TRUSTED_EMAIL_DOMAINS.has(domain)) score += 10;
+  if (localPart.length > 30) score -= 10;
+
+  return score;
+}
+
+function findBestEmail(candidates: string[], websiteUrl: string): string | null {
+  const unique = [...new Set(candidates.map(e => e.toLowerCase().trim()))];
+  const valid = unique.filter(isValidEmail);
+  if (valid.length === 0) return null;
+
+  valid.sort((a, b) => scoreEmail(b, websiteUrl) - scoreEmail(a, websiteUrl));
+  console.log(`Email candidates: ${valid.length} valid out of ${candidates.length} raw. Best: ${valid[0]}`);
+  return valid[0];
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -297,9 +404,12 @@ Be specific and reference actual content from the website when possible.`;
       }
     }
 
-    // Extract email from website if possible
-    const emailMatches = htmlContent.match(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g);
-    const email = emailMatches?.[0] || null;
+    // Extract and validate email from website
+    const rawEmailMatches = (htmlContent + " " + websiteContent).match(
+      /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g
+    );
+    
+    const email = findBestEmail(rawEmailMatches || [], formattedUrl);
 
     console.log(`Analysis complete: ${issues.length} issues found, score: ${overallScore}`);
 
