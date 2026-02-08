@@ -12,6 +12,10 @@ import {
   CheckCircle2,
   Sparkles,
   Target,
+  TrendingUp,
+  UserPlus,
+  Linkedin,
+  Instagram,
 } from "lucide-react";
 
 const features = [
@@ -22,18 +26,39 @@ const features = [
   },
   {
     icon: BarChart3,
-    title: "AI Website Analysis",
-    description: "Automatically scan websites for SEO issues, design problems, and opportunities to improve.",
+    title: "Full Online Presence Audit",
+    description: "Automatically scan websites, LinkedIn, Instagram, and Facebook for pain points costing them money.",
   },
   {
     icon: FileText,
     title: "Personalized Pitches",
-    description: "Generate custom cold emails that reference specific problems on each prospect's website.",
+    description: "Generate cold emails that reference specific problems — their website copy, social media, branding, and more.",
   },
   {
     icon: Send,
     title: "Automated Outreach",
-    description: "Send personalized emails at scale with smart scheduling to avoid spam filters.",
+    description: "Send personalized emails at scale with smart scheduling and warmup to maximize inbox placement.",
+  },
+];
+
+const campaignTypes = [
+  {
+    icon: Search,
+    title: "Find Clients",
+    subtitle: "For Freelancers",
+    description: "Search businesses by industry and location, audit their online presence, and send personalized pitches.",
+  },
+  {
+    icon: UserPlus,
+    title: "Pitch a Client",
+    subtitle: "Direct Outreach",
+    description: "Already have a client in mind? Enter their details, we analyze everything and craft the perfect email.",
+  },
+  {
+    icon: TrendingUp,
+    title: "Find Investors",
+    subtitle: "Raise Funding",
+    description: "Find investors in your industry, build compelling pitch emails, and reach out to raise capital for your startup.",
   },
 ];
 
@@ -44,9 +69,9 @@ const stats = [
 ];
 
 const steps = [
-  { step: "1", title: "Search", description: "Enter business type & location" },
-  { step: "2", title: "Select", description: "Choose 10-15 prospects" },
-  { step: "3", title: "Analyze", description: "AI scans their websites" },
+  { step: "1", title: "Choose", description: "Pick your campaign type" },
+  { step: "2", title: "Search", description: "Find your targets" },
+  { step: "3", title: "Analyze", description: "AI audits their presence" },
   { step: "4", title: "Pitch", description: "Review personalized emails" },
   { step: "5", title: "Send", description: "Launch your campaign" },
 ];
@@ -68,14 +93,14 @@ export default function Landing() {
           >
             <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/10 backdrop-blur-sm mb-6">
               <Sparkles className="w-4 h-4 text-primary-foreground" />
-              <span className="text-sm text-primary-foreground/90">AI-Powered Cold Outreach</span>
+              <span className="text-sm text-primary-foreground/90">AI-Powered Cold Outreach & Investor Outreach</span>
             </div>
             <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-primary-foreground mb-6 leading-tight">
-              Find Clients, Analyze Websites, Send{" "}
+              Find Clients, Investors & Send{" "}
               <span className="text-gradient">Perfect Pitches</span>
             </h1>
             <p className="text-lg md:text-xl text-primary-foreground/80 mb-8 max-w-2xl mx-auto">
-              SkryveAI helps freelancers automatically find businesses, analyze their websites for problems, and send personalized cold emails that get responses.
+              SkryveAI helps freelancers find clients, analyze their entire online presence, and send pitches that get replies. Startups can find and pitch investors too.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Button variant="hero" size="xl" asChild>
@@ -106,8 +131,45 @@ export default function Landing() {
         </div>
       </section>
 
-      {/* How It Works */}
+      {/* Campaign Types */}
       <section className="py-20 bg-gradient-subtle">
+        <div className="container mx-auto px-4">
+          <motion.div
+            initial={{ opacity: 0 }}
+            whileInView={{ opacity: 1 }}
+            viewport={{ once: true }}
+            className="text-center mb-12"
+          >
+            <h2 className="text-3xl md:text-4xl font-bold mb-4">Three Ways to Grow</h2>
+            <p className="text-muted-foreground max-w-xl mx-auto">
+              Whether you're a freelancer looking for clients or a startup seeking investors — we've got you covered.
+            </p>
+          </motion.div>
+
+          <div className="grid md:grid-cols-3 gap-6 max-w-4xl mx-auto">
+            {campaignTypes.map((type, i) => (
+              <motion.div
+                key={i}
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: i * 0.1 }}
+                className="p-6 rounded-2xl bg-card border hover:shadow-xl hover:-translate-y-1 transition-all duration-300"
+              >
+                <div className="w-12 h-12 rounded-xl bg-primary/10 text-primary flex items-center justify-center mb-4">
+                  <type.icon className="w-6 h-6" />
+                </div>
+                <h3 className="font-semibold text-lg mb-1">{type.title}</h3>
+                <p className="text-xs text-primary font-medium mb-2">{type.subtitle}</p>
+                <p className="text-muted-foreground text-sm">{type.description}</p>
+              </motion.div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* How It Works */}
+      <section className="py-20">
         <div className="container mx-auto px-4">
           <motion.div
             initial={{ opacity: 0 }}
@@ -117,7 +179,7 @@ export default function Landing() {
           >
             <h2 className="text-3xl md:text-4xl font-bold mb-4">How It Works</h2>
             <p className="text-muted-foreground max-w-xl mx-auto">
-              From search to send in 5 simple steps. Our AI handles the heavy lifting so you can focus on closing deals.
+              From search to send in 5 simple steps. Our AI handles the heavy lifting.
             </p>
           </motion.div>
 
@@ -147,6 +209,51 @@ export default function Landing() {
         </div>
       </section>
 
+      {/* What We Analyze */}
+      <section className="py-20 bg-gradient-subtle">
+        <div className="container mx-auto px-4">
+          <motion.div
+            initial={{ opacity: 0 }}
+            whileInView={{ opacity: 1 }}
+            viewport={{ once: true }}
+            className="text-center mb-12"
+          >
+            <h2 className="text-3xl md:text-4xl font-bold mb-4">Beyond Website Analysis</h2>
+            <p className="text-muted-foreground max-w-xl mx-auto">
+              We audit their entire online presence — not just their website — to find pain points that make them reply.
+            </p>
+          </motion.div>
+
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-4xl mx-auto">
+            {[
+              { icon: BarChart3, title: "Website Copy", desc: "Is their copy compelling? Does it convert visitors to leads?" },
+              { icon: Linkedin, title: "LinkedIn", desc: "Is their profile optimized? Posting strategy? Bio compelling?" },
+              { icon: Instagram, title: "Instagram", desc: "Design quality, posting frequency, bio optimization, engagement" },
+              { icon: Target, title: "Branding", desc: "Visual consistency across all platforms and touchpoints" },
+              { icon: FileText, title: "Calls to Action", desc: "Can visitors easily book, buy, or contact them?" },
+              { icon: Sparkles, title: "Design Quality", desc: "Compare their graphics to professional standards" },
+            ].map((item, i) => (
+              <motion.div
+                key={i}
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: i * 0.05 }}
+                className="flex items-start gap-3 p-4 rounded-xl bg-card border"
+              >
+                <div className="w-10 h-10 rounded-lg bg-primary/10 text-primary flex items-center justify-center shrink-0">
+                  <item.icon className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="font-semibold text-sm mb-0.5">{item.title}</h3>
+                  <p className="text-xs text-muted-foreground">{item.desc}</p>
+                </div>
+              </motion.div>
+            ))}
+          </div>
+        </div>
+      </section>
+
       {/* Features */}
       <section className="py-20">
         <div className="container mx-auto px-4">
@@ -158,7 +265,7 @@ export default function Landing() {
           >
             <h2 className="text-3xl md:text-4xl font-bold mb-4">Everything You Need</h2>
             <p className="text-muted-foreground max-w-xl mx-auto">
-              Powerful features designed specifically for freelancers looking to land more clients.
+              Powerful features for freelancers and startups looking to grow.
             </p>
           </motion.div>
 
@@ -197,7 +304,7 @@ export default function Landing() {
               Ready to Land More Clients?
             </h2>
             <p className="text-primary-foreground/80 mb-8">
-              Join thousands of freelancers who are using AI to find and pitch their ideal clients.
+              Join freelancers and startups using AI to find clients, pitch investors, and grow their business.
             </p>
             <Button variant="hero" size="xl" asChild>
               <Link to="/signup">
@@ -212,7 +319,7 @@ export default function Landing() {
               </span>
               <span className="flex items-center gap-1">
                 <CheckCircle2 className="w-4 h-4" />
-                First 30 users get 14 days free
+                3-day free trial
               </span>
             </div>
           </motion.div>
