@@ -55,9 +55,13 @@ export const campaignApi = {
     return data;
   },
 
-  async analyzeWebsite(url: string, businessName: string): Promise<AnalyzeWebsiteResult> {
+  async analyzeWebsite(
+    url: string,
+    businessName: string,
+    options?: { socialOnly?: boolean; socialHandles?: { linkedin?: string; instagram?: string; facebook?: string } }
+  ): Promise<AnalyzeWebsiteResult> {
     const { data, error } = await supabase.functions.invoke<AnalyzeWebsiteResult>("analyze-website", {
-      body: { url, businessName },
+      body: { url: url || undefined, businessName, socialOnly: options?.socialOnly, socialHandles: options?.socialHandles },
     });
 
     if (error) {

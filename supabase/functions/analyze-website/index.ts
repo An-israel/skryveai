@@ -7,8 +7,14 @@ const corsHeaders = {
 };
 
 interface AnalyzeRequest {
-  url: string;
+  url?: string;
   businessName: string;
+  socialOnly?: boolean;
+  socialHandles?: {
+    linkedin?: string;
+    instagram?: string;
+    facebook?: string;
+  };
 }
 
 interface AnalysisIssue {
@@ -87,6 +93,63 @@ function isValidEmail(email: string): boolean {
   return true;
 }
 
+// ─── MX Record Validation ───
+async function verifyMXRecord(email: string): Promise<boolean> {
+  try {
+    const domain = email.split('@')[1];
+    if (!domain) return false;
+
+    // Trusted domains don't need MX check
+    if (TRUSTED_EMAIL_DOMAINS.has(domain)) return true;
+
+    // Use Google's DNS-over-HTTPS to check MX records
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 5000);
+
+    const response = await fetch(
+      `https://dns.google/resolve?name=${encodeURIComponent(domain)}&type=MX`,
+      { signal: controller.signal }
+    );
+    clearTimeout(timeout);
+
+    if (!response.ok) {
+      console.log(`DNS lookup failed for ${domain}: ${response.status}`);
+      return false;
+    }
+
+    const data = await response.json();
+
+    // Status 0 = NOERROR, check if Answer has MX records
+    if (data.Status === 0 && data.Answer && data.Answer.length > 0) {
+      const mxRecords = data.Answer.filter((a: { type: number }) => a.type === 15); // MX = type 15
+      if (mxRecords.length > 0) {
+        console.log(`✓ MX records found for ${domain}: ${mxRecords.length} records`);
+        return true;
+      }
+    }
+
+    // Also check A record as fallback (some domains accept mail without MX)
+    const aResponse = await fetch(
+      `https://dns.google/resolve?name=${encodeURIComponent(domain)}&type=A`,
+      { signal: AbortSignal.timeout(3000) }
+    );
+    if (aResponse.ok) {
+      const aData = await aResponse.json();
+      if (aData.Status === 0 && aData.Answer && aData.Answer.length > 0) {
+        console.log(`⚠ No MX but A record found for ${domain} - accepting with lower confidence`);
+        return true;
+      }
+    }
+
+    console.log(`✗ No MX/A records for ${domain} - email likely undeliverable`);
+    return false;
+  } catch (error) {
+    console.log(`MX check error for ${email}:`, error instanceof Error ? error.message : "unknown");
+    // On timeout/error, accept the email (don't block on DNS issues)
+    return true;
+  }
+}
+
 function scoreEmail(email: string, websiteUrl: string): number {
   const lower = email.toLowerCase();
   const [localPart, domain] = lower.split('@');
@@ -105,13 +168,27 @@ function scoreEmail(email: string, websiteUrl: string): number {
   return score;
 }
 
-function findBestEmail(candidates: string[], websiteUrl: string): string | null {
+async function findBestEmail(candidates: string[], websiteUrl: string): Promise<string | null> {
   const unique = [...new Set(candidates.map(e => e.toLowerCase().trim()))];
   const valid = unique.filter(isValidEmail);
   if (valid.length === 0) return null;
+  
+  // Sort by score
   valid.sort((a, b) => scoreEmail(b, websiteUrl) - scoreEmail(a, websiteUrl));
-  console.log(`Email candidates: ${valid.length} valid out of ${candidates.length} raw. Best: ${valid[0]}`);
-  return valid[0];
+  
+  // Verify MX records for top candidates (check top 3 max)
+  for (const email of valid.slice(0, 3)) {
+    const hasMX = await verifyMXRecord(email);
+    if (hasMX) {
+      console.log(`Email validated with MX: ${email}`);
+      return email;
+    }
+    console.log(`Email rejected (no MX): ${email}`);
+  }
+  
+  // If no MX-verified email found, return null instead of bad email
+  console.log(`No MX-verified email found among ${valid.length} candidates`);
+  return null;
 }
 
 // Extract social media URLs from links
@@ -146,7 +223,7 @@ function extractSocialLinks(links: string[]): Record<string, string | null> {
 async function scrapeSocialProfile(url: string, apiKey: string): Promise<string> {
   try {
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 12000); // 12s timeout
+    const timeout = setTimeout(() => controller.abort(), 12000);
 
     const response = await fetch("https://api.firecrawl.dev/v1/scrape", {
       method: "POST",
@@ -171,10 +248,23 @@ async function scrapeSocialProfile(url: string, apiKey: string): Promise<string>
 
     const data = await response.json();
     const content = data.data?.markdown || data.markdown || "";
-    return content.substring(0, 3000); // Limit content size
+    return content.substring(0, 3000);
   } catch (error) {
     console.log(`Social scrape error for ${url}:`, error instanceof Error ? error.message : "unknown");
     return `[Could not scrape - timeout or access issue]`;
+  }
+}
+
+// Format a social URL from a handle
+function formatSocialUrl(platform: string, handle: string): string {
+  const cleaned = handle.replace(/^@/, '').trim();
+  if (cleaned.startsWith('http')) return cleaned;
+  
+  switch (platform) {
+    case 'linkedin': return `https://www.linkedin.com/company/${cleaned}`;
+    case 'instagram': return `https://www.instagram.com/${cleaned}`;
+    case 'facebook': return `https://www.facebook.com/${cleaned}`;
+    default: return cleaned;
   }
 }
 
@@ -217,15 +307,16 @@ serve(async (req) => {
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
 
-    const { url, businessName }: AnalyzeRequest = await req.json();
+    const { url, businessName, socialOnly, socialHandles }: AnalyzeRequest = await req.json();
 
-    if (!url) {
+    // Validate inputs
+    if (!socialOnly && !url) {
       return new Response(
-        JSON.stringify({ error: "URL is required" }),
+        JSON.stringify({ error: "URL is required for website analysis" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
-    if (url.length > 500) {
+    if (url && url.length > 500) {
       return new Response(
         JSON.stringify({ error: "URL too long" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -238,19 +329,21 @@ serve(async (req) => {
       );
     }
 
-    let formattedUrl = url.trim();
-    if (!formattedUrl.startsWith("http://") && !formattedUrl.startsWith("https://")) {
-      formattedUrl = `https://${formattedUrl}`;
+    let formattedUrl = "";
+    if (url) {
+      formattedUrl = url.trim();
+      if (!formattedUrl.startsWith("http://") && !formattedUrl.startsWith("https://")) {
+        formattedUrl = `https://${formattedUrl}`;
+      }
+      if (!isValidUrl(formattedUrl)) {
+        return new Response(
+          JSON.stringify({ error: "Invalid or disallowed URL" }),
+          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
     }
 
-    if (!isValidUrl(formattedUrl)) {
-      return new Response(
-        JSON.stringify({ error: "Invalid or disallowed URL" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-
-    // Fetch user profile to understand their services (for contextual analysis)
+    // Fetch user profile to understand their services
     const [profileResult, settingsResult] = await Promise.all([
       supabase.from("profiles").select("expertise, bio").eq("user_id", user.id).single(),
       supabase.from("user_settings").select("service_description").eq("user_id", user.id).single(),
@@ -260,9 +353,182 @@ serve(async (req) => {
     const userBio = profileResult.data?.bio || "";
     const userService = settingsResult.data?.service_description || "";
 
+    let websiteContent = "";
+    let htmlContent = "";
+    let links: string[] = [];
+    let metadata: Record<string, string> = {};
+
+    // ─── SOCIAL-ONLY MODE ───
+    if (socialOnly) {
+      console.log(`Social-only analysis for: ${businessName}`);
+      
+      // Build social URLs from provided handles
+      const socialLinks: Record<string, string | null> = {
+        linkedin: socialHandles?.linkedin ? formatSocialUrl('linkedin', socialHandles.linkedin) : null,
+        instagram: socialHandles?.instagram ? formatSocialUrl('instagram', socialHandles.instagram) : null,
+        facebook: socialHandles?.facebook ? formatSocialUrl('facebook', socialHandles.facebook) : null,
+        twitter: null,
+      };
+
+      // Scrape all provided social profiles
+      const socialScrapePromises: Record<string, Promise<string>> = {};
+      for (const [platform, socialUrl] of Object.entries(socialLinks)) {
+        if (socialUrl) {
+          socialScrapePromises[platform] = scrapeSocialProfile(socialUrl, FIRECRAWL_API_KEY);
+        }
+      }
+
+      const socialResults: Record<string, string> = {};
+      const entries = Object.entries(socialScrapePromises);
+      if (entries.length > 0) {
+        const results = await Promise.allSettled(entries.map(([, p]) => p));
+        entries.forEach(([platform], i) => {
+          const result = results[i];
+          socialResults[platform] = result.status === 'fulfilled' ? result.value : '[Could not scrape]';
+        });
+      }
+
+      let socialMediaContext = "";
+      for (const [platform, socialUrl] of Object.entries(socialLinks)) {
+        if (socialUrl) {
+          socialMediaContext += `\n\n--- ${platform.toUpperCase()} PROFILE (${socialUrl}) ---\n`;
+          socialMediaContext += socialResults[platform] || `[Could not scrape ${platform}]`;
+        }
+      }
+
+      if (!socialMediaContext) {
+        return new Response(
+          JSON.stringify({ error: "Please provide at least one social media handle to analyze" }),
+          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      const sanitizedBusinessName = (businessName || "Unknown Business").replace(/[<>{}[\]\\]/g, '').substring(0, 100);
+
+      // Social-only AI analysis
+      const analysisPrompt = `You are a senior social media strategist auditing a business's social media presence. Find REAL problems costing them followers, engagement, and ultimately clients/money.
+
+BUSINESS: ${sanitizedBusinessName}
+
+== FREELANCER CONTEXT ==
+Their expertise: ${userExpertise || "general digital services"}
+Their services: ${userService || "social media management and digital marketing"}
+Their background: ${(userBio || "Professional freelancer").substring(0, 300)}
+Only identify issues this freelancer can realistically help fix.
+
+== SOCIAL MEDIA PROFILES ==
+${socialMediaContext.substring(0, 10000)}
+
+== ANALYSIS INSTRUCTIONS ==
+
+CRITICAL: Focus ONLY on issues that are PRACTICALLY making this business LOSE FOLLOWERS, LOSE ENGAGEMENT, or LOSE CLIENTS through their social media.
+
+Analyze each provided platform deeply:
+
+1. **LINKEDIN (linkedin)**: Is their company/personal page optimized? Bio compelling? Posting consistently? Content engaging or generic? Could they attract more B2B leads? Are they missing keywords? Banner image professional?
+
+2. **INSTAGRAM (instagram)**: Bio optimized with clear CTA and link? Highlights organized? Posting frequency? Design quality of posts? Are their graphics amateur? Hashtag strategy? Engagement rate? Reels usage? Could better content drive more followers and sales?
+
+3. **FACEBOOK (facebook)**: Page description compelling? Cover photo professional? Posting frequency? Community engagement? Missing reviews? Could drive more local leads?
+
+For each issue found (find 4-8):
+- Be SPECIFIC — reference their actual content, bio text, post quality
+- Explain exactly HOW this costs them money/clients/followers
+- Rate severity: "high" = losing revenue/followers now, "medium" = significant missed opportunity
+- Keep descriptions action-oriented`;
+
+      const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${LOVABLE_API_KEY}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model: "google/gemini-3-flash-preview",
+          messages: [
+            { role: "system", content: "You are a senior social media strategist who identifies business-critical issues. Focus only on problems that cost real money and engagement. Respond with structured tool calls only." },
+            { role: "user", content: analysisPrompt }
+          ],
+          tools: [{
+            type: "function",
+            function: {
+              name: "report_issues",
+              description: "Report high-impact social media issues found",
+              parameters: {
+                type: "object",
+                properties: {
+                  issues: {
+                    type: "array",
+                    items: {
+                      type: "object",
+                      properties: {
+                        category: { type: "string", enum: ["linkedin", "instagram", "facebook", "branding", "cta"] },
+                        severity: { type: "string", enum: ["low", "medium", "high"] },
+                        title: { type: "string" },
+                        description: { type: "string" }
+                      },
+                      required: ["category", "severity", "title", "description"],
+                      additionalProperties: false
+                    }
+                  },
+                  overallScore: { type: "number" }
+                },
+                required: ["issues", "overallScore"],
+                additionalProperties: false
+              }
+            }
+          }],
+          tool_choice: { type: "function", function: { name: "report_issues" } }
+        }),
+      });
+
+      if (!aiResponse.ok) {
+        if (aiResponse.status === 429) {
+          return new Response(JSON.stringify({ error: "Rate limit exceeded. Please try again." }),
+            { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+        }
+        const errorText = await aiResponse.text();
+        console.error("AI API error:", errorText);
+        throw new Error(`AI analysis failed: ${aiResponse.status}`);
+      }
+
+      const aiData = await aiResponse.json();
+      const toolCall = aiData.choices?.[0]?.message?.tool_calls?.[0];
+      let issues: AnalysisIssue[] = [];
+      let overallScore = 50;
+
+      if (toolCall?.function?.arguments) {
+        try {
+          const parsed = JSON.parse(toolCall.function.arguments);
+          issues = parsed.issues || [];
+          overallScore = parsed.overallScore || 50;
+        } catch (e) {
+          console.error("Error parsing AI response:", e);
+        }
+      }
+
+      console.log(`Social-only analysis complete: ${issues.length} issues found`);
+
+      return new Response(
+        JSON.stringify({
+          issues,
+          overallScore,
+          email: null,
+          analyzed: true,
+          analyzedAt: new Date().toISOString(),
+          socialLinksFound: {
+            linkedin: !!socialLinks.linkedin,
+            instagram: !!socialLinks.instagram,
+            facebook: !!socialLinks.facebook,
+          }
+        }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // ─── FULL WEBSITE + SOCIAL ANALYSIS ───
     console.log(`Scraping website: ${formattedUrl}`);
 
-    // Step 1: Scrape the main website
     const scrapeResponse = await fetch("https://api.firecrawl.dev/v1/scrape", {
       method: "POST",
       headers: {
@@ -282,20 +548,20 @@ serve(async (req) => {
       throw new Error(scrapeData.error || `Firecrawl request failed with status ${scrapeResponse.status}`);
     }
 
-    const websiteContent = scrapeData.data?.markdown || scrapeData.markdown || "";
-    const htmlContent = scrapeData.data?.html || scrapeData.html || "";
-    const links = scrapeData.data?.links || scrapeData.links || [];
-    const metadata = scrapeData.data?.metadata || scrapeData.metadata || {};
+    websiteContent = scrapeData.data?.markdown || scrapeData.markdown || "";
+    htmlContent = scrapeData.data?.html || scrapeData.html || "";
+    links = scrapeData.data?.links || scrapeData.links || [];
+    metadata = scrapeData.data?.metadata || scrapeData.metadata || {};
 
     console.log(`Scraped ${websiteContent.length} chars of website content`);
 
-    // Step 2: Extract social media links and scrape them in parallel
+    // Extract social media links and scrape them
     const socialLinks = extractSocialLinks(links);
     console.log("Social links found:", JSON.stringify(socialLinks));
 
     const socialScrapePromises: Record<string, Promise<string>> = {};
     for (const [platform, socialUrl] of Object.entries(socialLinks)) {
-      if (socialUrl && platform !== 'twitter') { // Skip Twitter (often blocks scraping)
+      if (socialUrl && platform !== 'twitter') {
         socialScrapePromises[platform] = scrapeSocialProfile(socialUrl, FIRECRAWL_API_KEY);
       }
     }
@@ -341,7 +607,7 @@ serve(async (req) => {
 
     const sanitizedBusinessName = (businessName || "Unknown Business").replace(/[<>{}[\]\\]/g, '').substring(0, 100);
 
-    // Step 3: AI analysis focusing on HIGH-IMPACT pain points
+    // AI analysis focusing on HIGH-IMPACT pain points
     const analysisPrompt = `You are a senior digital marketing consultant auditing a business's ENTIRE online presence. Your job is to identify REAL problems that are actively costing this business money, clients, and growth.
 
 BUSINESS: ${sanitizedBusinessName}
@@ -492,13 +758,13 @@ DO NOT include:
       }
     }
 
-    // Extract email from website
+    // Extract and MX-validate email from website
     const rawEmailMatches = (htmlContent + " " + websiteContent).match(
       /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g
     );
-    const email = findBestEmail(rawEmailMatches || [], formattedUrl);
+    const email = await findBestEmail(rawEmailMatches || [], formattedUrl);
 
-    console.log(`Analysis complete: ${issues.length} issues found, score: ${overallScore}, social profiles scraped: ${Object.keys(socialResults).length}`);
+    console.log(`Analysis complete: ${issues.length} issues found, score: ${overallScore}, email: ${email || 'none'}, social profiles scraped: ${Object.keys(socialResults).length}`);
 
     return new Response(
       JSON.stringify({
