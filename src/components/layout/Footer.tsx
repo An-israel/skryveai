@@ -50,6 +50,13 @@ export function Footer() {
             <p className="mt-4 text-sm text-muted-foreground max-w-xs">
               AI-powered cold outreach that helps freelancers find and pitch their ideal clients.
             </p>
+            <a
+              href="mailto:skryveai@gmail.com"
+              className="mt-3 inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
+            >
+              <Mail className="w-4 h-4" />
+              skryveai@gmail.com
+            </a>
             <div className="mt-6 flex items-center gap-4">
               {socialLinks.map((social) => (
                 <a

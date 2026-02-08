@@ -149,7 +149,7 @@ export default function PrivacyPolicy() {
                 If you have questions about this Privacy Policy or our privacy practices, please contact us at:
               </p>
               <p className="text-muted-foreground mt-4">
-                <strong>Email:</strong> privacy@skryveai.com<br />
+                <strong>Email:</strong> skryveai@gmail.com<br />
                 <strong>Website:</strong> https://skryveai.lovable.app
               </p>
             </section>

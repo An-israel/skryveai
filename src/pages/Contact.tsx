@@ -25,7 +25,7 @@ export default function Contact() {
     setIsSubmitting(true);
 
     // Open mailto link with form data
-    const mailtoLink = `mailto:support@skryveai.com?subject=${encodeURIComponent(formData.subject || "Contact from SkryveAI")}&body=${encodeURIComponent(`Name: ${formData.name}\nEmail: ${formData.email}\n\n${formData.message}`)}`;
+    const mailtoLink = `mailto:skryveai@gmail.com?subject=${encodeURIComponent(formData.subject || "Contact from SkryveAI")}&body=${encodeURIComponent(`Name: ${formData.name}\nEmail: ${formData.email}\n\n${formData.message}`)}`;
     window.open(mailtoLink, "_blank");
 
     toast({
@@ -70,8 +70,8 @@ export default function Contact() {
             >
               <Mail className="w-8 h-8 mx-auto mb-3 text-primary" />
               <h3 className="font-semibold mb-1">Email Us</h3>
-              <a href="mailto:support@skryveai.com" className="text-sm text-primary hover:underline">
-                support@skryveai.com
+              <a href="mailto:skryveai@gmail.com" className="text-sm text-primary hover:underline">
+                skryveai@gmail.com
               </a>
             </motion.div>
             <motion.div
