@@ -51,7 +51,7 @@ serve(async (req) => {
       try {
         // Send reminder email
         await resend.emails.send({
-          from: "SkryveAI <skryveai@gmail.com>",
+          from: "SkryveAI <noreply@skryveai.com>",
           to: [profile.email],
           subject: "Your SkryveAI trial ends tomorrow!",
           html: `
@@ -91,7 +91,7 @@ serve(async (req) => {
                 </div>
                 
                 <div style="text-align: center; margin: 30px 0;">
-                  <a href="https://skryveai.lovable.app/pricing" 
+                  <a href="https://skryveai.com/pricing" 
                      style="display: inline-block;
                             background: linear-gradient(135deg, #0f766e 0%, #14b8a6 100%); 
                             color: white; 
