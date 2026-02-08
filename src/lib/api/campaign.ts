@@ -98,6 +98,38 @@ export const campaignApi = {
     return data;
   },
 
+  async generateInvestorPitch(
+    investorName: string,
+    investorData: {
+      industry: string;
+      businessName: string;
+      businessDescription: string;
+      fundingAmount: string;
+      traction: string;
+      useOfFunds: string;
+    }
+  ): Promise<GeneratePitchResult> {
+    const { data, error } = await supabase.functions.invoke<GeneratePitchResult>("generate-pitch", {
+      body: {
+        businessName: investorName,
+        website: "",
+        issues: [],
+        investorPitch: investorData,
+      },
+    });
+
+    if (error) {
+      console.error("Generate pitch error:", error);
+      throw new Error(error.message || "Failed to generate pitch");
+    }
+
+    if (!data) {
+      throw new Error("No data returned from pitch generation");
+    }
+
+    return data;
+  },
+
   async sendEmail(params: {
     campaignId: string;
     businessId: string;

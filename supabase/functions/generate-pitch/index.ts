@@ -16,6 +16,14 @@ interface PitchRequest {
     description: string;
   }>;
   freelancerService?: string;
+  investorPitch?: {
+    industry: string;
+    businessName: string;
+    businessDescription: string;
+    fundingAmount: string;
+    traction: string;
+    useOfFunds: string;
+  };
 }
 
 serve(async (req) => {
@@ -60,12 +68,20 @@ serve(async (req) => {
       throw new Error("LOVABLE_API_KEY is not configured");
     }
 
-    const { businessName, website, issues, freelancerService }: PitchRequest = await req.json();
+    const { businessName, website, issues, freelancerService, investorPitch }: PitchRequest = await req.json();
 
     // Input validation
-    if (!businessName || !issues || issues.length === 0) {
+    if (!businessName) {
       return new Response(
-        JSON.stringify({ error: "businessName and issues are required" }),
+        JSON.stringify({ error: "businessName is required" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // For non-investor pitches, issues are required
+    if (!investorPitch && (!issues || issues.length === 0)) {
+      return new Response(
+        JSON.stringify({ error: "issues are required for non-investor pitches" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
@@ -130,43 +146,99 @@ serve(async (req) => {
 
     // Sanitize inputs
     const sanitizedBusinessName = businessName.replace(/[<>{}[\]\\]/g, '').substring(0, 100);
-    const sanitizedWebsite = (website || "No website found").replace(/[<>{}[\]\\]/g, '').substring(0, 200);
 
-    const sanitizedIssues = issues.slice(0, 8).map(issue => ({
-      ...issue,
-      title: (issue.title || "").replace(/[<>{}[\]\\]/g, '').substring(0, 100),
-      description: (issue.description || "").replace(/[<>{}[\]\\]/g, '').substring(0, 200),
-      category: (issue.category || "").replace(/[<>{}[\]\\]/g, '').substring(0, 30),
-    }));
+    let pitchPrompt: string;
+    let systemMessage: string;
 
-    // Pick the single most painful issue for the opener
-    const topIssue = sanitizedIssues
-      .filter(i => i.severity === 'high')
-      .slice(0, 1)[0] || sanitizedIssues[0];
+    if (investorPitch) {
+      // ─── Investor pitch mode (no website analysis needed) ───
+      const sanitizedInvestorData = {
+        industry: (investorPitch.industry || "").replace(/[<>{}[\]\\]/g, '').substring(0, 100),
+        businessName: (investorPitch.businessName || "").replace(/[<>{}[\]\\]/g, '').substring(0, 200),
+        businessDescription: (investorPitch.businessDescription || "").replace(/[<>{}[\]\\]/g, '').substring(0, 2000),
+        fundingAmount: (investorPitch.fundingAmount || "").replace(/[<>{}[\]\\]/g, '').substring(0, 50),
+        traction: (investorPitch.traction || "").replace(/[<>{}[\]\\]/g, '').substring(0, 2000),
+        useOfFunds: (investorPitch.useOfFunds || "").replace(/[<>{}[\]\\]/g, '').substring(0, 200),
+      };
 
-    // Group issues
-    const websiteIssues = sanitizedIssues.filter(i => ['website_copy', 'cta', 'seo', 'design', 'copywriting'].includes(i.category));
-    const socialIssues = sanitizedIssues.filter(i => ['linkedin', 'instagram', 'facebook', 'social'].includes(i.category));
-    const brandingIssues = sanitizedIssues.filter(i => ['branding', 'performance'].includes(i.category));
+      systemMessage = "You write compelling investor pitch emails that get meetings. You are direct, specific, and every email reads like it was written by a founder who understands investors' priorities. Always respond with valid JSON via tool calls.";
 
-    const websiteIssuesSummary = websiteIssues.length > 0 
-      ? `Website Issues:\n${websiteIssues.map(i => `- ${i.title}: ${i.description}`).join("\n")}`
-      : "";
+      pitchPrompt = `You are writing a cold email to an investor/VC firm to pitch a startup for funding. This email MUST get a reply and ideally a meeting.
 
-    const socialIssuesSummary = socialIssues.length > 0
-      ? `Social Media Issues:\n${socialIssues.map(i => `- [${i.category.toUpperCase()}] ${i.title}: ${i.description}`).join("\n")}`
-      : "";
+TARGET INVESTOR:
+- Firm/Name: ${sanitizedBusinessName}
 
-    const brandingIssuesSummary = brandingIssues.length > 0
-      ? `Branding Issues:\n${brandingIssues.map(i => `- ${i.title}: ${i.description}`).join("\n")}`
-      : "";
+YOUR STARTUP:
+- Name: ${sanitizedInvestorData.businessName}
+- Industry: ${sanitizedInvestorData.industry}
+- What it does: ${sanitizedInvestorData.businessDescription}
+${sanitizedInvestorData.fundingAmount ? `- Raising: ${sanitizedInvestorData.fundingAmount}` : ""}
+${sanitizedInvestorData.useOfFunds ? `- Use of funds: ${sanitizedInvestorData.useOfFunds}` : ""}
+${sanitizedInvestorData.traction ? `- Traction & proof: ${sanitizedInvestorData.traction}` : ""}
 
-    // CTA instruction based on Calendly availability
-    const ctaInstruction = profileData.calendlyUrl 
-      ? `End with: "Would it help if I showed you exactly what I'd change? Here's my calendar if 15 minutes works: ${profileData.calendlyUrl.substring(0, 200)}"`
-      : `End with a simple question they can reply "yes" to. Example: "Would it help if I put together a quick mockup showing what I'd change? Just reply 'yes' and I'll send it over."`;
+FOUNDER INFO:
+- Name: ${profileData.fullName.substring(0, 100)}
+${profileData.bio ? `- Background: ${profileData.bio.substring(0, 300)}` : ""}
 
-    const pitchPrompt = `You are writing a cold outreach email that MUST get a reply. Study these real examples of high-converting cold emails and match their style:
+RULES FOR THE EMAIL:
+1. SUBJECT LINE: Max 8 words. Intriguing, specific to the investor's focus area. Examples: "${sanitizedInvestorData.businessName} — ${sanitizedInvestorData.industry} disruption", "Quick intro: ${sanitizedInvestorData.businessName}"
+2. OPENER: Lead with the market opportunity or traction — NOT "I hope this email finds you well"
+3. BODY:
+   - State the problem you solve in 1 sentence
+   - Your unique solution in 1-2 sentences
+   - Traction/proof points (numbers matter — revenue, users, growth rate)
+   - Why THIS investor is the right fit (reference their portfolio or focus area if possible)
+4. ASK: Clear ask for a 15-20 minute call. Keep it low-pressure.
+5. LENGTH: 120-180 words MAXIMUM. Investors are busy.
+6. TONE: Confident but not arrogant. Data-driven. Founder-to-investor.
+7. Sign off with founder name.
+
+ABSOLUTELY DO NOT:
+- Start with "I hope this finds you well" or "My name is..."
+- Use buzzwords like "disruptive", "revolutionary", "game-changing"
+- Make unsupported claims without data
+- Write more than 180 words
+- Sound desperate or overly formal
+- Use exclamation marks more than once`;
+
+    } else {
+      // ─── Freelancer / Direct client pitch mode ───
+      const sanitizedWebsite = (website || "No website found").replace(/[<>{}[\]\\]/g, '').substring(0, 200);
+
+      const sanitizedIssues = issues.slice(0, 8).map(issue => ({
+        ...issue,
+        title: (issue.title || "").replace(/[<>{}[\]\\]/g, '').substring(0, 100),
+        description: (issue.description || "").replace(/[<>{}[\]\\]/g, '').substring(0, 200),
+        category: (issue.category || "").replace(/[<>{}[\]\\]/g, '').substring(0, 30),
+      }));
+
+      const topIssue = sanitizedIssues
+        .filter(i => i.severity === 'high')
+        .slice(0, 1)[0] || sanitizedIssues[0];
+
+      const websiteIssues = sanitizedIssues.filter(i => ['website_copy', 'cta', 'seo', 'design', 'copywriting'].includes(i.category));
+      const socialIssues = sanitizedIssues.filter(i => ['linkedin', 'instagram', 'facebook', 'social'].includes(i.category));
+      const brandingIssues = sanitizedIssues.filter(i => ['branding', 'performance'].includes(i.category));
+
+      const websiteIssuesSummary = websiteIssues.length > 0 
+        ? `Website Issues:\n${websiteIssues.map(i => `- ${i.title}: ${i.description}`).join("\n")}`
+        : "";
+
+      const socialIssuesSummary = socialIssues.length > 0
+        ? `Social Media Issues:\n${socialIssues.map(i => `- [${i.category.toUpperCase()}] ${i.title}: ${i.description}`).join("\n")}`
+        : "";
+
+      const brandingIssuesSummary = brandingIssues.length > 0
+        ? `Branding Issues:\n${brandingIssues.map(i => `- ${i.title}: ${i.description}`).join("\n")}`
+        : "";
+
+      const ctaInstruction = profileData.calendlyUrl 
+        ? `End with: "Would it help if I showed you exactly what I'd change? Here's my calendar if 15 minutes works: ${profileData.calendlyUrl.substring(0, 200)}"`
+        : `End with a simple question they can reply "yes" to. Example: "Would it help if I put together a quick mockup showing what I'd change? Just reply 'yes' and I'll send it over."`;
+
+      systemMessage = "You write cold emails that get replies. You are direct, specific, and never sound like a template. Every email reads like it was written by a real person who spent 5 minutes researching the recipient. Always respond with valid JSON via tool calls.";
+
+      pitchPrompt = `You are writing a cold outreach email that MUST get a reply. Study these real examples of high-converting cold emails and match their style:
 
 EXAMPLE OPENER STYLES (vary these — never start with "I noticed"):
 - "Quick question about [their company]'s [specific thing]..."  
@@ -215,6 +287,7 @@ ABSOLUTELY DO NOT:
 - Sound like AI wrote it
 - Use the word "leverage" or "synergy" or "game-changer"
 - Include "Best regards" — just use your first name`;
+    }
 
     const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
@@ -227,7 +300,7 @@ ABSOLUTELY DO NOT:
         messages: [
           { 
             role: "system", 
-            content: "You write cold emails that get replies. You are direct, specific, and never sound like a template. Every email reads like it was written by a real person who spent 5 minutes researching the recipient. Always respond with valid JSON via tool calls." 
+            content: systemMessage 
           },
           { role: "user", content: pitchPrompt }
         ],

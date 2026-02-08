@@ -203,8 +203,50 @@ export default function NewCampaign() {
     }
   };
 
-  const handleSelect = (selected: Business[]) => {
+  const handleSelect = async (selected: Business[]) => {
     setSelectedBusinesses(selected);
+    
+    // Investor flow: skip analyze, generate pitches directly
+    if (campaignType === "investor") {
+      setCompletedSteps([...completedSteps, 'select']);
+      setIsLoading(true);
+      
+      const investorDataStr = sessionStorage.getItem("investor_pitch_data");
+      const investorData = investorDataStr ? JSON.parse(investorDataStr) : null;
+      
+      if (!investorData) {
+        toast({ title: "Error", description: "Investor pitch data not found. Please start over.", variant: "destructive" });
+        setCurrentStep('search');
+        setIsLoading(false);
+        return;
+      }
+
+      const newPitches: Record<string, GeneratedPitch> = {};
+      
+      for (let i = 0; i < selected.length; i++) {
+        const business = selected[i];
+        try {
+          const pitchResult = await campaignApi.generateInvestorPitch(business.name, investorData);
+          newPitches[business.id] = {
+            businessId: business.id,
+            subject: pitchResult.subject,
+            body: pitchResult.body,
+            edited: false,
+            approved: false,
+          };
+          setPitches({ ...newPitches });
+        } catch (error) {
+          console.error(`Investor pitch generation failed for ${business.name}:`, error);
+          toast({ title: "Pitch Error", description: `Failed to generate pitch for ${business.name}`, variant: "destructive" });
+        }
+      }
+
+      setIsLoading(false);
+      setCurrentStep('pitch');
+      toast({ title: "Pitches Generated", description: `Generated ${Object.keys(newPitches).length} investor pitches.` });
+      return;
+    }
+    
     setCompletedSteps([...completedSteps, 'select']);
     setCurrentStep('analyze');
   };
@@ -559,7 +601,7 @@ export default function NewCampaign() {
           </div>
         )}
         
-        <StepIndicator currentStep={currentStep} completedSteps={completedSteps} />
+        <StepIndicator currentStep={currentStep} completedSteps={completedSteps} campaignType={campaignType} />
         
         <div className="mt-8">
           <AnimatePresence mode="wait">
@@ -606,7 +648,7 @@ export default function NewCampaign() {
                 onUpdatePitch={handleUpdatePitch}
                 onRegeneratePitch={handleRegeneratePitch}
                 onContinue={handlePitchContinue}
-                onBack={() => setCurrentStep('analyze')}
+                onBack={() => setCurrentStep(campaignType === "investor" ? 'select' : 'analyze')}
               />
             )}
             {currentStep === 'send' && (
