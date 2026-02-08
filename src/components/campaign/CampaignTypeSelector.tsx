@@ -16,7 +16,7 @@ const campaignTypes = [
     subtitle: "For Freelancers",
     description: "Search for businesses by type and location, analyze their online presence, and send personalized cold pitches.",
     features: ["Search by industry & location", "AI website + social audit", "Auto-generated pitches", "Up to 15 emails per campaign"],
-    creditInfo: "3 credits per campaign (0.2 per email)",
+    
     color: "primary",
   },
   {
@@ -26,7 +26,7 @@ const campaignTypes = [
     subtitle: "Direct Outreach",
     description: "Already have a specific client in mind? Enter their details, we'll analyze their presence and craft the perfect pitch.",
     features: ["Enter client details manually", "Full online presence audit", "Personalized pitch generation", "Social media analysis"],
-    creditInfo: "0.2 credits per email",
+    
     color: "accent",
   },
   {
@@ -36,7 +36,7 @@ const campaignTypes = [
     subtitle: "Raise Funding",
     description: "Find investors in your industry, craft compelling pitch emails about your business or idea, and reach out at scale.",
     features: ["Search investors by industry", "Structured pitch builder", "Traction & proof points", "Up to 10 emails per campaign"],
-    creditInfo: "5 credits per campaign (0.5 per email)",
+    
     color: "warning",
   },
 ];
@@ -91,11 +91,6 @@ export function CampaignTypeSelector({ onSelect }: CampaignTypeSelectorProps) {
                     </li>
                   ))}
                 </ul>
-                <div className="pt-2 border-t">
-                  <p className="text-xs text-muted-foreground font-medium">
-                    {type.creditInfo}
-                  </p>
-                </div>
               </CardContent>
             </Card>
           </motion.div>
