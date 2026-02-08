@@ -130,28 +130,38 @@ export default function NewCampaign() {
 
   // ─── Direct client flow handler ───
 
-  const handleDirectClient = async (businessName: string, website: string) => {
+  const handleDirectClient = async (
+    businessName: string,
+    website: string,
+    socialOnly?: boolean,
+    socialHandles?: { linkedin?: string; instagram?: string; facebook?: string }
+  ) => {
     setIsLoading(true);
-    setSearchParams({ businessType: "Direct Client", location: website });
+    setSearchParams({ businessType: "Direct Client", location: socialOnly ? "Social Analysis" : website });
     
     try {
-      // Create a mock business entry
       const business: Business = {
         id: crypto.randomUUID(),
         name: businessName,
-        address: website,
-        website: website.startsWith("http") ? website : `https://${website}`,
+        address: socialOnly ? "Social Media Analysis" : website,
+        website: socialOnly ? undefined : (website.startsWith("http") ? website : `https://${website}`),
         selected: true,
       };
+      
+      // Store social-only params for analysis step
+      if (socialOnly && socialHandles) {
+        sessionStorage.setItem("social_only_analysis", JSON.stringify({ socialOnly: true, socialHandles }));
+      } else {
+        sessionStorage.removeItem("social_only_analysis");
+      }
       
       setBusinesses([business]);
       setSelectedBusinesses([business]);
       
-      // Go directly to analyze step
       setCompletedSteps(['search', 'select']);
       setCurrentStep('analyze');
       
-      toast({ title: "Client Added", description: `Ready to analyze ${businessName}'s online presence.` });
+      toast({ title: "Client Added", description: `Ready to analyze ${businessName}'s ${socialOnly ? 'social media' : 'online presence'}.` });
     } catch (error) {
       toast({ title: "Error", description: "Failed to set up client analysis.", variant: "destructive" });
     } finally {
@@ -222,7 +232,15 @@ export default function NewCampaign() {
       }
 
       try {
-        const analysisResult = await campaignApi.analyzeWebsite(business.website, business.name);
+        // Check for social-only mode
+        const socialOnlyData = sessionStorage.getItem("social_only_analysis");
+        const socialOnlyParams = socialOnlyData ? JSON.parse(socialOnlyData) : null;
+        
+        const analysisResult = await campaignApi.analyzeWebsite(
+          business.website || "",
+          business.name,
+          socialOnlyParams ? { socialOnly: true, socialHandles: socialOnlyParams.socialHandles } : undefined
+        );
         
         newAnalyses[business.id] = {
           businessId: business.id,

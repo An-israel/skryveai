@@ -26,10 +26,7 @@ serve(async (req) => {
   try {
     // Authentication check
     const authHeader = req.headers.get("authorization");
-    console.log("Auth header present:", !!authHeader);
-    
     if (!authHeader?.startsWith("Bearer ")) {
-      console.error("Missing or invalid authorization header");
       return new Response(
         JSON.stringify({ error: "Unauthorized - missing authorization header" }),
         { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -42,32 +39,24 @@ serve(async (req) => {
     const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
     
     if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
-      console.error("Missing Supabase environment variables");
       throw new Error("Supabase environment variables not configured");
     }
 
-    // Use service role to validate the user's token
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
-    // Validate the user's JWT token
     const { data: { user }, error: authError } = await supabase.auth.getUser(token);
     
     if (authError || !user) {
-      console.error("JWT validation failed:", authError);
       return new Response(
         JSON.stringify({ error: "Unauthorized - invalid token" }),
         { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    console.log("User authenticated:", user.id);
-
-    // Get authenticated user ID
     const userId = user.id;
 
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) {
-      console.error("LOVABLE_API_KEY not configured");
       throw new Error("LOVABLE_API_KEY is not configured");
     }
 
@@ -81,7 +70,6 @@ serve(async (req) => {
       );
     }
 
-    // Validate input lengths
     if (businessName.length > 200) {
       return new Response(
         JSON.stringify({ error: "Business name too long" }),
@@ -96,7 +84,6 @@ serve(async (req) => {
       );
     }
 
-    // Limit issues array size
     if (issues.length > 20) {
       return new Response(
         JSON.stringify({ error: "Too many issues provided" }),
@@ -104,14 +91,7 @@ serve(async (req) => {
       );
     }
 
-    if (freelancerService && freelancerService.length > 500) {
-      return new Response(
-        JSON.stringify({ error: "Service description too long" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-
-    // Fetch user profile for personalized pitches using service role (to bypass RLS)
+    // Fetch user profile for personalized pitches
     let profileData = {
       fullName: "Your Name",
       expertise: [] as string[],
@@ -122,40 +102,36 @@ serve(async (req) => {
       serviceDescription: freelancerService || "web development and digital marketing"
     };
 
-    if (userId) {
-      // Use the already-created service role client
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("full_name, expertise, bio, portfolio_url, cv_url")
-        .eq("user_id", userId)
-        .single();
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("full_name, expertise, bio, portfolio_url, cv_url")
+      .eq("user_id", userId)
+      .single();
 
-      const { data: settings } = await supabase
-        .from("user_settings")
-        .select("sender_name, service_description, calendly_url")
-        .eq("user_id", userId)
-        .single();
+    const { data: settings } = await supabase
+      .from("user_settings")
+      .select("sender_name, service_description, calendly_url")
+      .eq("user_id", userId)
+      .single();
 
-      if (profile) {
-        profileData.fullName = profile.full_name || profileData.fullName;
-        profileData.expertise = profile.expertise || [];
-        profileData.bio = profile.bio || "";
-        profileData.portfolioUrl = profile.portfolio_url || "";
-        profileData.cvUrl = profile.cv_url || "";
-      }
-
-      if (settings) {
-        profileData.fullName = settings.sender_name || profileData.fullName;
-        profileData.serviceDescription = settings.service_description || profileData.serviceDescription;
-        profileData.calendlyUrl = settings.calendly_url || "";
-      }
+    if (profile) {
+      profileData.fullName = profile.full_name || profileData.fullName;
+      profileData.expertise = profile.expertise || [];
+      profileData.bio = profile.bio || "";
+      profileData.portfolioUrl = profile.portfolio_url || "";
+      profileData.cvUrl = profile.cv_url || "";
     }
 
-    // Sanitize inputs for AI prompt
+    if (settings) {
+      profileData.fullName = settings.sender_name || profileData.fullName;
+      profileData.serviceDescription = settings.service_description || profileData.serviceDescription;
+      profileData.calendlyUrl = settings.calendly_url || "";
+    }
+
+    // Sanitize inputs
     const sanitizedBusinessName = businessName.replace(/[<>{}[\]\\]/g, '').substring(0, 100);
     const sanitizedWebsite = (website || "No website found").replace(/[<>{}[\]\\]/g, '').substring(0, 200);
 
-    // Format issues for the prompt (limit and sanitize)
     const sanitizedIssues = issues.slice(0, 8).map(issue => ({
       ...issue,
       title: (issue.title || "").replace(/[<>{}[\]\\]/g, '').substring(0, 100),
@@ -163,66 +139,82 @@ serve(async (req) => {
       category: (issue.category || "").replace(/[<>{}[\]\\]/g, '').substring(0, 30),
     }));
 
-    // Group issues by type for better pitch context
+    // Pick the single most painful issue for the opener
+    const topIssue = sanitizedIssues
+      .filter(i => i.severity === 'high')
+      .slice(0, 1)[0] || sanitizedIssues[0];
+
+    // Group issues
     const websiteIssues = sanitizedIssues.filter(i => ['website_copy', 'cta', 'seo', 'design', 'copywriting'].includes(i.category));
     const socialIssues = sanitizedIssues.filter(i => ['linkedin', 'instagram', 'facebook', 'social'].includes(i.category));
     const brandingIssues = sanitizedIssues.filter(i => ['branding', 'performance'].includes(i.category));
 
-    const topIssues = sanitizedIssues
-      .filter(i => i.severity === 'high' || i.severity === 'medium')
-      .slice(0, 3);
-
     const websiteIssuesSummary = websiteIssues.length > 0 
       ? `Website Issues:\n${websiteIssues.map(i => `- ${i.title}: ${i.description}`).join("\n")}`
-      : "No major website issues found.";
+      : "";
 
     const socialIssuesSummary = socialIssues.length > 0
       ? `Social Media Issues:\n${socialIssues.map(i => `- [${i.category.toUpperCase()}] ${i.title}: ${i.description}`).join("\n")}`
-      : "No social media issues found.";
+      : "";
 
     const brandingIssuesSummary = brandingIssues.length > 0
       ? `Branding Issues:\n${brandingIssues.map(i => `- ${i.title}: ${i.description}`).join("\n")}`
       : "";
 
-    const pitchPrompt = `You are a friendly freelancer writing a cold outreach email. Write a personalized pitch email for a potential client based on a full audit of their online presence (website + social media).
+    // CTA instruction based on Calendly availability
+    const ctaInstruction = profileData.calendlyUrl 
+      ? `End with: "Would it help if I showed you exactly what I'd change? Here's my calendar if 15 minutes works: ${profileData.calendlyUrl.substring(0, 200)}"`
+      : `End with a simple question they can reply "yes" to. Example: "Would it help if I put together a quick mockup showing what I'd change? Just reply 'yes' and I'll send it over."`;
 
-About the Freelancer:
+    const pitchPrompt = `You are writing a cold outreach email that MUST get a reply. Study these real examples of high-converting cold emails and match their style:
+
+EXAMPLE OPENER STYLES (vary these — never start with "I noticed"):
+- "Quick question about [their company]'s [specific thing]..."  
+- "Been looking at [company]'s LinkedIn and had a thought..."
+- "[Company name] keeps coming up in my feed — and I think there's a gap in how you're..."
+- "Your website says [specific quote from their site]. Here's what visitors probably think..."
+- "3 things I'd change about [company]'s Instagram tomorrow..."
+
+About You (the Freelancer):
 - Name: ${profileData.fullName.substring(0, 100)}
-- Expertise: ${profileData.expertise.length > 0 ? profileData.expertise.slice(0, 5).join(", ") : profileData.serviceDescription.substring(0, 200)}
-- Bio/Experience: ${(profileData.bio || "Professional freelancer with experience in digital services").substring(0, 500)}
-- Portfolio: ${profileData.portfolioUrl ? profileData.portfolioUrl.substring(0, 200) : "Available upon request"}
-${profileData.calendlyUrl ? `- Booking Link: ${profileData.calendlyUrl.substring(0, 200)}` : ""}
+- Skills: ${profileData.expertise.length > 0 ? profileData.expertise.slice(0, 5).join(", ") : profileData.serviceDescription.substring(0, 200)}
+- Experience: ${(profileData.bio || "Experienced freelancer").substring(0, 300)}
+${profileData.portfolioUrl ? `- Portfolio: ${profileData.portfolioUrl.substring(0, 200)}` : ""}
 
-Business Details:
+Target Business:
 - Name: ${sanitizedBusinessName}
 - Website: ${sanitizedWebsite}
 
+MOST PAINFUL ISSUE (lead with this):
+[${topIssue.category.toUpperCase()}] ${topIssue.title}: ${topIssue.description}
+
 ${websiteIssuesSummary}
-
 ${socialIssuesSummary}
-
 ${brandingIssuesSummary}
 
-Top priority pain points:
-${topIssues.map(i => `- [${i.category.toUpperCase()}] ${i.title} (${i.severity} severity): ${i.description}`).join("\n")}
+RULES FOR THE EMAIL:
+1. SUBJECT LINE: Max 6 words. Curious, specific, NOT salesy. No emojis. Example: "Quick thought about [company]'s [thing]"
+2. OPENER (first sentence): Jump straight into their #1 pain point. Be specific about THEIR business.
+3. BODY: 
+   - Pick 1-2 issues maximum (the most painful ones)
+   - Explain the COST of not fixing it (lost clients, lost revenue, looking unprofessional)
+   - Show you understand their business specifically
+   - If social media issues exist, mention ONE specific thing (e.g., "Your LinkedIn hasn't posted in 3 weeks" or "Your Instagram bio doesn't tell visitors what to do next")
+4. PROOF: One brief line connecting your expertise to their problem (not a resume dump)
+5. CTA: ${ctaInstruction}
+6. LENGTH: 100-150 words MAXIMUM. Short paragraphs. No walls of text.
+7. TONE: Like a helpful peer, not a vendor. Conversational. Zero corporate jargon.
+8. Sign off with just your first name.
 
-Write a cold email that:
-1. Opens with a SPECIFIC observation about their online presence — pick the most painful issue (could be their website copy, their LinkedIn, their Instagram, or their Facebook)
-2. Briefly explains how this specific problem is costing them clients or money
-3. If there are social media issues, mention 1-2 specific things you noticed about their social profiles (e.g., "Your Instagram hasn't been updated in weeks" or "Your LinkedIn about section doesn't clearly explain what you do")
-4. Connect the issues to YOUR specific expertise and how you can help
-5. If you can help with social media design, content strategy, bio optimization, follower growth — mention it naturally
-6. Include a soft call-to-action - ${profileData.calendlyUrl ? "suggest they book a call using your Calendly link" : "suggest a quick call or reply"}
-7. Is conversational and friendly, NOT salesy
-8. Is between 150-250 words maximum
-9. Uses short paragraphs for readability
-10. Signs off with the freelancer's name
-
-IMPORTANT: Focus on PAIN POINTS that make them think "I need to fix this." Don't list generic suggestions.
-Do NOT use phrases like "I noticed" at the very start - be more creative.
-Do NOT use exclamation marks excessively.
-Do NOT promise specific results or use superlatives.
-Make the pitch feel personal and based on their ACTUAL online presence issues.`;
+ABSOLUTELY DO NOT:
+- Start with "I noticed" or "I came across" or "I hope this finds you"
+- Use exclamation marks more than once
+- Promise specific numbers ("increase by 200%")  
+- List more than 2 problems
+- Write more than 150 words
+- Sound like AI wrote it
+- Use the word "leverage" or "synergy" or "game-changer"
+- Include "Best regards" — just use your first name`;
 
     const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
@@ -235,7 +227,7 @@ Make the pitch feel personal and based on their ACTUAL online presence issues.`;
         messages: [
           { 
             role: "system", 
-            content: "You are a professional freelancer who writes excellent cold outreach emails. You are warm, specific, and helpful without being pushy. Always respond with valid JSON." 
+            content: "You write cold emails that get replies. You are direct, specific, and never sound like a template. Every email reads like it was written by a real person who spent 5 minutes researching the recipient. Always respond with valid JSON via tool calls." 
           },
           { role: "user", content: pitchPrompt }
         ],
@@ -250,11 +242,11 @@ Make the pitch feel personal and based on their ACTUAL online presence issues.`;
                 properties: {
                   subject: { 
                     type: "string",
-                    description: "Email subject line - should be short, specific, and not spammy"
+                    description: "Email subject line - max 6 words, curious, specific, not spammy"
                   },
                   body: { 
                     type: "string",
-                    description: "Email body text"
+                    description: "Email body - 100-150 words max, conversational, specific pain point opener"
                   }
                 },
                 required: ["subject", "body"]
@@ -287,7 +279,7 @@ Make the pitch feel personal and based on their ACTUAL online presence issues.`;
     const aiData = await aiResponse.json();
     const toolCall = aiData.choices?.[0]?.message?.tool_calls?.[0];
     
-    let subject = `Quick question about ${sanitizedBusinessName}'s website`;
+    let subject = `Quick thought about ${sanitizedBusinessName}`;
     let body = "";
 
     if (toolCall?.function?.arguments) {

@@ -1,5 +1,4 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
-import { Resend } from "https://esm.sh/resend@2.0.0";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
 
 const corsHeaders = {
@@ -11,11 +10,11 @@ const GOOGLE_CLIENT_ID = Deno.env.get("GOOGLE_CLIENT_ID");
 const GOOGLE_CLIENT_SECRET = Deno.env.get("GOOGLE_CLIENT_SECRET");
 
 // ─── Safety constants ───
-const FUNCTION_TIME_BUDGET_MS = 45_000; // Stop processing after 45s (edge fn timeout is ~60s)
-const PER_EMAIL_TIMEOUT_MS = 15_000;    // Max 15s per email send attempt
-const SMTP_READ_TIMEOUT_MS = 5_000;     // Max 5s waiting for SMTP response
-const MAX_BATCH_SIZE = 10;              // Process at most 10 emails per run
-const INTER_EMAIL_DELAY_MS = 200;       // Small delay between sends
+const FUNCTION_TIME_BUDGET_MS = 45_000;
+const PER_EMAIL_TIMEOUT_MS = 15_000;
+const SMTP_READ_TIMEOUT_MS = 5_000;
+const MAX_BATCH_SIZE = 10;
+const INTER_EMAIL_DELAY_MS = 200;
 
 interface SMTPCredentials {
   user_id: string;
@@ -167,14 +166,12 @@ async function sendViaSMTP(
     const reader = conn.readable.getReader();
     const writer = conn.writable.getWriter();
     
-    // Read greeting
     const greeting = await readResponse(reader);
     if (!greeting.startsWith("220")) {
       throw new Error(`Bad SMTP greeting: ${greeting}`);
     }
     
     if (port === 587) {
-      // EHLO then STARTTLS upgrade
       await sendSmtpCommand(writer, reader, `EHLO skryveai.com`, 250);
       await sendSmtpCommand(writer, reader, "STARTTLS", 220);
       
@@ -190,7 +187,6 @@ async function sendViaSMTP(
       tlsReader.releaseLock();
       tlsWriter.releaseLock();
     } else {
-      // Port 465 (already TLS)
       await smtpSession(reader, writer, credentials, to, subject, htmlBody, senderName);
       reader.releaseLock();
       writer.releaseLock();
@@ -399,6 +395,45 @@ function isValidEmail(email: string): boolean {
   return true;
 }
 
+// ─── MX Record Check (pre-send validation) ───
+
+async function hasMXRecord(email: string): Promise<boolean> {
+  try {
+    const domain = email.split('@')[1];
+    if (!domain) return false;
+
+    // Skip check for well-known domains
+    const trustedDomains = new Set(['gmail.com', 'yahoo.com', 'outlook.com', 'hotmail.com', 'aol.com', 'icloud.com', 'protonmail.com', 'zoho.com', 'live.com']);
+    if (trustedDomains.has(domain)) return true;
+
+    const response = await fetch(
+      `https://dns.google/resolve?name=${encodeURIComponent(domain)}&type=MX`,
+      { signal: AbortSignal.timeout(3000) }
+    );
+
+    if (!response.ok) return true; // On failure, don't block
+
+    const data = await response.json();
+    if (data.Status === 0 && data.Answer && data.Answer.length > 0) {
+      return data.Answer.some((a: { type: number }) => a.type === 15);
+    }
+
+    // Check A record fallback
+    const aResponse = await fetch(
+      `https://dns.google/resolve?name=${encodeURIComponent(domain)}&type=A`,
+      { signal: AbortSignal.timeout(2000) }
+    );
+    if (aResponse.ok) {
+      const aData = await aResponse.json();
+      if (aData.Status === 0 && aData.Answer && aData.Answer.length > 0) return true;
+    }
+
+    return false;
+  } catch {
+    return true; // On error, don't block sending
+  }
+}
+
 // ─── Single email send with timeout ───
 
 async function sendSingleEmail(
@@ -407,16 +442,26 @@ async function sendSingleEmail(
   smtpCredentialsMap: Map<string, SMTPCredentials>,
   gmailConnectedUsers: Set<string>,
   supabase: ReturnType<typeof createClient>,
-  resend: Resend,
   SUPABASE_URL: string,
   SUPABASE_SERVICE_ROLE_KEY: string
 ): Promise<"sent" | "failed" | "skipped"> {
-  // Validate email
+  // Validate email format
   if (!isValidEmail(queuedEmail.to_email as string)) {
-    console.log(`Invalid email: ${queuedEmail.to_email}, skipping`);
+    console.log(`Invalid email format: ${queuedEmail.to_email}, skipping`);
     await supabase
       .from("email_queue")
-      .update({ status: "failed", processed_at: new Date().toISOString(), error_message: "Invalid email address" })
+      .update({ status: "failed", processed_at: new Date().toISOString(), error_message: "Invalid email address format" })
+      .eq("id", queuedEmail.id);
+    return "skipped";
+  }
+
+  // MX record validation - reject emails to domains that can't receive mail
+  const mxValid = await hasMXRecord(queuedEmail.to_email as string);
+  if (!mxValid) {
+    console.log(`No MX record for ${queuedEmail.to_email}, skipping - domain cannot receive email`);
+    await supabase
+      .from("email_queue")
+      .update({ status: "failed", processed_at: new Date().toISOString(), error_message: "Domain has no MX record - cannot receive email" })
       .eq("id", queuedEmail.id);
     return "skipped";
   }
@@ -466,7 +511,7 @@ async function sendSingleEmail(
     const senderName = (queuedEmail.sender_name as string) || "SkryveAI";
     let emailSent = false;
 
-    // Priority 1: SMTP
+    // Priority 1: SMTP (PRIMARY - best for deliverability)
     if (userId && smtpCredentialsMap.has(userId)) {
       const creds = smtpCredentialsMap.get(userId)!;
       console.log(`Sending via SMTP to ${queuedEmail.to_email}`);
@@ -480,14 +525,14 @@ async function sendSingleEmail(
           emailSent = true;
           console.log(`✓ Sent via SMTP to ${queuedEmail.to_email}`);
         } else {
-          console.log(`SMTP failed: ${smtpResult.error}, trying next method`);
+          console.log(`SMTP failed: ${smtpResult.error}, trying Gmail`);
         }
       } catch (smtpError) {
         console.error(`SMTP error: ${smtpError}`);
       }
     }
 
-    // Priority 2: Gmail API
+    // Priority 2: Gmail API (ALTERNATIVE)
     if (!emailSent && userId && gmailConnectedUsers.has(userId)) {
       console.log(`Trying Gmail API for ${queuedEmail.to_email}`);
       try {
@@ -500,27 +545,18 @@ async function sendSingleEmail(
           emailSent = true;
           console.log(`✓ Sent via Gmail to ${queuedEmail.to_email}`);
         } else {
-          console.log(`Gmail failed: ${gmailResult.error}, falling back to Resend`);
+          console.log(`Gmail failed: ${gmailResult.error}`);
         }
       } catch (gmailError) {
         console.error(`Gmail error: ${gmailError}`);
       }
     }
 
-    // Priority 3: Resend (fallback)
+    // NO Resend fallback — only send from user's own email to maximize deliverability and avoid spam
     if (!emailSent) {
-      console.log(`Sending via Resend to ${queuedEmail.to_email}`);
-      const fromEmail = "outreach@skryveai.com";
-      const { error: sendError } = await resend.emails.send({
-        from: `${senderName} <${fromEmail}>`,
-        to: [queuedEmail.to_email as string],
-        subject: queuedEmail.subject as string,
-        html: htmlBody,
-        headers: { "X-Entity-Ref-ID": emailRecord.id },
-      });
-      if (sendError) throw new Error(sendError.message || "Failed to send via Resend");
-      emailSent = true;
-      console.log(`✓ Sent via Resend to ${queuedEmail.to_email}`);
+      const errorMsg = "No personal email connected. Connect SMTP or Gmail in Settings to send emails.";
+      console.log(`Cannot send to ${queuedEmail.to_email}: ${errorMsg}`);
+      throw new Error(errorMsg);
     }
 
     // Success
@@ -549,17 +585,13 @@ serve(async (req) => {
   const startTime = Date.now();
 
   try {
-    const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
-    if (!RESEND_API_KEY) throw new Error("RESEND_API_KEY is not configured");
-
     const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
     const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
     if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) throw new Error("Supabase env vars not configured");
 
-    const resend = new Resend(RESEND_API_KEY);
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
-    // Reset stuck "processing" emails (from previous crashed runs) older than 2 minutes
+    // Reset stuck "processing" emails older than 2 minutes
     const twoMinAgo = new Date(Date.now() - 2 * 60 * 1000).toISOString();
     await supabase
       .from("email_queue")
@@ -567,7 +599,7 @@ serve(async (req) => {
       .eq("status", "processing")
       .lt("created_at", twoMinAgo);
 
-    // Fetch pending emails whose scheduled_for has passed
+    // Fetch pending emails
     const { data: pendingEmails, error: fetchError } = await supabase
       .from("email_queue")
       .select("*")
@@ -593,13 +625,13 @@ serve(async (req) => {
     let failCount = 0;
     let skippedCount = 0;
 
-    // Pre-fetch all user data in parallel
+    // Pre-fetch all user data
     const campaignIds = [...new Set(pendingEmails.map(e => e.campaign_id))];
     const { data: campaigns } = await supabase.from("campaigns").select("id, user_id").in("id", campaignIds);
     const campaignUserMap = new Map(campaigns?.map(c => [c.id, c.user_id]) || []);
     const userIds = [...new Set(campaigns?.map(c => c.user_id) || [])];
 
-    // Fetch user settings, SMTP creds, and Gmail tokens in parallel
+    // Fetch user settings, SMTP creds, and Gmail tokens
     const [settingsRes, smtpRes, gmailRes] = await Promise.all([
       supabase.from("user_settings")
         .select("user_id, warmup_enabled, warmup_start_volume, warmup_daily_increase, warmup_started_at, emails_sent_today, last_send_date, daily_send_limit")
@@ -624,19 +656,17 @@ serve(async (req) => {
       }
     }
 
-    // Track emails sent per user in this batch
     const userEmailsSentThisBatch = new Map<string, number>();
 
     for (const queuedEmail of pendingEmails) {
-      // ── Time budget check ──
       if (Date.now() - startTime > FUNCTION_TIME_BUDGET_MS) {
-        console.log(`Time budget exhausted after ${Date.now() - startTime}ms, stopping. Remaining emails will be picked up next run.`);
+        console.log(`Time budget exhausted after ${Date.now() - startTime}ms, stopping.`);
         break;
       }
 
       const userId = campaignUserMap.get(queuedEmail.campaign_id);
 
-      // ── Warmup / daily limit check ──
+      // Warmup / daily limit check
       if (userId) {
         const settings = userSettingsMap.get(userId);
         if (settings) {
@@ -655,10 +685,9 @@ serve(async (req) => {
         }
       }
 
-      // ── Send with per-email timeout ──
       try {
         const result = await withTimeout(
-          sendSingleEmail(queuedEmail, userId, smtpCredentialsMap, gmailConnectedUsers, supabase, resend, SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY),
+          sendSingleEmail(queuedEmail, userId, smtpCredentialsMap, gmailConnectedUsers, supabase, SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY),
           PER_EMAIL_TIMEOUT_MS,
           `email ${queuedEmail.id}`
         );
@@ -678,7 +707,6 @@ serve(async (req) => {
           skippedCount++;
         }
       } catch (timeoutErr) {
-        // Per-email timeout — mark as failed so it doesn't block the queue
         console.error(`Email ${queuedEmail.id} timed out:`, timeoutErr);
         await supabase
           .from("email_queue")

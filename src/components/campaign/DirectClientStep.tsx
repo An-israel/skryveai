@@ -4,23 +4,46 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { UserPlus, Globe, Building2, Sparkles } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
+import { UserPlus, Globe, Building2, Sparkles, Share2, Linkedin, Instagram, Facebook } from "lucide-react";
 
 interface DirectClientStepProps {
-  onSubmit: (businessName: string, website: string) => void;
+  onSubmit: (businessName: string, website: string, socialOnly?: boolean, socialHandles?: { linkedin?: string; instagram?: string; facebook?: string }) => void;
   isLoading?: boolean;
 }
 
 export function DirectClientStep({ onSubmit, isLoading }: DirectClientStepProps) {
   const [businessName, setBusinessName] = useState("");
   const [website, setWebsite] = useState("");
+  const [socialOnly, setSocialOnly] = useState(false);
+  const [socialHandles, setSocialHandles] = useState({
+    linkedin: "",
+    instagram: "",
+    facebook: "",
+  });
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (businessName.trim() && website.trim()) {
+    if (!businessName.trim()) return;
+
+    if (socialOnly) {
+      const handles = {
+        linkedin: socialHandles.linkedin.trim() || undefined,
+        instagram: socialHandles.instagram.trim() || undefined,
+        facebook: socialHandles.facebook.trim() || undefined,
+      };
+      const hasAnyHandle = handles.linkedin || handles.instagram || handles.facebook;
+      if (!hasAnyHandle) return;
+      onSubmit(businessName.trim(), "", true, handles);
+    } else {
+      if (!website.trim()) return;
       onSubmit(businessName.trim(), website.trim());
     }
   };
+
+  const hasValidInput = socialOnly
+    ? businessName.trim() && (socialHandles.linkedin.trim() || socialHandles.instagram.trim() || socialHandles.facebook.trim())
+    : businessName.trim() && website.trim();
 
   return (
     <motion.div
@@ -36,7 +59,7 @@ export function DirectClientStep({ onSubmit, isLoading }: DirectClientStepProps)
           </div>
           <CardTitle className="text-2xl">Pitch a Specific Client</CardTitle>
           <CardDescription className="text-base">
-            Enter your client's business name and website. We'll analyze their online presence and craft the perfect pitch.
+            Enter your client's details. We'll analyze their online presence and craft the perfect pitch.
           </CardDescription>
         </CardHeader>
         <CardContent className="pt-6">
@@ -56,26 +79,77 @@ export function DirectClientStep({ onSubmit, isLoading }: DirectClientStepProps)
               />
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="clientWebsite" className="flex items-center gap-2">
-                <Globe className="w-4 h-4 text-muted-foreground" />
-                Client's Website
-              </Label>
-              <Input
-                id="clientWebsite"
-                placeholder="e.g., acmecorp.com or https://acmecorp.com"
-                value={website}
-                onChange={(e) => setWebsite(e.target.value)}
-                className="h-12 text-base"
-                maxLength={500}
-              />
+            {/* Social-only toggle */}
+            <div className="flex items-center justify-between p-4 rounded-lg border bg-muted/30">
+              <div className="flex items-center gap-3">
+                <Share2 className="w-5 h-5 text-primary" />
+                <div>
+                  <p className="font-medium text-sm">Social Media Only</p>
+                  <p className="text-xs text-muted-foreground">Analyze only their social handles, skip website</p>
+                </div>
+              </div>
+              <Switch checked={socialOnly} onCheckedChange={setSocialOnly} />
             </div>
+
+            {!socialOnly ? (
+              <div className="space-y-2">
+                <Label htmlFor="clientWebsite" className="flex items-center gap-2">
+                  <Globe className="w-4 h-4 text-muted-foreground" />
+                  Client's Website
+                </Label>
+                <Input
+                  id="clientWebsite"
+                  placeholder="e.g., acmecorp.com or https://acmecorp.com"
+                  value={website}
+                  onChange={(e) => setWebsite(e.target.value)}
+                  className="h-12 text-base"
+                  maxLength={500}
+                />
+              </div>
+            ) : (
+              <div className="space-y-4 p-4 rounded-lg border bg-muted/20">
+                <p className="text-sm font-medium text-muted-foreground">Enter at least one social handle</p>
+                
+                <div className="space-y-3">
+                  <div className="flex items-center gap-3">
+                    <Linkedin className="w-5 h-5 text-[#0077B5] shrink-0" />
+                    <Input
+                      placeholder="LinkedIn company page or username"
+                      value={socialHandles.linkedin}
+                      onChange={(e) => setSocialHandles(prev => ({ ...prev, linkedin: e.target.value }))}
+                      className="h-10"
+                      maxLength={200}
+                    />
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <Instagram className="w-5 h-5 text-[#E4405F] shrink-0" />
+                    <Input
+                      placeholder="Instagram username (without @)"
+                      value={socialHandles.instagram}
+                      onChange={(e) => setSocialHandles(prev => ({ ...prev, instagram: e.target.value }))}
+                      className="h-10"
+                      maxLength={200}
+                    />
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <Facebook className="w-5 h-5 text-[#1877F2] shrink-0" />
+                    <Input
+                      placeholder="Facebook page name or URL"
+                      value={socialHandles.facebook}
+                      onChange={(e) => setSocialHandles(prev => ({ ...prev, facebook: e.target.value }))}
+                      className="h-10"
+                      maxLength={200}
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
 
             <Button
               type="submit"
               size="xl"
               className="w-full"
-              disabled={!businessName.trim() || !website.trim() || isLoading}
+              disabled={!hasValidInput || isLoading}
             >
               {isLoading ? (
                 <>
@@ -85,7 +159,7 @@ export function DirectClientStep({ onSubmit, isLoading }: DirectClientStepProps)
               ) : (
                 <>
                   <Sparkles className="w-5 h-5" />
-                  Analyze & Generate Pitch
+                  {socialOnly ? "Analyze Social Profiles" : "Analyze & Generate Pitch"}
                 </>
               )}
             </Button>
