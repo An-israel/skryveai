@@ -8,6 +8,9 @@ import { SelectStep } from "@/components/campaign/SelectStep";
 import { AnalyzeStep } from "@/components/campaign/AnalyzeStep";
 import { PitchStep } from "@/components/campaign/PitchStep";
 import { SendStep } from "@/components/campaign/SendStep";
+import { CampaignTypeSelector, type CampaignType } from "@/components/campaign/CampaignTypeSelector";
+import { DirectClientStep } from "@/components/campaign/DirectClientStep";
+import { InvestorSearchStep, type InvestorPitchData } from "@/components/campaign/InvestorSearchStep";
 import type { Business, WebsiteAnalysis, GeneratedPitch, CampaignStep } from "@/types/campaign";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -15,7 +18,7 @@ import { campaignApi } from "@/lib/api/campaign";
 import type { UserSettings } from "@/components/settings/EmailSettingsDialog";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { AlertTriangle, FileText, Briefcase, User, Mail } from "lucide-react";
+import { AlertTriangle, FileText, Briefcase, User, Mail, ArrowLeft } from "lucide-react";
 
 interface ProfileStatus {
   hasBio: boolean;
@@ -26,6 +29,7 @@ interface ProfileStatus {
 }
 
 export default function NewCampaign() {
+  const [campaignType, setCampaignType] = useState<CampaignType | null>(null);
   const [currentStep, setCurrentStep] = useState<CampaignStep>('search');
   const [completedSteps, setCompletedSteps] = useState<CampaignStep[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -62,7 +66,6 @@ export default function NewCampaign() {
         return;
       }
       
-      // Check profile completion and Gmail connection in parallel
       const [profileResult, gmailResult] = await Promise.all([
         supabase
           .from("profiles")
@@ -87,7 +90,6 @@ export default function NewCampaign() {
         hasExpertise,
         hasCv,
         hasGmail,
-        // Gmail is optional until OAuth verification is complete
         isComplete: hasBio && hasExpertise && hasCv,
       });
       setCheckingProfile(false);
@@ -95,18 +97,15 @@ export default function NewCampaign() {
     checkAuth();
   }, [navigate]);
 
+  // ─── Freelancer flow handlers ───
+
   const handleSearch = async (businessType: string, location: string) => {
     setIsLoading(true);
     setSearchParams({ businessType, location });
     try {
-      // Ensure we have a fresh session before making the request
       const { data: { session }, error: sessionError } = await supabase.auth.getSession();
       if (sessionError || !session) {
-        toast({
-          title: "Session Expired",
-          description: "Please log in again to continue.",
-          variant: "destructive",
-        });
+        toast({ title: "Session Expired", description: "Please log in again.", variant: "destructive" });
         navigate("/login");
         return;
       }
@@ -115,30 +114,80 @@ export default function NewCampaign() {
       setBusinesses(result.businesses);
       setCompletedSteps([...completedSteps, 'search']);
       setCurrentStep('select');
-      toast({
-        title: "Search Complete",
-        description: `Found ${result.total} businesses matching your criteria.`,
-      });
+      toast({ title: "Search Complete", description: `Found ${result.total} businesses.` });
     } catch (error) {
       console.error("Search error:", error);
-      const errorMessage = error instanceof Error ? error.message : "Failed to search businesses";
-      
-      // If it's an auth error, redirect to login
-      if (errorMessage.includes("Session expired") || errorMessage.includes("log in")) {
-        toast({
-          title: "Session Expired",
-          description: "Please log in again to continue.",
-          variant: "destructive",
-        });
+      const msg = error instanceof Error ? error.message : "Failed to search businesses";
+      if (msg.includes("Session expired") || msg.includes("log in")) {
         navigate("/login");
         return;
       }
+      toast({ title: "Search Failed", description: msg, variant: "destructive" });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // ─── Direct client flow handler ───
+
+  const handleDirectClient = async (businessName: string, website: string) => {
+    setIsLoading(true);
+    setSearchParams({ businessType: "Direct Client", location: website });
+    
+    try {
+      // Create a mock business entry
+      const business: Business = {
+        id: crypto.randomUUID(),
+        name: businessName,
+        address: website,
+        website: website.startsWith("http") ? website : `https://${website}`,
+        selected: true,
+      };
       
-      toast({
-        title: "Search Failed",
-        description: errorMessage,
-        variant: "destructive",
-      });
+      setBusinesses([business]);
+      setSelectedBusinesses([business]);
+      
+      // Go directly to analyze step
+      setCompletedSteps(['search', 'select']);
+      setCurrentStep('analyze');
+      
+      toast({ title: "Client Added", description: `Ready to analyze ${businessName}'s online presence.` });
+    } catch (error) {
+      toast({ title: "Error", description: "Failed to set up client analysis.", variant: "destructive" });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // ─── Investor flow handler ───
+
+  const handleInvestorSearch = async (data: InvestorPitchData) => {
+    setIsLoading(true);
+    setSearchParams({ businessType: `${data.industry} Investors`, location: data.businessName });
+    
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        navigate("/login");
+        return;
+      }
+
+      // Search for investors using Google Places (VCs, investment firms)
+      const result = await campaignApi.searchBusinesses(
+        `${data.industry} venture capital investment firm investor`,
+        "United States" // Default to US for investor searches
+      );
+      
+      // Store investor pitch data in session for pitch generation
+      sessionStorage.setItem("investor_pitch_data", JSON.stringify(data));
+      
+      setBusinesses(result.businesses);
+      setCompletedSteps(['search']);
+      setCurrentStep('select');
+      toast({ title: "Investors Found", description: `Found ${result.total} potential investors in ${data.industry}.` });
+    } catch (error) {
+      console.error("Investor search error:", error);
+      toast({ title: "Search Failed", description: error instanceof Error ? error.message : "Failed to find investors", variant: "destructive" });
     } finally {
       setIsLoading(false);
     }
@@ -163,12 +212,7 @@ export default function NewCampaign() {
       if (!business.website) {
         newAnalyses[business.id] = {
           businessId: business.id,
-          issues: [{ 
-            category: 'design', 
-            severity: 'high', 
-            title: 'No Website Found', 
-            description: 'This business doesn\'t have a website listed' 
-          }],
+          issues: [{ category: 'design', severity: 'high', title: 'No Website Found', description: 'This business doesn\'t have a website listed' }],
           overallScore: 0,
           analyzed: true,
           analyzedAt: new Date().toISOString(),
@@ -190,9 +234,7 @@ export default function NewCampaign() {
         
         if (analysisResult.email && !business.email) {
           const updatedBusiness = { ...business, email: analysisResult.email };
-          setSelectedBusinesses(prev => 
-            prev.map(b => b.id === business.id ? updatedBusiness : b)
-          );
+          setSelectedBusinesses(prev => prev.map(b => b.id === business.id ? updatedBusiness : b));
         }
 
         setAnalyses({ ...newAnalyses });
@@ -219,12 +261,7 @@ export default function NewCampaign() {
         console.error(`Analysis failed for ${business.name}:`, error);
         newAnalyses[business.id] = {
           businessId: business.id,
-          issues: [{ 
-            category: 'performance', 
-            severity: 'medium', 
-            title: 'Analysis Failed', 
-            description: 'Could not analyze website - it may be offline or blocking scrapers' 
-          }],
+          issues: [{ category: 'performance', severity: 'medium', title: 'Analysis Failed', description: 'Could not analyze — may be offline or blocking scrapers' }],
           overallScore: 0,
           analyzed: true,
           analyzedAt: new Date().toISOString(),
@@ -236,11 +273,7 @@ export default function NewCampaign() {
     setAnalysisProgress(100);
     setCurrentAnalyzing(undefined);
     setIsAnalyzing(false);
-
-    toast({
-      title: "Analysis Complete",
-      description: `Analyzed ${selectedBusinesses.length} websites and generated pitches.`,
-    });
+    toast({ title: "Analysis Complete", description: `Analyzed ${selectedBusinesses.length} online presences.` });
   };
 
   const handleAnalysisContinue = () => {
@@ -258,29 +291,11 @@ export default function NewCampaign() {
     
     if (business && analysis && business.website) {
       try {
-        const pitchResult = await campaignApi.generatePitch(
-          business.name,
-          business.website,
-          analysis.issues
-        );
-        
-        setPitches({ 
-          ...pitches, 
-          [businessId]: {
-            businessId,
-            subject: pitchResult.subject,
-            body: pitchResult.body,
-            edited: false,
-            approved: false,
-          }
-        });
+        const pitchResult = await campaignApi.generatePitch(business.name, business.website, analysis.issues);
+        setPitches({ ...pitches, [businessId]: { businessId, subject: pitchResult.subject, body: pitchResult.body, edited: false, approved: false } });
         toast({ title: "Pitch regenerated" });
       } catch (error) {
-        toast({ 
-          title: "Regeneration failed", 
-          description: error instanceof Error ? error.message : "Unknown error",
-          variant: "destructive" 
-        });
+        toast({ title: "Regeneration failed", description: error instanceof Error ? error.message : "Unknown error", variant: "destructive" });
       }
     }
   };
@@ -297,14 +312,39 @@ export default function NewCampaign() {
     
     const approvedBusinesses = selectedBusinesses.filter((b) => pitches[b.id]?.approved);
     const delaySeconds = userSettings?.delay_between_emails || 30;
+    const currentCampaignType = campaignType || "freelancer";
 
     try {
-      // Get current user
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Not authenticated");
 
+      // Check credits before sending
+      const creditPerEmail = currentCampaignType === "investor" ? 0.5 : 0.2;
+      const totalCreditsNeeded = approvedBusinesses.length * creditPerEmail;
+
+      const { data: subscription } = await supabase
+        .from("subscriptions")
+        .select("credits, plan")
+        .eq("user_id", user.id)
+        .single();
+
+      if (subscription && subscription.plan !== "lifetime" && subscription.credits < totalCreditsNeeded) {
+        toast({
+          title: "Insufficient Credits",
+          description: `You need ${totalCreditsNeeded} credits but only have ${subscription.credits}. Upgrade your plan for more credits.`,
+          variant: "destructive",
+        });
+        setIsSending(false);
+        return;
+      }
+
       // Create campaign record
-      const campaignName = `${searchParams.businessType} in ${searchParams.location}`;
+      const campaignName = currentCampaignType === "direct_client"
+        ? `Direct: ${searchParams.businessType}`
+        : currentCampaignType === "investor"
+        ? `Investors: ${searchParams.businessType}`
+        : `${searchParams.businessType} in ${searchParams.location}`;
+      
       const { data: campaign, error: campaignError } = await supabase
         .from("campaigns")
         .insert({
@@ -313,6 +353,7 @@ export default function NewCampaign() {
           business_type: searchParams.businessType,
           location: searchParams.location,
           status: "sending",
+          campaign_type: currentCampaignType,
         })
         .select()
         .single();
@@ -320,7 +361,7 @@ export default function NewCampaign() {
       if (campaignError) throw campaignError;
       setCampaignId(campaign.id);
 
-      // Insert businesses into database
+      // Insert businesses
       const businessInserts = approvedBusinesses.map(b => ({
         campaign_id: campaign.id,
         name: b.name,
@@ -342,7 +383,7 @@ export default function NewCampaign() {
 
       if (businessError) throw businessError;
 
-      // Create pitch records and queue emails
+      // Queue emails
       for (let i = 0; i < approvedBusinesses.length; i++) {
         const business = approvedBusinesses[i];
         const pitch = pitches[business.id];
@@ -350,28 +391,16 @@ export default function NewCampaign() {
         
         if (!dbBusiness || !pitch) continue;
 
-        // Create pitch record
         const { data: pitchRecord, error: pitchError } = await supabase
           .from("pitches")
-          .insert({
-            business_id: dbBusiness.id,
-            subject: pitch.subject,
-            body: pitch.body,
-            edited: pitch.edited,
-            approved: true,
-          })
+          .insert({ business_id: dbBusiness.id, subject: pitch.subject, body: pitch.body, edited: pitch.edited, approved: true })
           .select()
           .single();
 
-        if (pitchError) {
-          console.error("Error creating pitch:", pitchError);
-          continue;
-        }
+        if (pitchError) { console.error("Error creating pitch:", pitchError); continue; }
 
-        // Calculate scheduled time with delay
         const scheduledFor = new Date(Date.now() + (i * delaySeconds * 1000));
 
-        // Queue the email
         const { error: queueError } = await supabase
           .from("email_queue")
           .insert({
@@ -386,13 +415,19 @@ export default function NewCampaign() {
             scheduled_for: scheduledFor.toISOString(),
           });
 
-        if (queueError) {
-          console.error("Error queuing email:", queueError);
-          continue;
-        }
+        if (queueError) { console.error("Error queuing email:", queueError); continue; }
 
         setSentCount(i + 1);
         setSendProgress(((i + 1) / approvedBusinesses.length) * 100);
+      }
+
+      // Deduct credits
+      if (subscription && subscription.plan !== "lifetime") {
+        const newCredits = Math.max(0, subscription.credits - totalCreditsNeeded);
+        await supabase
+          .from("subscriptions")
+          .update({ credits: newCredits })
+          .eq("user_id", user.id);
       }
 
       setQueuedCount(approvedBusinesses.length);
@@ -401,20 +436,14 @@ export default function NewCampaign() {
       
       toast({
         title: "Emails Scheduled!",
-        description: `${approvedBusinesses.length} emails queued with ${delaySeconds}s delays.`,
+        description: `${approvedBusinesses.length} emails queued. ${totalCreditsNeeded} credits used.`,
       });
 
-      // Trigger queue processing
       supabase.functions.invoke("process-email-queue").catch(console.error);
-
     } catch (error) {
       console.error("Send error:", error);
       setIsSending(false);
-      toast({
-        title: "Error",
-        description: error instanceof Error ? error.message : "Failed to schedule emails",
-        variant: "destructive",
-      });
+      toast({ title: "Error", description: error instanceof Error ? error.message : "Failed to schedule emails", variant: "destructive" });
     }
   };
 
@@ -431,17 +460,13 @@ export default function NewCampaign() {
     );
   }
 
-  // Show profile completion requirement if not complete
-  if (!profileStatus.isComplete) {
+  // Profile completion gate (only for freelancer/direct_client)
+  if (!profileStatus.isComplete && campaignType && campaignType !== "investor") {
     return (
       <div className="min-h-screen bg-background">
         <Header isAuthenticated={true} onLogout={handleLogout} />
-        
         <main className="container mx-auto px-4 pt-24 pb-12 max-w-2xl">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-          >
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
             <Card className="border-warning/50">
               <CardHeader>
                 <div className="flex items-center gap-3">
@@ -450,71 +475,34 @@ export default function NewCampaign() {
                   </div>
                   <div>
                     <CardTitle>Complete Your Profile First</CardTitle>
-                    <CardDescription>
-                      To create personalized pitches, we need some information about you
-                    </CardDescription>
+                    <CardDescription>To create personalized pitches, we need some information about you</CardDescription>
                   </div>
                 </div>
               </CardHeader>
               <CardContent className="space-y-4">
-                <p className="text-muted-foreground">
-                  Our AI uses your profile information to craft personalized outreach emails that highlight your unique skills and experience.
-                </p>
-                
+                <p className="text-muted-foreground">Our AI uses your profile to craft personalized outreach emails highlighting your unique skills.</p>
                 <div className="space-y-3 py-4">
                   <div className={`flex items-center gap-3 p-3 rounded-lg border ${profileStatus.hasExpertise ? 'bg-success/5 border-success/30' : 'bg-muted/50'}`}>
                     <Briefcase className={`w-5 h-5 ${profileStatus.hasExpertise ? 'text-success' : 'text-muted-foreground'}`} />
-                    <div className="flex-1">
-                      <p className="font-medium">Expertise</p>
-                      <p className="text-sm text-muted-foreground">Select the services you offer</p>
-                    </div>
-                    {profileStatus.hasExpertise ? (
-                      <span className="text-success text-sm">✓ Complete</span>
-                    ) : (
-                      <span className="text-warning text-sm">Required</span>
-                    )}
+                    <div className="flex-1"><p className="font-medium">Expertise</p><p className="text-sm text-muted-foreground">Select the services you offer</p></div>
+                    {profileStatus.hasExpertise ? <span className="text-success text-sm">✓ Complete</span> : <span className="text-warning text-sm">Required</span>}
                   </div>
-                  
                   <div className={`flex items-center gap-3 p-3 rounded-lg border ${profileStatus.hasBio ? 'bg-success/5 border-success/30' : 'bg-muted/50'}`}>
                     <User className={`w-5 h-5 ${profileStatus.hasBio ? 'text-success' : 'text-muted-foreground'}`} />
-                    <div className="flex-1">
-                      <p className="font-medium">Bio</p>
-                      <p className="text-sm text-muted-foreground">Tell us about your experience</p>
-                    </div>
-                    {profileStatus.hasBio ? (
-                      <span className="text-success text-sm">✓ Complete</span>
-                    ) : (
-                      <span className="text-warning text-sm">Required</span>
-                    )}
+                    <div className="flex-1"><p className="font-medium">Bio</p><p className="text-sm text-muted-foreground">Tell us about your experience</p></div>
+                    {profileStatus.hasBio ? <span className="text-success text-sm">✓ Complete</span> : <span className="text-warning text-sm">Required</span>}
                   </div>
-                  
                   <div className={`flex items-center gap-3 p-3 rounded-lg border ${profileStatus.hasCv ? 'bg-success/5 border-success/30' : 'bg-muted/50'}`}>
                     <FileText className={`w-5 h-5 ${profileStatus.hasCv ? 'text-success' : 'text-muted-foreground'}`} />
-                    <div className="flex-1">
-                      <p className="font-medium">CV / Resume</p>
-                      <p className="text-sm text-muted-foreground">Upload your CV for better pitches</p>
-                    </div>
-                    {profileStatus.hasCv ? (
-                      <span className="text-success text-sm">✓ Complete</span>
-                    ) : (
-                      <span className="text-warning text-sm">Required</span>
-                    )}
+                    <div className="flex-1"><p className="font-medium">CV / Resume</p><p className="text-sm text-muted-foreground">Upload your CV for better pitches</p></div>
+                    {profileStatus.hasCv ? <span className="text-success text-sm">✓ Complete</span> : <span className="text-warning text-sm">Required</span>}
                   </div>
-                  
                   <div className={`flex items-center gap-3 p-3 rounded-lg border ${profileStatus.hasGmail ? 'bg-success/5 border-success/30' : 'bg-muted/30'}`}>
                     <Mail className={`w-5 h-5 ${profileStatus.hasGmail ? 'text-success' : 'text-muted-foreground'}`} />
-                    <div className="flex-1">
-                      <p className="font-medium">Gmail Connection</p>
-                      <p className="text-sm text-muted-foreground">Connect Gmail for better deliverability</p>
-                    </div>
-                    {profileStatus.hasGmail ? (
-                      <span className="text-success text-sm">✓ Connected</span>
-                    ) : (
-                      <span className="text-muted-foreground text-sm">Optional</span>
-                    )}
+                    <div className="flex-1"><p className="font-medium">Gmail Connection</p><p className="text-sm text-muted-foreground">Connect Gmail for better deliverability</p></div>
+                    {profileStatus.hasGmail ? <span className="text-success text-sm">✓ Connected</span> : <span className="text-muted-foreground text-sm">Optional</span>}
                   </div>
                 </div>
-                
                 <Button asChild className="w-full" size="lg">
                   <Link to="/settings">Complete Your Profile</Link>
                 </Button>
@@ -526,29 +514,54 @@ export default function NewCampaign() {
     );
   }
 
+  // Campaign type selection screen
+  if (!campaignType) {
+    return (
+      <div className="min-h-screen bg-background">
+        <Header isAuthenticated={true} onLogout={handleLogout} />
+        <main className="container mx-auto px-4 pt-24 pb-12">
+          <CampaignTypeSelector onSelect={setCampaignType} />
+        </main>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-background">
       <Header isAuthenticated={true} onLogout={handleLogout} />
       
       <main className="container mx-auto px-4 pt-24 pb-12">
+        {/* Back to campaign type selector */}
+        {currentStep === 'search' && (
+          <div className="max-w-3xl mx-auto mb-4">
+            <Button variant="ghost" size="sm" onClick={() => setCampaignType(null)}>
+              <ArrowLeft className="w-4 h-4 mr-1" />
+              Change campaign type
+            </Button>
+          </div>
+        )}
+        
         <StepIndicator currentStep={currentStep} completedSteps={completedSteps} />
         
         <div className="mt-8">
           <AnimatePresence mode="wait">
-            {currentStep === 'search' && (
-              <SearchStep
-                key="search"
-                onSearch={handleSearch}
-                isLoading={isLoading}
-              />
+            {/* Freelancer flow: Search → Select → Analyze → Pitch → Send */}
+            {campaignType === "freelancer" && currentStep === 'search' && (
+              <SearchStep key="search" onSearch={handleSearch} isLoading={isLoading} />
             )}
+            
+            {/* Direct Client flow: DirectClientStep → Analyze → Pitch → Send */}
+            {campaignType === "direct_client" && currentStep === 'search' && (
+              <DirectClientStep key="direct-client" onSubmit={handleDirectClient} isLoading={isLoading} />
+            )}
+            
+            {/* Investor flow: InvestorSearchStep → Select → Analyze → Pitch → Send */}
+            {campaignType === "investor" && currentStep === 'search' && (
+              <InvestorSearchStep key="investor-search" onSubmit={handleInvestorSearch} isLoading={isLoading} />
+            )}
+            
             {currentStep === 'select' && (
-              <SelectStep
-                key="select"
-                businesses={businesses}
-                onSelect={handleSelect}
-                onBack={() => setCurrentStep('search')}
-              />
+              <SelectStep key="select" businesses={businesses} onSelect={handleSelect} onBack={() => setCurrentStep('search')} />
             )}
             {currentStep === 'analyze' && (
               <AnalyzeStep
@@ -560,7 +573,10 @@ export default function NewCampaign() {
                 currentBusiness={currentAnalyzing}
                 onStartAnalysis={handleStartAnalysis}
                 onContinue={handleAnalysisContinue}
-                onBack={() => setCurrentStep('select')}
+                onBack={() => {
+                  if (campaignType === "direct_client") setCurrentStep('search');
+                  else setCurrentStep('select');
+                }}
               />
             )}
             {currentStep === 'pitch' && (

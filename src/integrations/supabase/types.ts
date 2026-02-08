@@ -106,6 +106,7 @@ export type Database = {
       campaigns: {
         Row: {
           business_type: string
+          campaign_type: string
           created_at: string
           emails_opened: number
           emails_sent: number
@@ -119,6 +120,7 @@ export type Database = {
         }
         Insert: {
           business_type: string
+          campaign_type?: string
           created_at?: string
           emails_opened?: number
           emails_sent?: number
@@ -132,6 +134,7 @@ export type Database = {
         }
         Update: {
           business_type?: string
+          campaign_type?: string
           created_at?: string
           emails_opened?: number
           emails_sent?: number
