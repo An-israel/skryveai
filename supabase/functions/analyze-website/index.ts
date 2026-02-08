@@ -12,7 +12,7 @@ interface AnalyzeRequest {
 }
 
 interface AnalysisIssue {
-  category: 'seo' | 'copywriting' | 'design' | 'social' | 'cta' | 'performance';
+  category: 'website_copy' | 'linkedin' | 'instagram' | 'facebook' | 'branding' | 'cta' | 'seo' | 'design' | 'social' | 'copywriting' | 'performance';
   severity: 'low' | 'medium' | 'high';
   title: string;
   description: string;
@@ -22,47 +22,24 @@ interface AnalysisIssue {
 function isValidUrl(urlString: string): boolean {
   try {
     const url = new URL(urlString);
-    
-    // Only allow http/https
-    if (!['http:', 'https:'].includes(url.protocol)) {
-      return false;
-    }
-    
-    // Block localhost and private IPs
+    if (!['http:', 'https:'].includes(url.protocol)) return false;
     const hostname = url.hostname.toLowerCase();
     if (
-      hostname === 'localhost' ||
-      hostname === '127.0.0.1' ||
-      hostname === '0.0.0.0' ||
-      hostname.startsWith('192.168.') ||
-      hostname.startsWith('10.') ||
-      hostname.startsWith('172.16.') ||
-      hostname.startsWith('172.17.') ||
-      hostname.startsWith('172.18.') ||
-      hostname.startsWith('172.19.') ||
-      hostname.startsWith('172.20.') ||
-      hostname.startsWith('172.21.') ||
-      hostname.startsWith('172.22.') ||
-      hostname.startsWith('172.23.') ||
-      hostname.startsWith('172.24.') ||
-      hostname.startsWith('172.25.') ||
-      hostname.startsWith('172.26.') ||
-      hostname.startsWith('172.27.') ||
-      hostname.startsWith('172.28.') ||
-      hostname.startsWith('172.29.') ||
-      hostname.startsWith('172.30.') ||
-      hostname.startsWith('172.31.') ||
-      hostname.startsWith('169.254.') || // AWS metadata
-      hostname.endsWith('.local') ||
-      hostname.endsWith('.internal')
-    ) {
-      return false;
-    }
-    
+      hostname === 'localhost' || hostname === '127.0.0.1' || hostname === '0.0.0.0' ||
+      hostname.startsWith('192.168.') || hostname.startsWith('10.') ||
+      hostname.startsWith('172.16.') || hostname.startsWith('172.17.') ||
+      hostname.startsWith('172.18.') || hostname.startsWith('172.19.') ||
+      hostname.startsWith('172.20.') || hostname.startsWith('172.21.') ||
+      hostname.startsWith('172.22.') || hostname.startsWith('172.23.') ||
+      hostname.startsWith('172.24.') || hostname.startsWith('172.25.') ||
+      hostname.startsWith('172.26.') || hostname.startsWith('172.27.') ||
+      hostname.startsWith('172.28.') || hostname.startsWith('172.29.') ||
+      hostname.startsWith('172.30.') || hostname.startsWith('172.31.') ||
+      hostname.startsWith('169.254.') ||
+      hostname.endsWith('.local') || hostname.endsWith('.internal')
+    ) return false;
     return true;
-  } catch {
-    return false;
-  }
+  } catch { return false; }
 }
 
 // File/image extensions that are NOT valid email TLDs
@@ -76,31 +53,13 @@ const INVALID_EMAIL_TLDS = new Set([
   'exe', 'dll', 'dmg', 'apk', 'msi',
 ]);
 
-// Common non-email local parts (image naming patterns, CSS, code artifacts)
 const INVALID_LOCAL_PATTERNS = [
-  /^\d+x\d*$/i,          // "2x", "300x200" - image dimensions
-  /^image/i,             // "image", "image1"
-  /^img/i,               // "img", "img_hero"
-  /^photo/i,             // "photo", "photo1"
-  /^icon/i,              // "icon", "icon-set"
-  /^logo/i,              // "logo", "logo-dark"
-  /^banner/i,            // "banner", "banner-bg"
-  /^bg/i,                // "bg", "bg-hero"
-  /^thumb/i,             // "thumb", "thumbnail"
-  /^screen/i,            // "screen", "screenshot"
-  /^avatar/i,            // "avatar"
-  /^placeholder/i,       // "placeholder"
-  /^sprite/i,            // "sprite"
-  /^asset/i,             // "asset"
-  /^file/i,              // "file", "file1"
-  /^\d+$/,               // pure numbers like "123"
-  /^[a-f0-9]{8,}$/i,     // hex hashes like "a1b2c3d4e5f6"
-  /^data$/i,             // "data"
-  /^no-?reply$/i,        // "noreply", "no-reply"
-  /^mailer-?daemon$/i,   // "mailer-daemon"
+  /^\d+x\d*$/i, /^image/i, /^img/i, /^photo/i, /^icon/i, /^logo/i,
+  /^banner/i, /^bg/i, /^thumb/i, /^screen/i, /^avatar/i, /^placeholder/i,
+  /^sprite/i, /^asset/i, /^file/i, /^\d+$/, /^[a-f0-9]{8,}$/i,
+  /^data$/i, /^no-?reply$/i, /^mailer-?daemon$/i,
 ];
 
-// Known valid email domains (weighted higher)
 const TRUSTED_EMAIL_DOMAINS = new Set([
   'gmail.com', 'yahoo.com', 'outlook.com', 'hotmail.com', 'aol.com',
   'icloud.com', 'mail.com', 'protonmail.com', 'zoho.com', 'yandex.com',
@@ -111,30 +70,20 @@ function isValidEmail(email: string): boolean {
   const lower = email.toLowerCase().trim();
   const parts = lower.split('@');
   if (parts.length !== 2) return false;
-
   const [localPart, domain] = parts;
   if (!localPart || localPart.length < 1 || localPart.length > 64) return false;
   if (localPart.startsWith('.') || localPart.endsWith('.') || localPart.includes('..')) return false;
-
   if (!domain || domain.length < 3) return false;
   const domainParts = domain.split('.');
   if (domainParts.length < 2) return false;
-
   const tld = domainParts[domainParts.length - 1];
   if (!tld || tld.length < 2) return false;
-
-  // Reject file extensions masquerading as TLDs
   if (INVALID_EMAIL_TLDS.has(tld)) return false;
-
-  // Reject invalid local part patterns (image filenames, hashes, etc.)
   for (const pattern of INVALID_LOCAL_PATTERNS) {
     if (pattern.test(localPart)) return false;
   }
-
-  // Reject if domain looks like a path
   if (domain.includes('/') || domain.includes('\\')) return false;
   if (domainParts[0].length < 2) return false;
-
   return true;
 }
 
@@ -142,23 +91,17 @@ function scoreEmail(email: string, websiteUrl: string): number {
   const lower = email.toLowerCase();
   const [localPart, domain] = lower.split('@');
   let score = 0;
-
-  // Prefer emails matching the website domain
   try {
     const siteDomain = new URL(websiteUrl).hostname.replace(/^www\./, '');
     if (domain === siteDomain) score += 50;
     if (domain.endsWith('.' + siteDomain) || siteDomain.endsWith('.' + domain)) score += 30;
   } catch { /* ignore */ }
-
-  // Prefer common business-facing local parts
   const businessPrefixes = ['info', 'contact', 'hello', 'support', 'sales', 'admin', 'office', 'team', 'help', 'enquir', 'booking'];
   for (const prefix of businessPrefixes) {
     if (localPart.startsWith(prefix)) { score += 20; break; }
   }
-
   if (TRUSTED_EMAIL_DOMAINS.has(domain)) score += 10;
   if (localPart.length > 30) score -= 10;
-
   return score;
 }
 
@@ -166,10 +109,73 @@ function findBestEmail(candidates: string[], websiteUrl: string): string | null 
   const unique = [...new Set(candidates.map(e => e.toLowerCase().trim()))];
   const valid = unique.filter(isValidEmail);
   if (valid.length === 0) return null;
-
   valid.sort((a, b) => scoreEmail(b, websiteUrl) - scoreEmail(a, websiteUrl));
   console.log(`Email candidates: ${valid.length} valid out of ${candidates.length} raw. Best: ${valid[0]}`);
   return valid[0];
+}
+
+// Extract social media URLs from links
+function extractSocialLinks(links: string[]): Record<string, string | null> {
+  const social: Record<string, string | null> = {
+    linkedin: null,
+    instagram: null,
+    facebook: null,
+    twitter: null,
+  };
+
+  for (const link of links) {
+    const lower = link.toLowerCase();
+    if (!social.linkedin && (lower.includes('linkedin.com/company/') || lower.includes('linkedin.com/in/'))) {
+      social.linkedin = link;
+    }
+    if (!social.instagram && lower.includes('instagram.com/') && !lower.includes('/p/') && !lower.includes('/reel/')) {
+      social.instagram = link;
+    }
+    if (!social.facebook && lower.includes('facebook.com/') && !lower.includes('/posts/') && !lower.includes('/photos/')) {
+      social.facebook = link;
+    }
+    if (!social.twitter && (lower.includes('twitter.com/') || lower.includes('x.com/'))) {
+      social.twitter = link;
+    }
+  }
+
+  return social;
+}
+
+// Scrape a social media profile with Firecrawl (with timeout)
+async function scrapeSocialProfile(url: string, apiKey: string): Promise<string> {
+  try {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 12000); // 12s timeout
+
+    const response = await fetch("https://api.firecrawl.dev/v1/scrape", {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${apiKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        url,
+        formats: ["markdown"],
+        onlyMainContent: true,
+      }),
+      signal: controller.signal,
+    });
+
+    clearTimeout(timeout);
+
+    if (!response.ok) {
+      console.log(`Social scrape failed for ${url}: ${response.status}`);
+      return `[Could not scrape - profile may be private or restricted]`;
+    }
+
+    const data = await response.json();
+    const content = data.data?.markdown || data.markdown || "";
+    return content.substring(0, 3000); // Limit content size
+  } catch (error) {
+    console.log(`Social scrape error for ${url}:`, error instanceof Error ? error.message : "unknown");
+    return `[Could not scrape - timeout or access issue]`;
+  }
 }
 
 serve(async (req) => {
@@ -180,10 +186,7 @@ serve(async (req) => {
   try {
     // Authentication check
     const authHeader = req.headers.get("authorization");
-    console.log("Auth header present:", !!authHeader);
-    
     if (!authHeader?.startsWith("Bearer ")) {
-      console.error("Missing or invalid authorization header");
       return new Response(
         JSON.stringify({ error: "Unauthorized - missing authorization header" }),
         { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -191,23 +194,15 @@ serve(async (req) => {
     }
 
     const token = authHeader.replace("Bearer ", "");
-
     const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
     const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
-    
     if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
-      console.error("Missing Supabase environment variables");
       throw new Error("Supabase environment variables not configured");
     }
 
-    // Use service role to validate the user's token
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
-
-    // Validate the user's JWT token
     const { data: { user }, error: authError } = await supabase.auth.getUser(token);
-    
     if (authError || !user) {
-      console.error("JWT validation failed:", authError);
       return new Response(
         JSON.stringify({ error: "Unauthorized - invalid token" }),
         { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -217,36 +212,25 @@ serve(async (req) => {
     console.log("User authenticated:", user.id);
 
     const FIRECRAWL_API_KEY = Deno.env.get("FIRECRAWL_API_KEY");
-    if (!FIRECRAWL_API_KEY) {
-      console.error("FIRECRAWL_API_KEY not configured");
-      throw new Error("FIRECRAWL_API_KEY is not configured");
-    }
+    if (!FIRECRAWL_API_KEY) throw new Error("FIRECRAWL_API_KEY is not configured");
 
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    if (!LOVABLE_API_KEY) {
-      console.error("LOVABLE_API_KEY not configured");
-      throw new Error("LOVABLE_API_KEY is not configured");
-    }
+    if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
 
     const { url, businessName }: AnalyzeRequest = await req.json();
 
-    // Input validation
     if (!url) {
       return new Response(
         JSON.stringify({ error: "URL is required" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
-
-    // Validate URL length
     if (url.length > 500) {
       return new Response(
         JSON.stringify({ error: "URL too long" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
-
-    // Validate business name length
     if (businessName && businessName.length > 200) {
       return new Response(
         JSON.stringify({ error: "Business name too long" }),
@@ -254,13 +238,11 @@ serve(async (req) => {
       );
     }
 
-    // Format URL
     let formattedUrl = url.trim();
     if (!formattedUrl.startsWith("http://") && !formattedUrl.startsWith("https://")) {
       formattedUrl = `https://${formattedUrl}`;
     }
 
-    // Validate URL to prevent SSRF
     if (!isValidUrl(formattedUrl)) {
       return new Response(
         JSON.stringify({ error: "Invalid or disallowed URL" }),
@@ -268,9 +250,19 @@ serve(async (req) => {
       );
     }
 
+    // Fetch user profile to understand their services (for contextual analysis)
+    const [profileResult, settingsResult] = await Promise.all([
+      supabase.from("profiles").select("expertise, bio").eq("user_id", user.id).single(),
+      supabase.from("user_settings").select("service_description").eq("user_id", user.id).single(),
+    ]);
+
+    const userExpertise = profileResult.data?.expertise?.join(", ") || "";
+    const userBio = profileResult.data?.bio || "";
+    const userService = settingsResult.data?.service_description || "";
+
     console.log(`Scraping website: ${formattedUrl}`);
 
-    // Step 1: Scrape the website with Firecrawl
+    // Step 1: Scrape the main website
     const scrapeResponse = await fetch("https://api.firecrawl.dev/v1/scrape", {
       method: "POST",
       headers: {
@@ -285,7 +277,6 @@ serve(async (req) => {
     });
 
     const scrapeData = await scrapeResponse.json();
-
     if (!scrapeResponse.ok) {
       console.error("Firecrawl API error:", scrapeData);
       throw new Error(scrapeData.error || `Firecrawl request failed with status ${scrapeResponse.status}`);
@@ -296,43 +287,112 @@ serve(async (req) => {
     const links = scrapeData.data?.links || scrapeData.links || [];
     const metadata = scrapeData.data?.metadata || scrapeData.metadata || {};
 
-    console.log(`Scraped ${websiteContent.length} characters of content`);
+    console.log(`Scraped ${websiteContent.length} chars of website content`);
 
-    // Sanitize business name for AI prompt (remove special characters that could be injection vectors)
+    // Step 2: Extract social media links and scrape them in parallel
+    const socialLinks = extractSocialLinks(links);
+    console.log("Social links found:", JSON.stringify(socialLinks));
+
+    const socialScrapePromises: Record<string, Promise<string>> = {};
+    for (const [platform, socialUrl] of Object.entries(socialLinks)) {
+      if (socialUrl && platform !== 'twitter') { // Skip Twitter (often blocks scraping)
+        socialScrapePromises[platform] = scrapeSocialProfile(socialUrl, FIRECRAWL_API_KEY);
+      }
+    }
+
+    const socialResults: Record<string, string> = {};
+    const entries = Object.entries(socialScrapePromises);
+    if (entries.length > 0) {
+      const results = await Promise.allSettled(entries.map(([, p]) => p));
+      entries.forEach(([platform], i) => {
+        const result = results[i];
+        socialResults[platform] = result.status === 'fulfilled' ? result.value : '[Could not scrape]';
+      });
+    }
+
+    console.log(`Scraped ${Object.keys(socialResults).length} social profiles`);
+
+    // Build social media context for AI
+    let socialMediaContext = "";
+    if (socialLinks.linkedin) {
+      socialMediaContext += `\n\n--- LINKEDIN PROFILE (${socialLinks.linkedin}) ---\n`;
+      socialMediaContext += socialResults.linkedin || "[No LinkedIn data - profile may be private]";
+    } else {
+      socialMediaContext += "\n\n--- LINKEDIN: No LinkedIn profile link found on website ---";
+    }
+
+    if (socialLinks.instagram) {
+      socialMediaContext += `\n\n--- INSTAGRAM PROFILE (${socialLinks.instagram}) ---\n`;
+      socialMediaContext += socialResults.instagram || "[No Instagram data - profile may be private]";
+    } else {
+      socialMediaContext += "\n\n--- INSTAGRAM: No Instagram profile link found on website ---";
+    }
+
+    if (socialLinks.facebook) {
+      socialMediaContext += `\n\n--- FACEBOOK PAGE (${socialLinks.facebook}) ---\n`;
+      socialMediaContext += socialResults.facebook || "[No Facebook data - page may be private]";
+    } else {
+      socialMediaContext += "\n\n--- FACEBOOK: No Facebook page link found on website ---";
+    }
+
+    if (socialLinks.twitter) {
+      socialMediaContext += `\n\n--- TWITTER/X: Link found (${socialLinks.twitter}) but not scraped ---`;
+    }
+
     const sanitizedBusinessName = (businessName || "Unknown Business").replace(/[<>{}[\]\\]/g, '').substring(0, 100);
 
-    // Step 2: Use AI to analyze the website
-    const analysisPrompt = `You are a website auditor analyzing a business website. Analyze the following website content and identify specific issues that a freelance web developer or marketer could help fix.
+    // Step 3: AI analysis focusing on HIGH-IMPACT pain points
+    const analysisPrompt = `You are a senior digital marketing consultant auditing a business's ENTIRE online presence. Your job is to identify REAL problems that are actively costing this business money, clients, and growth.
 
-Business Name: ${sanitizedBusinessName}
-Website URL: ${formattedUrl}
+BUSINESS: ${sanitizedBusinessName}
+WEBSITE: ${formattedUrl}
+
+== FREELANCER CONTEXT (the person who will pitch to fix these issues) ==
+Their expertise: ${userExpertise || "general digital services"}
+Their services: ${userService || "web development and digital marketing"}
+Their background: ${(userBio || "Professional freelancer").substring(0, 300)}
+Only identify issues that this freelancer can realistically help fix based on their skills.
+
+== WEBSITE CONTENT ==
 Page Title: ${(metadata.title || "Unknown").substring(0, 200)}
 Meta Description: ${(metadata.description || "None found").substring(0, 300)}
 
-Website Content:
-${websiteContent.substring(0, 8000)}
+Website Copy:
+${websiteContent.substring(0, 6000)}
 
-HTML Snippet (for technical analysis):
-${htmlContent.substring(0, 3000)}
+== SOCIAL MEDIA PROFILES ==
+${socialMediaContext.substring(0, 8000)}
 
-Links found: ${links.length}
-Social media links: ${links.filter((l: string) => l.includes('facebook') || l.includes('twitter') || l.includes('instagram') || l.includes('linkedin')).slice(0, 10).join(', ') || 'None detected'}
+== ANALYSIS INSTRUCTIONS ==
 
-Analyze this website and identify 3-6 specific issues across these categories:
-- SEO: Missing meta tags, poor headings structure, no alt text, missing sitemap
-- Copywriting: Unclear value proposition, weak headlines, grammar issues, too much jargon
-- Design: Outdated appearance, poor mobile hints, cluttered layout, inconsistent branding
-- Social: Missing social links, no testimonials, no trust signals
-- CTA: Weak or missing calls-to-action, unclear next steps for visitors
-- Performance: Heavy images mentioned, complex structure indicators
+CRITICAL: Focus ONLY on issues that are PRACTICALLY making this business LOSE MONEY or LOSE CLIENTS. Skip minor technical issues like metadata, alt tags, sitemaps, page speed scores. Those don't make businesses reply to cold emails.
 
-For each issue, provide:
-1. Category (seo, copywriting, design, social, cta, or performance)
-2. Severity (low, medium, or high)
-3. A short title (5-10 words)
-4. A brief description (15-30 words) explaining the specific problem found
+Analyze these areas and find 4-8 high-impact issues:
 
-Be specific and reference actual content from the website when possible.`;
+1. **WEBSITE COPY (website_copy)**: Is the website copy compelling? Does it clearly communicate what they do, who they serve, and why someone should choose them? Is it outdated, full of jargon, or does it fail to convert visitors into leads? Does it need rewriting?
+
+2. **LINKEDIN (linkedin)**: Is their LinkedIn company page or personal profile optimized? Check their posting strategy - are they posting consistently? Is the content engaging or generic? Is their bio/about section compelling? Could better LinkedIn presence drive them more B2B leads?
+
+3. **INSTAGRAM (instagram)**: How is their Instagram page? Is it optimized (bio, highlights, link in bio)? What's their posting strategy and frequency? Are their designs professional or amateur? Could you help them get more followers, better engagement, better content? Compare their design quality to what the freelancer could deliver.
+
+4. **FACEBOOK (facebook)**: Is their Facebook page active and optimized? Is the page description compelling? Are they posting? Could their Facebook presence be driving more local leads?
+
+5. **BRANDING & DESIGN (branding)**: Overall visual identity across website and social media - is it cohesive? Are their social media graphics low quality? Could a designer significantly improve their visual presence?
+
+6. **CALLS TO ACTION (cta)**: Are there clear, compelling CTAs on the website? Can visitors easily book/buy/contact? Are they missing obvious conversion opportunities?
+
+For each issue:
+- Make it SPECIFIC to this business (reference their actual content, their actual social media)
+- Explain HOW this is costing them money or clients
+- Rate severity: "high" = actively losing revenue/clients right now, "medium" = significant missed opportunity, "low" = nice improvement
+- Keep descriptions action-oriented: what's wrong and what the fix would achieve
+
+DO NOT include:
+- Generic SEO metadata issues
+- Page speed / performance scores
+- Alt text missing
+- Sitemap issues
+- Any issue that wouldn't make a business owner say "I need to fix this NOW"`;
 
     const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
@@ -343,7 +403,7 @@ Be specific and reference actual content from the website when possible.`;
       body: JSON.stringify({
         model: "google/gemini-3-flash-preview",
         messages: [
-          { role: "system", content: "You are a professional website auditor. Respond only with valid JSON." },
+          { role: "system", content: "You are a senior digital marketing consultant who identifies business-critical issues in online presence. Focus only on problems that cost real money. Respond with structured tool calls only." },
           { role: "user", content: analysisPrompt }
         ],
         tools: [
@@ -351,7 +411,7 @@ Be specific and reference actual content from the website when possible.`;
             type: "function",
             function: {
               name: "report_issues",
-              description: "Report the website issues found during analysis",
+              description: "Report the high-impact issues found during the full online presence audit",
               parameters: {
                 type: "object",
                 properties: {
@@ -360,20 +420,36 @@ Be specific and reference actual content from the website when possible.`;
                     items: {
                       type: "object",
                       properties: {
-                        category: { type: "string", enum: ["seo", "copywriting", "design", "social", "cta", "performance"] },
-                        severity: { type: "string", enum: ["low", "medium", "high"] },
-                        title: { type: "string" },
-                        description: { type: "string" }
+                        category: { 
+                          type: "string", 
+                          enum: ["website_copy", "linkedin", "instagram", "facebook", "branding", "cta"],
+                          description: "The area where the issue was found"
+                        },
+                        severity: { 
+                          type: "string", 
+                          enum: ["low", "medium", "high"],
+                          description: "high = losing money now, medium = big missed opportunity, low = improvement"
+                        },
+                        title: { 
+                          type: "string",
+                          description: "Short, specific title (5-12 words) that names the exact problem"
+                        },
+                        description: { 
+                          type: "string",
+                          description: "15-40 words explaining the specific problem and how it costs them money/clients. Be concrete, reference their actual content."
+                        }
                       },
-                      required: ["category", "severity", "title", "description"]
+                      required: ["category", "severity", "title", "description"],
+                      additionalProperties: false
                     }
                   },
                   overallScore: {
                     type: "number",
-                    description: "Overall website quality score from 0-100"
+                    description: "Overall online presence quality score from 0-100 (lower = more problems = more opportunity for the freelancer)"
                   }
                 },
-                required: ["issues", "overallScore"]
+                required: ["issues", "overallScore"],
+                additionalProperties: false
               }
             }
           }
@@ -383,6 +459,18 @@ Be specific and reference actual content from the website when possible.`;
     });
 
     if (!aiResponse.ok) {
+      if (aiResponse.status === 429) {
+        return new Response(
+          JSON.stringify({ error: "Rate limit exceeded. Please try again in a moment." }),
+          { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+      if (aiResponse.status === 402) {
+        return new Response(
+          JSON.stringify({ error: "AI credits exhausted. Please add credits to continue." }),
+          { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
       const errorText = await aiResponse.text();
       console.error("AI API error:", errorText);
       throw new Error(`AI analysis failed: ${aiResponse.status}`);
@@ -390,7 +478,7 @@ Be specific and reference actual content from the website when possible.`;
 
     const aiData = await aiResponse.json();
     const toolCall = aiData.choices?.[0]?.message?.tool_calls?.[0];
-    
+
     let issues: AnalysisIssue[] = [];
     let overallScore = 50;
 
@@ -404,14 +492,13 @@ Be specific and reference actual content from the website when possible.`;
       }
     }
 
-    // Extract and validate email from website
+    // Extract email from website
     const rawEmailMatches = (htmlContent + " " + websiteContent).match(
       /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g
     );
-    
     const email = findBestEmail(rawEmailMatches || [], formattedUrl);
 
-    console.log(`Analysis complete: ${issues.length} issues found, score: ${overallScore}`);
+    console.log(`Analysis complete: ${issues.length} issues found, score: ${overallScore}, social profiles scraped: ${Object.keys(socialResults).length}`);
 
     return new Response(
       JSON.stringify({
@@ -419,7 +506,12 @@ Be specific and reference actual content from the website when possible.`;
         overallScore,
         email,
         analyzed: true,
-        analyzedAt: new Date().toISOString()
+        analyzedAt: new Date().toISOString(),
+        socialLinksFound: {
+          linkedin: !!socialLinks.linkedin,
+          instagram: !!socialLinks.instagram,
+          facebook: !!socialLinks.facebook,
+        }
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );

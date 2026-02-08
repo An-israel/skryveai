@@ -14,7 +14,11 @@ import {
   Palette,
   Share2,
   MousePointer,
-  Gauge
+  Gauge,
+  Linkedin,
+  Instagram,
+  Facebook,
+  PenLine
 } from "lucide-react";
 import type { Business, WebsiteAnalysis, AnalysisIssue } from "@/types/campaign";
 
@@ -30,11 +34,16 @@ interface AnalyzeStepProps {
 }
 
 const categoryIcons: Record<string, React.ComponentType<{ className?: string }>> = {
+  website_copy: PenLine,
+  linkedin: Linkedin,
+  instagram: Instagram,
+  facebook: Facebook,
+  branding: Palette,
+  cta: MousePointer,
   seo: Search,
   copywriting: FileText,
   design: Palette,
   social: Share2,
-  cta: MousePointer,
   performance: Gauge,
 };
 
@@ -82,9 +91,9 @@ export function AnalyzeStep({
       className="space-y-6"
     >
       <div className="text-center max-w-xl mx-auto">
-        <h2 className="text-2xl font-bold">Website Analysis</h2>
+        <h2 className="text-2xl font-bold">Full Online Presence Audit</h2>
         <p className="text-muted-foreground mt-2">
-          Our AI will analyze each business website to identify opportunities and craft personalized pitches.
+          Our AI will audit each business's website copy, LinkedIn, Instagram, Facebook, and branding to find high-impact pain points.
         </p>
       </div>
 
@@ -93,9 +102,9 @@ export function AnalyzeStep({
           <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-primary/10 flex items-center justify-center">
             <Search className="w-8 h-8 text-primary" />
           </div>
-          <h3 className="text-lg font-semibold mb-2">Ready to Analyze</h3>
+          <h3 className="text-lg font-semibold mb-2">Ready to Audit</h3>
           <p className="text-muted-foreground text-sm mb-6">
-            We'll scan {businesses.length} websites for SEO issues, copywriting problems, design flaws, and more.
+            We'll analyze {businesses.length} businesses — their website copy, LinkedIn, Instagram, Facebook, and overall branding to find real problems costing them money.
           </p>
           <Button onClick={onStartAnalysis} size="lg">
             Start Analysis

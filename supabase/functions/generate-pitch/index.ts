@@ -156,22 +156,35 @@ serve(async (req) => {
     const sanitizedWebsite = (website || "No website found").replace(/[<>{}[\]\\]/g, '').substring(0, 200);
 
     // Format issues for the prompt (limit and sanitize)
-    const sanitizedIssues = issues.slice(0, 6).map(issue => ({
+    const sanitizedIssues = issues.slice(0, 8).map(issue => ({
       ...issue,
       title: (issue.title || "").replace(/[<>{}[\]\\]/g, '').substring(0, 100),
-      description: (issue.description || "").replace(/[<>{}[\]\\]/g, '').substring(0, 200)
+      description: (issue.description || "").replace(/[<>{}[\]\\]/g, '').substring(0, 200),
+      category: (issue.category || "").replace(/[<>{}[\]\\]/g, '').substring(0, 30),
     }));
 
-    const issuesSummary = sanitizedIssues
-      .slice(0, 4)
-      .map(issue => `- ${issue.title}: ${issue.description}`)
-      .join("\n");
+    // Group issues by type for better pitch context
+    const websiteIssues = sanitizedIssues.filter(i => ['website_copy', 'cta', 'seo', 'design', 'copywriting'].includes(i.category));
+    const socialIssues = sanitizedIssues.filter(i => ['linkedin', 'instagram', 'facebook', 'social'].includes(i.category));
+    const brandingIssues = sanitizedIssues.filter(i => ['branding', 'performance'].includes(i.category));
 
     const topIssues = sanitizedIssues
       .filter(i => i.severity === 'high' || i.severity === 'medium')
-      .slice(0, 2);
+      .slice(0, 3);
 
-    const pitchPrompt = `You are a friendly freelancer writing a cold outreach email. Write a personalized pitch email for a potential client.
+    const websiteIssuesSummary = websiteIssues.length > 0 
+      ? `Website Issues:\n${websiteIssues.map(i => `- ${i.title}: ${i.description}`).join("\n")}`
+      : "No major website issues found.";
+
+    const socialIssuesSummary = socialIssues.length > 0
+      ? `Social Media Issues:\n${socialIssues.map(i => `- [${i.category.toUpperCase()}] ${i.title}: ${i.description}`).join("\n")}`
+      : "No social media issues found.";
+
+    const brandingIssuesSummary = brandingIssues.length > 0
+      ? `Branding Issues:\n${brandingIssues.map(i => `- ${i.title}: ${i.description}`).join("\n")}`
+      : "";
+
+    const pitchPrompt = `You are a friendly freelancer writing a cold outreach email. Write a personalized pitch email for a potential client based on a full audit of their online presence (website + social media).
 
 About the Freelancer:
 - Name: ${profileData.fullName.substring(0, 100)}
@@ -184,28 +197,32 @@ Business Details:
 - Name: ${sanitizedBusinessName}
 - Website: ${sanitizedWebsite}
 
-Website Issues Found:
-${issuesSummary}
+${websiteIssuesSummary}
 
-Top priority issues to address:
-${topIssues.map(i => `- ${i.title} (${i.severity} severity)`).join("\n")}
+${socialIssuesSummary}
+
+${brandingIssuesSummary}
+
+Top priority pain points:
+${topIssues.map(i => `- [${i.category.toUpperCase()}] ${i.title} (${i.severity} severity): ${i.description}`).join("\n")}
 
 Write a cold email that:
-1. Opens with a specific observation about their website (reference an actual issue found)
-2. Briefly explains how this affects their business
-3. Mentions your specific expertise from your bio that's relevant to their issues
-4. References your portfolio link naturally if available
-5. Offers your help without being pushy
-6. Includes a soft call-to-action - ${profileData.calendlyUrl ? "suggest they book a call using your Calendly link" : "suggest a quick call or reply"}
+1. Opens with a SPECIFIC observation about their online presence — pick the most painful issue (could be their website copy, their LinkedIn, their Instagram, or their Facebook)
+2. Briefly explains how this specific problem is costing them clients or money
+3. If there are social media issues, mention 1-2 specific things you noticed about their social profiles (e.g., "Your Instagram hasn't been updated in weeks" or "Your LinkedIn about section doesn't clearly explain what you do")
+4. Connect the issues to YOUR specific expertise and how you can help
+5. If you can help with social media design, content strategy, bio optimization, follower growth — mention it naturally
+6. Include a soft call-to-action - ${profileData.calendlyUrl ? "suggest they book a call using your Calendly link" : "suggest a quick call or reply"}
 7. Is conversational and friendly, NOT salesy
-8. Is between 150-200 words maximum
+8. Is between 150-250 words maximum
 9. Uses short paragraphs for readability
 10. Signs off with the freelancer's name
 
+IMPORTANT: Focus on PAIN POINTS that make them think "I need to fix this." Don't list generic suggestions.
 Do NOT use phrases like "I noticed" at the very start - be more creative.
 Do NOT use exclamation marks excessively.
 Do NOT promise specific results or use superlatives.
-Make the pitch feel personal and based on the freelancer's actual experience from their bio.`;
+Make the pitch feel personal and based on their ACTUAL online presence issues.`;
 
     const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",

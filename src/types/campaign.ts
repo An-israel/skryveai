@@ -21,7 +21,7 @@ export interface WebsiteAnalysis {
 }
 
 export interface AnalysisIssue {
-  category: 'seo' | 'copywriting' | 'design' | 'social' | 'cta' | 'performance';
+  category: 'website_copy' | 'linkedin' | 'instagram' | 'facebook' | 'branding' | 'cta' | 'seo' | 'design' | 'social' | 'copywriting' | 'performance';
   severity: 'low' | 'medium' | 'high';
   title: string;
   description: string;
