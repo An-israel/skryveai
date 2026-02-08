@@ -2,13 +2,15 @@ import { motion } from "framer-motion";
 import { Check, Search, Users, BarChart3, FileText, Send } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { CampaignStep } from "@/types/campaign";
+import type { CampaignType } from "@/components/campaign/CampaignTypeSelector";
 
 interface StepIndicatorProps {
   currentStep: CampaignStep;
   completedSteps: CampaignStep[];
+  campaignType?: CampaignType | null;
 }
 
-const steps: { id: CampaignStep; label: string; icon: React.ComponentType<{ className?: string }> }[] = [
+const allSteps: { id: CampaignStep; label: string; icon: React.ComponentType<{ className?: string }> }[] = [
   { id: "search", label: "Search", icon: Search },
   { id: "select", label: "Select", icon: Users },
   { id: "analyze", label: "Analyze", icon: BarChart3 },
@@ -16,7 +18,11 @@ const steps: { id: CampaignStep; label: string; icon: React.ComponentType<{ clas
   { id: "send", label: "Send", icon: Send },
 ];
 
-export function StepIndicator({ currentStep, completedSteps }: StepIndicatorProps) {
+export function StepIndicator({ currentStep, completedSteps, campaignType }: StepIndicatorProps) {
+  // Investor flow skips the analyze step
+  const steps = campaignType === "investor"
+    ? allSteps.filter(s => s.id !== "analyze")
+    : allSteps;
   const currentIndex = steps.findIndex((s) => s.id === currentStep);
 
   return (
