@@ -51,7 +51,7 @@ serve(async (req) => {
       try {
         // Send reminder email
         await resend.emails.send({
-          from: "SkryveAI <noreply@resend.dev>",
+          from: "SkryveAI <skryveai@gmail.com>",
           to: [profile.email],
           subject: "Your SkryveAI trial ends tomorrow!",
           html: `
