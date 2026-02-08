@@ -28,7 +28,7 @@ const handler = async (req: Request): Promise<Response> => {
     }
 
     const emailResponse = await resend.emails.send({
-      from: "SkryveAI <skryveai@gmail.com>",
+      from: "SkryveAI <noreply@skryveai.com>",
       to: [email],
       subject: "Reset your SkryveAI password",
       html: `
