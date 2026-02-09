@@ -627,8 +627,9 @@ serve(async (req) => {
 
     // Pre-fetch all user data
     const campaignIds = [...new Set(pendingEmails.map(e => e.campaign_id))];
-    const { data: campaigns } = await supabase.from("campaigns").select("id, user_id").in("id", campaignIds);
+    const { data: campaigns } = await supabase.from("campaigns").select("id, user_id, campaign_type").in("id", campaignIds);
     const campaignUserMap = new Map(campaigns?.map(c => [c.id, c.user_id]) || []);
+    const campaignTypeMap = new Map(campaigns?.map(c => [c.id, c.campaign_type]) || []);
     const userIds = [...new Set(campaigns?.map(c => c.user_id) || [])];
 
     // Fetch user settings, SMTP creds, and Gmail tokens
@@ -700,6 +701,23 @@ serve(async (req) => {
               .from("user_settings")
               .update({ emails_sent_today: (userSettingsMap.get(userId)?.emails_sent_today || 0) + (userEmailsSentThisBatch.get(userId) || 0) })
               .eq("user_id", userId);
+
+            // Deduct credits based on campaign type
+            const campaignType = campaignTypeMap.get(queuedEmail.campaign_id) || "freelancer";
+            const creditCost = campaignType === "investor" ? 0.5 : 0.2;
+            const { data: sub } = await supabase
+              .from("subscriptions")
+              .select("credits, plan")
+              .eq("user_id", userId)
+              .single();
+            if (sub && sub.plan !== "lifetime") {
+              const newCredits = Math.max(0, (sub.credits || 0) - creditCost);
+              await supabase
+                .from("subscriptions")
+                .update({ credits: newCredits })
+                .eq("user_id", userId);
+              console.log(`Deducted ${creditCost} credit from user ${userId}, remaining: ${newCredits}`);
+            }
           }
         } else if (result === "failed") {
           failCount++;

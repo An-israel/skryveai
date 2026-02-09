@@ -65,15 +65,38 @@ export default function NewCampaign() {
         navigate("/login");
         return;
       }
+
+      // Check subscription status
+      const { data: subscription } = await supabase
+        .from("subscriptions")
+        .select("status, credits, trial_ends_at, plan")
+        .eq("user_id", session.user.id)
+        .single();
+
+      if (subscription) {
+        const isExpired = subscription.status === "expired" || subscription.status === "cancelled";
+        const isTrialExpired = subscription.status === "trial" && subscription.trial_ends_at && new Date(subscription.trial_ends_at) < new Date();
+        const hasNoCredits = (subscription.credits || 0) <= 0 && subscription.plan !== "lifetime";
+
+        if ((isExpired || isTrialExpired) && hasNoCredits) {
+          toast({
+            title: "Subscription Required",
+            description: "Your subscription has expired and you have no credits left. Please subscribe to continue.",
+            variant: "destructive",
+          });
+          navigate("/pricing");
+          return;
+        }
+      }
       
-      const [profileResult, gmailResult] = await Promise.all([
+      const [profileResult, smtpResult] = await Promise.all([
         supabase
           .from("profiles")
           .select("bio, expertise, cv_url")
           .eq("user_id", session.user.id)
           .single(),
         supabase
-          .from("gmail_tokens")
+          .from("smtp_credentials")
           .select("id")
           .eq("user_id", session.user.id)
           .maybeSingle()
@@ -83,13 +106,13 @@ export default function NewCampaign() {
       const hasBio = !!(profile?.bio && profile.bio.trim().length > 10);
       const hasExpertise = !!(profile?.expertise && profile.expertise.length > 0);
       const hasCv = !!profile?.cv_url;
-      const hasGmail = !!gmailResult.data;
+      const hasEmail = !!smtpResult.data;
 
       setProfileStatus({
         hasBio,
         hasExpertise,
         hasCv,
-        hasGmail,
+        hasGmail: hasEmail,
         isComplete: hasBio && hasExpertise && hasCv,
       });
       setCheckingProfile(false);
