@@ -15,7 +15,6 @@ import {
   Mail,
   ChevronRight,
   ChevronLeft,
-  Sparkles,
   PartyPopper,
   Rocket,
   CheckCircle2,
@@ -23,9 +22,13 @@ import {
   X,
   Calendar,
   Star,
-  Zap,
   Trophy,
+  Eye,
+  EyeOff,
+  ExternalLink,
 } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
@@ -79,71 +82,75 @@ export function OnboardingWizard({ userId, userEmail, userName, onComplete }: On
   const [bio, setBio] = useState("");
   const [uploadingCV, setUploadingCV] = useState(false);
 
-  // Email connection
+  // Email connection (SMTP)
   const [emailConnected, setEmailConnected] = useState(false);
   const [connectedEmail, setConnectedEmail] = useState<string | null>(null);
-  const [isConnectingGmail, setIsConnectingGmail] = useState(false);
+  const [smtpSaving, setSmtpSaving] = useState(false);
+  const [showSmtpPassword, setShowSmtpPassword] = useState(false);
+  const [smtpForm, setSmtpForm] = useState({
+    email_address: "",
+    app_password: "",
+    provider_type: "gmail",
+    smtp_host: "smtp.gmail.com",
+    smtp_port: 587,
+    imap_host: "imap.gmail.com",
+    imap_port: 993,
+  });
+
+  const PROVIDERS: Record<string, { name: string; smtp_host: string; smtp_port: number; imap_host: string; imap_port: number; guide_url: string }> = {
+    gmail: { name: "Gmail", smtp_host: "smtp.gmail.com", smtp_port: 587, imap_host: "imap.gmail.com", imap_port: 993, guide_url: "https://myaccount.google.com/apppasswords" },
+    outlook: { name: "Outlook", smtp_host: "smtp.office365.com", smtp_port: 587, imap_host: "outlook.office365.com", imap_port: 993, guide_url: "https://account.microsoft.com/security" },
+  };
 
   // Check email status on mount
   useEffect(() => {
     checkEmailStatus();
-    handleOAuthCallback();
   }, []);
 
   const checkEmailStatus = async () => {
     try {
-      const [smtpRes, gmailRes] = await Promise.all([
-        supabase.functions.invoke("smtp-auth", { body: { action: "check-status" } }),
-        supabase.functions.invoke("gmail-auth", { body: { action: "check-status" } }),
-      ]);
-      if (smtpRes.data?.connected) {
+      const { data } = await supabase.functions.invoke("smtp-auth", { body: { action: "check-status" } });
+      if (data?.connected) {
         setEmailConnected(true);
-        setConnectedEmail(smtpRes.data.email);
-      } else if (gmailRes.data?.connected) {
-        setEmailConnected(true);
-        setConnectedEmail(gmailRes.data.email);
+        setConnectedEmail(data.email);
       }
     } catch (e) {
       console.error("Email status check failed:", e);
     }
   };
 
-  const handleOAuthCallback = async () => {
-    const urlParams = new URLSearchParams(window.location.search);
-    const code = urlParams.get("code");
-    const state = urlParams.get("state");
-    if (code && state) {
-      setIsConnectingGmail(true);
-      try {
-        const redirectUri = `${window.location.origin}/dashboard`;
-        const { data, error } = await supabase.functions.invoke("gmail-auth", {
-          body: { action: "exchange-code", code, redirectUri },
-        });
-        if (error) throw error;
-        setEmailConnected(true);
-        setConnectedEmail(data.email);
-        toast({ title: "Gmail Connected! 🎉", description: `${data.email} is now linked.` });
-        window.history.replaceState({}, document.title, "/dashboard");
-      } catch (e) {
-        toast({ title: "Connection failed", description: "Please try again.", variant: "destructive" });
-      } finally {
-        setIsConnectingGmail(false);
-      }
+  const handleSmtpProviderChange = (value: string) => {
+    const p = PROVIDERS[value];
+    if (p) {
+      setSmtpForm(prev => ({
+        ...prev,
+        provider_type: value,
+        smtp_host: p.smtp_host,
+        smtp_port: p.smtp_port,
+        imap_host: p.imap_host,
+        imap_port: p.imap_port,
+      }));
     }
   };
 
-  const connectGmail = async () => {
-    setIsConnectingGmail(true);
+  const connectSmtp = async () => {
+    if (!smtpForm.email_address || !smtpForm.app_password) {
+      toast({ title: "Missing fields", description: "Enter your email and App Password", variant: "destructive" });
+      return;
+    }
+    setSmtpSaving(true);
     try {
-      const redirectUri = `${window.location.origin}/dashboard`;
-      const { data, error } = await supabase.functions.invoke("gmail-auth", {
-        body: { action: "get-auth-url", redirectUri },
+      const { data, error } = await supabase.functions.invoke("smtp-auth", {
+        body: { action: "save-credentials", credentials: smtpForm },
       });
       if (error) throw error;
-      window.location.href = data.authUrl;
-    } catch (e) {
-      toast({ title: "Error", description: "Failed to start Gmail connection.", variant: "destructive" });
-      setIsConnectingGmail(false);
+      setEmailConnected(true);
+      setConnectedEmail(data.email);
+      toast({ title: "Email Connected! 🎉", description: `${data.email} is now linked.` });
+    } catch (e: any) {
+      toast({ title: "Connection failed", description: e.message || "Check your credentials.", variant: "destructive" });
+    } finally {
+      setSmtpSaving(false);
     }
   };
 
@@ -457,7 +464,7 @@ export function OnboardingWizard({ userId, userEmail, userName, onComplete }: On
                   </div>
                 )}
 
-                {/* Step 3: Email Connection */}
+                {/* Step 3: Email Connection (SMTP) */}
                 {step === 3 && (
                   <div className="space-y-4">
                     <div className="text-center">
@@ -480,38 +487,79 @@ export function OnboardingWizard({ userId, userEmail, userName, onComplete }: On
                       </motion.div>
                     ) : (
                       <div className="space-y-4">
-                        {/* Gmail OAuth — easiest */}
-                        <div className="p-4 rounded-xl border-2 border-primary/30 bg-primary/5 space-y-3">
-                          <div className="flex items-center gap-2">
-                            <Zap className="w-4 h-4 text-primary" />
-                            <span className="font-semibold text-sm">Recommended — 1 click</span>
+                        {/* Provider */}
+                        <div className="space-y-2">
+                          <Label>Email Provider</Label>
+                          <Select value={smtpForm.provider_type} onValueChange={handleSmtpProviderChange}>
+                            <SelectTrigger>
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="gmail">Gmail / Google Workspace</SelectItem>
+                              <SelectItem value="outlook">Outlook / Microsoft 365</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+
+                        {/* Email */}
+                        <div className="space-y-2">
+                          <Label>Email Address</Label>
+                          <Input
+                            type="email"
+                            placeholder="your@email.com"
+                            value={smtpForm.email_address}
+                            onChange={(e) => setSmtpForm(prev => ({ ...prev, email_address: e.target.value }))}
+                          />
+                        </div>
+
+                        {/* App Password */}
+                        <div className="space-y-2">
+                          <div className="flex items-center justify-between">
+                            <Label>App Password</Label>
+                            <a
+                              href={PROVIDERS[smtpForm.provider_type]?.guide_url || "#"}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-xs text-primary hover:underline flex items-center gap-1"
+                            >
+                              How to get this <ExternalLink className="h-3 w-3" />
+                            </a>
                           </div>
-                          <Button
-                            onClick={connectGmail}
-                            disabled={isConnectingGmail}
-                            className="w-full gap-2"
-                            size="lg"
-                          >
-                            {isConnectingGmail ? (
-                              <><Loader2 className="w-4 h-4 animate-spin" />Connecting...</>
-                            ) : (
-                              <><Mail className="w-4 h-4" />Connect with Gmail</>
-                            )}
-                          </Button>
-                          <p className="text-xs text-muted-foreground text-center">
-                            Sign in with Google — no passwords needed
+                          <div className="relative">
+                            <Input
+                              type={showSmtpPassword ? "text" : "password"}
+                              placeholder="16-character App Password"
+                              value={smtpForm.app_password}
+                              onChange={(e) => setSmtpForm(prev => ({ ...prev, app_password: e.target.value }))}
+                              className="pr-10"
+                            />
+                            <button
+                              type="button"
+                              onClick={() => setShowSmtpPassword(!showSmtpPassword)}
+                              className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                            >
+                              {showSmtpPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                            </button>
+                          </div>
+                          <p className="text-xs text-muted-foreground">
+                            {smtpForm.provider_type === "gmail"
+                              ? "Google Account → Security → 2-Step Verification → App Passwords"
+                              : "Microsoft Account → Security → Advanced → App passwords"}
                           </p>
                         </div>
 
-                        {/* SMTP alternative */}
-                        <div className="text-center">
-                          <p className="text-xs text-muted-foreground">
-                            Using Outlook or another provider?{" "}
-                            <Button variant="link" size="sm" className="p-0 h-auto text-xs" onClick={handleSkip}>
-                              Set up in Settings later →
-                            </Button>
-                          </p>
-                        </div>
+                        <Button
+                          onClick={connectSmtp}
+                          disabled={smtpSaving || !smtpForm.email_address || !smtpForm.app_password}
+                          className="w-full gap-2"
+                          size="lg"
+                        >
+                          {smtpSaving ? (
+                            <><Loader2 className="w-4 h-4 animate-spin" />Connecting...</>
+                          ) : (
+                            <><Mail className="w-4 h-4" />Connect Email</>
+                          )}
+                        </Button>
                       </div>
                     )}
 
