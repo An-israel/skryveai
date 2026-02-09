@@ -99,7 +99,36 @@ export function OnboardingWizard({ userId, userEmail, userName, onComplete }: On
 
   const PROVIDERS: Record<string, { name: string; smtp_host: string; smtp_port: number; imap_host: string; imap_port: number; guide_url: string }> = {
     gmail: { name: "Gmail", smtp_host: "smtp.gmail.com", smtp_port: 587, imap_host: "imap.gmail.com", imap_port: 993, guide_url: "https://myaccount.google.com/apppasswords" },
-    outlook: { name: "Outlook", smtp_host: "smtp.office365.com", smtp_port: 587, imap_host: "outlook.office365.com", imap_port: 993, guide_url: "https://account.microsoft.com/security" },
+    outlook: { name: "Outlook / Hotmail", smtp_host: "smtp.office365.com", smtp_port: 587, imap_host: "outlook.office365.com", imap_port: 993, guide_url: "https://account.microsoft.com/security" },
+    yahoo: { name: "Yahoo", smtp_host: "smtp.mail.yahoo.com", smtp_port: 587, imap_host: "imap.mail.yahoo.com", imap_port: 993, guide_url: "https://login.yahoo.com/account/security" },
+  };
+
+  // Auto-detect provider from email domain
+  const detectProvider = (email: string): string => {
+    const domain = email.split("@")[1]?.toLowerCase() || "";
+    if (domain.includes("gmail") || domain.includes("googlemail")) return "gmail";
+    if (domain.includes("outlook") || domain.includes("hotmail") || domain.includes("live.com") || domain.includes("msn.com")) return "outlook";
+    if (domain.includes("yahoo") || domain.includes("ymail")) return "yahoo";
+    return "gmail"; // default
+  };
+
+  const handleEmailChange = (email: string) => {
+    setSmtpForm(prev => ({ ...prev, email_address: email }));
+    if (email.includes("@")) {
+      const detected = detectProvider(email);
+      const p = PROVIDERS[detected];
+      if (p) {
+        setSmtpForm(prev => ({
+          ...prev,
+          email_address: email,
+          provider_type: detected,
+          smtp_host: p.smtp_host,
+          smtp_port: p.smtp_port,
+          imap_host: p.imap_host,
+          imap_port: p.imap_port,
+        }));
+      }
+    }
   };
 
   // Check email status on mount
@@ -487,32 +516,24 @@ export function OnboardingWizard({ userId, userEmail, userName, onComplete }: On
                       </motion.div>
                     ) : (
                       <div className="space-y-4">
-                        {/* Provider */}
+                        {/* Email — auto-detects provider */}
                         <div className="space-y-2">
-                          <Label>Email Provider</Label>
-                          <Select value={smtpForm.provider_type} onValueChange={handleSmtpProviderChange}>
-                            <SelectTrigger>
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="gmail">Gmail / Google Workspace</SelectItem>
-                              <SelectItem value="outlook">Outlook / Microsoft 365</SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </div>
-
-                        {/* Email */}
-                        <div className="space-y-2">
-                          <Label>Email Address</Label>
+                          <Label>Your Email Address</Label>
                           <Input
                             type="email"
-                            placeholder="your@email.com"
+                            placeholder="your@gmail.com"
                             value={smtpForm.email_address}
-                            onChange={(e) => setSmtpForm(prev => ({ ...prev, email_address: e.target.value }))}
+                            onChange={(e) => handleEmailChange(e.target.value)}
                           />
+                          {smtpForm.email_address.includes("@") && (
+                            <p className="text-xs text-primary flex items-center gap-1">
+                              <CheckCircle2 className="w-3 h-3" />
+                              Detected: {PROVIDERS[smtpForm.provider_type]?.name || smtpForm.provider_type}
+                            </p>
+                          )}
                         </div>
 
-                        {/* App Password */}
+                        {/* App Password with clear guide */}
                         <div className="space-y-2">
                           <div className="flex items-center justify-between">
                             <Label>App Password</Label>
@@ -522,13 +543,13 @@ export function OnboardingWizard({ userId, userEmail, userName, onComplete }: On
                               rel="noopener noreferrer"
                               className="text-xs text-primary hover:underline flex items-center gap-1"
                             >
-                              How to get this <ExternalLink className="h-3 w-3" />
+                              Get your App Password <ExternalLink className="h-3 w-3" />
                             </a>
                           </div>
                           <div className="relative">
                             <Input
                               type={showSmtpPassword ? "text" : "password"}
-                              placeholder="16-character App Password"
+                              placeholder="Paste your App Password here"
                               value={smtpForm.app_password}
                               onChange={(e) => setSmtpForm(prev => ({ ...prev, app_password: e.target.value }))}
                               className="pr-10"
@@ -541,11 +562,33 @@ export function OnboardingWizard({ userId, userEmail, userName, onComplete }: On
                               {showSmtpPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                             </button>
                           </div>
-                          <p className="text-xs text-muted-foreground">
-                            {smtpForm.provider_type === "gmail"
-                              ? "Google Account → Security → 2-Step Verification → App Passwords"
-                              : "Microsoft Account → Security → Advanced → App passwords"}
-                          </p>
+                          
+                          {/* Step-by-step mini guide */}
+                          <div className="p-3 rounded-lg bg-muted/50 space-y-1.5">
+                            <p className="text-xs font-medium text-foreground">Quick steps:</p>
+                            {smtpForm.provider_type === "gmail" ? (
+                              <ol className="text-xs text-muted-foreground space-y-1 list-decimal list-inside">
+                                <li>Go to <a href="https://myaccount.google.com/security" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">Google Account Security</a></li>
+                                <li>Enable <strong>2-Step Verification</strong> (required)</li>
+                                <li>Search for <strong>"App Passwords"</strong> at the top</li>
+                                <li>Create a new app password and paste it above</li>
+                              </ol>
+                            ) : smtpForm.provider_type === "outlook" ? (
+                              <ol className="text-xs text-muted-foreground space-y-1 list-decimal list-inside">
+                                <li>Go to <a href="https://account.microsoft.com/security" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">Microsoft Security</a></li>
+                                <li>Click <strong>Advanced security options</strong></li>
+                                <li>Under App passwords, click <strong>Create</strong></li>
+                                <li>Copy the password and paste it above</li>
+                              </ol>
+                            ) : (
+                              <ol className="text-xs text-muted-foreground space-y-1 list-decimal list-inside">
+                                <li>Go to your email provider's security settings</li>
+                                <li>Look for <strong>"App Passwords"</strong> or <strong>"Third-party access"</strong></li>
+                                <li>Generate a new app password</li>
+                                <li>Paste it above</li>
+                              </ol>
+                            )}
+                          </div>
                         </div>
 
                         <Button
