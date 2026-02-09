@@ -5,15 +5,14 @@ const ONBOARDING_COMPLETED_KEY = "skryveai_onboarding_completed";
 
 export function useOnboarding(userId: string | undefined) {
   const [showTour, setShowTour] = useState(false);
+  const [showWizard, setShowWizard] = useState(false);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     if (!userId) {
       setLoading(false);
-      setShowTour(false);
       return;
     }
-
     checkOnboardingStatus();
   }, [userId]);
 
@@ -24,40 +23,46 @@ export function useOnboarding(userId: string | undefined) {
     }
 
     try {
-      // Check local storage first for quick response
+      // Check local storage first
       const localCompleted = localStorage.getItem(`${ONBOARDING_COMPLETED_KEY}_${userId}`);
-      
       if (localCompleted === "true") {
         setShowTour(false);
+        setShowWizard(false);
         setLoading(false);
         return;
       }
 
-      // Check if user has completed any campaigns (indicating they're not new)
-      const { data: campaigns, error } = await supabase
+      // Check if profile is incomplete (needs wizard)
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("bio, expertise, cv_url")
+        .eq("user_id", userId)
+        .single();
+
+      const hasCompletedProfile = profile && (
+        (profile.bio && profile.bio.length > 0) ||
+        (profile.expertise && profile.expertise.length > 0) ||
+        profile.cv_url
+      );
+
+      // Check if they have campaigns (experienced user)
+      const { data: campaigns } = await supabase
         .from("campaigns")
         .select("id")
         .eq("user_id", userId)
         .limit(1);
 
-      if (error) {
-        console.error("Error checking campaigns:", error);
-        setShowTour(false);
-        setLoading(false);
-        return;
-      }
+      const hasCampaigns = campaigns && campaigns.length > 0;
 
-      if (campaigns && campaigns.length > 0) {
-        // User has campaigns, mark as completed and don't show tour
+      if (hasCampaigns || hasCompletedProfile) {
+        // Experienced user or profile already filled — no wizard needed
         markOnboardingComplete();
-        setShowTour(false);
       } else {
-        // New user, show the tour
-        setShowTour(true);
+        // New user with empty profile — show wizard
+        setShowWizard(true);
       }
     } catch (error) {
-      console.error("Error checking onboarding status:", error);
-      setShowTour(false);
+      console.error("Error checking onboarding:", error);
     } finally {
       setLoading(false);
     }
@@ -68,17 +73,19 @@ export function useOnboarding(userId: string | undefined) {
       localStorage.setItem(`${ONBOARDING_COMPLETED_KEY}_${userId}`, "true");
     }
     setShowTour(false);
+    setShowWizard(false);
   };
 
   const resetOnboarding = () => {
     if (userId) {
       localStorage.removeItem(`${ONBOARDING_COMPLETED_KEY}_${userId}`);
     }
-    setShowTour(true);
+    setShowWizard(true);
   };
 
   return {
     showTour,
+    showWizard,
     loading,
     markOnboardingComplete,
     resetOnboarding,

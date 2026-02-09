@@ -32,28 +32,20 @@ import { EmailWarmupSettings } from "@/components/settings/EmailWarmupSettings";
 import { useQuery } from "@tanstack/react-query";
 
 const EXPERTISE_OPTIONS = [
-  // Development
-  "Web Development", "Mobile App Development", "Frontend Development", "Backend Development",
-  "Full Stack Development", "Custom Software", "WordPress", "Shopify", "Webflow",
-  "No-Code Development", "API Development", "DevOps",
-  // Design
-  "UI/UX Design", "Graphic Design", "Logo Design", "Brand Identity", "Web Design",
-  "Product Design", "Motion Graphics", "3D Design", "Illustration",
-  // Marketing
-  "SEO", "Social Media Marketing", "Email Marketing", "Content Marketing",
-  "PPC Advertising", "Influencer Marketing", "Affiliate Marketing", "Growth Hacking",
-  // Content
-  "Content Writing", "Copywriting", "Technical Writing", "Blog Writing",
-  "Ghostwriting", "Scriptwriting", "Translation", "Proofreading",
-  // Media
-  "Video Production", "Video Editing", "Photography", "Podcast Production", "Animation", "Voice Over",
-  // Business
-  "Virtual Assistant", "Project Management", "Business Consulting", "Data Entry",
-  "Customer Support", "Sales", "Lead Generation", "Market Research",
-  // Tech
-  "Data Science", "Machine Learning", "Cybersecurity", "Cloud Services", "Blockchain", "AI Development",
-  // E-commerce
-  "E-commerce", "Dropshipping", "Amazon FBA", "Product Listing",
+  "3D Design", "Affiliate Marketing", "AI Development", "Amazon FBA", "Animation",
+  "API Development", "Backend Development", "Blockchain", "Blog Writing", "Brand Identity",
+  "Business Consulting", "Cloud Services", "Content Marketing", "Content Writing",
+  "Copywriting", "Custom Software", "Customer Support", "Cybersecurity", "Data Entry",
+  "Data Science", "DevOps", "Dropshipping", "E-commerce", "Email Marketing",
+  "Frontend Development", "Full Stack Development", "Ghostwriting", "Graphic Design",
+  "Growth Hacking", "Illustration", "Influencer Marketing", "Lead Generation",
+  "Logo Design", "Machine Learning", "Market Research", "Mobile App Development",
+  "Motion Graphics", "No-Code Development", "Photography", "Podcast Production",
+  "PPC Advertising", "Product Design", "Product Listing", "Project Management",
+  "Proofreading", "Sales", "Scriptwriting", "SEO", "Shopify",
+  "Social Media Marketing", "Technical Writing", "Translation", "UI/UX Design",
+  "Video Editing", "Video Production", "Virtual Assistant", "Voice Over",
+  "Web Design", "Web Development", "Webflow", "WordPress",
 ];
 
 interface Profile {

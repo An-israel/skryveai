@@ -13,6 +13,7 @@ import { CreditsDisplay } from "@/components/dashboard/CreditsDisplay";
 import { ReferralCard } from "@/components/dashboard/ReferralCard";
 import { EmailSettingsDialog } from "@/components/settings/EmailSettingsDialog";
 import { OnboardingTour } from "@/components/onboarding/OnboardingTour";
+import { OnboardingWizard } from "@/components/onboarding/OnboardingWizard";
 import { useOnboarding } from "@/hooks/use-onboarding";
 import { 
   Plus, 
@@ -82,7 +83,7 @@ export default function Dashboard() {
   const { toast } = useToast();
   
   // Onboarding
-  const { showTour, markOnboardingComplete } = useOnboarding(user?.id);
+  const { showTour, showWizard, markOnboardingComplete } = useOnboarding(user?.id);
 
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
@@ -252,8 +253,17 @@ export default function Dashboard() {
     <div className="min-h-screen bg-background">
       <Header isAuthenticated={true} onLogout={handleLogout} />
       
-      {/* Onboarding Tour */}
-      {showTour && <OnboardingTour onComplete={markOnboardingComplete} />}
+      {/* Onboarding Wizard for new users */}
+      {showWizard && user && (
+        <OnboardingWizard
+          userId={user.id}
+          userEmail={user.email || ""}
+          userName={user.user_metadata?.full_name || "User"}
+          onComplete={markOnboardingComplete}
+        />
+      )}
+      {/* Onboarding Tour (legacy) */}
+      {showTour && !showWizard && <OnboardingTour onComplete={markOnboardingComplete} />}
       <main className="container mx-auto px-4 pt-24 pb-12">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
