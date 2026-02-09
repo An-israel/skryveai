@@ -249,6 +249,8 @@ export default function Analytics() {
     );
   }
 
+  const hasData = totalSent > 0 || campaigns.length > 0;
+
   return (
     <div className="min-h-screen bg-background">
       <Header />
@@ -306,6 +308,25 @@ export default function Analytics() {
           </div>
         </motion.div>
 
+        {!hasData ? (
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
+            <Card className="border-dashed">
+              <CardContent className="py-16 text-center">
+                <div className="w-16 h-16 mx-auto mb-6 rounded-2xl bg-primary/10 flex items-center justify-center">
+                  <BarChart3 className="w-8 h-8 text-primary" />
+                </div>
+                <h3 className="text-xl font-semibold mb-2">No analytics yet</h3>
+                <p className="text-muted-foreground max-w-md mx-auto mb-6">
+                  Once you send your first campaign, you'll see detailed charts showing open rates, reply rates, and more.
+                </p>
+                <Button onClick={() => navigate("/campaigns/new")}>
+                  Create Your First Campaign
+                </Button>
+              </CardContent>
+            </Card>
+          </motion.div>
+        ) : (
+        <>
         {/* Stats Grid */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
           {statCards.map((stat, i) => (
@@ -592,6 +613,8 @@ export default function Analytics() {
             </Card>
           </TabsContent>
         </Tabs>
+        </>
+        )}
       </main>
     </div>
   );

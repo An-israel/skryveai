@@ -359,42 +359,56 @@ export default function Dashboard() {
         </div>
 
         {campaigns.length === 0 ? (
-          /* Empty State */
+          /* Enhanced Empty State with step-by-step guide */
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.4 }}
           >
             <Card className="border-dashed">
-              <CardContent className="py-16 text-center">
+              <CardContent className="py-12 text-center">
                 <div className="w-16 h-16 mx-auto mb-6 rounded-2xl bg-primary/10 flex items-center justify-center">
                   <Mail className="w-8 h-8 text-primary" />
                 </div>
-                <h3 className="text-xl font-semibold mb-2">Start Your First Campaign</h3>
-                <p className="text-muted-foreground max-w-md mx-auto mb-6">
-                  Find potential clients, analyze their websites with AI, and send personalized cold emails that get responses.
+                <h3 className="text-xl font-semibold mb-2">Welcome! Here's how to get started 🚀</h3>
+                <p className="text-muted-foreground max-w-md mx-auto mb-8">
+                  Land your first client in 3 simple steps
                 </p>
+
+                {/* Step-by-step guide */}
+                <div className="max-w-lg mx-auto space-y-4 text-left mb-8">
+                  <div className="flex items-start gap-4 p-4 rounded-xl bg-muted/50 border">
+                    <div className="w-8 h-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-sm font-bold shrink-0">1</div>
+                    <div>
+                      <p className="font-medium">Connect your email</p>
+                      <p className="text-sm text-muted-foreground">Go to Settings and add your email so we can send pitches on your behalf.</p>
+                    </div>
+                    <Button asChild variant="outline" size="sm" className="shrink-0 mt-0.5">
+                      <Link to="/settings"><Settings className="w-3 h-3 mr-1" />Set Up</Link>
+                    </Button>
+                  </div>
+                  <div className="flex items-start gap-4 p-4 rounded-xl bg-muted/50 border">
+                    <div className="w-8 h-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-sm font-bold shrink-0">2</div>
+                    <div>
+                      <p className="font-medium">Create a campaign</p>
+                      <p className="text-sm text-muted-foreground">Search for businesses, let AI analyze their websites, and generate personalized pitches.</p>
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-4 p-4 rounded-xl bg-muted/50 border">
+                    <div className="w-8 h-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-sm font-bold shrink-0">3</div>
+                    <div>
+                      <p className="font-medium">Send & track</p>
+                      <p className="text-sm text-muted-foreground">Review AI-generated pitches, approve them, and send. We'll track opens and replies for you.</p>
+                    </div>
+                  </div>
+                </div>
+
                 <Button asChild size="lg">
                   <Link to="/campaigns/new">
-                    Create Campaign
+                    Create Your First Campaign
                     <ArrowRight className="w-4 h-4 ml-2" />
                   </Link>
                 </Button>
-
-                <div className="mt-10 flex flex-wrap justify-center gap-6 text-sm">
-                  <div className="flex items-center gap-2 text-muted-foreground">
-                    <CheckCircle2 className="w-4 h-4 text-success" />
-                    AI-powered website analysis
-                  </div>
-                  <div className="flex items-center gap-2 text-muted-foreground">
-                    <CheckCircle2 className="w-4 h-4 text-success" />
-                    Personalized pitches
-                  </div>
-                  <div className="flex items-center gap-2 text-muted-foreground">
-                    <CheckCircle2 className="w-4 h-4 text-success" />
-                    Scheduled email sending
-                  </div>
-                </div>
               </CardContent>
             </Card>
           </motion.div>

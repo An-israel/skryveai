@@ -5,6 +5,7 @@ import { Card } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { InfoTooltip } from "@/components/ui/info-tooltip";
 import { 
   ArrowLeft, 
   Send, 
@@ -305,10 +306,12 @@ export function SendStep({
             <TabsTrigger value="schedule" className="gap-2">
               <Calendar className="w-4 h-4" />
               Schedule
+              <InfoTooltip content="Choose when to send your emails — immediately, at a specific date, or at the best time for each recipient." />
             </TabsTrigger>
             <TabsTrigger value="abtest" className="gap-2">
               <FlaskConical className="w-4 h-4" />
               A/B Test
+              <InfoTooltip content="Test different subject lines or email content with a small group first, then automatically use the best-performing version for the rest." />
             </TabsTrigger>
           </TabsList>
 
@@ -374,23 +377,26 @@ export function SendStep({
               <div className="flex items-start gap-3">
                 <AlertCircle className="w-5 h-5 text-warning shrink-0 mt-0.5" />
                 <div>
-                  <h4 className="font-medium mb-1">Scheduled Sending</h4>
+                <h4 className="font-medium mb-1">Before you send</h4>
                   <ul className="text-sm text-muted-foreground space-y-1">
                     <li className="flex items-center gap-2">
                       <Clock className="w-3.5 h-3.5" />
-                      Emails will be sent with {userSettings?.delay_between_emails || 30}s delays
+                      Emails are sent with delays to protect your reputation
+                      <InfoTooltip content="Sending too many emails at once can trigger spam filters. We space them out automatically." />
                     </li>
                     <li className="flex items-center gap-2">
                       <Calendar className="w-3.5 h-3.5" />
-                      Total time: approximately {estimatedMinutes} minutes
+                      Estimated time: ~{estimatedMinutes} minutes
                     </li>
                     <li className="flex items-center gap-2">
                       <Mail className="w-3.5 h-3.5" />
                       Each email includes an unsubscribe link
+                      <InfoTooltip content="Required by anti-spam laws. Recipients can opt out, which protects your sender reputation." />
                     </li>
                     <li className="flex items-center gap-2">
                       <CheckCircle2 className="w-3.5 h-3.5" />
                       Open and click tracking enabled
+                      <InfoTooltip content="We'll notify you when a recipient opens your email or clicks a link, so you know who's interested." />
                     </li>
                   </ul>
                 </div>
