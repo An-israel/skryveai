@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import { Coins, Plus, Minus, Search, Loader2, UserPlus, Percent } from "lucide-react";
+import { Coins, Plus, Minus, Search, Loader2, UserPlus, Percent, CalendarDays } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -38,7 +38,8 @@ export function CreditManager() {
   const [selectedUser, setSelectedUser] = useState<UserWithCredits | null>(null);
   const [creditAmount, setCreditAmount] = useState("");
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [dialogAction, setDialogAction] = useState<"add" | "remove" | "promote" | "commission">("add");
+  const [dialogAction, setDialogAction] = useState<"add" | "remove" | "promote" | "commission" | "trial">("add");
+  const [trialDays, setTrialDays] = useState("");
   const [selectedRole, setSelectedRole] = useState<string>("");
   const [commissionRate, setCommissionRate] = useState("");
   const { toast } = useToast();
@@ -149,7 +150,6 @@ export function CreditManager() {
 
   const updateCommissionMutation = useMutation({
     mutationFn: async ({ userId, rate }: { userId: string; rate: number }) => {
-      // Update all referrals for this user with new commission rate
       const { error } = await supabase
         .from("referrals")
         .update({ commission_rate: rate })
@@ -174,13 +174,44 @@ export function CreditManager() {
     },
   });
 
+  const updateTrialMutation = useMutation({
+    mutationFn: async ({ userId, days }: { userId: string; days: number }) => {
+      const newTrialEnd = new Date();
+      newTrialEnd.setDate(newTrialEnd.getDate() + days);
+
+      const { error } = await supabase
+        .from("subscriptions")
+        .update({ trial_ends_at: newTrialEnd.toISOString(), status: "trial" })
+        .eq("user_id", userId);
+
+      if (error) throw error;
+      return { days };
+    },
+    onSuccess: (data) => {
+      toast({
+        title: "Trial updated",
+        description: `Trial extended by ${data.days} days from today`,
+      });
+      queryClient.invalidateQueries({ queryKey: ["admin-users-credits"] });
+      setDialogOpen(false);
+      setTrialDays("");
+    },
+    onError: (error) => {
+      toast({
+        title: "Error updating trial",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
   const filteredUsers = users?.filter(
     (user) =>
       user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
       user.full_name.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  const openDialog = (user: UserWithCredits, action: "add" | "remove" | "promote" | "commission") => {
+  const openDialog = (user: UserWithCredits, action: "add" | "remove" | "promote" | "commission" | "trial") => {
     setSelectedUser(user);
     setDialogAction(action);
     setDialogOpen(true);
@@ -209,6 +240,13 @@ export function CreditManager() {
         return;
       }
       updateCommissionMutation.mutate({ userId: selectedUser.user_id, rate });
+    } else if (dialogAction === "trial") {
+      const days = parseInt(trialDays);
+      if (isNaN(days) || days <= 0) {
+        toast({ title: "Invalid number of days", variant: "destructive" });
+        return;
+      }
+      updateTrialMutation.mutate({ userId: selectedUser.user_id, days });
     }
   };
 
@@ -286,6 +324,14 @@ export function CreditManager() {
                         >
                           <UserPlus className="h-3 w-3" />
                         </Button>
+                         <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => openDialog(user, "trial")}
+                          title="Set trial period"
+                        >
+                          <CalendarDays className="h-3 w-3" />
+                        </Button>
                         <Button
                           size="sm"
                           variant="outline"
@@ -312,6 +358,7 @@ export function CreditManager() {
               {dialogAction === "remove" && "Remove Credits"}
               {dialogAction === "promote" && "Promote User"}
               {dialogAction === "commission" && "Set Commission Rate"}
+              {dialogAction === "trial" && "Set Trial Period"}
             </DialogTitle>
             <DialogDescription>
               {selectedUser?.email}
@@ -368,15 +415,30 @@ export function CreditManager() {
             </div>
           )}
 
+          {dialogAction === "trial" && (
+            <div className="space-y-4">
+              <div>
+                <Label>Number of Days (from today)</Label>
+                <Input
+                  type="number"
+                  min="1"
+                  value={trialDays}
+                  onChange={(e) => setTrialDays(e.target.value)}
+                  placeholder="e.g., 14 for 14 days"
+                />
+              </div>
+            </div>
+          )}
+
           <DialogFooter>
             <Button variant="outline" onClick={() => setDialogOpen(false)}>
               Cancel
             </Button>
             <Button 
               onClick={handleDialogSubmit}
-              disabled={updateCreditsMutation.isPending || promoteUserMutation.isPending || updateCommissionMutation.isPending}
+              disabled={updateCreditsMutation.isPending || promoteUserMutation.isPending || updateCommissionMutation.isPending || updateTrialMutation.isPending}
             >
-              {(updateCreditsMutation.isPending || promoteUserMutation.isPending || updateCommissionMutation.isPending) && (
+              {(updateCreditsMutation.isPending || promoteUserMutation.isPending || updateCommissionMutation.isPending || updateTrialMutation.isPending) && (
                 <Loader2 className="h-4 w-4 animate-spin mr-2" />
               )}
               Confirm
