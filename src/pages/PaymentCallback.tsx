@@ -10,22 +10,59 @@ export default function PaymentCallback() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const [status, setStatus] = useState<"loading" | "success" | "failed">("loading");
+  const [message, setMessage] = useState("");
 
   useEffect(() => {
     const verifyPayment = async () => {
       const reference = searchParams.get("reference");
       const trxref = searchParams.get("trxref");
-      
       const paymentRef = reference || trxref;
 
       if (!paymentRef) {
         setStatus("failed");
+        setMessage("No payment reference found.");
         return;
       }
 
       try {
-        // Check payment status in our database
-        // The webhook should have already updated this
+        // Actively verify with Paystack via our edge function
+        const { data: sessionData } = await supabase.auth.getSession();
+        const token = sessionData?.session?.access_token;
+
+        if (!token) {
+          setStatus("failed");
+          setMessage("You need to be logged in to verify payment.");
+          return;
+        }
+
+        const response = await supabase.functions.invoke("verify-payment", {
+          body: { reference: paymentRef },
+        });
+
+        if (response.error) {
+          console.error("Verify payment error:", response.error);
+          // Fallback: check DB directly with retries
+          await fallbackCheck(paymentRef);
+          return;
+        }
+
+        const result = response.data;
+        if (result?.status === "success") {
+          setStatus("success");
+        } else {
+          setStatus("failed");
+          setMessage(result?.message || "Payment could not be confirmed.");
+        }
+      } catch (err) {
+        console.error("Payment verification error:", err);
+        await fallbackCheck(paymentRef);
+      }
+    };
+
+    const fallbackCheck = async (paymentRef: string) => {
+      // Retry checking DB with exponential backoff
+      for (let i = 0; i < 3; i++) {
+        await new Promise(resolve => setTimeout(resolve, (i + 1) * 2000));
         const { data: payment } = await supabase
           .from("payment_history")
           .select("status")
@@ -34,21 +71,11 @@ export default function PaymentCallback() {
 
         if (payment?.status === "success") {
           setStatus("success");
-        } else {
-          // Wait a moment for webhook to process
-          await new Promise(resolve => setTimeout(resolve, 3000));
-          
-          const { data: retryPayment } = await supabase
-            .from("payment_history")
-            .select("status")
-            .eq("paystack_reference", paymentRef)
-            .single();
-
-          setStatus(retryPayment?.status === "success" ? "success" : "failed");
+          return;
         }
-      } catch {
-        setStatus("failed");
       }
+      setStatus("failed");
+      setMessage("Payment verification timed out. If you were charged, your subscription will be activated shortly.");
     };
 
     verifyPayment();
@@ -68,8 +95,8 @@ export default function PaymentCallback() {
                 <div className="flex justify-center mb-4">
                   <Loader2 className="w-16 h-16 animate-spin text-primary" />
                 </div>
-                <CardTitle>Processing Payment</CardTitle>
-                <CardDescription>Please wait while we confirm your payment...</CardDescription>
+                <CardTitle>Verifying Payment</CardTitle>
+                <CardDescription>Please wait while we confirm your payment with Paystack...</CardDescription>
               </>
             )}
             {status === "success" && (
@@ -79,7 +106,7 @@ export default function PaymentCallback() {
                 </div>
                 <CardTitle className="text-primary">Payment Successful!</CardTitle>
                 <CardDescription>
-                  Your subscription is now active. Welcome to OutreachPro!
+                  Your subscription is now active. Welcome to SkryveAI!
                 </CardDescription>
               </>
             )}
@@ -88,9 +115,9 @@ export default function PaymentCallback() {
                 <div className="flex justify-center mb-4">
                   <XCircle className="w-16 h-16 text-destructive" />
                 </div>
-                <CardTitle className="text-destructive">Payment Failed</CardTitle>
+                <CardTitle className="text-destructive">Payment Issue</CardTitle>
                 <CardDescription>
-                  Something went wrong with your payment. Please try again.
+                  {message || "Something went wrong with your payment. Please try again."}
                 </CardDescription>
               </>
             )}
