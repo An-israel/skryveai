@@ -72,6 +72,9 @@ verify_jwt = false
 [functions.check-imap-replies]
 verify_jwt = false
 
+[functions.verify-payment]
+verify_jwt = false
+
 [crons.check-imap-replies]
 schedule = "*/5 * * * *"
 function = "check-imap-replies"
