@@ -220,6 +220,73 @@ export type Database = {
         }
         Relationships: []
       }
+      email_followups: {
+        Row: {
+          body: string
+          business_id: string
+          campaign_id: string
+          created_at: string
+          email_id: string
+          followup_number: number
+          id: string
+          scheduled_for: string
+          sent_at: string | null
+          status: string
+          subject: string
+          user_id: string
+        }
+        Insert: {
+          body: string
+          business_id: string
+          campaign_id: string
+          created_at?: string
+          email_id: string
+          followup_number: number
+          id?: string
+          scheduled_for: string
+          sent_at?: string | null
+          status?: string
+          subject: string
+          user_id: string
+        }
+        Update: {
+          body?: string
+          business_id?: string
+          campaign_id?: string
+          created_at?: string
+          email_id?: string
+          followup_number?: number
+          id?: string
+          scheduled_for?: string
+          sent_at?: string | null
+          status?: string
+          subject?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "email_followups_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "businesses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "email_followups_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "campaigns"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "email_followups_email_id_fkey"
+            columns: ["email_id"]
+            isOneToOne: false
+            referencedRelation: "emails"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       email_queue: {
         Row: {
           body: string
