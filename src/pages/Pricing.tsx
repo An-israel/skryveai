@@ -320,7 +320,7 @@ export default function Pricing() {
                   <ul className="space-y-2.5 mb-6">
                     {[
                       "Team of up to 15 members",
-                      "Unlimited credits",
+                      "500 credits/month shared",
                       "12 expertise profiles",
                       "All campaign modes",
                       "Invite team via email",
