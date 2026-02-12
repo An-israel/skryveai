@@ -85,3 +85,6 @@ function = "check-imap-replies"
 [crons.process-followups]
 schedule = "*/30 * * * *"
 function = "process-followups"
+
+[functions.send-team-invite]
+verify_jwt = false
