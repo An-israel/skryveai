@@ -301,6 +301,38 @@ serve(async (req) => {
 
     console.log("User authenticated:", user.id);
 
+    // Credit check - 2 credits per analysis
+    const { data: subscription, error: subError } = await supabase
+      .from("subscriptions")
+      .select("credits, plan, status")
+      .eq("user_id", user.id)
+      .single();
+
+    if (subError || !subscription) {
+      return new Response(
+        JSON.stringify({ error: "No active subscription found" }),
+        { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    if (subscription.plan !== "lifetime") {
+      if (subscription.credits < 2) {
+        return new Response(
+          JSON.stringify({ error: "Insufficient credits. Website analysis requires 2 credits." }),
+          { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      const { error: deductError } = await supabase
+        .from("subscriptions")
+        .update({ credits: subscription.credits - 2 })
+        .eq("user_id", user.id);
+
+      if (deductError) {
+        console.error("Failed to deduct credits:", deductError);
+      }
+    }
+
     const FIRECRAWL_API_KEY = Deno.env.get("FIRECRAWL_API_KEY");
     if (!FIRECRAWL_API_KEY) throw new Error("FIRECRAWL_API_KEY is not configured");
 

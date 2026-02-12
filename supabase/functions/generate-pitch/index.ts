@@ -63,6 +63,38 @@ serve(async (req) => {
 
     const userId = user.id;
 
+    // Credit check - 1 credit per pitch
+    const { data: subscription, error: subError } = await supabase
+      .from("subscriptions")
+      .select("credits, plan, status")
+      .eq("user_id", userId)
+      .single();
+
+    if (subError || !subscription) {
+      return new Response(
+        JSON.stringify({ error: "No active subscription found" }),
+        { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    if (subscription.plan !== "lifetime") {
+      if (subscription.credits < 1) {
+        return new Response(
+          JSON.stringify({ error: "Insufficient credits. Please upgrade your plan." }),
+          { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      const { error: deductError } = await supabase
+        .from("subscriptions")
+        .update({ credits: subscription.credits - 1 })
+        .eq("user_id", userId);
+
+      if (deductError) {
+        console.error("Failed to deduct credits:", deductError);
+      }
+    }
+
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) {
       throw new Error("LOVABLE_API_KEY is not configured");
