@@ -92,6 +92,9 @@ export function Header({ isAuthenticated: isAuthenticatedProp, onLogout }: Heade
               <Link to="/campaigns/new" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
                 New Campaign
               </Link>
+              <Link to="/team" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
+                Team
+              </Link>
               {isAdmin && (
                 <Link to="/admin" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
                   <Shield className="w-4 h-4" />
@@ -148,6 +151,9 @@ export function Header({ isAuthenticated: isAuthenticatedProp, onLogout }: Heade
                   </Link>
                   <Link to="/campaigns/new" className="py-2 text-sm font-medium text-muted-foreground hover:text-foreground">
                     New Campaign
+                  </Link>
+                  <Link to="/team" className="py-2 text-sm font-medium text-muted-foreground hover:text-foreground">
+                    Team
                   </Link>
                   {isAdmin && (
                     <Link to="/admin" className="py-2 text-sm font-medium text-muted-foreground hover:text-foreground flex items-center gap-2">
