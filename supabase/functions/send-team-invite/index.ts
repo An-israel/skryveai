@@ -53,15 +53,36 @@ serve(async (req) => {
 
     const serviceClient = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
-    // Verify user owns the team
+    // Verify user owns the team or is an admin member
     const { data: team, error: teamError } = await serviceClient
       .from("teams")
       .select("id, name, owner_id, max_members")
       .eq("id", teamId)
       .single();
 
-    if (teamError || !team || team.owner_id !== user.id) {
-      return new Response(JSON.stringify({ error: "Team not found or access denied" }), {
+    if (teamError || !team) {
+      return new Response(JSON.stringify({ error: "Team not found" }), {
+        status: 404,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // Check if user is owner or admin member
+    const isOwner = team.owner_id === user.id;
+    let isAdmin = false;
+    if (!isOwner) {
+      const { data: membership } = await serviceClient
+        .from("team_members")
+        .select("role")
+        .eq("team_id", teamId)
+        .eq("user_id", user.id)
+        .eq("status", "active")
+        .single();
+      isAdmin = membership?.role === "admin";
+    }
+
+    if (!isOwner && !isAdmin) {
+      return new Response(JSON.stringify({ error: "Only team owners and admins can invite members" }), {
         status: 403,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
