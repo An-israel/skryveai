@@ -90,13 +90,14 @@ export default function TeamManagement() {
   const [showCreateProfile, setShowCreateProfile] = useState(false);
   const [savingProfile, setSavingProfile] = useState(false);
 
-  // New profile form
   const [newProfile, setNewProfile] = useState({
     name: "",
     bio: "",
     expertise: [] as string[],
     portfolio_url: "",
   });
+  const [pendingInvites, setPendingInvites] = useState<any[]>([]);
+  const [acceptingInvite, setAcceptingInvite] = useState<string | null>(null);
 
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -106,7 +107,10 @@ export default function TeamManagement() {
       navigate("/login");
       return;
     }
-    if (user) fetchTeamData();
+    if (user) {
+      fetchTeamData();
+      fetchPendingInvites();
+    }
   }, [user, authLoading]);
 
   const fetchTeamData = async () => {
@@ -147,6 +151,67 @@ export default function TeamManagement() {
       console.error("Error fetching team:", error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchPendingInvites = async () => {
+    if (!user?.email) return;
+    const { data } = await supabase
+      .from("team_members")
+      .select("id, team_id, role, email, status")
+      .eq("email", user.email)
+      .eq("status", "invited");
+    
+    if (data && data.length > 0) {
+      // Fetch team names for each invite
+      const invitesWithTeams = await Promise.all(
+        data.map(async (invite) => {
+          const { data: teamData } = await supabase
+            .from("teams")
+            .select("name")
+            .eq("id", invite.team_id)
+            .single();
+          return { ...invite, team_name: teamData?.name || "Unknown Team" };
+        })
+      );
+      setPendingInvites(invitesWithTeams);
+    }
+  };
+
+  const handleAcceptInvite = async (invite: any) => {
+    setAcceptingInvite(invite.id);
+    try {
+      const { error } = await supabase
+        .from("team_members")
+        .update({
+          status: "active",
+          user_id: user!.id,
+          joined_at: new Date().toISOString(),
+        })
+        .eq("id", invite.id);
+
+      if (error) throw error;
+
+      toast({ title: "Team joined!", description: `You are now a member of "${invite.team_name}".` });
+      setPendingInvites((prev) => prev.filter((i) => i.id !== invite.id));
+      await fetchTeamData();
+    } catch (error: any) {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    } finally {
+      setAcceptingInvite(null);
+    }
+  };
+
+  const handleDeclineInvite = async (invite: any) => {
+    setAcceptingInvite(invite.id);
+    try {
+      await supabase.from("team_members").delete().eq("id", invite.id);
+      setPendingInvites((prev) => prev.filter((i) => i.id !== invite.id));
+      toast({ title: "Invitation declined" });
+    } catch (error: any) {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    } finally {
+      setAcceptingInvite(null);
     }
   };
 
@@ -205,16 +270,19 @@ export default function TeamManagement() {
     }
     setInviting(true);
     try {
-      const { error } = await supabase.from("team_members").insert({
-        team_id: team.id,
-        email: inviteEmail,
-        role: inviteRole,
-        status: "invited",
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error("Not authenticated");
+
+      const response = await supabase.functions.invoke("send-team-invite", {
+        body: { teamId: team.id, email: inviteEmail, role: inviteRole },
       });
-      if (error) throw error;
+
+      if (response.error) throw new Error(response.error.message || "Failed to send invite");
+      if (response.data?.error) throw new Error(response.data.error);
+
       setInviteEmail("");
       await fetchMembers(team.id);
-      toast({ title: "Invitation sent!", description: `Invited ${inviteEmail} as ${inviteRole}.` });
+      toast({ title: "Invitation sent!", description: `Invited ${inviteEmail} as ${inviteRole}. They'll receive an email and in-app notification.` });
     } catch (error: any) {
       toast({ title: "Error", description: error.message, variant: "destructive" });
     } finally {
@@ -299,6 +367,44 @@ export default function TeamManagement() {
               <p className="text-muted-foreground text-sm">Manage your team members and expertise profiles</p>
             </div>
           </div>
+
+          {/* Pending Invitations Banner */}
+          {pendingInvites.length > 0 && (
+            <div className="space-y-3 mb-8">
+              {pendingInvites.map((invite) => (
+                <Card key={invite.id} className="border-primary/30 bg-primary/5">
+                  <CardContent className="p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                        <Mail className="w-5 h-5 text-primary" />
+                      </div>
+                      <div>
+                        <p className="font-medium text-sm">You've been invited to join "{invite.team_name}"</p>
+                        <p className="text-xs text-muted-foreground">Role: {invite.role}</p>
+                      </div>
+                    </div>
+                    <div className="flex gap-2 shrink-0">
+                      <Button
+                        size="sm"
+                        disabled={acceptingInvite === invite.id}
+                        onClick={() => handleAcceptInvite(invite)}
+                      >
+                        Accept
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        disabled={acceptingInvite === invite.id}
+                        onClick={() => handleDeclineInvite(invite)}
+                      >
+                        Decline
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          )}
 
           {!team ? (
             /* No team yet - create one */

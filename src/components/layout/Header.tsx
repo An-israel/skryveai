@@ -1,6 +1,7 @@
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Menu, X, Settings, Shield } from "lucide-react";
+import { NotificationBell } from "@/components/layout/NotificationBell";
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { supabase } from "@/integrations/supabase/client";
@@ -100,6 +101,7 @@ export function Header({ isAuthenticated: isAuthenticatedProp, onLogout }: Heade
                   <Shield className="w-4 h-4" />
                 </Link>
               )}
+              <NotificationBell />
               <Link to="/settings" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
                 <Settings className="w-4 h-4" />
               </Link>
@@ -161,6 +163,10 @@ export function Header({ isAuthenticated: isAuthenticatedProp, onLogout }: Heade
                       Admin
                     </Link>
                   )}
+                   <div className="flex items-center gap-2 py-2">
+                     <NotificationBell />
+                     <span className="text-sm font-medium text-muted-foreground">Notifications</span>
+                   </div>
                   <Link to="/settings" className="py-2 text-sm font-medium text-muted-foreground hover:text-foreground">
                     Settings
                   </Link>
