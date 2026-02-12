@@ -341,6 +341,9 @@ export default function TeamManagement() {
   };
 
   const isOwner = team?.owner_id === user?.id;
+  const currentMember = members.find(m => m.user_id === user?.id);
+  const isAdmin = currentMember?.role === "admin";
+  const canInvite = isOwner || isAdmin;
 
   if (authLoading || loading) {
     return (
@@ -468,7 +471,7 @@ export default function TeamManagement() {
 
                 {/* Members Tab */}
                 <TabsContent value="members" className="space-y-4">
-                  {isOwner && (
+                  {canInvite && (
                     <Card>
                       <CardHeader>
                         <CardTitle className="text-lg flex items-center gap-2">
@@ -535,7 +538,7 @@ export default function TeamManagement() {
                                 </div>
                               </div>
                             </div>
-                            {isOwner && member.role !== "owner" && (
+                            {(isOwner || isAdmin) && member.role !== "owner" && member.user_id !== user?.id && (
                               <Button variant="ghost" size="icon" onClick={() => handleRemoveMember(member.id)}>
                                 <Trash2 className="w-4 h-4 text-destructive" />
                               </Button>

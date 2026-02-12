@@ -18,7 +18,8 @@ import { campaignApi } from "@/lib/api/campaign";
 import type { UserSettings } from "@/components/settings/EmailSettingsDialog";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { AlertTriangle, FileText, Briefcase, User, Mail, ArrowLeft } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { AlertTriangle, FileText, Briefcase, User, Mail, ArrowLeft, Users } from "lucide-react";
 
 interface ProfileStatus {
   hasBio: boolean;
@@ -26,6 +27,21 @@ interface ProfileStatus {
   hasCv: boolean;
   hasGmail: boolean;
   isComplete: boolean;
+}
+
+interface TeamProfile {
+  id: string;
+  name: string;
+  bio: string | null;
+  expertise: string[] | null;
+  portfolio_url: string | null;
+  cv_url: string | null;
+}
+
+interface TeamInfo {
+  id: string;
+  name: string;
+  credits: number;
 }
 
 export default function NewCampaign() {
@@ -54,6 +70,9 @@ export default function NewCampaign() {
   const [queuedCount, setQueuedCount] = useState(0);
   const [campaignId, setCampaignId] = useState<string>();
   const [searchParams, setSearchParams] = useState({ businessType: "", location: "" });
+  const [teamProfiles, setTeamProfiles] = useState<TeamProfile[]>([]);
+  const [selectedTeamProfile, setSelectedTeamProfile] = useState<TeamProfile | null>(null);
+  const [teamInfo, setTeamInfo] = useState<TeamInfo | null>(null);
 
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -88,19 +107,25 @@ export default function NewCampaign() {
           return;
         }
       }
-      
-      const [profileResult, smtpResult] = await Promise.all([
-        supabase
-          .from("profiles")
-          .select("bio, expertise, cv_url")
-          .eq("user_id", session.user.id)
-          .single(),
-        supabase
-          .from("smtp_credentials")
-          .select("id")
-          .eq("user_id", session.user.id)
-          .maybeSingle()
+
+      // Check if user belongs to a team and fetch team profiles
+      const [profileResult, smtpResult, ownedTeamResult, membershipResult] = await Promise.all([
+        supabase.from("profiles").select("bio, expertise, cv_url").eq("user_id", session.user.id).single(),
+        supabase.from("smtp_credentials").select("id").eq("user_id", session.user.id).maybeSingle(),
+        supabase.from("teams").select("id, name, credits").eq("owner_id", session.user.id).maybeSingle(),
+        supabase.from("team_members").select("team_id").eq("user_id", session.user.id).eq("status", "active").maybeSingle(),
       ]);
+
+      // Resolve team
+      const teamId = ownedTeamResult.data?.id || membershipResult.data?.team_id;
+      if (teamId) {
+        // Fetch team info if from membership
+        const team = ownedTeamResult.data || (await supabase.from("teams").select("id, name, credits").eq("id", teamId).single()).data;
+        if (team) setTeamInfo(team);
+
+        const { data: tProfiles } = await supabase.from("team_profiles").select("*").eq("team_id", teamId).order("created_at");
+        if (tProfiles && tProfiles.length > 0) setTeamProfiles(tProfiles);
+      }
 
       const profile = profileResult.data;
       const hasBio = !!(profile?.bio && profile.bio.trim().length > 10);
@@ -401,24 +426,39 @@ export default function NewCampaign() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Not authenticated");
 
-      // Check credits before sending
+      // Check credits before sending - use team credits if team profile selected
       const creditPerEmail = currentCampaignType === "investor" ? 0.5 : 0.2;
       const totalCreditsNeeded = approvedBusinesses.length * creditPerEmail;
+      const useTeamCredits = !!selectedTeamProfile && !!teamInfo;
 
-      const { data: subscription } = await supabase
-        .from("subscriptions")
-        .select("credits, plan")
-        .eq("user_id", user.id)
-        .single();
+      if (useTeamCredits) {
+        // Check team credits
+        const { data: freshTeam } = await supabase.from("teams").select("credits").eq("id", teamInfo!.id).single();
+        if (freshTeam && freshTeam.credits < totalCreditsNeeded) {
+          toast({
+            title: "Insufficient Team Credits",
+            description: `Your team needs ${totalCreditsNeeded} credits but only has ${freshTeam.credits}.`,
+            variant: "destructive",
+          });
+          setIsSending(false);
+          return;
+        }
+      } else {
+        const { data: subscription } = await supabase
+          .from("subscriptions")
+          .select("credits, plan")
+          .eq("user_id", user.id)
+          .single();
 
-      if (subscription && subscription.plan !== "lifetime" && subscription.credits < totalCreditsNeeded) {
-        toast({
-          title: "Insufficient Credits",
-          description: `You need ${totalCreditsNeeded} credits but only have ${subscription.credits}. Upgrade your plan for more credits.`,
-          variant: "destructive",
-        });
-        setIsSending(false);
-        return;
+        if (subscription && subscription.plan !== "lifetime" && subscription.credits < totalCreditsNeeded) {
+          toast({
+            title: "Insufficient Credits",
+            description: `You need ${totalCreditsNeeded} credits but only have ${subscription.credits}. Upgrade your plan for more credits.`,
+            variant: "destructive",
+          });
+          setIsSending(false);
+          return;
+        }
       }
 
       // Create campaign record
@@ -505,12 +545,18 @@ export default function NewCampaign() {
       }
 
       // Deduct credits
-      if (subscription && subscription.plan !== "lifetime") {
-        const newCredits = Math.max(0, subscription.credits - totalCreditsNeeded);
-        await supabase
-          .from("subscriptions")
-          .update({ credits: newCredits })
-          .eq("user_id", user.id);
+      if (useTeamCredits) {
+        const { data: freshTeam } = await supabase.from("teams").select("credits").eq("id", teamInfo!.id).single();
+        if (freshTeam) {
+          const newCredits = Math.max(0, freshTeam.credits - totalCreditsNeeded);
+          await supabase.from("teams").update({ credits: newCredits }).eq("id", teamInfo!.id);
+        }
+      } else {
+        const { data: sub } = await supabase.from("subscriptions").select("credits, plan").eq("user_id", user.id).single();
+        if (sub && sub.plan !== "lifetime") {
+          const newCredits = Math.max(0, sub.credits - totalCreditsNeeded);
+          await supabase.from("subscriptions").update({ credits: newCredits }).eq("user_id", user.id);
+        }
       }
 
       setQueuedCount(approvedBusinesses.length);
@@ -543,8 +589,9 @@ export default function NewCampaign() {
     );
   }
 
-  // Profile completion gate (only for freelancer/direct_client)
-  if (!profileStatus.isComplete && campaignType && campaignType !== "investor") {
+  // Profile completion gate (only for freelancer/direct_client, skip if using team profile)
+  const hasTeamProfile = selectedTeamProfile !== null;
+  if (!hasTeamProfile && !profileStatus.isComplete && campaignType && campaignType !== "investor") {
     return (
       <div className="min-h-screen bg-background">
         <Header isAuthenticated={true} onLogout={handleLogout} />
@@ -603,6 +650,45 @@ export default function NewCampaign() {
       <div className="min-h-screen bg-background">
         <Header isAuthenticated={true} onLogout={handleLogout} />
         <main className="container mx-auto px-4 pt-24 pb-12">
+          {/* Team profile selector */}
+          {teamProfiles.length > 0 && (
+            <div className="max-w-3xl mx-auto mb-6">
+              <Card>
+                <CardContent className="p-4">
+                  <div className="flex items-center gap-3 mb-3">
+                    <Users className="w-5 h-5 text-primary" />
+                    <div>
+                      <p className="font-medium text-sm">Team Profile</p>
+                      <p className="text-xs text-muted-foreground">
+                        Select a team profile to use for this campaign ({teamInfo?.credits || 0} team credits available)
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <Select
+                      value={selectedTeamProfile?.id || "personal"}
+                      onValueChange={(val) => {
+                        if (val === "personal") setSelectedTeamProfile(null);
+                        else setSelectedTeamProfile(teamProfiles.find(p => p.id === val) || null);
+                      }}
+                    >
+                      <SelectTrigger className="flex-1">
+                        <SelectValue placeholder="Use personal profile" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="personal">Use personal profile</SelectItem>
+                        {teamProfiles.map(p => (
+                          <SelectItem key={p.id} value={p.id}>
+                            {p.name} {p.expertise?.length ? `(${p.expertise.slice(0, 2).join(", ")})` : ""}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          )}
           <CampaignTypeSelector onSelect={setCampaignType} />
         </main>
       </div>
