@@ -65,7 +65,8 @@ function convertFromNGN(amountKobo: number, currency: string): number {
 }
 
 function formatPrice(amount: number, config: { symbol: string; divisor: number }): string {
-  return `${config.symbol}${(amount / config.divisor).toLocaleString()}`;
+  const value = Math.ceil(amount / config.divisor);
+  return `${config.symbol}${value.toLocaleString()}`;
 }
 
 serve(async (req) => {
