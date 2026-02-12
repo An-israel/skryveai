@@ -6,10 +6,11 @@ import { Input } from "@/components/ui/input";
 import { PasswordInput } from "@/components/ui/password-input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Mail, Lock, User, Loader2, Phone, Gift } from "lucide-react";
+import { Mail, Lock, User, Loader2, Phone, Gift, CheckCircle2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
 
 export default function Signup() {
   const [searchParams] = useSearchParams();
@@ -24,6 +25,7 @@ export default function Signup() {
   });
   const [isLoading, setIsLoading] = useState(false);
   const [referrerName, setReferrerName] = useState<string | null>(null);
+  const [showEmailConfirm, setShowEmailConfirm] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -75,11 +77,7 @@ export default function Signup() {
 
       if (error) throw error;
 
-      toast({
-        title: "Account created successfully!",
-        description: "Please check your email to verify your account before signing in.",
-      });
-      navigate("/login");
+      setShowEmailConfirm(true);
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : "Something went wrong";
       toast({
@@ -91,6 +89,35 @@ export default function Signup() {
       setIsLoading(false);
     }
   };
+
+  if (showEmailConfirm) {
+    return (
+      <div className="min-h-screen flex items-center justify-center px-4 py-12 bg-gradient-subtle">
+        <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="w-full max-w-md">
+          <Card className="border-0 shadow-xl text-center">
+            <CardContent className="pt-8 pb-8 space-y-4">
+              <div className="w-16 h-16 mx-auto rounded-full bg-primary/10 flex items-center justify-center">
+                <Mail className="w-8 h-8 text-primary" />
+              </div>
+              <h2 className="text-2xl font-bold">Check Your Email ✉️</h2>
+              <p className="text-muted-foreground">
+                We've sent a confirmation link to <strong>{formData.email}</strong>. 
+                Please check your inbox (and spam folder) and click the link to verify your account.
+              </p>
+              <div className="p-3 rounded-lg bg-muted/50">
+                <p className="text-sm text-muted-foreground">
+                  Once verified, you can sign in and start using SkryveAI!
+                </p>
+              </div>
+              <Button onClick={() => navigate("/login")} className="w-full" size="lg">
+                Go to Login
+              </Button>
+            </CardContent>
+          </Card>
+        </motion.div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex items-center justify-center px-4 py-12 bg-gradient-subtle">

@@ -12,30 +12,60 @@ const paystackSecretKey = Deno.env.get("PAYSTACK_SECRET_KEY")!;
 
 const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-// Pricing in kobo (NGN smallest unit) - base prices
-// Africa prices (discounted by 5000 NGN)
-const PRICING_NGN = {
-  monthly: 700000, // 7,000 NGN (was 12,000)
-  yearly: 8500000, // 85,000 NGN (was 135,000)
-  lifetime: 25000000, // 250,000 NGN (unchanged)
+// Pricing in kobo (NGN smallest unit) - African base
+const PRICING_NGN: Record<string, number> = {
+  basic: 500000,
+  monthly: 700000,
+  yearly: 7400000,
+  unlimited: 1500000,
+  team_basic: 1800000,
+  team_basic_yearly: 18400000,
+  team_pro: 3000000,
+  team_pro_yearly: 30000000,
 };
 
-// Base USD prices for conversion (US/Europe)
-const PRICING_USD = {
-  monthly: 800, // $8 USD in cents
-  yearly: 9000, // $90 USD in cents
-  lifetime: 16700, // $167 USD in cents
+// Non-African prices (add 5000 NGN = 500000 kobo on monthly, proportional on yearly)
+const PRICING_NGN_NONAF: Record<string, number> = {
+  basic: 1000000,
+  monthly: 1200000,
+  yearly: 12600000,
+  unlimited: 2000000,
+  team_basic: 2300000,
+  team_basic_yearly: 23500000,
+  team_pro: 3500000,
+  team_pro_yearly: 35000000,
 };
 
-// Credits per plan
-const PLAN_CREDITS = {
+// USD pricing for non-NGN currencies
+const PRICING_USD: Record<string, number> = {
+  basic: 500,
+  monthly: 800,
+  yearly: 8400,
+  unlimited: 1300,
+  team_basic: 1500,
+  team_basic_yearly: 15300,
+  team_pro: 2500,
+  team_pro_yearly: 25000,
+};
+
+const PLAN_CREDITS: Record<string, number> = {
+  basic: 50,
   monthly: 100,
   yearly: 1200,
-  lifetime: -1, // -1 means unlimited
+  unlimited: -1,
+  team_basic: 300,
+  team_basic_yearly: 3600,
+  team_pro: -1,
+  team_pro_yearly: -1,
 };
 
+const AFRICAN_COUNTRIES = [
+  "NG", "GH", "KE", "ZA", "UG", "TZ", "RW", "ET", "EG", "MA",
+  "SN", "CI", "CM", "BJ", "BF", "ML", "NE", "TD", "CF", "CG",
+];
+
 interface InitPaymentRequest {
-  plan: "monthly" | "yearly" | "lifetime";
+  plan: string;
   currency?: string;
   callbackUrl: string;
 }
@@ -46,53 +76,47 @@ serve(async (req) => {
   }
 
   try {
-    // Get user from auth header
     const authHeader = req.headers.get("authorization")?.replace("Bearer ", "");
-    if (!authHeader) {
-      throw new Error("Unauthorized");
-    }
+    if (!authHeader) throw new Error("Unauthorized");
 
     const { data: { user }, error: authError } = await supabase.auth.getUser(authHeader);
-    if (authError || !user) {
-      throw new Error("Unauthorized");
-    }
+    if (authError || !user) throw new Error("Unauthorized");
 
     const { plan, currency = "NGN", callbackUrl }: InitPaymentRequest = await req.json();
 
-    // Get user profile
     const { data: profile } = await supabase
       .from("profiles")
-      .select("email, full_name")
+      .select("email, full_name, country")
       .eq("user_id", user.id)
       .single();
 
-    if (!profile) {
-      throw new Error("Profile not found");
-    }
+    if (!profile) throw new Error("Profile not found");
 
-    // Calculate amount based on currency
+    // Determine if African pricing
+    const isAfrican = AFRICAN_COUNTRIES.includes((profile.country || "").toUpperCase().slice(0, 2));
+
     let amount: number;
     if (currency === "NGN") {
-      amount = PRICING_NGN[plan];
+      const prices = isAfrican ? PRICING_NGN : PRICING_NGN_NONAF;
+      amount = prices[plan] || PRICING_NGN[plan] || 700000;
     } else {
-      // For other currencies, use USD pricing (Paystack will convert)
-      amount = PRICING_USD[plan];
+      amount = PRICING_USD[plan] || 800;
     }
 
-    // Generate unique reference
     const reference = `outreach_${plan}_${user.id}_${Date.now()}`;
 
-    // Create payment record
+    // Map plan key to the subscription_plan enum value
+    const enumPlan = plan.replace("_yearly", "").replace("yearly", "monthly");
+
     await supabase.from("payment_history").insert({
       user_id: user.id,
       paystack_reference: reference,
       amount: amount,
       currency: currency,
-      plan: plan,
+      plan: enumPlan as any,
       status: "pending",
     });
 
-    // Initialize transaction with Paystack
     const paystackResponse = await fetch("https://api.paystack.co/transaction/initialize", {
       method: "POST",
       headers: {
@@ -108,19 +132,12 @@ serve(async (req) => {
         metadata: {
           user_id: user.id,
           plan: plan,
-          custom_fields: [
-            {
-              display_name: "Plan",
-              variable_name: "plan",
-              value: plan,
-            },
-          ],
+          custom_fields: [{ display_name: "Plan", variable_name: "plan", value: plan }],
         },
       }),
     });
 
     const paystackData = await paystackResponse.json();
-
     if (!paystackData.status) {
       throw new Error(paystackData.message || "Failed to initialize payment");
     }

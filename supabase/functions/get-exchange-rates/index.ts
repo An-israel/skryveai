@@ -5,67 +5,68 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-// Base prices in USD cents
-const BASE_PRICES_USD = {
-  monthly: 800, // $8
-  yearly: 9000, // $90 (save ~6%)
-  lifetime: 16700, // $167
+// All prices in smallest currency unit (kobo for NGN, cents for USD, etc.)
+// African countries get base price; non-African pay +5000 NGN equivalent extra
+const AFRICAN_PRICES_NGN = {
+  basic: { monthly: 500000 },           // 5,000 NGN
+  popular: { monthly: 700000, yearly: 7400000 },  // 7,000 / 74,000 NGN (save 12%)
+  unlimited: { monthly: 1500000 },       // 15,000 NGN
+  team_basic: { monthly: 1800000, yearly: 18400000 }, // 18,000 / 184,000 (save 15%)
+  team_pro: { monthly: 3000000, yearly: 30000000 },   // 30,000 / 300,000 (save 17%)
 };
 
-// Fixed prices for specific currencies (in smallest unit)
-// Africa gets ₦5,000 discount on monthly/yearly (NOT lifetime)
-const FIXED_PRICES: Record<string, { monthly: number; yearly: number; lifetime: number; symbol: string; name: string }> = {
-  // African countries - discounted by 5000 NGN equivalent
-  NGN: { monthly: 700000, yearly: 8500000, lifetime: 25000000, symbol: "₦", name: "Nigerian Naira" }, // 7,000 / 85,000 / 250,000
-  GHS: { monthly: 7000, yearly: 85000, lifetime: 250000, symbol: "₵", name: "Ghanaian Cedi" }, // ~5000 NGN discount
-  KES: { monthly: 60000, yearly: 680000, lifetime: 2100000, symbol: "KSh", name: "Kenyan Shilling" },
-  ZAR: { monthly: 9000, yearly: 100000, lifetime: 315000, symbol: "R", name: "South African Rand" },
-  UGX: { monthly: 2000000, yearly: 22500000, lifetime: 55000000, symbol: "USh", name: "Ugandan Shilling" },
-  TZS: { monthly: 1500000, yearly: 17000000, lifetime: 42000000, symbol: "TSh", name: "Tanzanian Shilling" },
-  RWF: { monthly: 700000, yearly: 7900000, lifetime: 20000000, symbol: "FRw", name: "Rwandan Franc" },
-  // US and Europe - original prices
-  USD: { monthly: 800, yearly: 9000, lifetime: 16700, symbol: "$", name: "US Dollar" },
-  EUR: { monthly: 750, yearly: 8500, lifetime: 15500, symbol: "€", name: "Euro" },
-  GBP: { monthly: 650, yearly: 7300, lifetime: 13500, symbol: "£", name: "British Pound" },
+const NON_AFRICAN_PRICES_NGN = {
+  basic: { monthly: 1000000 },           // 10,000 NGN
+  popular: { monthly: 1200000, yearly: 12600000 }, // 12,000 / 126,000
+  unlimited: { monthly: 2000000 },       // 20,000 NGN
+  team_basic: { monthly: 2300000, yearly: 23500000 },
+  team_pro: { monthly: 3500000, yearly: 35000000 },
 };
 
-// Country to currency mapping
+// Fixed prices for specific currencies
+const CURRENCY_CONFIG: Record<string, { symbol: string; name: string; divisor: number }> = {
+  NGN: { symbol: "₦", name: "Nigerian Naira", divisor: 100 },
+  USD: { symbol: "$", name: "US Dollar", divisor: 100 },
+  EUR: { symbol: "€", name: "Euro", divisor: 100 },
+  GBP: { symbol: "£", name: "British Pound", divisor: 100 },
+  GHS: { symbol: "₵", name: "Ghanaian Cedi", divisor: 100 },
+  KES: { symbol: "KSh", name: "Kenyan Shilling", divisor: 100 },
+  ZAR: { symbol: "R", name: "South African Rand", divisor: 100 },
+};
+
+const AFRICAN_COUNTRIES = [
+  "NG", "GH", "KE", "ZA", "UG", "TZ", "RW", "ET", "EG", "MA",
+  "SN", "CI", "CM", "BJ", "BF", "ML", "NE", "TD", "CF", "CG",
+  "CD", "AO", "MZ", "ZW", "BW", "NA", "SZ", "LS", "MW", "ZM",
+];
+
 const COUNTRY_CURRENCY: Record<string, string> = {
-  // African countries
-  NG: "NGN",
-  GH: "GHS",
-  KE: "KES",
-  ZA: "ZAR",
-  UG: "UGX",
-  TZ: "TZS",
-  RW: "RWF",
-  ET: "NGN", // Ethiopia - use NGN pricing
-  EG: "NGN", // Egypt - use NGN pricing
-  MA: "NGN", // Morocco - use NGN pricing
-  SN: "NGN", // Senegal - use NGN pricing
-  CI: "NGN", // Ivory Coast - use NGN pricing
-  CM: "NGN", // Cameroon - use NGN pricing
-  // US
-  US: "USD",
-  // UK
-  GB: "GBP",
-  // Europe
-  DE: "EUR",
-  FR: "EUR",
-  IT: "EUR",
-  ES: "EUR",
-  NL: "EUR",
-  BE: "EUR",
-  AT: "EUR",
-  PT: "EUR",
-  IE: "EUR",
-  FI: "EUR",
-  SE: "EUR",
-  DK: "EUR",
-  NO: "EUR",
-  CH: "EUR",
-  PL: "EUR",
+  NG: "NGN", GH: "GHS", KE: "KES", ZA: "ZAR",
+  US: "USD", GB: "GBP",
+  DE: "EUR", FR: "EUR", IT: "EUR", ES: "EUR", NL: "EUR",
+  BE: "EUR", AT: "EUR", PT: "EUR", IE: "EUR", FI: "EUR",
+  SE: "EUR", DK: "EUR", NO: "EUR", CH: "EUR", PL: "EUR",
 };
+
+// Rough NGN to other currency conversion rates
+const NGN_RATES: Record<string, number> = {
+  NGN: 1,
+  USD: 0.00063,
+  EUR: 0.00058,
+  GBP: 0.00050,
+  GHS: 0.0095,
+  KES: 0.082,
+  ZAR: 0.0114,
+};
+
+function convertFromNGN(amountKobo: number, currency: string): number {
+  const rate = NGN_RATES[currency] || NGN_RATES.USD;
+  return Math.round(amountKobo * rate);
+}
+
+function formatPrice(amount: number, config: { symbol: string; divisor: number }): string {
+  return `${config.symbol}${(amount / config.divisor).toLocaleString()}`;
+}
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -75,39 +76,86 @@ serve(async (req) => {
   try {
     const url = new URL(req.url);
     const countryCode = url.searchParams.get("country")?.toUpperCase() || "US";
-
-    // Get currency for country
+    const isAfrican = AFRICAN_COUNTRIES.includes(countryCode);
     const currency = COUNTRY_CURRENCY[countryCode] || "USD";
-    const prices = FIXED_PRICES[currency] || FIXED_PRICES.USD;
+    const config = CURRENCY_CONFIG[currency] || CURRENCY_CONFIG.USD;
+    const basePrices = isAfrican ? AFRICAN_PRICES_NGN : NON_AFRICAN_PRICES_NGN;
 
-    // Calculate savings percentage for yearly
-    const monthlyAnnual = prices.monthly * 12;
-    const yearlySavings = Math.round(((monthlyAnnual - prices.yearly) / monthlyAnnual) * 100);
+    const convert = (kobo: number) => currency === "NGN" ? kobo : convertFromNGN(kobo, currency);
 
-    return new Response(JSON.stringify({
+    const popularMonthlyAnnual = basePrices.popular.monthly * 12;
+    const popularYearlySavings = Math.round(((popularMonthlyAnnual - basePrices.popular.yearly) / popularMonthlyAnnual) * 100);
+
+    const tbMonthlyAnnual = basePrices.team_basic.monthly * 12;
+    const tbYearlySavings = Math.round(((tbMonthlyAnnual - basePrices.team_basic.yearly) / tbMonthlyAnnual) * 100);
+
+    const tpMonthlyAnnual = basePrices.team_pro.monthly * 12;
+    const tpYearlySavings = Math.round(((tpMonthlyAnnual - basePrices.team_pro.yearly) / tpMonthlyAnnual) * 100);
+
+    const result = {
       currency,
-      symbol: prices.symbol,
-      currencyName: prices.name,
+      symbol: config.symbol,
+      currencyName: config.name,
       countryCode,
-      prices: {
-        monthly: {
-          amount: prices.monthly,
-          display: `${prices.symbol}${(prices.monthly / 100).toLocaleString()}`,
-          period: "month",
+      isAfrican,
+      plans: {
+        basic: {
+          monthly: {
+            amount: convert(basePrices.basic.monthly),
+            display: formatPrice(convert(basePrices.basic.monthly), config),
+            period: "month",
+          },
         },
-        yearly: {
-          amount: prices.yearly,
-          display: `${prices.symbol}${(prices.yearly / 100).toLocaleString()}`,
-          period: "year",
-          savings: yearlySavings,
+        popular: {
+          monthly: {
+            amount: convert(basePrices.popular.monthly),
+            display: formatPrice(convert(basePrices.popular.monthly), config),
+            period: "month",
+          },
+          yearly: {
+            amount: convert(basePrices.popular.yearly),
+            display: formatPrice(convert(basePrices.popular.yearly), config),
+            period: "year",
+            savings: popularYearlySavings,
+          },
         },
-        lifetime: {
-          amount: prices.lifetime,
-          display: `${prices.symbol}${(prices.lifetime / 100).toLocaleString()}`,
-          period: "one-time",
+        unlimited: {
+          monthly: {
+            amount: convert(basePrices.unlimited.monthly),
+            display: formatPrice(convert(basePrices.unlimited.monthly), config),
+            period: "month",
+          },
+        },
+        team_basic: {
+          monthly: {
+            amount: convert(basePrices.team_basic.monthly),
+            display: formatPrice(convert(basePrices.team_basic.monthly), config),
+            period: "month",
+          },
+          yearly: {
+            amount: convert(basePrices.team_basic.yearly),
+            display: formatPrice(convert(basePrices.team_basic.yearly), config),
+            period: "year",
+            savings: tbYearlySavings,
+          },
+        },
+        team_pro: {
+          monthly: {
+            amount: convert(basePrices.team_pro.monthly),
+            display: formatPrice(convert(basePrices.team_pro.monthly), config),
+            period: "month",
+          },
+          yearly: {
+            amount: convert(basePrices.team_pro.yearly),
+            display: formatPrice(convert(basePrices.team_pro.yearly), config),
+            period: "year",
+            savings: tpYearlySavings,
+          },
         },
       },
-    }), {
+    };
+
+    return new Response(JSON.stringify(result), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (error: unknown) {
