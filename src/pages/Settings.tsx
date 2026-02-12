@@ -30,20 +30,23 @@ import { EmailVerificationStatus } from "@/components/settings/EmailVerification
 import { SMTPConnection } from "@/components/settings/SMTPConnection";
 import { EmailWarmupSettings } from "@/components/settings/EmailWarmupSettings";
 import { useQuery } from "@tanstack/react-query";
+import { SearchableMultiSelect } from "@/components/ui/searchable-multi-select";
 
 const EXPERTISE_OPTIONS = [
   "3D Design", "Affiliate Marketing", "AI Development", "Amazon FBA", "Animation",
   "API Development", "Backend Development", "Blockchain", "Blog Writing", "Brand Identity",
   "Business Consulting", "Cloud Services", "Content Marketing", "Content Writing",
   "Copywriting", "Custom Software", "Customer Support", "Cybersecurity", "Data Entry",
-  "Data Science", "DevOps", "Dropshipping", "E-commerce", "Email Marketing",
-  "Frontend Development", "Full Stack Development", "Ghostwriting", "Graphic Design",
-  "Growth Hacking", "Illustration", "Influencer Marketing", "Lead Generation",
-  "Logo Design", "Machine Learning", "Market Research", "Mobile App Development",
-  "Motion Graphics", "No-Code Development", "Photography", "Podcast Production",
-  "PPC Advertising", "Product Design", "Product Listing", "Project Management",
-  "Proofreading", "Sales", "Scriptwriting", "SEO", "Shopify",
-  "Social Media Marketing", "Technical Writing", "Translation", "UI/UX Design",
+  "Data Science", "DevOps", "Digital Strategy", "Dropshipping", "E-commerce", "Email Marketing",
+  "Frontend Development", "Full Stack Development", "Game Development", "Ghostwriting",
+  "Google Ads", "Graphic Design", "Growth Hacking", "GRC Consulting", "Illustration",
+  "Influencer Marketing", "IT Support", "Lead Generation", "Logo Design", "Machine Learning",
+  "Market Research", "Mobile App Development", "Motion Graphics", "Network Security",
+  "No-Code Development", "Penetration Testing", "Photography", "Podcast Production",
+  "PPC Advertising", "Product Design", "Product Listing", "Product Management",
+  "Project Management", "Proofreading", "Public Relations", "Sales", "Scriptwriting",
+  "SEO", "Shopify", "Social Media Management", "Social Media Marketing",
+  "SaaS Development", "Supply Chain", "Technical Writing", "Translation", "UI/UX Design",
   "Video Editing", "Video Production", "Virtual Assistant", "Voice Over",
   "Web Design", "Web Development", "Webflow", "WordPress",
 ];
@@ -318,27 +321,16 @@ export default function Settings() {
               <Card>
                 <CardHeader>
                   <CardTitle>Your Expertise</CardTitle>
-                  <CardDescription>Select the services you offer to clients</CardDescription>
+                  <CardDescription>Search and select the services you offer to clients</CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <div className="flex flex-wrap gap-2 mb-4">
-                    {EXPERTISE_OPTIONS.map((skill) => (
-                      <Badge
-                        key={skill}
-                        variant={expertise.includes(skill) ? "default" : "outline"}
-                        className="cursor-pointer transition-colors"
-                        onClick={() => toggleExpertise(skill)}
-                      >
-                        {skill}
-                        {expertise.includes(skill) && <X className="w-3 h-3 ml-1" />}
-                      </Badge>
-                    ))}
-                  </div>
-                  {expertise.length > 0 && (
-                    <p className="text-sm text-muted-foreground">
-                      {expertise.length} service{expertise.length !== 1 ? "s" : ""} selected
-                    </p>
-                  )}
+                  <SearchableMultiSelect
+                    options={EXPERTISE_OPTIONS}
+                    selected={expertise}
+                    onChange={setExpertise}
+                    placeholder="Search for your skills..."
+                    maxHeight="250px"
+                  />
                 </CardContent>
               </Card>
             </TabsContent>

@@ -31,20 +31,23 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { SearchableMultiSelect } from "@/components/ui/searchable-multi-select";
 
 const EXPERTISE_OPTIONS = [
   "3D Design", "Affiliate Marketing", "AI Development", "Amazon FBA", "Animation",
   "API Development", "Backend Development", "Blockchain", "Blog Writing", "Brand Identity",
   "Business Consulting", "Cloud Services", "Content Marketing", "Content Writing",
   "Copywriting", "Custom Software", "Customer Support", "Cybersecurity", "Data Entry",
-  "Data Science", "DevOps", "Dropshipping", "E-commerce", "Email Marketing",
-  "Frontend Development", "Full Stack Development", "Ghostwriting", "Graphic Design",
-  "Growth Hacking", "Illustration", "Influencer Marketing", "Lead Generation",
-  "Logo Design", "Machine Learning", "Market Research", "Mobile App Development",
-  "Motion Graphics", "No-Code Development", "Photography", "Podcast Production",
-  "PPC Advertising", "Product Design", "Product Listing", "Project Management",
-  "Proofreading", "Sales", "Scriptwriting", "SEO", "Shopify",
-  "Social Media Marketing", "Technical Writing", "Translation", "UI/UX Design",
+  "Data Science", "DevOps", "Digital Strategy", "Dropshipping", "E-commerce", "Email Marketing",
+  "Frontend Development", "Full Stack Development", "Game Development", "Ghostwriting",
+  "Google Ads", "Graphic Design", "Growth Hacking", "GRC Consulting", "Illustration",
+  "Influencer Marketing", "IT Support", "Lead Generation", "Logo Design", "Machine Learning",
+  "Market Research", "Mobile App Development", "Motion Graphics", "Network Security",
+  "No-Code Development", "Penetration Testing", "Photography", "Podcast Production",
+  "PPC Advertising", "Product Design", "Product Listing", "Product Management",
+  "Project Management", "Proofreading", "Public Relations", "Sales", "Scriptwriting",
+  "SEO", "Shopify", "Social Media Management", "Social Media Marketing",
+  "SaaS Development", "Supply Chain", "Technical Writing", "Translation", "UI/UX Design",
   "Video Editing", "Video Production", "Virtual Assistant", "Voice Over",
   "Web Design", "Web Development", "Webflow", "WordPress",
 ];
@@ -440,28 +443,13 @@ export function OnboardingWizard({ userId, userEmail, userName, onComplete }: On
                       </p>
                     </div>
 
-                    <div className="max-h-52 overflow-y-auto pr-1">
-                      <div className="flex flex-wrap gap-2">
-                        {EXPERTISE_OPTIONS.map((skill) => (
-                          <Badge
-                            key={skill}
-                            variant={expertise.includes(skill) ? "default" : "outline"}
-                            className="cursor-pointer transition-all hover:scale-105"
-                            onClick={() => toggleExpertise(skill)}
-                          >
-                            {skill}
-                            {expertise.includes(skill) && <X className="w-3 h-3 ml-1" />}
-                          </Badge>
-                        ))}
-                      </div>
-                    </div>
-
-                    {expertise.length > 0 && (
-                      <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-sm text-primary font-medium flex items-center gap-1">
-                        <Star className="w-4 h-4" />
-                        {expertise.length} selected — nice!
-                      </motion.p>
-                    )}
+                    <SearchableMultiSelect
+                      options={EXPERTISE_OPTIONS}
+                      selected={expertise}
+                      onChange={setExpertise}
+                      placeholder="Search for your skills..."
+                      maxHeight="200px"
+                    />
                   </div>
                 )}
 

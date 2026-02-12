@@ -811,6 +811,133 @@ export type Database = {
         }
         Relationships: []
       }
+      team_members: {
+        Row: {
+          created_at: string
+          email: string
+          id: string
+          invited_at: string
+          joined_at: string | null
+          role: string
+          status: string
+          team_id: string
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          id?: string
+          invited_at?: string
+          joined_at?: string | null
+          role?: string
+          status?: string
+          team_id: string
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          id?: string
+          invited_at?: string
+          joined_at?: string | null
+          role?: string
+          status?: string
+          team_id?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "team_members_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "teams"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      team_profiles: {
+        Row: {
+          bio: string | null
+          created_at: string
+          created_by: string | null
+          cv_url: string | null
+          expertise: string[] | null
+          id: string
+          name: string
+          portfolio_url: string | null
+          team_id: string
+          updated_at: string
+        }
+        Insert: {
+          bio?: string | null
+          created_at?: string
+          created_by?: string | null
+          cv_url?: string | null
+          expertise?: string[] | null
+          id?: string
+          name: string
+          portfolio_url?: string | null
+          team_id: string
+          updated_at?: string
+        }
+        Update: {
+          bio?: string | null
+          created_at?: string
+          created_by?: string | null
+          cv_url?: string | null
+          expertise?: string[] | null
+          id?: string
+          name?: string
+          portfolio_url?: string | null
+          team_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "team_profiles_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "teams"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      teams: {
+        Row: {
+          created_at: string
+          credits: number
+          id: string
+          max_members: number
+          max_profiles: number
+          name: string
+          owner_id: string
+          plan: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          credits?: number
+          id?: string
+          max_members?: number
+          max_profiles?: number
+          name: string
+          owner_id: string
+          plan?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          credits?: number
+          id?: string
+          max_members?: number
+          max_profiles?: number
+          name?: string
+          owner_id?: string
+          plan?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       trial_tracking: {
         Row: {
           created_at: string

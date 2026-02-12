@@ -13,9 +13,12 @@ const paystackSecretKey = Deno.env.get("PAYSTACK_SECRET_KEY")!;
 const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
 const PLAN_CREDITS: Record<string, number> = {
+  basic: 50,
   monthly: 100,
   yearly: 1200,
-  lifetime: -1,
+  unlimited: -1,
+  team_basic: 300,
+  team_pro: -1,
 };
 
 serve(async (req) => {

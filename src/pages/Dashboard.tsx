@@ -268,36 +268,36 @@ export default function Dashboard() {
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="mb-8"
+          className="mb-6 sm:mb-8"
         >
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div>
-              <h1 className="text-3xl font-bold">
+              <h1 className="text-xl sm:text-2xl md:text-3xl font-bold">
                 Welcome, {user?.user_metadata?.full_name || "there"}! 👋
               </h1>
-              <p className="text-muted-foreground mt-1">
+              <p className="text-sm text-muted-foreground mt-1">
                 Here's an overview of your outreach campaigns
               </p>
             </div>
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2 sm:gap-3">
               <Button asChild variant="outline" size="sm">
                 <Link to="/analytics">
-                  <BarChart3 className="w-4 h-4 mr-2" />
-                  Analytics
+                  <BarChart3 className="w-4 h-4 sm:mr-2" />
+                  <span className="hidden sm:inline">Analytics</span>
                 </Link>
               </Button>
               <EmailSettingsDialog 
                 trigger={
                   <Button variant="outline" size="sm">
-                    <Settings className="w-4 h-4 mr-2" />
-                    Settings
+                    <Settings className="w-4 h-4 sm:mr-2" />
+                    <span className="hidden sm:inline">Settings</span>
                   </Button>
                 }
               />
-              <Button asChild size="lg">
+              <Button asChild size="default" className="bg-primary text-primary-foreground shadow-md">
                 <Link to="/campaigns/new">
-                  <Plus className="w-5 h-5 mr-2" />
-                  New Campaign
+                  <Plus className="w-5 h-5 mr-1 sm:mr-2" />
+                  <span className="font-semibold">New Campaign</span>
                 </Link>
               </Button>
             </div>
