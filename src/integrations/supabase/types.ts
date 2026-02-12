@@ -1104,7 +1104,15 @@ export type Database = {
         Args: { campaign_id: string }
         Returns: undefined
       }
+      is_active_team_member: {
+        Args: { _team_id: string; _user_id: string }
+        Returns: boolean
+      }
       is_admin: { Args: { _user_id: string }; Returns: boolean }
+      is_team_owner: {
+        Args: { _team_id: string; _user_id: string }
+        Returns: boolean
+      }
     }
     Enums: {
       app_role: "super_admin" | "content_editor" | "support_agent" | "staff"
