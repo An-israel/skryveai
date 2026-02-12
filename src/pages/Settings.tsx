@@ -120,13 +120,17 @@ export default function Settings() {
 
       if (data) {
         setProfile(data);
-        setFullName(data.full_name || "");
-        setPhone(data.phone || "");
+        setFullName(data.full_name || user?.user_metadata?.full_name || "");
+        setPhone(data.phone || user?.user_metadata?.phone || "");
         setCountry(data.country || "");
         setBio(data.bio || "");
         setExpertise(data.expertise || []);
         setPortfolioUrl(data.portfolio_url || "");
         setCvUrl(data.cv_url);
+      } else {
+        // No profile yet — pre-fill from auth metadata
+        setFullName(user?.user_metadata?.full_name || "");
+        setPhone(user?.user_metadata?.phone || "");
       }
 
       // Fetch user settings for calendly
@@ -405,6 +409,28 @@ export default function Settings() {
             </TabsContent>
 
             <TabsContent value="email" className="space-y-6">
+              {/* Video Guide */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Mail className="h-5 w-5" />
+                    Email Connection Guide
+                  </CardTitle>
+                  <CardDescription>Watch this quick tutorial to connect your email</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="rounded-xl overflow-hidden border bg-muted/30">
+                    <video
+                      src="/email-connection-guide.mp4"
+                      controls
+                      className="w-full max-h-[300px] object-cover"
+                      preload="metadata"
+                    >
+                      Your browser does not support the video tag.
+                    </video>
+                  </div>
+                </CardContent>
+              </Card>
               <SMTPConnection />
               <EmailWarmupSettings />
             </TabsContent>

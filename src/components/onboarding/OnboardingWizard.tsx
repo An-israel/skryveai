@@ -496,6 +496,20 @@ export function OnboardingWizard({ userId, userEmail, userName, onComplete }: On
                       </p>
                     </div>
 
+                    {/* Video Guide */}
+                    <div className="rounded-xl overflow-hidden border bg-muted/30">
+                      <video
+                        src="/email-connection-guide.mp4"
+                        controls
+                        className="w-full max-h-[180px] object-cover"
+                        poster=""
+                        preload="metadata"
+                      >
+                        Your browser does not support the video tag.
+                      </video>
+                      <p className="text-xs text-muted-foreground text-center py-1.5">📹 Watch: How to connect your email</p>
+                    </div>
+
                     {emailConnected ? (
                       <motion.div initial={{ scale: 0.9 }} animate={{ scale: 1 }} className="p-4 bg-green-50 dark:bg-green-950/20 rounded-xl border border-green-200 dark:border-green-900 text-center">
                         <CheckCircle2 className="w-10 h-10 text-green-500 mx-auto mb-2" />
