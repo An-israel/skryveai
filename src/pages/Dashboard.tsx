@@ -10,7 +10,7 @@ import { CampaignCharts } from "@/components/dashboard/CampaignCharts";
 import { SubscriptionStats } from "@/components/dashboard/SubscriptionStats";
 import { EmailQueueStatus } from "@/components/dashboard/EmailQueueStatus";
 import { CreditsDisplay } from "@/components/dashboard/CreditsDisplay";
-import { ReferralCard } from "@/components/dashboard/ReferralCard";
+
 import { EmailSettingsDialog } from "@/components/settings/EmailSettingsDialog";
 import { OnboardingTour } from "@/components/onboarding/OnboardingTour";
 import { OnboardingWizard } from "@/components/onboarding/OnboardingWizard";
@@ -27,7 +27,8 @@ import {
   ArrowRight,
   Send,
   Calendar,
-  Settings
+  Settings,
+  Gift
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -315,14 +316,19 @@ export default function Dashboard() {
           <CreditsDisplay userId={user?.id} />
         </motion.div>
 
-        {/* Referral Card */}
+        {/* Referral link */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.12 }}
           className="mb-8"
         >
-          <ReferralCard userId={user?.id} />
+          <Button asChild variant="outline" size="sm">
+            <Link to="/referrals">
+              <Gift className="w-4 h-4 mr-2" />
+              Refer & Earn
+            </Link>
+          </Button>
         </motion.div>
 
         {/* Email Queue Status - Real-time updates */}
