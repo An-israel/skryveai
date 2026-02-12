@@ -63,6 +63,40 @@ serve(async (req) => {
 
     console.log("User authenticated:", user.id);
 
+    // Credit check - 1 credit per search
+    const { data: subscription, error: subError } = await supabase
+      .from("subscriptions")
+      .select("credits, plan, status")
+      .eq("user_id", user.id)
+      .single();
+
+    if (subError || !subscription) {
+      return new Response(
+        JSON.stringify({ error: "No active subscription found" }),
+        { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // Lifetime users are exempt from credit deductions
+    if (subscription.plan !== "lifetime") {
+      if (subscription.credits < 1) {
+        return new Response(
+          JSON.stringify({ error: "Insufficient credits. Please upgrade your plan." }),
+          { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      // Deduct 1 credit
+      const { error: deductError } = await supabase
+        .from("subscriptions")
+        .update({ credits: subscription.credits - 1 })
+        .eq("user_id", user.id);
+
+      if (deductError) {
+        console.error("Failed to deduct credits:", deductError);
+      }
+    }
+
     const GOOGLE_PLACES_API_KEY = Deno.env.get("GOOGLE_PLACES_API_KEY");
     if (!GOOGLE_PLACES_API_KEY) {
       console.error("GOOGLE_PLACES_API_KEY not configured");
