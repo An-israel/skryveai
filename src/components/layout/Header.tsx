@@ -74,6 +74,7 @@ export function Header({ isAuthenticated: isAuthenticatedProp, onLogout }: Heade
     <header className="fixed top-0 left-0 right-0 z-50 glass border-b">
       <div className="container mx-auto px-4 h-16 flex items-center justify-between">
         <Link to="/" className="flex items-center gap-2 group">
+          <img src="/logo.png" alt="SkryveAI logo" className="w-8 h-8 object-contain" />
           <span className="font-bold text-2xl text-gradient">SkryveAI</span>
         </Link>
 

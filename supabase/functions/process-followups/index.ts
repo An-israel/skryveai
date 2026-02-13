@@ -9,6 +9,9 @@ const corsHeaders = {
 const FOLLOWUP_GAP_DAYS = 2;
 const MAX_FOLLOWUPS = 3;
 
+// Plans that do NOT get follow-ups
+const EXCLUDED_PLANS = ["basic"];
+
 // Follow-up templates — short, punchy, reference the original
 const FOLLOWUP_TEMPLATES = [
   {
@@ -73,6 +76,19 @@ serve(async (req) => {
       }
 
       const userId = (email.campaigns as any).user_id;
+
+      // Check if user's plan supports follow-ups (exclude basic)
+      const { data: subscription } = await supabase
+        .from("subscriptions")
+        .select("plan")
+        .eq("user_id", userId)
+        .single();
+
+      if (!subscription || EXCLUDED_PLANS.includes(subscription.plan)) {
+        skippedCount++;
+        continue;
+      }
+
       const originalSubject = (email.pitches as any).subject;
       const businessId = email.business_id;
 

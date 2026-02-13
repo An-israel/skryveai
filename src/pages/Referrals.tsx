@@ -3,6 +3,8 @@ import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { Header } from "@/components/layout/Header";
 import { ReferralCard } from "@/components/dashboard/ReferralCard";
+import { Button } from "@/components/ui/button";
+import { ArrowLeft } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
@@ -46,10 +48,17 @@ export default function Referrals() {
           animate={{ opacity: 1, y: 0 }}
           className="mb-6"
         >
-          <h1 className="text-2xl font-bold mb-1">Refer & Earn</h1>
-          <p className="text-sm text-muted-foreground">
-            Share your referral link and earn 20% commission on every subscription.
-          </p>
+          <div className="flex items-center gap-3 mb-4">
+            <Button variant="ghost" size="icon" onClick={() => navigate("/dashboard")}>
+              <ArrowLeft className="w-5 h-5" />
+            </Button>
+            <div>
+              <h1 className="text-2xl font-bold">Refer & Earn</h1>
+              <p className="text-sm text-muted-foreground">
+                Share your referral link and earn 20% commission on every subscription.
+              </p>
+            </div>
+          </div>
         </motion.div>
 
         <motion.div

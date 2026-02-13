@@ -382,63 +382,65 @@ export default function Admin() {
 
         {/* Main Tabs */}
         <Tabs defaultValue="users">
-          <TabsList className="mb-4 flex-wrap">
-            <TabsTrigger value="users" className="gap-2">
-              <Users className="w-4 h-4" /> Users
+          <TabsList className="mb-4 grid grid-cols-4 sm:grid-cols-6 lg:grid-cols-11 h-auto gap-1">
+            <TabsTrigger value="users" className="gap-1 text-xs sm:text-sm px-2 py-1.5">
+              <Users className="w-3.5 h-3.5 shrink-0" /> <span className="hidden sm:inline">Users</span>
             </TabsTrigger>
-            <TabsTrigger value="campaigns" className="gap-2">
-              <Target className="w-4 h-4" /> Campaigns
+            <TabsTrigger value="campaigns" className="gap-1 text-xs sm:text-sm px-2 py-1.5">
+              <Target className="w-3.5 h-3.5 shrink-0" /> <span className="hidden sm:inline">Campaigns</span>
             </TabsTrigger>
-            <TabsTrigger value="email-queue" className="gap-2">
-              <Send className="w-4 h-4" /> Email Queue
+            <TabsTrigger value="email-queue" className="gap-1 text-xs sm:text-sm px-2 py-1.5">
+              <Send className="w-3.5 h-3.5 shrink-0" /> <span className="hidden sm:inline">Queue</span>
             </TabsTrigger>
-            <TabsTrigger value="pages" className="gap-2">
-              <FileText className="w-4 h-4" /> Pages
+            <TabsTrigger value="pages" className="gap-1 text-xs sm:text-sm px-2 py-1.5">
+              <FileText className="w-3.5 h-3.5 shrink-0" /> <span className="hidden sm:inline">Pages</span>
             </TabsTrigger>
-            <TabsTrigger value="images" className="gap-2">
-              <Image className="w-4 h-4" /> Images
+            <TabsTrigger value="images" className="gap-1 text-xs sm:text-sm px-2 py-1.5">
+              <Image className="w-3.5 h-3.5 shrink-0" /> <span className="hidden sm:inline">Images</span>
             </TabsTrigger>
-            <TabsTrigger value="staff" className="gap-2">
-              <UserCog className="w-4 h-4" /> Staff
+            <TabsTrigger value="staff" className="gap-1 text-xs sm:text-sm px-2 py-1.5">
+              <UserCog className="w-3.5 h-3.5 shrink-0" /> <span className="hidden sm:inline">Staff</span>
             </TabsTrigger>
-            <TabsTrigger value="activity" className="gap-2">
-              <Activity className="w-4 h-4" /> Activity
+            <TabsTrigger value="activity" className="gap-1 text-xs sm:text-sm px-2 py-1.5">
+              <Activity className="w-3.5 h-3.5 shrink-0" /> <span className="hidden sm:inline">Activity</span>
             </TabsTrigger>
-            <TabsTrigger value="ip-addresses" className="gap-2">
-              <Shield className="w-4 h-4" /> IP Addresses
+            <TabsTrigger value="ip-addresses" className="gap-1 text-xs sm:text-sm px-2 py-1.5">
+              <Shield className="w-3.5 h-3.5 shrink-0" /> <span className="hidden sm:inline">IPs</span>
             </TabsTrigger>
-            <TabsTrigger value="credits" className="gap-2">
-              <Coins className="w-4 h-4" /> Credits
+            <TabsTrigger value="credits" className="gap-1 text-xs sm:text-sm px-2 py-1.5">
+              <Coins className="w-3.5 h-3.5 shrink-0" /> <span className="hidden sm:inline">Credits</span>
             </TabsTrigger>
-            <TabsTrigger value="referrals" className="gap-2">
-              <Gift className="w-4 h-4" /> Referrals
+            <TabsTrigger value="referrals" className="gap-1 text-xs sm:text-sm px-2 py-1.5">
+              <Gift className="w-3.5 h-3.5 shrink-0" /> <span className="hidden sm:inline">Referrals</span>
             </TabsTrigger>
-            <TabsTrigger value="analytics" className="gap-2">
-              <BarChart3 className="w-4 h-4" /> Analytics
+            <TabsTrigger value="analytics" className="gap-1 text-xs sm:text-sm px-2 py-1.5">
+              <BarChart3 className="w-3.5 h-3.5 shrink-0" /> <span className="hidden sm:inline">Analytics</span>
             </TabsTrigger>
           </TabsList>
 
           {/* Users Tab */}
           <TabsContent value="users">
             <Card>
-              <CardHeader className="flex flex-row items-center justify-between">
-                <div>
-                  <CardTitle>User Management</CardTitle>
-                  <CardDescription>View and manage all users</CardDescription>
-                </div>
-                <div className="flex gap-2">
-                  <div className="relative">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                    <Input
-                      placeholder="Search users..."
-                      value={searchQuery}
-                      onChange={(e) => setSearchQuery(e.target.value)}
-                      className="pl-9 w-64"
-                    />
+              <CardHeader>
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                  <div>
+                    <CardTitle>User Management</CardTitle>
+                    <CardDescription>View and manage all users</CardDescription>
                   </div>
-                  <Button variant="outline" size="icon" onClick={loadData}>
-                    <RefreshCw className="w-4 h-4" />
-                  </Button>
+                  <div className="flex gap-2">
+                    <div className="relative flex-1 sm:flex-none">
+                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                      <Input
+                        placeholder="Search users..."
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        className="pl-9 w-full sm:w-64"
+                      />
+                    </div>
+                    <Button variant="outline" size="icon" onClick={loadData}>
+                      <RefreshCw className="w-4 h-4" />
+                    </Button>
+                  </div>
                 </div>
               </CardHeader>
               <CardContent>
