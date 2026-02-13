@@ -113,6 +113,7 @@ export default function Pricing() {
     <div className="min-h-screen bg-gradient-subtle py-8 sm:py-12 px-4">
       <div className="max-w-6xl mx-auto">
         <Link to="/" className="flex items-center justify-center gap-2 mb-8 sm:mb-12">
+          <img src="/logo.png" alt="SkryveAI logo" className="w-8 h-8 object-contain" />
           <span className="font-bold text-2xl sm:text-3xl text-gradient">SkryveAI</span>
         </Link>
 
@@ -151,7 +152,7 @@ export default function Pricing() {
                     <span className="text-3xl sm:text-4xl font-bold">{p?.basic.monthly.display || "₦5,000"}</span>
                     <span className="text-muted-foreground">/month</span>
                   </div>
-                  <p className="text-xs text-muted-foreground mt-1">50 credits/month</p>
+                  <p className="text-xs text-muted-foreground mt-1">50 credits/month • Up to 250 emails/month</p>
                 </CardHeader>
                 <CardContent>
                   <ul className="space-y-2.5 mb-6">
@@ -183,7 +184,7 @@ export default function Pricing() {
                     <span className="text-3xl sm:text-4xl font-bold">{p?.popular.monthly.display || "₦7,000"}</span>
                     <span className="text-muted-foreground">/month</span>
                   </div>
-                  <p className="text-xs text-muted-foreground mt-1">100 credits/month</p>
+                  <p className="text-xs text-muted-foreground mt-1">100 credits/month • Up to 500 emails/month</p>
                   {p?.popular.yearly && (
                     <p className="text-xs text-primary font-medium mt-1">
                       or {p.popular.yearly.display}/year — save {p.popular.yearly.savings}%
@@ -192,7 +193,7 @@ export default function Pricing() {
                 </CardHeader>
                 <CardContent>
                   <ul className="space-y-2.5 mb-6">
-                    {["AI-powered business discovery", "All campaign modes", "Find Clients + Pitch a Client", "Find Investors mode", "Automated website analysis", "Personalized pitch generation", "Email sending & tracking", "Reply detection", "Campaign analytics"].map(f => (
+                    {["AI-powered business discovery", "All campaign modes", "Find Clients + Pitch a Client", "Find Investors mode", "Automated website analysis", "Personalized pitch generation", "Email sending & tracking", "Reply detection", "Campaign analytics", "Auto follow-up emails"].map(f => (
                       <li key={f} className="flex items-start gap-2">
                         <Check className="w-4 h-4 text-primary mt-0.5 shrink-0" />
                         <span className="text-sm">{f}</span>
@@ -271,10 +272,12 @@ export default function Pricing() {
                     {[
                       "Team of up to 7 members",
                       "300 credits/month shared",
+                      "Up to 1,500 emails/month",
                       "5 expertise profiles",
                       "All campaign modes",
                       "Invite team via email",
                       "Shared campaign analytics",
+                      "Auto follow-up emails",
                     ].map(f => (
                       <li key={f} className="flex items-start gap-2">
                         <Check className="w-4 h-4 text-primary mt-0.5 shrink-0" />
@@ -321,11 +324,13 @@ export default function Pricing() {
                     {[
                       "Team of up to 15 members",
                       "500 credits/month shared",
+                      "Up to 2,500 emails/month",
                       "12 expertise profiles",
                       "All campaign modes",
                       "Invite team via email",
                       "Shared campaign analytics",
                       "Priority support",
+                      "Auto follow-up emails",
                     ].map(f => (
                       <li key={f} className="flex items-start gap-2">
                         <Check className="w-4 h-4 text-primary mt-0.5 shrink-0" />

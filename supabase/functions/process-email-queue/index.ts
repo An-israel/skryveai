@@ -16,6 +16,16 @@ const SMTP_READ_TIMEOUT_MS = 5_000;
 const MAX_BATCH_SIZE = 10;
 const INTER_EMAIL_DELAY_MS = 200;
 
+// ─── Monthly email limits per plan ───
+const MONTHLY_EMAIL_LIMITS: Record<string, number> = {
+  basic: 250,
+  monthly: 500,    // Popular plan
+  yearly: 500,     // Popular plan (yearly)
+  unlimited: 999999,
+  team_basic: 1500,
+  team_pro: 2500,
+};
+
 interface SMTPCredentials {
   user_id: string;
   email_address: string;
@@ -681,6 +691,28 @@ serve(async (req) => {
           const sentToday = (settings.emails_sent_today || 0) + (userEmailsSentThisBatch.get(userId) || 0);
           if (sentToday >= dailyLimit) {
             console.log(`User ${userId} hit daily limit (${sentToday}/${dailyLimit}), skipping`);
+            continue;
+          }
+        }
+
+        // Monthly email limit check per plan
+        const { data: sub } = await supabase.from("subscriptions").select("plan").eq("user_id", userId).single();
+        if (sub) {
+          const monthlyLimit = MONTHLY_EMAIL_LIMITS[sub.plan] ?? 500;
+          // Count emails sent this month by user
+          const startOfMonth = new Date();
+          startOfMonth.setDate(1);
+          startOfMonth.setHours(0, 0, 0, 0);
+          const { count: monthlyCount } = await supabase
+            .from("emails")
+            .select("*", { count: "exact", head: true })
+            .eq("status", "sent")
+            .in("campaign_id", campaignIds.filter(cid => campaignUserMap.get(cid) === userId))
+            .gte("sent_at", startOfMonth.toISOString());
+          if ((monthlyCount || 0) >= monthlyLimit) {
+            console.log(`User ${userId} hit monthly limit (${monthlyCount}/${monthlyLimit}), skipping`);
+            await supabase.from("email_queue").update({ status: "failed", error_message: `Monthly email limit (${monthlyLimit}) reached` }).eq("id", queuedEmail.id);
+            skippedCount++;
             continue;
           }
         }
