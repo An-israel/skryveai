@@ -40,7 +40,7 @@ export default function About() {
             className="max-w-3xl mx-auto text-center"
           >
             <h1 className="text-4xl md:text-5xl font-bold text-primary-foreground mb-6">
-              About <span className="text-gradient">SkryveAI</span>
+              About <span style={{ color: '#0B162B' }}>SkryveAI</span>
             </h1>
             <p className="text-lg text-primary-foreground/80 max-w-2xl mx-auto">
               We're building the smartest cold outreach platform for freelancers, entrepreneurs, and startups who want to grow their business without the hustle of manual prospecting.

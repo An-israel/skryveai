@@ -52,7 +52,8 @@ export default function Login() {
         className="w-full max-w-md"
       >
         <Link to="/" className="flex items-center justify-center gap-2 mb-8">
-          <span className="font-bold text-3xl text-gradient">SkryveAI</span>
+          <img src="/logo.png" alt="SkryveAI logo" className="w-8 h-8 object-contain" />
+          <span className="font-bold text-3xl" style={{ color: '#0B162B' }}>SkryveAI</span>
         </Link>
 
         <Card className="border-0 shadow-xl">
