@@ -44,8 +44,9 @@ export function Footer() {
         <div className="grid grid-cols-2 md:grid-cols-4 gap-8 lg:gap-12">
           {/* Brand Column */}
           <div className="col-span-2 md:col-span-1">
-            <Link to="/" className="inline-block">
-              <span className="font-bold text-2xl text-gradient">SkryveAI</span>
+            <Link to="/" className="inline-flex items-center gap-2">
+              <img src="/logo.png" alt="SkryveAI logo" className="w-8 h-8 object-contain" />
+              <span className="font-bold text-2xl" style={{ color: '#0B162B' }}>SkryveAI</span>
             </Link>
             <p className="mt-4 text-sm text-muted-foreground max-w-xs">
               AI-powered cold outreach that helps freelancers find and pitch their ideal clients.
