@@ -419,15 +419,14 @@ export default function Settings() {
                   <CardDescription>Watch this quick tutorial to connect your email</CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <div className="rounded-xl overflow-hidden border bg-muted/30">
-                    <video
-                      src="/email-connection-guide.mp4"
-                      controls
-                      className="w-full max-h-[300px] object-cover"
-                      preload="metadata"
-                    >
-                      Your browser does not support the video tag.
-                    </video>
+                  <div className="rounded-xl overflow-hidden border bg-muted/30 aspect-video">
+                    <iframe
+                      src="https://www.youtube.com/embed/aFY_xsuZTG4"
+                      title="Email Connection Guide"
+                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                      allowFullScreen
+                      className="w-full h-full"
+                    />
                   </div>
                 </CardContent>
               </Card>
