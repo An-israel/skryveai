@@ -1,9 +1,11 @@
+import { useEffect } from "react";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
 import { Link } from "react-router-dom";
-import { 
+import { supabase } from "@/integrations/supabase/client";
+import {
   Search, 
   BarChart3, 
   FileText, 
@@ -93,6 +95,11 @@ const orgSchema = {
 };
 
 export default function Landing() {
+  // Sign out any existing session so the landing page always shows unauthenticated state
+  useEffect(() => {
+    supabase.auth.signOut();
+  }, []);
+
   return (
     <div className="min-h-screen">
       <script
