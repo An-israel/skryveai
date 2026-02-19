@@ -157,7 +157,6 @@ export default function Analytics() {
   const pieData = [
     { name: "Opened", value: totalOpened, color: COLORS.opened },
     { name: "Not Opened", value: Math.max(0, totalSent - totalOpened - totalBounced), color: COLORS.pending },
-    { name: "Replied", value: totalReplied, color: COLORS.replied },
     { name: "Bounced", value: totalBounced, color: COLORS.bounced },
   ].filter(d => d.value > 0);
 
@@ -220,15 +219,6 @@ export default function Analytics() {
       color: "text-success",
       bgColor: "bg-success/10",
       trend: parseFloat(openRate) >= 20 ? "up" : "down"
-    },
-    { 
-      label: "Reply Rate", 
-      value: `${replyRate}%`, 
-      subValue: `${totalReplied} replies`,
-      icon: MessageSquare, 
-      color: "text-warning",
-      bgColor: "bg-warning/10",
-      trend: parseFloat(replyRate) >= 5 ? "up" : "down"
     },
     { 
       label: "Bounce Rate", 
@@ -491,7 +481,7 @@ export default function Analytics() {
                       <Legend />
                       <Bar dataKey="sent" fill={COLORS.sent} radius={[0, 4, 4, 0]} name="Sent" />
                       <Bar dataKey="opened" fill={COLORS.opened} radius={[0, 4, 4, 0]} name="Opened" />
-                      <Bar dataKey="replies" fill={COLORS.replied} radius={[0, 4, 4, 0]} name="Replies" />
+                      
                     </BarChart>
                   </ResponsiveContainer>
                 </div>
@@ -511,9 +501,7 @@ export default function Analytics() {
                         <th className="text-left py-3 px-4 font-medium">Campaign</th>
                         <th className="text-center py-3 px-4 font-medium">Sent</th>
                         <th className="text-center py-3 px-4 font-medium">Opened</th>
-                        <th className="text-center py-3 px-4 font-medium">Replies</th>
-                        <th className="text-center py-3 px-4 font-medium">Open Rate</th>
-                        <th className="text-center py-3 px-4 font-medium">Reply Rate</th>
+                         <th className="text-center py-3 px-4 font-medium">Open Rate</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -530,15 +518,9 @@ export default function Analytics() {
                             <td className="py-3 px-4">{campaign.name}</td>
                             <td className="text-center py-3 px-4">{campaign.emails_sent}</td>
                             <td className="text-center py-3 px-4">{campaign.emails_opened}</td>
-                            <td className="text-center py-3 px-4">{campaign.replies}</td>
                             <td className="text-center py-3 px-4">
                               <Badge variant={parseFloat(openR) >= 20 ? "default" : "secondary"}>
                                 {openR}%
-                              </Badge>
-                            </td>
-                            <td className="text-center py-3 px-4">
-                              <Badge variant={parseFloat(replyR) >= 5 ? "default" : "secondary"}>
-                                {replyR}%
                               </Badge>
                             </td>
                           </tr>
@@ -566,7 +548,7 @@ export default function Analytics() {
                         <th className="text-center py-3 px-4 font-medium">Status</th>
                         <th className="text-center py-3 px-4 font-medium">Sent</th>
                         <th className="text-center py-3 px-4 font-medium">Opened</th>
-                        <th className="text-center py-3 px-4 font-medium">Replied</th>
+                        
                       </tr>
                     </thead>
                     <tbody>
@@ -592,13 +574,6 @@ export default function Analytics() {
                             <td className="text-center py-3 px-4">
                               {email.opened_at ? (
                                 <CheckCircle2 className="w-4 h-4 text-success mx-auto" />
-                              ) : (
-                                <span className="text-muted-foreground">-</span>
-                              )}
-                            </td>
-                            <td className="text-center py-3 px-4">
-                              {email.replied_at ? (
-                                <CheckCircle2 className="w-4 h-4 text-warning mx-auto" />
                               ) : (
                                 <span className="text-muted-foreground">-</span>
                               )}

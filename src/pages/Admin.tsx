@@ -49,6 +49,8 @@ interface AdminStats {
   totalCampaigns: number;
   totalEmails: number;
   totalRevenue: number;
+  totalEmailsSentByAll: number;
+  totalRepliesByAll: number;
 }
 
 interface CMSPage {
@@ -323,7 +325,7 @@ export default function Admin() {
 
       <div className="container mx-auto px-4 py-6">
         {/* Stats Cards */}
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-6">
+        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-4 mb-6">
           <Card>
             <CardContent className="p-4">
               <div className="flex items-center gap-2 text-muted-foreground mb-1">
@@ -364,9 +366,27 @@ export default function Admin() {
             <CardContent className="p-4">
               <div className="flex items-center gap-2 text-muted-foreground mb-1">
                 <Mail className="w-4 h-4" />
-                <span className="text-xs">Emails Sent</span>
+                <span className="text-xs">Emails (DB)</span>
               </div>
               <p className="text-2xl font-bold">{stats?.totalEmails || 0}</p>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="p-4">
+              <div className="flex items-center gap-2 text-muted-foreground mb-1">
+                <Send className="w-4 h-4" />
+                <span className="text-xs">Total Sent</span>
+              </div>
+              <p className="text-2xl font-bold text-info">{stats?.totalEmailsSentByAll || 0}</p>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="p-4">
+              <div className="flex items-center gap-2 text-muted-foreground mb-1">
+                <Mail className="w-4 h-4" />
+                <span className="text-xs">Total Replies</span>
+              </div>
+              <p className="text-2xl font-bold text-warning">{stats?.totalRepliesByAll || 0}</p>
             </CardContent>
           </Card>
           <Card>

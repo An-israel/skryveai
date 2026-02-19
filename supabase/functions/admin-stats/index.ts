@@ -52,6 +52,7 @@ serve(async (req) => {
       { data: recentActivity },
       { data: revenueData },
       { data: signupTrend },
+      { data: allCampaigns },
     ] = await Promise.all([
       supabase.from("profiles").select("*", { count: "exact", head: true }),
       supabase.from("subscriptions").select("*", { count: "exact", head: true }).eq("status", "active"),
@@ -61,15 +62,19 @@ serve(async (req) => {
       supabase.from("activity_log").select("*").order("created_at", { ascending: false }).limit(20),
       supabase.from("payment_history").select("amount, currency, created_at").eq("status", "success"),
       supabase.from("profiles").select("created_at").order("created_at", { ascending: true }),
+      supabase.from("campaigns").select("emails_sent, replies"),
     ]);
 
     // Calculate total revenue
     const totalRevenue = revenueData?.reduce((sum, p) => {
-      // Convert to NGN for simplicity
       if (p.currency === "NGN") return sum + p.amount;
-      if (p.currency === "USD") return sum + (p.amount * 1500); // Rough conversion
+      if (p.currency === "USD") return sum + (p.amount * 1500);
       return sum + p.amount;
     }, 0) || 0;
+
+    // Calculate total emails sent and replies across all users
+    const totalEmailsSentByAll = allCampaigns?.reduce((sum, c) => sum + (c.emails_sent || 0), 0) || 0;
+    const totalRepliesByAll = allCampaigns?.reduce((sum, c) => sum + (c.replies || 0), 0) || 0;
 
     // Group signups by month
     const signupsByMonth: Record<string, number> = {};
@@ -86,6 +91,8 @@ serve(async (req) => {
         totalCampaigns: totalCampaigns || 0,
         totalEmails: totalEmails || 0,
         totalRevenue: totalRevenue,
+        totalEmailsSentByAll,
+        totalRepliesByAll,
       },
       recentActivity,
       signupsByMonth,

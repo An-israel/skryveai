@@ -42,7 +42,6 @@ export function CampaignCharts({ campaignData, performanceData, totalStats }: Ca
   const pieData = [
     { name: "Opened", value: totalStats.opened, color: PIE_COLORS[0] },
     { name: "Sent (not opened)", value: Math.max(0, totalStats.sent - totalStats.opened - totalStats.bounced), color: PIE_COLORS[1] },
-    { name: "Replied", value: totalStats.replied, color: PIE_COLORS[2] },
     { name: "Bounced", value: totalStats.bounced, color: PIE_COLORS[3] },
   ].filter(d => d.value > 0);
 
@@ -204,7 +203,7 @@ export function CampaignCharts({ campaignData, performanceData, totalStats }: Ca
                 <ChartTooltip content={<ChartTooltipContent />} />
                 <Bar dataKey="sent" fill={COLORS.info} radius={[0, 4, 4, 0]} />
                 <Bar dataKey="opened" fill={COLORS.success} radius={[0, 4, 4, 0]} />
-                <Bar dataKey="replies" fill={COLORS.warning} radius={[0, 4, 4, 0]} />
+                
               </BarChart>
             </ChartContainer>
           </CardContent>

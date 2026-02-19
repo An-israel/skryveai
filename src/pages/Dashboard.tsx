@@ -240,7 +240,6 @@ export default function Dashboard() {
     { label: "Total Campaigns", value: stats.totalCampaigns.toString(), icon: BarChart3, color: "text-primary" },
     { label: "Emails Sent", value: stats.totalEmailsSent.toString(), icon: Mail, color: "text-info" },
     { label: "Opens", value: `${stats.totalOpens} (${stats.openRate}%)`, icon: Eye, color: "text-success" },
-    { label: "Replies", value: `${stats.totalReplies} (${stats.replyRate}%)`, icon: MessageSquare, color: "text-warning" },
   ];
 
   const campaignChartData = campaigns.slice(0, 5).map(c => ({
@@ -342,7 +341,7 @@ export default function Dashboard() {
         </motion.div>
 
         {/* Stats Grid */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
           {statCards.map((stat, i) => (
             <motion.div
               key={stat.label}
@@ -480,7 +479,7 @@ export default function Dashboard() {
                               </Badge>
                             </div>
                             
-                            <div className="grid grid-cols-3 gap-4 text-sm mb-3">
+                            <div className="grid grid-cols-2 gap-4 text-sm mb-3">
                               <div>
                                 <div className="text-muted-foreground">Sent</div>
                                 <div className="font-medium flex items-center gap-1">
@@ -493,13 +492,6 @@ export default function Dashboard() {
                                 <div className="font-medium flex items-center gap-1">
                                   <Eye className="w-3 h-3" />
                                   {campaign.emails_opened}
-                                </div>
-                              </div>
-                              <div>
-                                <div className="text-muted-foreground">Replies</div>
-                                <div className="font-medium flex items-center gap-1">
-                                  <MessageSquare className="w-3 h-3" />
-                                  {campaign.replies}
                                 </div>
                               </div>
                             </div>
@@ -584,16 +576,9 @@ export default function Dashboard() {
                       </div>
                       <Progress value={stats.openRate} className="h-2" />
                     </div>
-                    <div>
-                      <div className="flex justify-between text-sm mb-1">
-                        <span className="text-muted-foreground">Reply Rate</span>
-                        <span className="font-medium">{stats.replyRate}%</span>
-                      </div>
-                      <Progress value={stats.replyRate} className="h-2" />
-                    </div>
                     <div className="pt-2 border-t">
                       <p className="text-xs text-muted-foreground">
-                        Industry average: 20-30% open rate, 1-5% reply rate
+                        Industry average: 20-30% open rate
                       </p>
                     </div>
                   </CardContent>
