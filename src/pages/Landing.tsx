@@ -99,7 +99,7 @@ export default function Landing() {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(orgSchema) }}
       />
-      <Header />
+      <Header isAuthenticated={false} />
       
       <HeroSection />
 
@@ -289,8 +289,8 @@ export default function Landing() {
               Join freelancers and startups using AI to find clients, pitch investors, and grow their business.
             </p>
             <Button variant="hero" size="xl" asChild>
-              <Link to="/signup">
-                Get Started Free
+              <Link to="/login">
+                Get Started
                 <ArrowRight className="w-5 h-5 ml-2" />
               </Link>
             </Button>
