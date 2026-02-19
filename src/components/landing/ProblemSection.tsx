@@ -36,10 +36,10 @@ export function ProblemSection() {
         >
           <p className="text-sm font-medium text-destructive uppercase tracking-wider mb-2">The Problem</p>
           <h2 className="text-3xl md:text-4xl font-bold mb-4">
-            Cold Outreach Was Never Built for You
+            Talented Freelancers Deserve Better Outreach
           </h2>
           <p className="text-muted-foreground max-w-xl mx-auto">
-            It was built for people who already had the network, the tools, and the team. Freelancers in Lagos, Accra, Lahore, and Manila were left guessing — until now.
+            Whether you're in New York, Lagos, Lahore, or Manila — skilled freelancers everywhere deserve tools that match their talent. Most outreach tools weren't built with you in mind. SkryveAI is.
           </p>
         </motion.div>
 

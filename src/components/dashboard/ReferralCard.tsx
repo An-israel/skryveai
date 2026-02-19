@@ -92,7 +92,7 @@ export function ReferralCard({ userId }: ReferralCardProps) {
             </Button>
           </div>
           <p className="text-xs text-muted-foreground mt-2">
-            Earn 40% commission for 6 months when your referrals subscribe!
+            Earn 20% commission when your referrals subscribe!
           </p>
         </div>
 
