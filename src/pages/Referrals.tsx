@@ -55,7 +55,7 @@ export default function Referrals() {
             <div>
               <h1 className="text-2xl font-bold">Refer & Earn</h1>
               <p className="text-sm text-muted-foreground">
-                Share your referral link and earn 20% commission on every subscription.
+                Share your referral link and earn 40% commission on every subscription for 6 months.
               </p>
             </div>
           </div>

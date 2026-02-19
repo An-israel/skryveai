@@ -27,22 +27,22 @@ export function HeroSection() {
 
           {/* Problem statement */}
           <p className="text-sm md:text-base text-primary-foreground/60 mb-4 uppercase tracking-wider font-medium">
-            Tired of cold outreach that gets ignored?
+            Cold outreach was never built for you. Until now.
           </p>
 
           <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-primary-foreground mb-6 leading-tight">
-            Find Clients. Audit Their Presence.{" "}
-            <span className="text-gradient">Send Pitches That Get Replies.</span>
+            Your Talent Was Never the Problem.{" "}
+            <span className="text-gradient">Now Your Pitch Won't Be Either.</span>
           </h1>
 
           <p className="text-lg md:text-xl text-primary-foreground/80 mb-4 max-w-2xl mx-auto">
-            SkryveAI scans websites, LinkedIn, Instagram & more to find exactly what prospects need — then writes hyper-personalized cold emails that convert.
+            SkryveAI automates the research, audit, and pitch — so every freelancer, anywhere in the world, can show up to the conversation already knowing the room.
           </p>
 
           {/* Benefit bullets */}
           <div className="flex flex-wrap justify-center gap-x-6 gap-y-2 text-sm text-primary-foreground/70 mb-8">
             <span>✓ No templates — every email is unique</span>
-            <span>✓ Works for freelancers & startups</span>
+            <span>✓ Built for freelancers & startups globally</span>
             <span>✓ Set up in under 5 minutes</span>
           </div>
 

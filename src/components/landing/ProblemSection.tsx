@@ -36,10 +36,10 @@ export function ProblemSection() {
         >
           <p className="text-sm font-medium text-destructive uppercase tracking-wider mb-2">The Problem</p>
           <h2 className="text-3xl md:text-4xl font-bold mb-4">
-            Cold Outreach Is Broken for Freelancers
+            Cold Outreach Was Never Built for You
           </h2>
           <p className="text-muted-foreground max-w-xl mx-auto">
-            Most freelancers spend more time finding and researching prospects than actually doing the work they love.
+            It was built for people who already had the network, the tools, and the team. Freelancers in Lagos, Accra, Lahore, and Manila were left guessing — until now.
           </p>
         </motion.div>
 

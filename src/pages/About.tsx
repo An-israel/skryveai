@@ -1,28 +1,33 @@
 import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
 import { motion } from "framer-motion";
-import { Target, Zap, Users, Shield, Globe, Sparkles } from "lucide-react";
+import { Globe, Sparkles, Zap, Heart, Users, Shield } from "lucide-react";
 
 const values = [
   {
-    icon: Target,
-    title: "Precision Outreach",
-    description: "We believe cold outreach should be targeted, personalized, and respectful — not spammy mass emails.",
+    icon: Globe,
+    title: "Democratization",
+    description: "Great tools shouldn't belong only to those with existing privilege. We build for the underdog.",
+  },
+  {
+    icon: Heart,
+    title: "Authenticity",
+    description: "We don't automate spam. We automate genuine understanding. Every pitch must feel real — because it is.",
   },
   {
     icon: Zap,
-    title: "AI-Powered Efficiency",
-    description: "Our AI handles the heavy lifting of research and writing so freelancers can focus on delivering great work.",
-  },
-  {
-    icon: Users,
-    title: "Built for Freelancers",
-    description: "Every feature is designed specifically for independent professionals who want to grow their client base.",
+    title: "Speed with Depth",
+    description: "Fast outreach without sacrifice in quality. Deep research, delivered instantly.",
   },
   {
     icon: Shield,
-    title: "Ethical & Compliant",
-    description: "All emails include unsubscribe links and follow anti-spam best practices. We prioritize deliverability.",
+    title: "Builder Culture",
+    description: "We are built by someone who lived the problem. That honesty runs through everything we make.",
+  },
+  {
+    icon: Users,
+    title: "Global by Default",
+    description: "Our default user is not in Silicon Valley. We think global from day one.",
   },
 ];
 
@@ -40,15 +45,16 @@ export default function About() {
             className="max-w-3xl mx-auto text-center"
           >
             <h1 className="text-4xl md:text-5xl font-bold text-primary-foreground mb-6">
-              About <span style={{ color: '#0B162B' }}>SkryveAI</span>
+              About <span className="text-gradient">SkryveAI</span>
             </h1>
-            <p className="text-lg text-primary-foreground/80 max-w-2xl mx-auto">
-              We're building the smartest cold outreach platform for freelancers, entrepreneurs, and startups who want to grow their business without the hustle of manual prospecting.
+            <p className="text-xl text-primary-foreground/80 max-w-2xl mx-auto font-medium">
+              Your talent was never the problem. Now your pitch won't be either.
             </p>
           </motion.div>
         </div>
       </section>
 
+      {/* Origin Story */}
       <section className="py-16">
         <div className="container mx-auto px-4 max-w-4xl">
           <motion.div
@@ -57,20 +63,73 @@ export default function About() {
             viewport={{ once: true }}
             className="space-y-6 text-lg text-muted-foreground"
           >
-            <h2 className="text-2xl font-bold text-foreground">Our Mission</h2>
+            <h2 className="text-2xl font-bold text-foreground">The Origin</h2>
             <p>
-              SkryveAI was born from a simple frustration: talented freelancers spend more time looking for clients than actually doing the work they love. Manual prospecting — searching for businesses, researching their pain points, crafting individual emails — eats up hours every week.
+              Somewhere right now, a brilliant freelancer is staring at an inbox full of silence. They sent 50 cold emails this week. Well-crafted, honest, genuine. They spent hours on each one — researching the company, understanding what they do, trying to make it feel real. And still — nothing.
             </p>
             <p>
-              We built SkryveAI to change that. Our AI-powered platform automates the entire cold outreach process: from discovering potential clients, to performing a deep audit of their website and social media presence, to generating highly personalized pitch emails that actually get responses.
+              The problem wasn't the skill. It was the system. Cold outreach was never built for the freelancer in Lagos, Accra, Lahore, or Manila. It was built for people who already had the network, the tools, the time, and the team to do the research at scale. Everyone else was left guessing.
             </p>
-            <p>
-              But we didn't stop at freelancers. SkryveAI also helps entrepreneurs and startups find investors in their industry, craft compelling pitch emails, and reach out at scale — making fundraising less daunting and more efficient.
+            <p className="text-foreground font-semibold text-xl">
+              SkryveAI was built to fix that.
             </p>
           </motion.div>
         </div>
       </section>
 
+      {/* The Insight */}
+      <section className="py-16 bg-gradient-subtle">
+        <div className="container mx-auto px-4 max-w-4xl">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            className="space-y-6 text-lg text-muted-foreground"
+          >
+            <h2 className="text-2xl font-bold text-foreground">The Insight</h2>
+            <p>
+              The freelancers landing clients consistently weren't more talented. They were better at showing up. They sent emails that proved they had done their homework — referencing a real problem the prospect had, showing they understood the business, making it impossible to ignore.
+            </p>
+            <p>
+              That kind of hyper-personalization used to take hours per prospect. Now it takes seconds. SkryveAI automates the research, the audit, and the pitch — so every freelancer can show up to the conversation already knowing the room.
+            </p>
+          </motion.div>
+        </div>
+      </section>
+
+      {/* Mission & Vision */}
+      <section className="py-16">
+        <div className="container mx-auto px-4 max-w-4xl">
+          <div className="grid md:grid-cols-2 gap-8">
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              className="p-6 rounded-2xl bg-card border"
+            >
+              <h2 className="text-2xl font-bold text-foreground mb-4">Our Mission</h2>
+              <p className="text-muted-foreground">
+                To make high-converting cold outreach accessible to every skilled freelancer and startup founder — regardless of where they are in the world — by automating the research, audit, and personalization that turns cold emails into real conversations.
+              </p>
+            </motion.div>
+
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ delay: 0.1 }}
+              className="p-6 rounded-2xl bg-card border"
+            >
+              <h2 className="text-2xl font-bold text-foreground mb-4">Our Vision</h2>
+              <p className="text-muted-foreground">
+                A world where talent alone is enough. Where a developer in Port Harcourt competes on equal footing with an agency in New York. Where the door to opportunity is open to everyone who has the skill to walk through it.
+              </p>
+            </motion.div>
+          </div>
+        </div>
+      </section>
+
+      {/* Core Values */}
       <section className="py-16 bg-gradient-subtle">
         <div className="container mx-auto px-4 max-w-4xl">
           <motion.div
@@ -79,10 +138,10 @@ export default function About() {
             viewport={{ once: true }}
             className="text-center mb-12"
           >
-            <h2 className="text-2xl font-bold mb-2">Our Values</h2>
+            <h2 className="text-2xl font-bold mb-2">Our Core Values</h2>
             <p className="text-muted-foreground">What drives every decision we make</p>
           </motion.div>
-          <div className="grid md:grid-cols-2 gap-6">
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
             {values.map((value, i) => (
               <motion.div
                 key={value.title}
@@ -103,32 +162,19 @@ export default function About() {
         </div>
       </section>
 
+      {/* Brand Truth */}
       <section className="py-16">
-        <div className="container mx-auto px-4 max-w-4xl">
+        <div className="container mx-auto px-4 max-w-3xl">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
-            className="space-y-6 text-lg text-muted-foreground"
+            className="text-center"
           >
-            <h2 className="text-2xl font-bold text-foreground">What Makes Us Different</h2>
-            <div className="grid md:grid-cols-3 gap-6">
-              <div className="text-center p-4">
-                <Globe className="w-8 h-8 mx-auto mb-3 text-primary" />
-                <h3 className="font-semibold mb-1 text-foreground">Full Online Audit</h3>
-                <p className="text-sm">We don't just check websites — we audit LinkedIn, Instagram, Facebook, and branding to find real pain points.</p>
-              </div>
-              <div className="text-center p-4">
-                <Sparkles className="w-8 h-8 mx-auto mb-3 text-primary" />
-                <h3 className="font-semibold mb-1 text-foreground">AI-Personalized Pitches</h3>
-                <p className="text-sm">Every email references specific issues we found — making them feel personal, not templated.</p>
-              </div>
-              <div className="text-center p-4">
-                <Zap className="w-8 h-8 mx-auto mb-3 text-primary" />
-                <h3 className="font-semibold mb-1 text-foreground">Smart Delivery</h3>
-                <p className="text-sm">Automated warmup, scheduling, and multi-channel delivery to maximize inbox placement.</p>
-              </div>
-            </div>
+            <Sparkles className="w-10 h-10 mx-auto mb-4 text-primary" />
+            <p className="text-xl md:text-2xl font-semibold text-foreground leading-relaxed">
+              SkryveAI is the great equalizer — giving every freelancer, anywhere in the world, the same unfair advantage that used to belong only to the few with access, connections, and resources.
+            </p>
           </motion.div>
         </div>
       </section>
