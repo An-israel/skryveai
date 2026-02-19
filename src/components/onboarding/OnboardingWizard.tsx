@@ -498,15 +498,15 @@ export function OnboardingWizard({ userId, userEmail, userName, onComplete }: On
 
                     {/* Video Guide */}
                     <div className="rounded-xl overflow-hidden border bg-muted/30">
-                      <video
-                        src="/email-connection-guide.mp4"
-                        controls
-                        className="w-full max-h-[180px] object-cover"
-                        poster=""
-                        preload="metadata"
-                      >
-                        Your browser does not support the video tag.
-                      </video>
+                      <div className="aspect-video">
+                        <iframe
+                          src="https://www.youtube.com/embed/aFY_xsuZTG4"
+                          title="How to connect your email"
+                          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                          allowFullScreen
+                          className="w-full h-full"
+                        />
+                      </div>
                       <p className="text-xs text-muted-foreground text-center py-1.5">📹 Watch: How to connect your email</p>
                     </div>
 
