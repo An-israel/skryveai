@@ -1,5 +1,3 @@
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
-
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
@@ -15,7 +13,7 @@ Deno.serve(async (req) => {
 
     const authHeader = req.headers.get("authorization");
     if (!authHeader?.startsWith("Bearer ")) {
-      console.error("Missing or invalid authorization header");
+      console.error("Missing auth header");
       return new Response(JSON.stringify({ error: "Unauthorized" }), {
         status: 401,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -23,9 +21,7 @@ Deno.serve(async (req) => {
     }
 
     const token = authHeader.replace("Bearer ", "");
-
     const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
-    const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY")!;
     const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
 
@@ -37,46 +33,47 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Verify user with explicit token
-    const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-      global: { headers: { Authorization: `Bearer ${token}` } },
+    // Verify user via Supabase REST API directly (no SDK import needed)
+    const userRes = await fetch(`${SUPABASE_URL}/auth/v1/user`, {
+      headers: {
+        "Authorization": `Bearer ${token}`,
+        "apikey": Deno.env.get("SUPABASE_ANON_KEY")!,
+      },
     });
 
-    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
-    
-    if (authError || !user) {
-      console.error("Auth error:", authError?.message || "No user");
+    if (!userRes.ok) {
+      const errText = await userRes.text();
+      console.error("Auth verification failed:", userRes.status, errText);
       return new Response(JSON.stringify({ error: "Unauthorized" }), {
         status: 401,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    console.log("Authenticated user:", user.id);
+    const user = await userRes.json();
+    const userId = user.id;
+    console.log("Authenticated user:", userId);
 
-    // Use service role for admin operations
-    const serviceClient = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+    // Check roles via REST API with service role key
+    const rolesRes = await fetch(
+      `${SUPABASE_URL}/rest/v1/user_roles?select=role&user_id=eq.${userId}`,
+      {
+        headers: {
+          "Authorization": `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+          "apikey": SUPABASE_SERVICE_ROLE_KEY,
+        },
+      }
+    );
 
-    // Check permissions
-    const { data: roles, error: rolesError } = await serviceClient
-      .from("user_roles")
-      .select("role")
-      .eq("user_id", user.id);
+    const roles = await rolesRes.json();
+    console.log("User roles:", JSON.stringify(roles));
 
-    if (rolesError) {
-      console.error("Roles query error:", rolesError.message);
-      return new Response(JSON.stringify({ error: "Failed to check permissions" }), {
-        status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
-    const hasPermission = roles?.some(r =>
+    const hasPermission = Array.isArray(roles) && roles.some((r: { role: string }) =>
       ["super_admin", "support_agent"].includes(r.role)
     );
 
     if (!hasPermission) {
-      console.error("User lacks permission. Roles:", roles);
+      console.error("User lacks permission");
       return new Response(JSON.stringify({ error: "Forbidden" }), {
         status: 403,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -93,14 +90,19 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Get sender profile name
-    const { data: senderProfile } = await serviceClient
-      .from("profiles")
-      .select("full_name")
-      .eq("user_id", user.id)
-      .single();
-
-    const senderName = senderProfile?.full_name || "SkryveAI Team";
+    // Get sender name
+    const profileRes = await fetch(
+      `${SUPABASE_URL}/rest/v1/profiles?select=full_name&user_id=eq.${userId}&limit=1`,
+      {
+        headers: {
+          "Authorization": `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+          "apikey": SUPABASE_SERVICE_ROLE_KEY,
+          "Accept": "application/json",
+        },
+      }
+    );
+    const profiles = await profileRes.json();
+    const senderName = profiles?.[0]?.full_name || "SkryveAI Team";
 
     // Build HTML email
     const htmlBody = `<!DOCTYPE html>
@@ -118,6 +120,7 @@ Deno.serve(async (req) => {
 
     console.log("Sending email to:", toEmail);
 
+    // Send via Resend API
     const resendResponse = await fetch("https://api.resend.com/emails", {
       method: "POST",
       headers: {
@@ -136,26 +139,35 @@ Deno.serve(async (req) => {
     console.log("Resend response:", resendResponse.status, resendResult);
 
     if (!resendResponse.ok) {
-      console.error("Resend API error:", resendResult);
       return new Response(JSON.stringify({ error: `Email service error: ${resendResult}` }), {
         status: 500,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    // Log the email in database
-    const { error: insertError } = await serviceClient.from("admin_emails").insert({
-      sent_by: user.id,
-      to_email: toEmail,
-      to_user_id: toUserId || null,
-      subject,
-      body,
-      template_type: templateType || null,
-      status: "sent",
+    // Log email in admin_emails table
+    const insertRes = await fetch(`${SUPABASE_URL}/rest/v1/admin_emails`, {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+        "apikey": SUPABASE_SERVICE_ROLE_KEY,
+        "Content-Type": "application/json",
+        "Prefer": "return=minimal",
+      },
+      body: JSON.stringify({
+        sent_by: userId,
+        to_email: toEmail,
+        to_user_id: toUserId || null,
+        subject,
+        body,
+        template_type: templateType || null,
+        status: "sent",
+      }),
     });
 
-    if (insertError) {
-      console.error("Failed to log email:", insertError.message);
+    if (!insertRes.ok) {
+      const insertErr = await insertRes.text();
+      console.error("Failed to log email:", insertErr);
     }
 
     console.log("Email sent successfully to", toEmail);
