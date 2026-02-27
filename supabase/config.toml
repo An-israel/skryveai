@@ -88,3 +88,6 @@ function = "process-followups"
 
 [functions.send-team-invite]
 verify_jwt = false
+
+[functions.send-admin-email]
+verify_jwt = false
