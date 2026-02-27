@@ -198,10 +198,13 @@ export default function Careers() {
                       </ul>
                     </div>
 
-                    <Button onClick={() => handleApply(role.title)} className="w-full sm:w-auto">
-                      <Send className="w-4 h-4 mr-2" />
-                      Apply for this Role
-                    </Button>
+                    <div className="pt-2 text-sm text-muted-foreground">
+                      <Send className="w-4 h-4 inline mr-2" />
+                      Email us your application letter and CV at{" "}
+                      <a href="mailto:skryveai@gmail.com" className="font-bold text-foreground underline">
+                        skryveai@gmail.com
+                      </a>
+                    </div>
                   </CardContent>
                 </Card>
               </motion.div>
