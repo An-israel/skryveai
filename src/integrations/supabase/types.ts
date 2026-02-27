@@ -47,6 +47,42 @@ export type Database = {
         }
         Relationships: []
       }
+      admin_emails: {
+        Row: {
+          body: string
+          created_at: string
+          id: string
+          sent_by: string
+          status: string
+          subject: string
+          template_type: string | null
+          to_email: string
+          to_user_id: string | null
+        }
+        Insert: {
+          body: string
+          created_at?: string
+          id?: string
+          sent_by: string
+          status?: string
+          subject: string
+          template_type?: string | null
+          to_email: string
+          to_user_id?: string | null
+        }
+        Update: {
+          body?: string
+          created_at?: string
+          id?: string
+          sent_by?: string
+          status?: string
+          subject?: string
+          template_type?: string | null
+          to_email?: string
+          to_user_id?: string | null
+        }
+        Relationships: []
+      }
       businesses: {
         Row: {
           address: string
@@ -776,6 +812,48 @@ export type Database = {
           provider_type?: string
           smtp_host?: string
           smtp_port?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      staff_reports: {
+        Row: {
+          blockers: string | null
+          created_at: string
+          highlights: string | null
+          id: string
+          metrics: Json
+          notes: string | null
+          report_period: string
+          report_type: string
+          role: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          blockers?: string | null
+          created_at?: string
+          highlights?: string | null
+          id?: string
+          metrics?: Json
+          notes?: string | null
+          report_period: string
+          report_type?: string
+          role: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          blockers?: string | null
+          created_at?: string
+          highlights?: string | null
+          id?: string
+          metrics?: Json
+          notes?: string | null
+          report_period?: string
+          report_type?: string
+          role?: string
           updated_at?: string
           user_id?: string
         }
