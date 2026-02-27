@@ -1,5 +1,4 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
-import { Resend } from "https://esm.sh/resend@2.0.0";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
 
 const corsHeaders = {
@@ -27,6 +26,7 @@ serve(async (req) => {
     const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
 
     if (!RESEND_API_KEY) {
+      console.error("RESEND_API_KEY not configured");
       throw new Error("RESEND_API_KEY not configured");
     }
 
@@ -78,8 +78,6 @@ serve(async (req) => {
 
     const senderName = senderProfile?.full_name || "SkryveAI Team";
 
-    const resend = new Resend(RESEND_API_KEY);
-
     // Build HTML email
     const htmlBody = `
       <!DOCTYPE html>
@@ -98,16 +96,27 @@ serve(async (req) => {
       </html>
     `;
 
-    const { error: sendError } = await resend.emails.send({
-      from: `SkryveAI <outreach@skryveai.com>`,
-      to: [toEmail],
-      subject,
-      html: htmlBody,
+    const resendResponse = await fetch("https://api.resend.com/emails", {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${RESEND_API_KEY}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        from: `SkryveAI <outreach@skryveai.com>`,
+        to: [toEmail],
+        subject,
+        html: htmlBody,
+      }),
     });
 
-    if (sendError) {
-      throw new Error(sendError.message || "Failed to send email");
+    if (!resendResponse.ok) {
+      const errBody = await resendResponse.text();
+      console.error("Resend API error:", errBody);
+      throw new Error(`Failed to send email: ${errBody}`);
     }
+
+    console.log("Email sent successfully to", toEmail);
 
     // Log the email
     await serviceClient.from("admin_emails").insert({
