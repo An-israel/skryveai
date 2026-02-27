@@ -103,8 +103,14 @@ export function SendUserEmailDialog({ open, onOpenChange, userEmail, userId, use
         },
       });
 
-      if (error) throw error;
-      if (data?.error) throw new Error(data.error);
+      if (error) {
+        console.error("Function invoke error:", error);
+        throw new Error(error.message || "Edge function error");
+      }
+      if (data?.error) {
+        console.error("Function returned error:", data.error);
+        throw new Error(data.error);
+      }
 
       toast({ title: "Email sent successfully!" });
       onOpenChange(false);
