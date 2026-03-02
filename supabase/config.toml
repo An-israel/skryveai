@@ -91,3 +91,10 @@ verify_jwt = false
 
 [functions.send-admin-email]
 verify_jwt = false
+
+[functions.process-confirmation-reminders]
+verify_jwt = false
+
+[crons.process-confirmation-reminders]
+schedule = "0 */2 * * *"
+function = "process-confirmation-reminders"

@@ -653,6 +653,7 @@ export type Database = {
         Row: {
           avatar_url: string | null
           bio: string | null
+          confirmation_reminder_sent: boolean | null
           country: string | null
           created_at: string
           cv_url: string | null
@@ -671,6 +672,7 @@ export type Database = {
         Insert: {
           avatar_url?: string | null
           bio?: string | null
+          confirmation_reminder_sent?: boolean | null
           country?: string | null
           created_at?: string
           cv_url?: string | null
@@ -689,6 +691,7 @@ export type Database = {
         Update: {
           avatar_url?: string | null
           bio?: string | null
+          confirmation_reminder_sent?: boolean | null
           country?: string | null
           created_at?: string
           cv_url?: string | null
@@ -766,6 +769,33 @@ export type Database = {
           id?: string
           ip_address?: string
           user_id?: string
+        }
+        Relationships: []
+      }
+      site_pages: {
+        Row: {
+          created_at: string
+          id: string
+          is_enabled: boolean
+          name: string
+          route: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_enabled?: boolean
+          name: string
+          route: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_enabled?: boolean
+          name?: string
+          route?: string
+          updated_at?: string
         }
         Relationships: []
       }
