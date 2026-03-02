@@ -84,6 +84,8 @@ export default function Admin() {
   const [isAdmin, setIsAdmin] = useState(false);
   const [userRole, setUserRole] = useState<string>("");
   const [searchQuery, setSearchQuery] = useState("");
+  const [verificationFilter, setVerificationFilter] = useState<"all" | "unverified" | "verified">("all");
+  const [checkingAll, setCheckingAll] = useState(false);
   const [showAddStaffDialog, setShowAddStaffDialog] = useState(false);
   const [newStaffEmail, setNewStaffEmail] = useState("");
   const [newStaffRole, setNewStaffRole] = useState<string>("");
@@ -338,10 +340,40 @@ export default function Admin() {
     }
   };
 
-  const filteredUsers = users.filter(user =>
-    user.full_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    user.email?.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const checkAllUsersAuth = async () => {
+    setCheckingAll(true);
+    try {
+      const uncheckedUsers = users.filter(u => !userAuthStatuses[u.user_id]);
+      for (let i = 0; i < uncheckedUsers.length; i += 5) {
+        const batch = uncheckedUsers.slice(i, i + 5);
+        await Promise.all(batch.map(async (user) => {
+          try {
+            const { data, error } = await supabase.functions.invoke("admin-user-auth-actions", {
+              body: { action: "get-auth-status", userId: user.user_id },
+            });
+            if (!error && data) {
+              setUserAuthStatuses(prev => ({ ...prev, [user.user_id]: data }));
+            }
+          } catch {}
+        }));
+      }
+      toast({ title: "All user statuses checked" });
+    } catch {
+      toast({ title: "Failed to check all users", variant: "destructive" });
+    } finally {
+      setCheckingAll(false);
+    }
+  };
+
+  const filteredUsers = users.filter(user => {
+    const matchesSearch = user.full_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      user.email?.toLowerCase().includes(searchQuery.toLowerCase());
+    if (!matchesSearch) return false;
+    if (verificationFilter === "all") return true;
+    const status = userAuthStatuses[user.user_id];
+    if (!status) return verificationFilter === "unverified"; // unchecked = show in unverified
+    return verificationFilter === "verified" ? status.confirmed : !status.confirmed;
+  });
 
   if (loading) {
     return (
@@ -533,20 +565,34 @@ export default function Admin() {
                         {userRole === "support_agent" ? "View users and send onboarding/follow-up emails" : "View and manage all users"}
                       </CardDescription>
                     </div>
-                    <div className="flex gap-2">
-                      <div className="relative flex-1 sm:flex-none">
-                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                        <Input
-                          placeholder="Search users..."
-                          value={searchQuery}
-                          onChange={(e) => setSearchQuery(e.target.value)}
-                          className="pl-9 w-full sm:w-64"
-                        />
-                      </div>
-                      <Button variant="outline" size="icon" onClick={() => loadData()}>
-                        <RefreshCw className="w-4 h-4" />
-                      </Button>
-                    </div>
+                     <div className="flex flex-wrap gap-2 items-center">
+                       <div className="relative flex-1 sm:flex-none">
+                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                         <Input
+                           placeholder="Search users..."
+                           value={searchQuery}
+                           onChange={(e) => setSearchQuery(e.target.value)}
+                           className="pl-9 w-full sm:w-56"
+                         />
+                       </div>
+                       <Select value={verificationFilter} onValueChange={(v: "all" | "unverified" | "verified") => setVerificationFilter(v)}>
+                         <SelectTrigger className="w-36">
+                           <SelectValue />
+                         </SelectTrigger>
+                         <SelectContent>
+                           <SelectItem value="all">All Users</SelectItem>
+                           <SelectItem value="unverified">Unverified</SelectItem>
+                           <SelectItem value="verified">Verified</SelectItem>
+                         </SelectContent>
+                       </Select>
+                       <Button variant="outline" size="sm" onClick={checkAllUsersAuth} disabled={checkingAll} className="gap-1.5">
+                         {checkingAll ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle className="w-4 h-4" />}
+                         Check All
+                       </Button>
+                       <Button variant="outline" size="icon" onClick={() => loadData()}>
+                         <RefreshCw className="w-4 h-4" />
+                       </Button>
+                     </div>
                   </div>
                 </CardHeader>
                 <CardContent>
