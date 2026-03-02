@@ -25,6 +25,7 @@ import { CreditManager } from "@/components/admin/CreditManager";
 import { ReferralManager } from "@/components/admin/ReferralManager";
 import { SendUserEmailDialog } from "@/components/admin/SendUserEmailDialog";
 import { StaffReports } from "@/components/admin/StaffReports";
+import { PageToggleManager } from "@/components/admin/PageToggleManager";
 
 interface AdminStats {
   totalUsers: number;
@@ -50,7 +51,7 @@ interface CMSPage {
 }
 
 // Role-based tab definitions
-type TabId = "users" | "campaigns" | "email-queue" | "pages" | "images" | "staff" | "activity" | "ip-addresses" | "credits" | "referrals" | "analytics" | "send-email" | "reports";
+type TabId = "users" | "campaigns" | "email-queue" | "pages" | "images" | "staff" | "activity" | "ip-addresses" | "credits" | "referrals" | "analytics" | "send-email" | "reports" | "page-toggle";
 
 const TAB_PERMISSIONS: Record<TabId, string[]> = {
   users: ["super_admin", "support_agent"],
@@ -66,6 +67,7 @@ const TAB_PERMISSIONS: Record<TabId, string[]> = {
   analytics: ["super_admin", "content_editor", "support_agent"],
   "send-email": ["super_admin", "support_agent"],
   reports: ["super_admin", "content_editor", "support_agent"],
+  "page-toggle": ["super_admin"],
 };
 
 export default function Admin() {
@@ -446,6 +448,7 @@ export default function Admin() {
                 analytics: <BarChart3 className="w-3.5 h-3.5 shrink-0" />,
                 "send-email": <MessageSquare className="w-3.5 h-3.5 shrink-0" />,
                 reports: <ClipboardList className="w-3.5 h-3.5 shrink-0" />,
+                "page-toggle": <Shield className="w-3.5 h-3.5 shrink-0" />,
               };
               const labels: Record<TabId, string> = {
                 users: "Users",
@@ -461,6 +464,7 @@ export default function Admin() {
                 analytics: "Analytics",
                 "send-email": "Email Users",
                 reports: "Reports",
+                "page-toggle": "Visibility",
               };
               return (
                 <TabsTrigger key={tab} value={tab} className="gap-1 text-xs sm:text-sm px-2 py-1.5">
@@ -936,6 +940,13 @@ export default function Admin() {
           {hasTabAccess("reports") && (
             <TabsContent value="reports">
               <StaffReports userRole={userRole} isSuperAdmin={isSuperAdmin} />
+            </TabsContent>
+          )}
+
+          {/* Page Toggle Tab */}
+          {hasTabAccess("page-toggle") && (
+            <TabsContent value="page-toggle">
+              <PageToggleManager />
             </TabsContent>
           )}
         </Tabs>

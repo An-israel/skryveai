@@ -3,6 +3,7 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { PageGuard } from "@/components/PageGuard";
 import Landing from "./pages/Landing";
 import Login from "./pages/Login";
 import Signup from "./pages/Signup";
@@ -26,6 +27,10 @@ import Careers from "./pages/Careers";
 
 const queryClient = new QueryClient();
 
+const GuardedRoute = ({ children }: { children: React.ReactNode }) => (
+  <PageGuard>{children}</PageGuard>
+);
+
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
@@ -33,25 +38,25 @@ const App = () => (
       <Sonner />
       <BrowserRouter>
         <Routes>
-          <Route path="/" element={<Landing />} />
-          <Route path="/login" element={<Login />} />
-          <Route path="/signup" element={<Signup />} />
-          <Route path="/dashboard" element={<Dashboard />} />
-          <Route path="/campaigns/new" element={<NewCampaign />} />
-          <Route path="/pricing" element={<Pricing />} />
+          <Route path="/" element={<GuardedRoute><Landing /></GuardedRoute>} />
+          <Route path="/login" element={<GuardedRoute><Login /></GuardedRoute>} />
+          <Route path="/signup" element={<GuardedRoute><Signup /></GuardedRoute>} />
+          <Route path="/dashboard" element={<GuardedRoute><Dashboard /></GuardedRoute>} />
+          <Route path="/campaigns/new" element={<GuardedRoute><NewCampaign /></GuardedRoute>} />
+          <Route path="/pricing" element={<GuardedRoute><Pricing /></GuardedRoute>} />
           <Route path="/payment/callback" element={<PaymentCallback />} />
           <Route path="/admin" element={<Admin />} />
-          <Route path="/forgot-password" element={<ForgotPassword />} />
-          <Route path="/reset-password" element={<ResetPassword />} />
-          <Route path="/settings" element={<Settings />} />
-          <Route path="/analytics" element={<Analytics />} />
-          <Route path="/privacy-policy" element={<PrivacyPolicy />} />
-          <Route path="/terms" element={<TermsOfService />} />
-          <Route path="/about" element={<About />} />
-          <Route path="/contact" element={<Contact />} />
-          <Route path="/team" element={<TeamManagement />} />
-          <Route path="/referrals" element={<Referrals />} />
-          <Route path="/careers" element={<Careers />} />
+          <Route path="/forgot-password" element={<GuardedRoute><ForgotPassword /></GuardedRoute>} />
+          <Route path="/reset-password" element={<GuardedRoute><ResetPassword /></GuardedRoute>} />
+          <Route path="/settings" element={<GuardedRoute><Settings /></GuardedRoute>} />
+          <Route path="/analytics" element={<GuardedRoute><Analytics /></GuardedRoute>} />
+          <Route path="/privacy-policy" element={<GuardedRoute><PrivacyPolicy /></GuardedRoute>} />
+          <Route path="/terms" element={<GuardedRoute><TermsOfService /></GuardedRoute>} />
+          <Route path="/about" element={<GuardedRoute><About /></GuardedRoute>} />
+          <Route path="/contact" element={<GuardedRoute><Contact /></GuardedRoute>} />
+          <Route path="/team" element={<GuardedRoute><TeamManagement /></GuardedRoute>} />
+          <Route path="/referrals" element={<GuardedRoute><Referrals /></GuardedRoute>} />
+          <Route path="/careers" element={<GuardedRoute><Careers /></GuardedRoute>} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>
