@@ -13,6 +13,7 @@ import {
   LayoutDashboard, Users, CreditCard, FileText, Image, UserCog, Activity,
   Loader2, Plus, Trash2, Edit, Search, Download, RefreshCw, BarChart3,
   Mail, Target, Send, Shield, Coins, Gift, MessageSquare, ClipboardList,
+  CheckCircle, XCircle, MailCheck, ShieldCheck,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -90,6 +91,8 @@ export default function Admin() {
   // Email dialog state
   const [showEmailDialog, setShowEmailDialog] = useState(false);
   const [emailTarget, setEmailTarget] = useState<{ email: string; userId?: string; name?: string }>({ email: "" });
+  const [userAuthStatuses, setUserAuthStatuses] = useState<Record<string, any>>({});
+  const [loadingAuthStatus, setLoadingAuthStatus] = useState<Record<string, boolean>>({});
   
   // CMS state
   const [showPageEditor, setShowPageEditor] = useState(false);
@@ -288,6 +291,50 @@ export default function Admin() {
       loadData();
     } catch {
       toast({ title: "Failed to delete image", variant: "destructive" });
+    }
+  };
+
+  const checkUserAuthStatus = async (userId: string) => {
+    setLoadingAuthStatus(prev => ({ ...prev, [userId]: true }));
+    try {
+      const { data, error } = await supabase.functions.invoke("admin-user-auth-actions", {
+        body: { action: "get-auth-status", userId },
+      });
+      if (error) throw error;
+      setUserAuthStatuses(prev => ({ ...prev, [userId]: data }));
+    } catch (error) {
+      console.error("Failed to check auth status:", error);
+      toast({ title: "Failed to check user status", variant: "destructive" });
+    } finally {
+      setLoadingAuthStatus(prev => ({ ...prev, [userId]: false }));
+    }
+  };
+
+  const resendConfirmation = async (userId: string) => {
+    try {
+      const { data, error } = await supabase.functions.invoke("admin-user-auth-actions", {
+        body: { action: "resend-confirmation", userId },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      toast({ title: "Confirmation email resent successfully" });
+    } catch (error) {
+      toast({ title: error instanceof Error ? error.message : "Failed to resend", variant: "destructive" });
+    }
+  };
+
+  const forceConfirmUser = async (userId: string) => {
+    if (!confirm("Force confirm this user's email? They will be able to sign in immediately.")) return;
+    try {
+      const { data, error } = await supabase.functions.invoke("admin-user-auth-actions", {
+        body: { action: "force-confirm", userId },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      toast({ title: "User email confirmed manually" });
+      setUserAuthStatuses(prev => ({ ...prev, [userId]: { ...prev[userId], confirmed: true } }));
+    } catch (error) {
+      toast({ title: error instanceof Error ? error.message : "Failed to confirm", variant: "destructive" });
     }
   };
 
@@ -508,36 +555,73 @@ export default function Admin() {
                       <TableRow>
                         <TableHead>Name</TableHead>
                         <TableHead>Email</TableHead>
-                        <TableHead>Expertise</TableHead>
+                        <TableHead>Verified</TableHead>
                         <TableHead>Subscription</TableHead>
                         <TableHead>Joined</TableHead>
                         <TableHead>Actions</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {filteredUsers.map((user) => (
+                      {filteredUsers.map((user) => {
+                        const authStatus = userAuthStatuses[user.user_id];
+                        const isLoadingAuth = loadingAuthStatus[user.user_id];
+                        return (
                         <TableRow key={user.id}>
                           <TableCell className="font-medium">{user.full_name}</TableCell>
-                          <TableCell>{user.email}</TableCell>
+                          <TableCell className="text-xs">{user.email}</TableCell>
                           <TableCell>
-                            <div className="flex flex-wrap gap-1">
-                              {(user.expertise || []).slice(0, 2).map((skill: string) => (
-                                <Badge key={skill} variant="outline" className="text-xs">{skill}</Badge>
-                              ))}
-                              {(user.expertise?.length || 0) > 2 && (
-                                <Badge variant="outline" className="text-xs">+{user.expertise.length - 2}</Badge>
-                              )}
-                            </div>
+                            {isLoadingAuth ? (
+                              <Loader2 className="w-4 h-4 animate-spin" />
+                            ) : authStatus ? (
+                              <div className="flex flex-col gap-1">
+                                {authStatus.confirmed ? (
+                                  <Badge variant="default" className="text-xs gap-1 w-fit"><CheckCircle className="w-3 h-3" /> Verified</Badge>
+                                ) : (
+                                  <Badge variant="destructive" className="text-xs gap-1 w-fit"><XCircle className="w-3 h-3" /> Unverified</Badge>
+                                )}
+                                {authStatus.has_signed_in ? (
+                                  <span className="text-xs text-muted-foreground">Last login: {new Date(authStatus.last_sign_in_at).toLocaleDateString()}</span>
+                                ) : (
+                                  <span className="text-xs text-warning">Never signed in</span>
+                                )}
+                              </div>
+                            ) : (
+                              <Button variant="ghost" size="sm" className="text-xs h-7" onClick={() => checkUserAuthStatus(user.user_id)}>
+                                Check
+                              </Button>
+                            )}
                           </TableCell>
                           <TableCell>
                             <Badge variant={user.subscriptions?.status === "active" ? "default" : "secondary"}>
                               {user.subscriptions?.status || "none"}
                             </Badge>
                           </TableCell>
-                          <TableCell>{new Date(user.created_at).toLocaleDateString()}</TableCell>
+                          <TableCell className="text-xs">{new Date(user.created_at).toLocaleDateString()}</TableCell>
                           <TableCell>
                             <div className="flex gap-1">
-                              {/* Email button - visible to support_agent and super_admin */}
+                              {/* Resend confirmation - show if user is unverified */}
+                              {authStatus && !authStatus.confirmed && (
+                                <>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    title="Resend confirmation email"
+                                    onClick={() => resendConfirmation(user.user_id)}
+                                  >
+                                    <MailCheck className="w-4 h-4 text-warning" />
+                                  </Button>
+                                  {isSuperAdmin && (
+                                    <Button
+                                      variant="ghost"
+                                      size="icon"
+                                      title="Force confirm email"
+                                      onClick={() => forceConfirmUser(user.user_id)}
+                                    >
+                                      <ShieldCheck className="w-4 h-4 text-green-600" />
+                                    </Button>
+                                  )}
+                                </>
+                              )}
                               <Button
                                 variant="ghost"
                                 size="icon"
@@ -560,7 +644,8 @@ export default function Admin() {
                             </div>
                           </TableCell>
                         </TableRow>
-                      ))}
+                        );
+                      })}
                     </TableBody>
                   </Table>
                 </CardContent>
