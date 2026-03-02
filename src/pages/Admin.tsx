@@ -165,9 +165,20 @@ export default function Admin() {
       if (["super_admin", "support_agent"].includes(currentRole)) {
         const { data: usersData } = await supabase
           .from("profiles")
-          .select("*, subscriptions(*)")
+          .select("*")
           .order("created_at", { ascending: false });
-        setUsers(usersData || []);
+        
+        // Fetch subscriptions separately (no FK between profiles and subscriptions)
+        const { data: subsData } = await supabase
+          .from("subscriptions")
+          .select("*");
+        
+        const subsMap = new Map((subsData || []).map(s => [s.user_id, s]));
+        const usersWithSubs = (usersData || []).map(u => ({
+          ...u,
+          subscriptions: subsMap.get(u.user_id) || null,
+        }));
+        setUsers(usersWithSubs);
       }
 
       // Fetch campaigns (super_admin only)
