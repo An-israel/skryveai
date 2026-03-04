@@ -134,7 +134,7 @@ export function Footer() {
         {/* Bottom Bar */}
         <div className="mt-12 pt-8 border-t flex flex-col sm:flex-row items-center justify-between gap-4">
           <p className="text-sm text-muted-foreground">
-            © {new Date().getFullYear()} SkryveAI. All rights reserved.
+            © 2026 SkryveAI Limited. All rights reserved. RC: Y9388330
           </p>
           <div className="flex items-center gap-6">
             <Link to="/login" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
