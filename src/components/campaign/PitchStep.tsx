@@ -13,7 +13,8 @@ import {
   RotateCcw,
   Sparkles,
   Mail,
-  Building2
+  Building2,
+  AlertTriangle
 } from "lucide-react";
 import type { Business, GeneratedPitch } from "@/types/campaign";
 
