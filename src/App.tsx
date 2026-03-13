@@ -59,6 +59,8 @@ const App = () => (
           <Route path="/team" element={<GuardedRoute><TeamManagement /></GuardedRoute>} />
           <Route path="/referrals" element={<GuardedRoute><Referrals /></GuardedRoute>} />
           <Route path="/careers" element={<GuardedRoute><Careers /></GuardedRoute>} />
+          <Route path="/cv-builder" element={<GuardedRoute><CVBuilder /></GuardedRoute>} />
+          <Route path="/ats-checker" element={<GuardedRoute><ATSChecker /></GuardedRoute>} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>

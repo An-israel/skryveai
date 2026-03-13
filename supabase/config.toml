@@ -104,3 +104,12 @@ verify_jwt = false
 
 [functions.generate-job-application]
 verify_jwt = false
+
+[functions.build-cv]
+verify_jwt = false
+
+[functions.check-ats-score]
+verify_jwt = false
+
+[functions.generate-linkedin-guide]
+verify_jwt = false
