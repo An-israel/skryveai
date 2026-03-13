@@ -261,6 +261,12 @@ export default function NewCampaign() {
   const handleSelect = async (selected: Business[]) => {
     setSelectedBusinesses(selected);
     
+    // Job application flow: generate applications for selected jobs
+    if (campaignType === "job_application") {
+      // This shouldn't be called for job flow - job flow uses handleJobSelect
+      return;
+    }
+    
     // Investor flow: skip analyze, generate pitches directly
     if (campaignType === "investor") {
       setCompletedSteps([...completedSteps, 'select']);
