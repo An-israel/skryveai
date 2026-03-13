@@ -406,6 +406,35 @@ export default function NewCampaign() {
     setPitches(prev => ({ ...prev, [businessId]: pitch }));
   };
 
+  const handleUpdateBusinessEmail = (businessId: string, email: string, emailVerified?: boolean) => {
+    const normalizedEmail = email.trim().toLowerCase();
+
+    setSelectedBusinesses((prev) =>
+      prev.map((business) =>
+        business.id === businessId
+          ? {
+              ...business,
+              email: normalizedEmail || undefined,
+              emailVerified: normalizedEmail ? (emailVerified ?? false) : false,
+            }
+          : business
+      )
+    );
+
+    setJobApplications((prev) => {
+      const existing = prev[businessId];
+      if (!existing) return prev;
+
+      return {
+        ...prev,
+        [businessId]: {
+          ...existing,
+          extractedEmail: normalizedEmail || null,
+        },
+      };
+    });
+  };
+
   const handleRegeneratePitch = async (businessId: string) => {
     const business = selectedBusinesses.find((b) => b.id === businessId);
     const analysis = analyses[businessId];
