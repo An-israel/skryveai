@@ -132,7 +132,14 @@ serve(async (req) => {
               const lower = e.toLowerCase();
               return !lower.includes("noreply") && !lower.includes("no-reply") && 
                      !lower.includes("example.com") && !lower.includes("support@") &&
-                     !lower.includes("donotreply") && !lower.endsWith(".png") && !lower.endsWith(".jpg");
+                     !lower.includes("donotreply") && !lower.endsWith(".png") && !lower.endsWith(".jpg") &&
+                     !lower.includes("careerguide@") && !lower.includes("@indeed.com") &&
+                     !lower.includes("@linkedin.com") && !lower.includes("@glassdoor.com") &&
+                     !lower.includes("@wellfound.com") && !lower.includes("@dice.com") &&
+                     !lower.includes("@ziprecruiter.com") && !lower.includes("@weworkremotely.com") &&
+                     !lower.includes("@remote.co") && !lower.includes("privacy@") &&
+                     !lower.includes("info@indeed") && !lower.includes("feedback@") &&
+                     !lower.includes("terms@") && !lower.includes("legal@");
             });
             if (filteredEmails.length > 0) {
               const priorityEmail = filteredEmails.find((e: string) => {
