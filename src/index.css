@@ -2,9 +2,9 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Outreach Pro Design System - Professional SaaS with Trust-Building Aesthetics */
+/* SkryveAI Design System — Series A Aesthetic */
 
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500&family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap');
 
 @layer base {
   :root {
@@ -21,6 +21,7 @@
     /* Primary - Professional teal */
     --primary: 173 58% 39%;
     --primary-foreground: 0 0% 100%;
+    --primary-glow: 173 80% 50%;
 
     /* Secondary - Soft slate */
     --secondary: 214 32% 91%;
@@ -44,24 +45,28 @@
     --info: 199 89% 48%;
     --info-foreground: 0 0% 100%;
 
-    --border: 214 32% 91%;
+    --border: 220 13% 91%;
+    --border-subtle: 220 13% 95%;
     --input: 214 32% 91%;
     --ring: 173 58% 39%;
 
     --radius: 0.75rem;
 
     /* Custom gradients */
-    --gradient-hero: linear-gradient(135deg, hsl(222 47% 11%) 0%, hsl(217 33% 17%) 50%, hsl(173 58% 39%) 100%);
+    --gradient-hero: linear-gradient(145deg, hsl(222 47% 8%) 0%, hsl(220 40% 13%) 40%, hsl(200 50% 15%) 70%, hsl(173 40% 20%) 100%);
     --gradient-card: linear-gradient(180deg, hsl(0 0% 100%) 0%, hsl(210 40% 98%) 100%);
-    --gradient-accent: linear-gradient(135deg, hsl(173 58% 39%) 0%, hsl(173 80% 40%) 100%);
-    --gradient-subtle: linear-gradient(135deg, hsl(210 40% 98%) 0%, hsl(214 32% 95%) 100%);
+    --gradient-accent: linear-gradient(135deg, hsl(173 58% 39%) 0%, hsl(173 80% 45%) 100%);
+    --gradient-subtle: linear-gradient(180deg, hsl(210 25% 97%) 0%, hsl(210 20% 98%) 100%);
+    --gradient-stat: linear-gradient(135deg, hsl(210 40% 98%) 0%, hsl(210 30% 96%) 100%);
 
-    /* Shadows */
-    --shadow-sm: 0 1px 2px 0 hsl(222 47% 11% / 0.05);
-    --shadow-md: 0 4px 6px -1px hsl(222 47% 11% / 0.1), 0 2px 4px -2px hsl(222 47% 11% / 0.1);
-    --shadow-lg: 0 10px 15px -3px hsl(222 47% 11% / 0.1), 0 4px 6px -4px hsl(222 47% 11% / 0.1);
-    --shadow-xl: 0 20px 25px -5px hsl(222 47% 11% / 0.1), 0 8px 10px -6px hsl(222 47% 11% / 0.1);
-    --shadow-glow: 0 0 40px -10px hsl(173 58% 39% / 0.4);
+    /* Shadows - Refined, layered */
+    --shadow-xs: 0 1px 2px 0 hsl(222 47% 11% / 0.03);
+    --shadow-sm: 0 1px 3px 0 hsl(222 47% 11% / 0.04), 0 1px 2px -1px hsl(222 47% 11% / 0.04);
+    --shadow-md: 0 4px 6px -1px hsl(222 47% 11% / 0.06), 0 2px 4px -2px hsl(222 47% 11% / 0.04);
+    --shadow-lg: 0 10px 20px -4px hsl(222 47% 11% / 0.08), 0 4px 6px -4px hsl(222 47% 11% / 0.04);
+    --shadow-xl: 0 20px 40px -8px hsl(222 47% 11% / 0.1), 0 8px 16px -6px hsl(222 47% 11% / 0.04);
+    --shadow-glow: 0 0 40px -10px hsl(173 58% 39% / 0.35);
+    --shadow-glow-lg: 0 0 60px -10px hsl(173 58% 39% / 0.25), 0 0 20px -5px hsl(173 58% 39% / 0.15);
 
     --sidebar-background: 0 0% 98%;
     --sidebar-foreground: 240 5.3% 26.1%;
@@ -72,7 +77,6 @@
     --sidebar-border: 220 13% 91%;
     --sidebar-ring: 173 58% 39%;
   }
-
 }
 
 @layer base {
@@ -86,6 +90,12 @@
 
   body {
     @apply bg-background text-foreground font-sans antialiased;
+  }
+
+  /* Premium heading defaults */
+  h1, h2, h3 {
+    font-family: 'Plus Jakarta Sans', 'Inter', system-ui, sans-serif;
+    letter-spacing: -0.025em;
   }
 }
 
@@ -111,8 +121,16 @@
     background: var(--gradient-subtle);
   }
 
+  .bg-gradient-stat {
+    background: var(--gradient-stat);
+  }
+
   .shadow-glow {
     box-shadow: var(--shadow-glow);
+  }
+
+  .shadow-glow-lg {
+    box-shadow: var(--shadow-glow-lg);
   }
 
   .animate-float {
@@ -128,11 +146,41 @@
     50% { transform: translateY(-10px); }
   }
 
+  @keyframes orb-drift {
+    0%, 100% { transform: translate(0, 0) scale(1); }
+    25% { transform: translate(30px, -20px) scale(1.05); }
+    50% { transform: translate(-10px, 20px) scale(0.95); }
+    75% { transform: translate(-30px, -10px) scale(1.02); }
+  }
+
+  .animate-orb {
+    animation: orb-drift 20s ease-in-out infinite;
+  }
+
   .glass {
     @apply bg-white/80 backdrop-blur-xl border border-white/20;
   }
 
   .dark .glass {
     @apply bg-black/40 backdrop-blur-xl border border-white/10;
+  }
+
+  /* Grain texture overlay */
+  .grain::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.03'/%3E%3C/svg%3E");
+    pointer-events: none;
+    z-index: 1;
+  }
+
+  /* Premium card hover */
+  .card-hover {
+    @apply transition-all duration-300;
+  }
+  .card-hover:hover {
+    box-shadow: var(--shadow-lg);
+    transform: translateY(-2px);
   }
 }

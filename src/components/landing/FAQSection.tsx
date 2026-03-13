@@ -37,7 +37,6 @@ const faqs = [
   },
 ];
 
-// JSON-LD FAQ Schema for SEO
 const faqSchema = {
   "@context": "https://schema.org",
   "@type": "FAQPage",
@@ -53,7 +52,7 @@ const faqSchema = {
 
 export function FAQSection() {
   return (
-    <section className="py-20">
+    <section className="py-24">
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }}
@@ -63,10 +62,10 @@ export function FAQSection() {
           initial={{ opacity: 0 }}
           whileInView={{ opacity: 1 }}
           viewport={{ once: true }}
-          className="text-center mb-12"
+          className="text-center mb-16"
         >
-          <h2 className="text-3xl md:text-4xl font-bold mb-4">Frequently Asked Questions</h2>
-          <p className="text-muted-foreground max-w-xl mx-auto">
+          <h2 className="font-display text-3xl md:text-4xl lg:text-5xl font-extrabold mb-5 tracking-tight">Frequently Asked Questions</h2>
+          <p className="text-muted-foreground max-w-xl mx-auto leading-relaxed">
             Everything you need to know about SkryveAI.
           </p>
         </motion.div>
@@ -77,13 +76,13 @@ export function FAQSection() {
           viewport={{ once: true }}
           className="max-w-2xl mx-auto"
         >
-          <Accordion type="single" collapsible className="w-full">
+          <Accordion type="single" collapsible className="w-full space-y-2">
             {faqs.map((faq, i) => (
-              <AccordionItem key={i} value={`faq-${i}`}>
-                <AccordionTrigger className="text-left text-sm font-medium">
+              <AccordionItem key={i} value={`faq-${i}`} className="border border-border-subtle rounded-xl px-5 data-[state=open]:shadow-sm transition-shadow">
+                <AccordionTrigger className="text-left text-sm font-semibold hover:no-underline py-4">
                   {faq.q}
                 </AccordionTrigger>
-                <AccordionContent className="text-sm text-muted-foreground">
+                <AccordionContent className="text-sm text-muted-foreground leading-relaxed pb-4">
                   {faq.a}
                 </AccordionContent>
               </AccordionItem>
