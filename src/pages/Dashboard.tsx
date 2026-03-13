@@ -336,7 +336,6 @@ export default function Dashboard() {
                 </div>
                 <p className="font-medium text-sm">CV Builder</p>
                 <p className="text-xs text-muted-foreground">Build or optimize</p>
-                <Badge variant="secondary" className="mt-1 text-[10px]">FREE</Badge>
               </CardContent>
             </Card>
             <Card className="hover:border-primary/50 transition-colors cursor-pointer group" onClick={() => navigate("/ats-checker")}>
@@ -346,7 +345,6 @@ export default function Dashboard() {
                 </div>
                 <p className="font-medium text-sm">ATS Checker</p>
                 <p className="text-xs text-muted-foreground">Instant score</p>
-                <Badge variant="secondary" className="mt-1 text-[10px]">FREE</Badge>
               </CardContent>
             </Card>
             <Card className="hover:border-primary/50 transition-colors cursor-pointer group" onClick={() => navigate("/campaigns/new")}>
@@ -356,7 +354,6 @@ export default function Dashboard() {
                 </div>
                 <p className="font-medium text-sm">Job Search</p>
                 <p className="text-xs text-muted-foreground">Find & apply to 50</p>
-                <Badge variant="secondary" className="mt-1 text-[10px]">FREE + PAID</Badge>
               </CardContent>
             </Card>
             <Card className="hover:border-primary/50 transition-colors cursor-pointer group" onClick={() => navigate("/campaigns/new")}>
@@ -366,7 +363,6 @@ export default function Dashboard() {
                 </div>
                 <p className="font-medium text-sm">Outreach</p>
                 <p className="text-xs text-muted-foreground">Find clients</p>
-                <Badge variant="secondary" className="mt-1 text-[10px]">PAID</Badge>
               </CardContent>
             </Card>
           </div>
