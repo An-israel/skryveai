@@ -406,6 +406,35 @@ export default function NewCampaign() {
     setPitches(prev => ({ ...prev, [businessId]: pitch }));
   };
 
+  const handleUpdateBusinessEmail = (businessId: string, email: string, emailVerified?: boolean) => {
+    const normalizedEmail = email.trim().toLowerCase();
+
+    setSelectedBusinesses((prev) =>
+      prev.map((business) =>
+        business.id === businessId
+          ? {
+              ...business,
+              email: normalizedEmail || undefined,
+              emailVerified: normalizedEmail ? (emailVerified ?? false) : false,
+            }
+          : business
+      )
+    );
+
+    setJobApplications((prev) => {
+      const existing = prev[businessId];
+      if (!existing) return prev;
+
+      return {
+        ...prev,
+        [businessId]: {
+          ...existing,
+          extractedEmail: normalizedEmail || null,
+        },
+      };
+    });
+  };
+
   const handleRegeneratePitch = async (businessId: string) => {
     const business = selectedBusinesses.find((b) => b.id === businessId);
     const analysis = analyses[businessId];
@@ -672,6 +701,7 @@ export default function NewCampaign() {
             address: job.location,
             website: job.url,
             email,
+            emailVerified: Boolean(appResult?.emailVerified),
             category: job.platform,
             selected: true,
           };
@@ -970,7 +1000,9 @@ export default function NewCampaign() {
                 businesses={selectedBusinesses}
                 pitches={pitches}
                 isGenerating={isLoading}
+                requireRecipientEmail={campaignType === "job_application"}
                 onUpdatePitch={handleUpdatePitch}
+                onUpdateBusinessEmail={handleUpdateBusinessEmail}
                 onRegeneratePitch={handleRegeneratePitch}
                 onContinue={handlePitchContinue}
                 onBack={() => setCurrentStep(campaignType === "investor" || campaignType === "job_application" ? 'select' : 'analyze')}

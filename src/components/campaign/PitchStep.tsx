@@ -5,24 +5,71 @@ import { Card } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { 
-  ArrowLeft, 
-  ArrowRight, 
-  Check, 
-  Edit3, 
+import {
+  ArrowLeft,
+  ArrowRight,
+  Check,
+  Edit3,
   RotateCcw,
   Sparkles,
   Mail,
   Building2,
-  AlertTriangle
+  AlertTriangle,
+  ShieldCheck,
 } from "lucide-react";
 import type { Business, GeneratedPitch } from "@/types/campaign";
+
+const BLOCKED_RECIPIENT_DOMAINS = new Set([
+  "booksrus.com",
+  "example.com",
+  "test.com",
+  "sample.com",
+  "indeed.com",
+  "linkedin.com",
+  "glassdoor.com",
+  "wellfound.com",
+  "lever.co",
+  "greenhouse.io",
+  "workday.com",
+  "icims.com",
+  "taleo.net",
+  "smartrecruiters.com",
+]);
+
+const getEmailValidationError = (email: string, required: boolean): string | null => {
+  const trimmed = email.trim().toLowerCase();
+
+  if (!trimmed) {
+    return required ? "Recipient email is required before sending." : null;
+  }
+
+  if (!/^[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}$/.test(trimmed)) {
+    return "Enter a valid email address.";
+  }
+
+  const domain = trimmed.split("@")[1];
+  if (!domain) {
+    return "Enter a valid email address.";
+  }
+
+  if (BLOCKED_RECIPIENT_DOMAINS.has(domain)) {
+    return "This domain is blocked. Use a direct company email.";
+  }
+
+  if (/\.(png|jpg|jpeg|gif|svg|webp|ico|pdf|css|js)$/i.test(domain)) {
+    return "This doesn't look like a valid email domain.";
+  }
+
+  return null;
+};
 
 interface PitchStepProps {
   businesses: Business[];
   pitches: Record<string, GeneratedPitch>;
   isGenerating: boolean;
+  requireRecipientEmail?: boolean;
   onUpdatePitch: (businessId: string, pitch: GeneratedPitch) => void;
+  onUpdateBusinessEmail: (businessId: string, email: string, emailVerified?: boolean) => void;
   onRegeneratePitch: (businessId: string) => void;
   onContinue: () => void;
   onBack: () => void;
@@ -32,14 +79,18 @@ export function PitchStep({
   businesses,
   pitches,
   isGenerating,
+  requireRecipientEmail = false,
   onUpdatePitch,
+  onUpdateBusinessEmail,
   onRegeneratePitch,
   onContinue,
   onBack,
 }: PitchStepProps) {
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [editedEmail, setEditedEmail] = useState("");
   const [editedSubject, setEditedSubject] = useState("");
   const [editedBody, setEditedBody] = useState("");
+  const [emailError, setEmailError] = useState<string | null>(null);
 
   const approvedCount = Object.values(pitches).filter((p) => p.approved).length;
 
@@ -47,13 +98,26 @@ export function PitchStep({
     const pitch = pitches[business.id];
     if (pitch) {
       setEditingId(business.id);
+      setEditedEmail((business.email || "").toLowerCase());
       setEditedSubject(pitch.subject);
       setEditedBody(pitch.body);
+      setEmailError(null);
     }
   };
 
   const saveEdit = (businessId: string) => {
     const pitch = pitches[businessId];
+    const normalizedEmail = editedEmail.trim().toLowerCase();
+    const validationError = getEmailValidationError(normalizedEmail, requireRecipientEmail);
+
+    if (validationError) {
+      setEmailError(validationError);
+      return;
+    }
+
+    const existingBusiness = businesses.find((item) => item.id === businessId);
+    const emailChanged = (existingBusiness?.email || "").trim().toLowerCase() !== normalizedEmail;
+
     if (pitch) {
       onUpdatePitch(businessId, {
         ...pitch,
@@ -62,6 +126,9 @@ export function PitchStep({
         edited: true,
       });
     }
+
+    onUpdateBusinessEmail(businessId, normalizedEmail, emailChanged ? false : existingBusiness?.emailVerified);
+    setEmailError(null);
     setEditingId(null);
   };
 
@@ -137,15 +204,15 @@ export function PitchStep({
                         <h3 className="font-semibold">{business.name}</h3>
                         <div className="flex items-center gap-2 text-sm text-muted-foreground">
                           <Mail className="w-3.5 h-3.5" />
-                          {business.email || "Email will be extracted"}
+                          {business.email || "Email not set"}
                           {business.email && (
-                            (business as any).emailVerified ? (
-                              <span className="inline-flex items-center gap-0.5 text-xs text-green-600" title="MX-verified domain">
-                                <Check className="w-3 h-3" />
+                            business.emailVerified ? (
+                              <span className="inline-flex items-center gap-0.5 text-xs text-success" title="MX-verified domain">
+                                <ShieldCheck className="w-3 h-3" />
                                 Verified
                               </span>
                             ) : (
-                              <span className="inline-flex items-center gap-0.5 text-xs text-yellow-600" title="Domain not MX-verified">
+                              <span className="inline-flex items-center gap-0.5 text-xs text-warning" title="Domain not MX-verified">
                                 <AlertTriangle className="w-3 h-3" />
                                 Unverified
                               </span>
@@ -172,6 +239,26 @@ export function PitchStep({
                   {isEditing ? (
                     <div className="space-y-4">
                       <div>
+                        <label className="text-sm font-medium mb-1.5 block">Recipient Email</label>
+                        <Input
+                          type="email"
+                          value={editedEmail}
+                          onChange={(e) => {
+                            const nextEmail = e.target.value;
+                            setEditedEmail(nextEmail);
+                            setEmailError(getEmailValidationError(nextEmail, requireRecipientEmail));
+                          }}
+                          placeholder="hiring@company.com"
+                        />
+                        {emailError ? (
+                          <p className="text-xs text-destructive mt-1">{emailError}</p>
+                        ) : (
+                          <p className="text-xs text-muted-foreground mt-1">
+                            You can manually override the scraped recipient before sending.
+                          </p>
+                        )}
+                      </div>
+                      <div>
                         <label className="text-sm font-medium mb-1.5 block">Subject</label>
                         <Input
                           value={editedSubject}
@@ -190,13 +277,20 @@ export function PitchStep({
                         />
                       </div>
                       <div className="flex gap-2">
-                        <Button size="sm" onClick={() => saveEdit(business.id)}>
+                        <Button
+                          size="sm"
+                          onClick={() => saveEdit(business.id)}
+                          disabled={Boolean(getEmailValidationError(editedEmail, requireRecipientEmail))}
+                        >
                           Save Changes
                         </Button>
                         <Button
                           size="sm"
                           variant="outline"
-                          onClick={() => setEditingId(null)}
+                          onClick={() => {
+                            setEditingId(null);
+                            setEmailError(null);
+                          }}
                         >
                           Cancel
                         </Button>
