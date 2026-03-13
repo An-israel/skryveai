@@ -138,6 +138,19 @@ export function PitchStep({
                         <div className="flex items-center gap-2 text-sm text-muted-foreground">
                           <Mail className="w-3.5 h-3.5" />
                           {business.email || "Email will be extracted"}
+                          {business.email && (
+                            (business as any).emailVerified ? (
+                              <span className="inline-flex items-center gap-0.5 text-xs text-green-600" title="MX-verified domain">
+                                <Check className="w-3 h-3" />
+                                Verified
+                              </span>
+                            ) : (
+                              <span className="inline-flex items-center gap-0.5 text-xs text-yellow-600" title="Domain not MX-verified">
+                                <AlertTriangle className="w-3 h-3" />
+                                Unverified
+                              </span>
+                            )
+                          )}
                         </div>
                       </div>
                     </div>
