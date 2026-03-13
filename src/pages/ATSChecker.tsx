@@ -1,0 +1,238 @@
+import { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { motion } from "framer-motion";
+import { Header } from "@/components/layout/Header";
+import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Progress } from "@/components/ui/progress";
+import { ArrowLeft, Target, Loader2, CheckCircle2, AlertTriangle, ArrowRight, Sparkles } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/hooks/use-auth";
+import { Link } from "react-router-dom";
+
+interface ATSResult {
+  overallScore: number;
+  breakdown: Record<string, number>;
+  strengths: string[];
+  improvements: string[];
+  missingKeywords?: string[];
+  grade: string;
+}
+
+export default function ATSChecker() {
+  const [cvContent, setCvContent] = useState("");
+  const [jobDescription, setJobDescription] = useState("");
+  const [isChecking, setIsChecking] = useState(false);
+  const [result, setResult] = useState<ATSResult | null>(null);
+
+  const navigate = useNavigate();
+  const { toast } = useToast();
+  const { user, logout } = useAuth();
+
+  const handleCheck = async () => {
+    if (cvContent.trim().length < 50) {
+      toast({ title: "Too Short", description: "Please paste at least 50 characters of CV content.", variant: "destructive" });
+      return;
+    }
+
+    setIsChecking(true);
+    setResult(null);
+
+    try {
+      const { data, error } = await supabase.functions.invoke("check-ats-score", {
+        body: { cvContent, jobDescription: jobDescription.trim() || undefined },
+      });
+
+      if (error) throw new Error(error.message);
+      setResult(data);
+      toast({ title: "Score Ready!", description: `Your ATS score: ${data.overallScore}% (${data.grade})` });
+    } catch (error) {
+      toast({
+        title: "Check Failed",
+        description: error instanceof Error ? error.message : "Failed to check ATS score",
+        variant: "destructive",
+      });
+    } finally {
+      setIsChecking(false);
+    }
+  };
+
+  const handleLogout = async () => {
+    await logout();
+    navigate("/");
+  };
+
+  const getScoreColor = (score: number) => {
+    if (score >= 90) return "text-green-500";
+    if (score >= 75) return "text-yellow-500";
+    if (score >= 50) return "text-orange-500";
+    return "text-red-500";
+  };
+
+  const getGradeColor = (grade: string) => {
+    if (grade.startsWith("A")) return "bg-green-500/10 text-green-600 border-green-200";
+    if (grade.startsWith("B")) return "bg-blue-500/10 text-blue-600 border-blue-200";
+    if (grade.startsWith("C")) return "bg-yellow-500/10 text-yellow-600 border-yellow-200";
+    return "bg-red-500/10 text-red-600 border-red-200";
+  };
+
+  return (
+    <div className="min-h-screen bg-background">
+      <Header isAuthenticated={!!user} onLogout={handleLogout} />
+      <main className="container mx-auto px-4 pt-24 pb-12 max-w-3xl">
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
+          <Button variant="ghost" size="sm" onClick={() => navigate("/dashboard")} className="mb-4">
+            <ArrowLeft className="w-4 h-4 mr-1" /> Back to Dashboard
+          </Button>
+
+          <div className="text-center mb-8">
+            <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-primary/10 flex items-center justify-center">
+              <Target className="w-8 h-8 text-primary" />
+            </div>
+            <h1 className="text-3xl font-bold mb-2">ATS Score Checker</h1>
+            <p className="text-muted-foreground">Upload any CV and get an instant ATS compatibility score</p>
+            <Badge variant="secondary" className="mt-2">FREE</Badge>
+          </div>
+
+          {!result ? (
+            <Card>
+              <CardContent className="p-6 space-y-6">
+                <div className="space-y-2">
+                  <Label>Paste Your CV Content *</Label>
+                  <Textarea
+                    value={cvContent}
+                    onChange={e => setCvContent(e.target.value)}
+                    placeholder="Paste your entire CV/resume text here..."
+                    className="min-h-[200px]"
+                  />
+                  <p className="text-xs text-muted-foreground">{cvContent.length} characters</p>
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Job Description <span className="text-muted-foreground text-xs">(optional — for keyword matching)</span></Label>
+                  <Textarea
+                    value={jobDescription}
+                    onChange={e => setJobDescription(e.target.value)}
+                    placeholder="Paste the job description to check keyword alignment..."
+                    className="min-h-[120px]"
+                  />
+                </div>
+
+                <Button onClick={handleCheck} className="w-full" size="lg" disabled={isChecking || cvContent.trim().length < 50}>
+                  {isChecking ? (
+                    <><Loader2 className="w-5 h-5 mr-2 animate-spin" /> Analyzing...</>
+                  ) : (
+                    <><Target className="w-5 h-5 mr-2" /> Check ATS Score</>
+                  )}
+                </Button>
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="space-y-6">
+              {/* Score hero */}
+              <Card>
+                <CardContent className="p-8 text-center">
+                  <div className={`text-7xl font-bold mb-2 ${getScoreColor(result.overallScore)}`}>
+                    {result.overallScore}%
+                  </div>
+                  <Badge variant="outline" className={getGradeColor(result.grade)}>
+                    Grade: {result.grade}
+                  </Badge>
+                  <p className="text-muted-foreground mt-2">
+                    {result.overallScore >= 90 ? "Excellent! Your CV is well-optimized for ATS." :
+                     result.overallScore >= 75 ? "Good, but there's room for improvement." :
+                     result.overallScore >= 50 ? "Average. Consider optimizing with our CV Builder." :
+                     "Needs significant improvement. Use our CV Builder to fix this."}
+                  </p>
+                </CardContent>
+              </Card>
+
+              {/* Breakdown */}
+              <Card>
+                <CardHeader><CardTitle className="text-lg">Score Breakdown</CardTitle></CardHeader>
+                <CardContent className="space-y-3">
+                  {Object.entries(result.breakdown || {}).map(([key, value]) => (
+                    <div key={key} className="space-y-1">
+                      <div className="flex justify-between text-sm">
+                        <span className="capitalize">{key.replace(/([A-Z])/g, " $1").trim()}</span>
+                        <span className={`font-medium ${getScoreColor(value)}`}>{value}%</span>
+                      </div>
+                      <Progress value={value} className="h-2" />
+                    </div>
+                  ))}
+                </CardContent>
+              </Card>
+
+              {/* Strengths */}
+              {result.strengths?.length > 0 && (
+                <Card>
+                  <CardHeader><CardTitle className="text-lg text-green-600">✦ Strengths</CardTitle></CardHeader>
+                  <CardContent>
+                    <ul className="space-y-2">
+                      {result.strengths.map((s, i) => (
+                        <li key={i} className="flex items-start gap-2 text-sm">
+                          <CheckCircle2 className="w-4 h-4 text-green-500 shrink-0 mt-0.5" />
+                          <span>{s}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* Improvements */}
+              {result.improvements?.length > 0 && (
+                <Card>
+                  <CardHeader><CardTitle className="text-lg text-orange-600">⚡ Improvements</CardTitle></CardHeader>
+                  <CardContent>
+                    <ul className="space-y-2">
+                      {result.improvements.map((s, i) => (
+                        <li key={i} className="flex items-start gap-2 text-sm">
+                          <AlertTriangle className="w-4 h-4 text-orange-500 shrink-0 mt-0.5" />
+                          <span>{s}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* Missing Keywords */}
+              {result.missingKeywords?.length ? (
+                <Card>
+                  <CardHeader><CardTitle className="text-lg">Missing Keywords</CardTitle></CardHeader>
+                  <CardContent>
+                    <div className="flex flex-wrap gap-2">
+                      {result.missingKeywords.map((kw, i) => (
+                        <Badge key={i} variant="outline" className="bg-red-500/5 text-red-600 border-red-200">{kw}</Badge>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+              ) : null}
+
+              {/* CTA */}
+              <div className="flex gap-4">
+                <Button variant="outline" onClick={() => setResult(null)} className="flex-1">
+                  Check Another CV
+                </Button>
+                {result.overallScore < 90 && (
+                  <Button asChild className="flex-1">
+                    <Link to="/cv-builder">
+                      <Sparkles className="w-4 h-4 mr-2" /> Optimize with CV Builder
+                      <ArrowRight className="w-4 h-4 ml-2" />
+                    </Link>
+                  </Button>
+                )}
+              </div>
+            </div>
+          )}
+        </motion.div>
+      </main>
+    </div>
+  );
+}
