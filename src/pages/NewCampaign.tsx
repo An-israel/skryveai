@@ -864,7 +864,7 @@ export default function NewCampaign() {
             )}
 
             {/* Job application select step */}
-            {campaignType === "job_application" && currentStep === 'select' && (
+            {campaignType === "job_application" && currentStep === 'select' && !isLoading && (
               <JobSelectStep
                 key="job-select"
                 jobs={jobListings}
@@ -872,6 +872,66 @@ export default function NewCampaign() {
                 onBack={() => setCurrentStep('search')}
                 maxSelect={50}
               />
+            )}
+
+            {/* Job application generation progress */}
+            {campaignType === "job_application" && currentStep === 'select' && isLoading && (
+              <motion.div
+                key="job-progress"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="max-w-2xl mx-auto"
+              >
+                <Card>
+                  <CardHeader className="text-center">
+                    <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-primary/10 flex items-center justify-center">
+                      <Briefcase className="w-8 h-8 text-primary animate-pulse" />
+                    </div>
+                    <CardTitle>Generating Tailored Applications</CardTitle>
+                    <CardDescription>
+                      AI is crafting personalized cover letters for each job, scraping employer emails, and matching your skills.
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-6">
+                    <div className="space-y-2">
+                      <div className="flex justify-between text-sm">
+                        <span className="text-muted-foreground">Progress</span>
+                        <span className="font-medium">{Math.round(analysisProgress)}%</span>
+                      </div>
+                      <div className="h-3 rounded-full bg-secondary overflow-hidden">
+                        <motion.div
+                          className="h-full rounded-full bg-primary"
+                          initial={{ width: 0 }}
+                          animate={{ width: `${analysisProgress}%` }}
+                          transition={{ duration: 0.5 }}
+                        />
+                      </div>
+                    </div>
+                    {currentAnalyzing && (
+                      <div className="p-4 rounded-lg bg-muted/50 border">
+                        <p className="text-sm font-medium">Currently processing:</p>
+                        <p className="text-sm text-muted-foreground mt-1">{currentAnalyzing}</p>
+                      </div>
+                    )}
+                    <div className="grid grid-cols-3 gap-3 text-center text-sm">
+                      <div className="p-3 rounded-lg bg-muted/30">
+                        <div className="font-bold text-lg text-primary">{Object.keys(jobApplications).length}</div>
+                        <div className="text-muted-foreground">Generated</div>
+                      </div>
+                      <div className="p-3 rounded-lg bg-muted/30">
+                        <div className="font-bold text-lg text-primary">
+                          {Object.values(jobApplications).filter(a => a.extractedEmail).length}
+                        </div>
+                        <div className="text-muted-foreground">Emails Found</div>
+                      </div>
+                      <div className="p-3 rounded-lg bg-muted/30">
+                        <div className="font-bold text-lg text-primary">{selectedJobs.length}</div>
+                        <div className="text-muted-foreground">Total Jobs</div>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </motion.div>
             )}
 
             {/* Non-job select step */}
