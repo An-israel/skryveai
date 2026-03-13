@@ -14,7 +14,14 @@ function extractEmailsFromContent(content: string): string | null {
     return !lower.includes("noreply") && !lower.includes("no-reply") &&
            !lower.includes("example.com") && !lower.includes("support@") &&
            !lower.includes("privacy@") && !lower.includes("donotreply") &&
-           !lower.endsWith(".png") && !lower.endsWith(".jpg");
+           !lower.endsWith(".png") && !lower.endsWith(".jpg") &&
+           !lower.includes("careerguide@") && !lower.includes("@indeed.com") &&
+           !lower.includes("@linkedin.com") && !lower.includes("@glassdoor.com") &&
+           !lower.includes("@wellfound.com") && !lower.includes("@dice.com") &&
+           !lower.includes("@ziprecruiter.com") && !lower.includes("@weworkremotely.com") &&
+           !lower.includes("@remote.co") && !lower.includes("feedback@") &&
+           !lower.includes("terms@") && !lower.includes("legal@") &&
+           !lower.includes("info@indeed");
   });
   if (filtered.length === 0) return null;
   const priority = filtered.find((e: string) => {

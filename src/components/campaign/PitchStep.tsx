@@ -88,10 +88,27 @@ export function PitchStep({
             Review and customize AI-generated pitches. Approved: {approvedCount}/{businesses.length}
           </p>
         </div>
-        <Badge variant="outline" className="text-sm py-1 px-3">
-          <Sparkles className="w-4 h-4 mr-1" />
-          AI Generated
-        </Badge>
+        <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => {
+              businesses.forEach((b) => {
+                const pitch = pitches[b.id];
+                if (pitch && !pitch.approved) {
+                  onUpdatePitch(b.id, { ...pitch, approved: true });
+                }
+              });
+            }}
+          >
+            <Check className="w-4 h-4 mr-1" />
+            Approve All
+          </Button>
+          <Badge variant="outline" className="text-sm py-1 px-3">
+            <Sparkles className="w-4 h-4 mr-1" />
+            AI Generated
+          </Badge>
+        </div>
       </div>
 
       <div className="space-y-4">

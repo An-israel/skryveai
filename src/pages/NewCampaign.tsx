@@ -634,65 +634,75 @@ export default function NewCampaign() {
     const newPitches: Record<string, GeneratedPitch> = {};
     const newApplications: Record<string, JobApplication> = {};
 
-    for (let i = 0; i < selected.length; i++) {
-      const job = selected[i];
-      setCurrentAnalyzing(`${job.jobTitle} at ${job.company} (${i + 1}/${selected.length})`);
-      setAnalysisProgress((i / selected.length) * 100);
+    // Process jobs in parallel batches of 5 for speed
+    const BATCH_SIZE = 5;
+    let completedCount = 0;
 
-      try {
-        const { data: appResult, error: appError } = await supabase.functions.invoke("generate-job-application", {
-          body: {
-            jobTitle: job.jobTitle,
-            company: job.company,
-            jobDescription: job.fullContent || job.description,
-            jobUrl: job.url,
-            userProfile: profile,
-          },
-        });
+    for (let batchStart = 0; batchStart < selected.length; batchStart += BATCH_SIZE) {
+      const batch = selected.slice(batchStart, batchStart + BATCH_SIZE);
+      
+      setCurrentAnalyzing(`Processing batch ${Math.floor(batchStart / BATCH_SIZE) + 1} (${batch.map(j => j.company).join(", ")})`);
 
-        if (appError) {
-          console.error(`Application generation failed for ${job.jobTitle}:`, appError);
-          continue;
+      const results = await Promise.allSettled(
+        batch.map(async (job) => {
+          const { data: appResult, error: appError } = await supabase.functions.invoke("generate-job-application", {
+            body: {
+              jobTitle: job.jobTitle,
+              company: job.company,
+              jobDescription: job.fullContent || job.description,
+              jobUrl: job.url,
+              userProfile: profile,
+            },
+          });
+
+          if (appError) throw appError;
+          return { job, appResult };
+        })
+      );
+
+      for (const result of results) {
+        completedCount++;
+        if (result.status === "fulfilled") {
+          const { job, appResult } = result.value;
+          const email = appResult?.extractedEmail || job.email;
+
+          const business: Business = {
+            id: job.id,
+            name: `${job.jobTitle} — ${job.company}`,
+            address: job.location,
+            website: job.url,
+            email,
+            category: job.platform,
+            selected: true,
+          };
+          jobBusinesses.push(business);
+
+          newPitches[job.id] = {
+            businessId: job.id,
+            subject: appResult?.subject || `Application for ${job.jobTitle}`,
+            body: appResult?.body || "",
+            edited: false,
+            approved: false,
+          };
+
+          newApplications[job.id] = {
+            jobId: job.id,
+            subject: appResult?.subject || "",
+            body: appResult?.body || "",
+            keyMatchingSkills: appResult?.keyMatchingSkills || [],
+            extractedEmail: email,
+            edited: false,
+            approved: false,
+          };
+        } else {
+          console.error("Application generation failed:", result.reason);
         }
-
-        const email = appResult?.extractedEmail || job.email;
-        
-        // Map job to business for reusing existing pitch/send infrastructure
-        const business: Business = {
-          id: job.id,
-          name: `${job.jobTitle} — ${job.company}`,
-          address: job.location,
-          website: job.url,
-          email,
-          category: job.platform,
-          selected: true,
-        };
-        jobBusinesses.push(business);
-
-        newPitches[job.id] = {
-          businessId: job.id,
-          subject: appResult?.subject || `Application for ${job.jobTitle}`,
-          body: appResult?.body || "",
-          edited: false,
-          approved: false,
-        };
-
-        newApplications[job.id] = {
-          jobId: job.id,
-          subject: appResult?.subject || "",
-          body: appResult?.body || "",
-          keyMatchingSkills: appResult?.keyMatchingSkills || [],
-          extractedEmail: email,
-          edited: false,
-          approved: false,
-        };
-
-        setSelectedBusinesses([...jobBusinesses]);
-        setPitches({ ...newPitches });
-        setJobApplications({ ...newApplications });
-      } catch (error) {
-        console.error(`Error generating application for ${job.jobTitle}:`, error);
       }
+
+      setAnalysisProgress((completedCount / selected.length) * 100);
+      setSelectedBusinesses([...jobBusinesses]);
+      setPitches({ ...newPitches });
+      setJobApplications({ ...newApplications });
     }
 
     setAnalysisProgress(100);
