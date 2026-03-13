@@ -66,7 +66,7 @@ export function CampaignTypeSelector({ onSelect }: CampaignTypeSelectorProps) {
         </p>
       </div>
 
-      <div className="grid md:grid-cols-3 gap-6">
+      <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
         {campaignTypes.map((type, i) => (
           <motion.div
             key={type.id}
