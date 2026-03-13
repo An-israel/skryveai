@@ -11,135 +11,131 @@ const PLATFORM_DOMAINS = [
   "ziprecruiter.com", "weworkremotely.com", "remote.co", "monster.com",
   "careerbuilder.com", "simplyhired.com", "lever.co", "greenhouse.io",
   "workday.com", "icims.com", "taleo.net", "smartrecruiters.com",
+  "booksrus.com", "example.com", "test.com", "sample.com",
 ];
 
 const GENERIC_PREFIXES = [
   "noreply", "no-reply", "donotreply", "support", "privacy", "feedback",
-  "terms", "legal", "info@indeed", "careerguide", "mailer-daemon", "postmaster",
-  "webmaster", "notifications",
+  "terms", "legal", "careerguide", "mailer-daemon", "postmaster",
+  "webmaster", "notifications", "admin@indeed", "info@indeed",
 ];
 
 function isValidCompanyEmail(email: string): boolean {
-  const lower = email.toLowerCase();
-  if (lower.endsWith(".png") || lower.endsWith(".jpg") || lower.endsWith(".jpeg")) return false;
+  const lower = email.toLowerCase().trim();
+  // Reject file extensions mistakenly captured
+  if (/\.(png|jpg|jpeg|gif|svg|webp|ico|css|js)$/i.test(lower)) return false;
+  // Reject platform domains
   for (const d of PLATFORM_DOMAINS) { if (lower.includes(`@${d}`)) return false; }
-  for (const p of GENERIC_PREFIXES) { if (lower.startsWith(p) || lower.includes(p)) return false; }
+  // Reject generic prefixes
+  for (const p of GENERIC_PREFIXES) { if (lower.startsWith(p)) return false; }
+  // Must have valid TLD
+  if (!/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(lower)) return false;
   return true;
 }
 
-function extractBestEmail(content: string): string | null {
-  const emailRegex = /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g;
-  const emails = (content.match(emailRegex) || []).filter(isValidCompanyEmail);
-  if (emails.length === 0) return null;
-  const priority = emails.find((e) => {
-    const l = e.toLowerCase();
-    return l.startsWith("hr@") || l.startsWith("hiring@") || l.startsWith("careers@") ||
-      l.startsWith("jobs@") || l.startsWith("recruit") || l.startsWith("talent") ||
-      l.startsWith("people@") || l.startsWith("humanresources@");
-  });
-  return priority || emails[0];
-}
-
-function guessCompanyDomain(company: string): string {
-  return company
-    .toLowerCase()
-    .replace(/\s*(inc|llc|ltd|corp|corporation|co|group|holdings|limited|pvt|pty|gmbh|ag|sa|plc)\s*\.?\s*$/gi, "")
-    .replace(/[^a-z0-9]/g, "")
-    + ".com";
-}
-
-async function discoverCompanyEmail(company: string, jobUrl: string | null, firecrawlKey: string): Promise<string | null> {
-  // Tier 1: Scrape the job posting URL itself
-  if (jobUrl) {
-    try {
-      const resp = await fetch("https://api.firecrawl.dev/v1/scrape", {
-        method: "POST",
-        headers: { Authorization: `Bearer ${firecrawlKey}`, "Content-Type": "application/json" },
-        body: JSON.stringify({ url: jobUrl, formats: ["markdown"], onlyMainContent: true, timeout: 10000 }),
-      });
-      if (resp.ok) {
-        const data = await resp.json();
-        const email = extractBestEmail(data?.data?.markdown || data?.markdown || "");
-        if (email) { console.log(`[Tier1] Found ${email} from job URL`); return email; }
-      }
-    } catch { /* continue */ }
+// Verify domain has MX records using Google DNS-over-HTTPS
+async function verifyDomainMX(domain: string): Promise<boolean> {
+  try {
+    const resp = await fetch(`https://dns.google/resolve?name=${encodeURIComponent(domain)}&type=MX`, {
+      signal: AbortSignal.timeout(5000),
+    });
+    if (!resp.ok) return false;
+    const data = await resp.json();
+    return data.Status === 0 && data.Answer && data.Answer.length > 0;
+  } catch {
+    return false;
   }
+}
 
-  if (!company || company === "Company") return null;
+// Extract the actual company name from job title/description
+function extractRealCompany(jobTitle: string, company: string, jobDescription: string): string {
+  // If company is a known platform name or generic, try to extract from job title
+  const platformNames = ["indeed", "linkedin", "glassdoor", "wellfound", "remote.co", 
+    "company", "weworkremotely", "dice", "monster", "ziprecruiter"];
+  
+  const companyLower = company.toLowerCase().trim();
+  const isGeneric = platformNames.some(p => companyLower === p || companyLower.includes(p));
+  
+  if (!isGeneric && company !== "Company") return company;
 
-  // Tier 2: Scrape company's actual website (contact, about, careers pages)
-  const domain = guessCompanyDomain(company);
-  console.log(`[Tier2] Scraping ${domain} for "${company}"`);
+  // Try to extract from job title pattern: "Role at Company" or "Role - Company"
+  const atMatch = jobTitle.match(/\bat\s+([A-Z][A-Za-z\s&.,'-]+?)(?:\s+in\s|\s*$)/);
+  if (atMatch) return atMatch[1].trim();
 
-  const pagesToTry = [
-    `https://${domain}/contact`,
-    `https://${domain}/contact-us`,
-    `https://${domain}/about`,
-    `https://${domain}/careers`,
-    `https://${domain}`,
-  ];
+  // Try "Job Title job at CompanyName"
+  const jobAtMatch = jobTitle.match(/job\s+at\s+([A-Z][A-Za-z\s&.,'-]+?)(?:\s+in\s|\s*$)/i);
+  if (jobAtMatch) return jobAtMatch[1].trim();
 
-  // Try first 3 pages in parallel for speed
-  const firstBatch = pagesToTry.slice(0, 3);
-  const results = await Promise.allSettled(
-    firstBatch.map(async (pageUrl) => {
-      const resp = await fetch("https://api.firecrawl.dev/v1/scrape", {
-        method: "POST",
-        headers: { Authorization: `Bearer ${firecrawlKey}`, "Content-Type": "application/json" },
-        body: JSON.stringify({ url: pageUrl, formats: ["markdown"], onlyMainContent: false, timeout: 10000 }),
-      });
-      if (!resp.ok) return null;
-      const data = await resp.json();
-      return extractBestEmail(data?.data?.markdown || data?.markdown || "");
+  // Try extracting from description - look for "Company:" or "About [Company]"
+  const aboutMatch = jobDescription.match(/(?:About|Company[:\s])\s*\n?\s*(?:\*\*)?([A-Z][A-Za-z\s&.,'-]+?)(?:\*\*)?(?:\n|\.|\s-\s)/);
+  if (aboutMatch) return aboutMatch[1].trim();
+
+  return company;
+}
+
+// Build candidate domain from company name - tries multiple variations
+function buildCandidateDomains(company: string): string[] {
+  const cleaned = company
+    .replace(/\s*(Inc\.?|LLC|Ltd\.?|Corp\.?|Corporation|Co\.?|Group|Holdings|Limited|Pvt\.?|Pty\.?|GmbH|AG|SA|PLC|Company)\s*$/gi, "")
+    .trim();
+  
+  const base = cleaned.toLowerCase().replace(/[^a-z0-9\s]/g, "").replace(/\s+/g, "");
+  const hyphenated = cleaned.toLowerCase().replace(/[^a-z0-9\s]/g, "").replace(/\s+/g, "-");
+  
+  const domains = new Set<string>();
+  domains.add(`${base}.com`);
+  if (base !== hyphenated) domains.add(`${hyphenated}.com`);
+  domains.add(`${base}.io`);
+  domains.add(`${base}.co`);
+  
+  return [...domains];
+}
+
+// Smart email discovery: MX-verified domain + common HR patterns
+async function discoverCompanyEmail(company: string, jobUrl: string | null): Promise<{ email: string | null; verified: boolean }> {
+  if (!company || company === "Company") return { email: null, verified: false };
+
+  const candidateDomains = buildCandidateDomains(company);
+  console.log(`[EmailDiscovery] Checking MX for domains: ${candidateDomains.join(", ")}`);
+
+  // Check MX records for each candidate domain in parallel
+  const mxResults = await Promise.allSettled(
+    candidateDomains.map(async (domain) => {
+      const hasMX = await verifyDomainMX(domain);
+      return { domain, hasMX };
     })
   );
 
-  for (const r of results) {
-    if (r.status === "fulfilled" && r.value) {
-      console.log(`[Tier2] Found ${r.value} from company website`);
-      return r.value;
+  let verifiedDomain: string | null = null;
+  for (const r of mxResults) {
+    if (r.status === "fulfilled" && r.value.hasMX) {
+      verifiedDomain = r.value.domain;
+      console.log(`[EmailDiscovery] MX verified: ${verifiedDomain}`);
+      break;
     }
   }
 
-  // Try remaining pages
-  for (const pageUrl of pagesToTry.slice(3)) {
-    try {
-      const resp = await fetch("https://api.firecrawl.dev/v1/scrape", {
-        method: "POST",
-        headers: { Authorization: `Bearer ${firecrawlKey}`, "Content-Type": "application/json" },
-        body: JSON.stringify({ url: pageUrl, formats: ["markdown"], onlyMainContent: false, timeout: 10000 }),
-      });
-      if (!resp.ok) continue;
-      const data = await resp.json();
-      const email = extractBestEmail(data?.data?.markdown || data?.markdown || "");
-      if (email) { console.log(`[Tier2] Found ${email} from ${pageUrl}`); return email; }
-    } catch { /* continue */ }
+  if (!verifiedDomain) {
+    console.log(`[EmailDiscovery] No MX-verified domain found for "${company}"`);
+    // Last resort: use first candidate with .com
+    const fallbackDomain = candidateDomains[0];
+    return { email: `careers@${fallbackDomain}`, verified: false };
   }
 
-  // Tier 3: Web search for company HR email
-  try {
-    console.log(`[Tier3] Searching web for "${company}" HR email`);
-    const searchResp = await fetch("https://api.firecrawl.dev/v1/search", {
-      method: "POST",
-      headers: { Authorization: `Bearer ${firecrawlKey}`, "Content-Type": "application/json" },
-      body: JSON.stringify({
-        query: `"${company}" HR email OR careers email OR hiring email`,
-        limit: 3,
-        scrapeOptions: { formats: ["markdown"] },
-      }),
-    });
-    const searchData = await searchResp.json();
-    if (searchData.success !== false && searchData.data) {
-      for (const result of searchData.data) {
-        const email = extractBestEmail(result.markdown || result.description || "");
-        if (email) { console.log(`[Tier3] Found ${email} from web search`); return email; }
-      }
-    }
-  } catch { /* continue */ }
+  // Generate prioritized HR email addresses for the verified domain
+  const hrPatterns = [
+    `careers@${verifiedDomain}`,
+    `hr@${verifiedDomain}`,
+    `hiring@${verifiedDomain}`,
+    `jobs@${verifiedDomain}`,
+    `recruiting@${verifiedDomain}`,
+    `talent@${verifiedDomain}`,
+    `people@${verifiedDomain}`,
+    `info@${verifiedDomain}`,
+  ];
 
-  // Tier 4: Fallback to common HR email pattern
-  console.log(`[Tier4] Generating hr@${domain} as fallback`);
-  return `hr@${domain}`;
+  // Return the top HR pattern since MX is verified (domain accepts mail)
+  return { email: hrPatterns[0], verified: true };
 }
 
 serve(async (req) => {
@@ -175,7 +171,6 @@ serve(async (req) => {
       });
     }
 
-    const FIRECRAWL_API_KEY = Deno.env.get("FIRECRAWL_API_KEY");
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) {
       return new Response(JSON.stringify({ error: "AI service not configured" }), {
@@ -183,13 +178,20 @@ serve(async (req) => {
       });
     }
 
-    // Discover email (skip if already provided and valid)
+    // Extract real company name (not platform name)
+    const realCompany = extractRealCompany(jobTitle, company, jobDescription || "");
+    console.log(`[EmailDiscovery] Real company: "${realCompany}" (original: "${company}")`);
+
+    // Discover email via MX verification (skip if valid email already provided)
     let extractedEmail = existingEmail || null;
-    if ((!extractedEmail || !isValidCompanyEmail(extractedEmail)) && FIRECRAWL_API_KEY) {
-      extractedEmail = await discoverCompanyEmail(company, jobUrl, FIRECRAWL_API_KEY);
+    let emailVerified = false;
+    if (!extractedEmail || !isValidCompanyEmail(extractedEmail)) {
+      const result = await discoverCompanyEmail(realCompany, jobUrl);
+      extractedEmail = result.email;
+      emailVerified = result.verified;
     }
 
-    // Generate cover letter with AI (in parallel with email discovery if needed)
+    // Generate cover letter with AI
     const systemPrompt = `You are an expert career consultant and professional cover letter writer. Your job is to:
 1. Analyze the job posting details carefully
 2. Review the applicant's CV/profile
@@ -206,12 +208,13 @@ IMPORTANT:
 - Do NOT use filler language or generic phrases like "I am writing to express my interest"
 - Start with something compelling that grabs attention
 - Reference specific job requirements and match them to the candidate's experience
-- Make each application unique and tailored to the specific role`;
+- Make each application unique and tailored to the specific role
+- Do NOT invent or guess any email addresses - the email will be handled separately`;
 
     const userPrompt = `Generate a tailored job application for this position:
 
 JOB TITLE: ${jobTitle}
-COMPANY: ${company}
+COMPANY: ${realCompany}
 JOB DESCRIPTION: ${jobDescription || "Not available - tailor based on the job title and company"}
 
 APPLICANT'S PROFILE INFO:
@@ -222,7 +225,7 @@ Portfolio: ${userProfile?.portfolio_url || "Not provided"}
 
 Return the response using the generate_application function.`;
 
-    console.log(`Generating application for ${jobTitle} at ${company}`);
+    console.log(`Generating application for ${jobTitle} at ${realCompany}`);
 
     const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
@@ -277,14 +280,14 @@ Return the response using the generate_application function.`;
         application = JSON.parse(toolCall.function.arguments);
       } catch {
         application = {
-          subject: `Application for ${jobTitle} at ${company}`,
+          subject: `Application for ${jobTitle} at ${realCompany}`,
           coverLetter: aiData.choices?.[0]?.message?.content || "",
           keyMatchingSkills: [],
         };
       }
     }
 
-    console.log(`Generated application for ${jobTitle} at ${company}, email: ${extractedEmail || "none"}`);
+    console.log(`Generated application for ${jobTitle} at ${realCompany}, email: ${extractedEmail || "none"} (verified: ${emailVerified})`);
 
     return new Response(
       JSON.stringify({
@@ -292,6 +295,7 @@ Return the response using the generate_application function.`;
         body: application.coverLetter,
         keyMatchingSkills: application.keyMatchingSkills,
         extractedEmail,
+        emailVerified,
         edited: false,
         approved: false,
       }),
