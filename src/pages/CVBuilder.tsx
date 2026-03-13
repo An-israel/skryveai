@@ -89,7 +89,7 @@ export default function CVBuilder() {
 
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { user, logout } = useAuth();
+  const { user, signOut } = useAuth();
 
   const addExperience = () => {
     setFormData(prev => ({
