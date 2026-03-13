@@ -19,9 +19,17 @@ const allSteps: { id: CampaignStep; label: string; icon: React.ComponentType<{ c
 ];
 
 export function StepIndicator({ currentStep, completedSteps, campaignType }: StepIndicatorProps) {
-  // Investor flow skips the analyze step
+  // Investor flow skips the analyze step; job_application flow relabels steps
   const steps = campaignType === "investor"
     ? allSteps.filter(s => s.id !== "analyze")
+    : campaignType === "job_application"
+    ? allSteps.filter(s => s.id !== "analyze").map(s => {
+        if (s.id === "search") return { ...s, label: "Search Jobs" };
+        if (s.id === "select") return { ...s, label: "Select" };
+        if (s.id === "pitch") return { ...s, label: "Applications" };
+        if (s.id === "send") return { ...s, label: "Send" };
+        return s;
+      })
     : allSteps;
   const currentIndex = steps.findIndex((s) => s.id === currentStep);
 

@@ -1,8 +1,9 @@
 import { motion } from "framer-motion";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Search, UserPlus, TrendingUp, ArrowRight } from "lucide-react";
+import { Search, UserPlus, TrendingUp, Briefcase, ArrowRight } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 
-export type CampaignType = "freelancer" | "direct_client" | "investor";
+export type CampaignType = "freelancer" | "direct_client" | "investor" | "job_application";
 
 interface CampaignTypeSelectorProps {
   onSelect: (type: CampaignType) => void;
@@ -16,8 +17,8 @@ const campaignTypes = [
     subtitle: "For Freelancers",
     description: "Search for businesses by type and location, analyze their online presence, and send personalized cold pitches.",
     features: ["Search by industry & location", "AI website + social audit", "Auto-generated pitches", "Up to 15 emails per campaign"],
-    
     color: "primary",
+    isNew: false,
   },
   {
     id: "direct_client" as CampaignType,
@@ -26,8 +27,8 @@ const campaignTypes = [
     subtitle: "Direct Outreach",
     description: "Already have a specific client in mind? Enter their details, we'll analyze their presence and craft the perfect pitch.",
     features: ["Enter client details manually", "Full online presence audit", "Personalized pitch generation", "Social media analysis"],
-    
     color: "accent",
+    isNew: false,
   },
   {
     id: "investor" as CampaignType,
@@ -36,8 +37,18 @@ const campaignTypes = [
     subtitle: "Raise Funding",
     description: "Find investors in your industry, craft compelling pitch emails about your business or idea, and reach out at scale.",
     features: ["Search investors by industry", "Structured pitch builder", "Traction & proof points", "Up to 10 emails per campaign"],
-    
     color: "warning",
+    isNew: false,
+  },
+  {
+    id: "job_application" as CampaignType,
+    icon: Briefcase,
+    title: "Apply for Jobs",
+    subtitle: "Bulk Job Applications",
+    description: "Search jobs across LinkedIn, Indeed, Glassdoor & more. AI tailors your CV and writes cover letters for each job — apply to 50 at once.",
+    features: ["Search 7+ job platforms", "AI-tailored CV per job", "Auto cover letters", "Apply to 50 jobs at once"],
+    color: "primary",
+    isNew: true,
   },
 ];
 
@@ -55,7 +66,7 @@ export function CampaignTypeSelector({ onSelect }: CampaignTypeSelectorProps) {
         </p>
       </div>
 
-      <div className="grid md:grid-cols-3 gap-6">
+      <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
         {campaignTypes.map((type, i) => (
           <motion.div
             key={type.id}
@@ -76,7 +87,14 @@ export function CampaignTypeSelector({ onSelect }: CampaignTypeSelectorProps) {
                     <CardTitle className="text-xl">{type.title}</CardTitle>
                     <CardDescription className="text-sm font-medium mt-0.5">{type.subtitle}</CardDescription>
                   </div>
-                  <ArrowRight className="w-5 h-5 text-muted-foreground group-hover:text-primary group-hover:translate-x-1 transition-all" />
+                  <div className="flex items-center gap-2">
+                    {type.isNew && (
+                      <Badge className="bg-gradient-to-r from-green-500 to-emerald-600 text-white border-0 text-[10px] px-1.5 py-0">
+                        NEW
+                      </Badge>
+                    )}
+                    <ArrowRight className="w-5 h-5 text-muted-foreground group-hover:text-primary group-hover:translate-x-1 transition-all" />
+                  </div>
                 </div>
               </CardHeader>
               <CardContent className="space-y-4">
