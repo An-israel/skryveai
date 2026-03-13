@@ -1,6 +1,7 @@
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Menu, X, Settings, Shield } from "lucide-react";
+import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { NotificationBell } from "@/components/layout/NotificationBell";
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
@@ -75,7 +76,7 @@ export function Header({ isAuthenticated: isAuthenticatedProp, onLogout }: Heade
       <div className="container mx-auto px-4 h-16 flex items-center justify-between">
         <Link to="/" className="flex items-center gap-2 group">
           <img src="/logo.png" alt="SkryveAI logo" className="w-8 h-8 object-contain" />
-          <span className="font-bold text-2xl" style={{ color: '#0B162B' }}>SkryveAI</span>
+          <span className="font-bold text-2xl text-foreground">SkryveAI</span>
         </Link>
 
         {/* Desktop Navigation */}
@@ -106,6 +107,7 @@ export function Header({ isAuthenticated: isAuthenticatedProp, onLogout }: Heade
                 </Link>
               )}
               <NotificationBell />
+              <ThemeToggle />
               <Link to="/settings" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
                 <Settings className="w-4 h-4" />
               </Link>
@@ -115,6 +117,7 @@ export function Header({ isAuthenticated: isAuthenticatedProp, onLogout }: Heade
             </>
           ) : (
             <>
+              <ThemeToggle />
               <Link to="/login" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
                 Sign In
               </Link>
@@ -174,9 +177,13 @@ export function Header({ isAuthenticated: isAuthenticatedProp, onLogout }: Heade
                      <NotificationBell />
                      <span className="text-sm font-medium text-muted-foreground">Notifications</span>
                    </div>
-                  <Link to="/settings" className="py-2 text-sm font-medium text-muted-foreground hover:text-foreground">
-                    Settings
-                  </Link>
+                   <div className="flex items-center gap-2 py-2">
+                     <ThemeToggle />
+                     <span className="text-sm font-medium text-muted-foreground">Theme</span>
+                   </div>
+                   <Link to="/settings" className="py-2 text-sm font-medium text-muted-foreground hover:text-foreground">
+                     Settings
+                   </Link>
                   <Button variant="ghost" onClick={handleLogout} className="justify-start">
                     Log Out
                   </Button>

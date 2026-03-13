@@ -8,6 +8,72 @@
 
 @layer base {
   :root {
+    /* Light Mode — Clean Professional */
+    --background: 210 20% 98%;
+    --foreground: 222 47% 11%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 222 47% 11%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 222 47% 11%;
+
+    --primary: 217 91% 50%;
+    --primary-foreground: 0 0% 100%;
+    --primary-glow: 217 100% 55%;
+
+    --secondary: 210 20% 94%;
+    --secondary-foreground: 222 47% 11%;
+
+    --muted: 210 20% 94%;
+    --muted-foreground: 215 16% 47%;
+
+    --accent: 217 100% 50%;
+    --accent-foreground: 0 0% 100%;
+
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+
+    --success: 142 76% 36%;
+    --success-foreground: 0 0% 100%;
+    --warning: 38 92% 50%;
+    --warning-foreground: 0 0% 100%;
+    --info: 199 89% 48%;
+    --info-foreground: 0 0% 100%;
+
+    --border: 214 20% 88%;
+    --border-subtle: 214 20% 92%;
+    --input: 214 20% 88%;
+    --ring: 217 91% 50%;
+
+    --radius: 0.75rem;
+
+    --gradient-hero: linear-gradient(145deg, hsl(210 20% 98%) 0%, hsl(210 25% 96%) 30%, hsl(217 30% 94%) 60%, hsl(217 40% 92%) 100%);
+    --gradient-card: linear-gradient(180deg, hsl(0 0% 100%) 0%, hsl(210 20% 98%) 100%);
+    --gradient-accent: linear-gradient(135deg, hsl(217 91% 50%) 0%, hsl(217 100% 55%) 50%, hsl(200 100% 60%) 100%);
+    --gradient-subtle: linear-gradient(180deg, hsl(210 20% 97%) 0%, hsl(210 20% 98%) 100%);
+    --gradient-stat: linear-gradient(135deg, hsl(217 30% 96%) 0%, hsl(210 20% 98%) 100%);
+    --gradient-orb: radial-gradient(circle at center, hsl(217 100% 50% / 0.08) 0%, transparent 70%);
+
+    --shadow-xs: 0 1px 2px 0 hsl(222 47% 20% / 0.05);
+    --shadow-sm: 0 1px 3px 0 hsl(222 47% 20% / 0.08), 0 1px 2px -1px hsl(222 47% 20% / 0.06);
+    --shadow-md: 0 4px 6px -1px hsl(222 47% 20% / 0.08), 0 2px 4px -2px hsl(222 47% 20% / 0.06);
+    --shadow-lg: 0 10px 20px -4px hsl(222 47% 20% / 0.1), 0 4px 6px -4px hsl(222 47% 20% / 0.06);
+    --shadow-xl: 0 20px 40px -8px hsl(222 47% 20% / 0.12), 0 8px 16px -6px hsl(222 47% 20% / 0.06);
+    --shadow-glow: 0 0 40px -10px hsl(217 91% 50% / 0.2);
+    --shadow-glow-lg: 0 0 60px -10px hsl(217 91% 50% / 0.15), 0 0 20px -5px hsl(217 91% 50% / 0.1);
+
+    --sidebar-background: 210 20% 98%;
+    --sidebar-foreground: 222 47% 11%;
+    --sidebar-primary: 217 91% 50%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 210 20% 94%;
+    --sidebar-accent-foreground: 222 47% 11%;
+    --sidebar-border: 214 20% 88%;
+    --sidebar-ring: 217 91% 50%;
+  }
+
+  .dark {
     /* Premium Tech Blue — Series A Aesthetic */
     --background: 222 47% 6%;
     --foreground: 210 40% 98%;
@@ -18,26 +84,22 @@
     --popover: 222 47% 8%;
     --popover-foreground: 210 40% 98%;
 
-    /* Primary — Electric Tech Blue */
     --primary: 217 91% 60%;
     --primary-foreground: 0 0% 100%;
     --primary-glow: 217 100% 65%;
 
-    /* Secondary — Deep Navy */
     --secondary: 222 47% 14%;
     --secondary-foreground: 210 40% 98%;
 
     --muted: 222 47% 12%;
     --muted-foreground: 215 20% 55%;
 
-    /* Accent — Vibrant Electric Blue */
     --accent: 217 100% 55%;
     --accent-foreground: 0 0% 100%;
 
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 100%;
 
-    /* Status colors */
     --success: 142 76% 36%;
     --success-foreground: 0 0% 100%;
     --warning: 38 92% 50%;
@@ -52,7 +114,6 @@
 
     --radius: 0.75rem;
 
-    /* Rich Blue Gradients */
     --gradient-hero: linear-gradient(145deg, hsl(222 47% 4%) 0%, hsl(222 47% 8%) 30%, hsl(217 60% 15%) 60%, hsl(217 80% 20%) 100%);
     --gradient-card: linear-gradient(180deg, hsl(222 47% 10%) 0%, hsl(222 47% 8%) 100%);
     --gradient-accent: linear-gradient(135deg, hsl(217 91% 60%) 0%, hsl(217 100% 65%) 50%, hsl(200 100% 70%) 100%);
@@ -60,7 +121,6 @@
     --gradient-stat: linear-gradient(135deg, hsl(217 60% 15%) 0%, hsl(222 47% 10%) 100%);
     --gradient-orb: radial-gradient(circle at center, hsl(217 100% 60% / 0.15) 0%, transparent 70%);
 
-    /* Shadows — Refined, layered with blue tint */
     --shadow-xs: 0 1px 2px 0 hsl(222 47% 4% / 0.3);
     --shadow-sm: 0 1px 3px 0 hsl(222 47% 4% / 0.4), 0 1px 2px -1px hsl(222 47% 4% / 0.4);
     --shadow-md: 0 4px 6px -1px hsl(222 47% 4% / 0.5), 0 2px 4px -2px hsl(222 47% 4% / 0.4);
@@ -164,7 +224,13 @@
 
   /* Premium glass morphism — dark mode optimized */
   .glass {
-    @apply bg-white/[0.03] backdrop-blur-xl border border-white/[0.08];
+    @apply backdrop-blur-xl border;
+    background: hsl(var(--card) / 0.7);
+    border-color: hsl(var(--border));
+    box-shadow: var(--shadow-md);
+  }
+  .dark .glass {
+    @apply bg-white/[0.03] border-white/[0.08];
     box-shadow: 0 8px 32px -8px hsl(217 91% 60% / 0.1);
   }
 
