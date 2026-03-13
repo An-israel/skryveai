@@ -310,11 +310,16 @@ export default function CVBuilder() {
 
               <TabsContent value="cv">
                 <Card>
-                  <CardHeader className="flex flex-row items-center justify-between">
+                  <CardHeader className="flex flex-row items-center justify-between flex-wrap gap-2">
                     <CardTitle>CV Preview</CardTitle>
-                    <Button onClick={downloadCvAsText} size="sm">
-                      <Download className="w-4 h-4 mr-2" /> Download
-                    </Button>
+                    <div className="flex gap-2">
+                      <Button onClick={() => downloadCvAsPdf(cvResult)} size="sm" variant="default">
+                        <FileDown className="w-4 h-4 mr-1" /> PDF
+                      </Button>
+                      <Button onClick={() => downloadCvAsDocx(cvResult)} size="sm" variant="outline">
+                        <FileDown className="w-4 h-4 mr-1" /> DOCX
+                      </Button>
+                    </div>
                   </CardHeader>
                   <CardContent>
                     <div className="bg-white text-black p-8 rounded-lg shadow-inner max-w-[800px] mx-auto font-serif" style={{ lineHeight: 1.6 }}>
