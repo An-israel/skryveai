@@ -31,7 +31,7 @@ export default function ATSChecker() {
 
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { user, logout } = useAuth();
+  const { user, signOut } = useAuth();
 
   const handleCheck = async () => {
     if (cvContent.trim().length < 50) {
