@@ -354,7 +354,6 @@ export default function Dashboard() {
                 </div>
                 <p className="font-medium text-sm">Job Search</p>
                 <p className="text-xs text-muted-foreground">Find & apply to 50</p>
-                <Badge variant="secondary" className="mt-1 text-[10px]">FREE + PAID</Badge>
               </CardContent>
             </Card>
             <Card className="hover:border-primary/50 transition-colors cursor-pointer group" onClick={() => navigate("/campaigns/new")}>
