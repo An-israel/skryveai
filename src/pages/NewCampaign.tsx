@@ -403,7 +403,7 @@ export default function NewCampaign() {
   };
 
   const handleUpdatePitch = (businessId: string, pitch: GeneratedPitch) => {
-    setPitches({ ...pitches, [businessId]: pitch });
+    setPitches(prev => ({ ...prev, [businessId]: pitch }));
   };
 
   const handleRegeneratePitch = async (businessId: string) => {
