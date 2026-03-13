@@ -17,6 +17,33 @@ interface SendEmailRequest {
   userId: string;
 }
 
+// MX record verification via Google DNS
+async function verifyMX(email: string): Promise<boolean> {
+  try {
+    const domain = email.split('@')[1];
+    if (!domain) return false;
+    const trusted = new Set(['gmail.com', 'yahoo.com', 'outlook.com', 'hotmail.com', 'icloud.com', 'protonmail.com', 'zoho.com', 'live.com']);
+    if (trusted.has(domain)) return true;
+    const resp = await fetch(`https://dns.google/resolve?name=${encodeURIComponent(domain)}&type=MX`, { signal: AbortSignal.timeout(4000) });
+    if (!resp.ok) return true;
+    const data = await resp.json();
+    if (data.Status === 0 && data.Answer?.some((a: { type: number }) => a.type === 15)) return true;
+    const aResp = await fetch(`https://dns.google/resolve?name=${encodeURIComponent(domain)}&type=A`, { signal: AbortSignal.timeout(3000) });
+    if (aResp.ok) { const aData = await aResp.json(); if (aData.Status === 0 && aData.Answer?.length > 0) return true; }
+    return false;
+  } catch { return true; }
+}
+
+function isValidEmail(email: string): boolean {
+  const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+  if (!emailRegex.test(email) || email.length > 254) return false;
+  const domain = email.split('@')[1]?.toLowerCase();
+  const badDomains = ['booksrus.com', 'example.com', 'test.com', 'sample.com',
+    'indeed.com', 'linkedin.com', 'glassdoor.com', 'wellfound.com'];
+  if (badDomains.includes(domain)) return false;
+  return true;
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -27,6 +54,15 @@ serve(async (req) => {
 
     if (!to || !subject || !body || !userId) {
       throw new Error("Missing required fields: to, subject, body, userId");
+    }
+
+    if (!isValidEmail(to)) {
+      throw new Error("Invalid or blocked email address");
+    }
+
+    const mxValid = await verifyMX(to);
+    if (!mxValid) {
+      throw new Error("Email domain cannot receive mail (no MX record)");
     }
 
     const supabase = createClient(supabaseUrl, supabaseServiceKey);

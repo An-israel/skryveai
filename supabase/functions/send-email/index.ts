@@ -151,6 +151,15 @@ serve(async (req) => {
       );
     }
 
+    // MX verification - prevent sending to domains that can't receive mail
+    const mxValid = await verifyMX(toEmail);
+    if (!mxValid) {
+      return new Response(
+        JSON.stringify({ error: "Email domain cannot receive mail (no MX record)" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
     // Validate subject and body lengths
     if (subject.length > 200) {
       return new Response(
