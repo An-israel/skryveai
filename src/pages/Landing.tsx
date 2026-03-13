@@ -78,7 +78,6 @@ const steps = [
   { step: "5", title: "Send", description: "Launch your campaign" },
 ];
 
-// JSON-LD Organization schema
 const orgSchema = {
   "@context": "https://schema.org",
   "@type": "SoftwareApplication",
@@ -95,7 +94,6 @@ const orgSchema = {
 };
 
 export default function Landing() {
-  // Sign out any existing session so the landing page always shows unauthenticated state
   useEffect(() => {
     supabase.auth.signOut();
   }, []);
@@ -113,44 +111,7 @@ export default function Landing() {
       <ProblemSection />
 
       {/* Campaign Types */}
-      <section className="py-20 bg-gradient-subtle">
-        <div className="container mx-auto px-4">
-          <motion.div
-            initial={{ opacity: 0 }}
-            whileInView={{ opacity: 1 }}
-            viewport={{ once: true }}
-            className="text-center mb-12"
-          >
-            <h2 className="text-3xl md:text-4xl font-bold mb-4">Three Ways to Grow</h2>
-            <p className="text-muted-foreground max-w-xl mx-auto">
-              Whether you're a freelancer looking for clients or a startup seeking investors — we've got you covered.
-            </p>
-          </motion.div>
-
-          <div className="grid md:grid-cols-3 gap-6 max-w-4xl mx-auto">
-            {campaignTypes.map((type, i) => (
-              <motion.div
-                key={i}
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: i * 0.1 }}
-                className="p-6 rounded-2xl bg-card border hover:shadow-xl hover:-translate-y-1 transition-all duration-300"
-              >
-                <div className="w-12 h-12 rounded-xl bg-primary/10 text-primary flex items-center justify-center mb-4">
-                  <type.icon className="w-6 h-6" />
-                </div>
-                <h3 className="font-semibold text-lg mb-1">{type.title}</h3>
-                <p className="text-xs text-primary font-medium mb-2">{type.subtitle}</p>
-                <p className="text-muted-foreground text-sm">{type.description}</p>
-              </motion.div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* How It Works */}
-      <section className="py-20">
+      <section className="py-24 bg-gradient-subtle">
         <div className="container mx-auto px-4">
           <motion.div
             initial={{ opacity: 0 }}
@@ -158,54 +119,100 @@ export default function Landing() {
             viewport={{ once: true }}
             className="text-center mb-16"
           >
-            <h2 className="text-3xl md:text-4xl font-bold mb-4">How It Works</h2>
-            <p className="text-muted-foreground max-w-xl mx-auto">
-              From search to send in 5 simple steps. Our AI handles the heavy lifting.
+            <h2 className="font-display text-3xl md:text-4xl lg:text-5xl font-extrabold mb-5 tracking-tight">Three Ways to Grow</h2>
+            <p className="text-muted-foreground max-w-xl mx-auto leading-relaxed">
+              Whether you're a freelancer looking for clients or a startup seeking investors — we've got you covered.
             </p>
           </motion.div>
 
-          <div className="flex flex-wrap justify-center gap-4 lg:gap-0 lg:flex-nowrap">
-            {steps.map((item, i) => (
+          <div className="grid md:grid-cols-3 gap-5 max-w-4xl mx-auto">
+            {campaignTypes.map((type, i) => (
               <motion.div
                 key={i}
                 initial={{ opacity: 0, y: 20 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
-                transition={{ delay: i * 0.1 }}
-                className="flex items-center"
+                transition={{ delay: i * 0.1, ease: [0.22, 1, 0.36, 1] }}
+                className="group p-7 rounded-2xl bg-card border border-border-subtle card-hover"
               >
-                <div className="flex flex-col items-center text-center px-4 lg:px-8">
-                  <div className="w-12 h-12 rounded-full bg-gradient-accent text-primary-foreground flex items-center justify-center text-xl font-bold mb-3 shadow-lg">
-                    {item.step}
-                  </div>
-                  <h3 className="font-semibold mb-1">{item.title}</h3>
-                  <p className="text-sm text-muted-foreground max-w-[120px]">{item.description}</p>
+                <div className="w-12 h-12 rounded-xl bg-primary/8 text-primary flex items-center justify-center mb-5 group-hover:bg-primary group-hover:text-primary-foreground transition-colors duration-300">
+                  <type.icon className="w-6 h-6" />
                 </div>
-                {i < steps.length - 1 && (
-                  <ArrowRight className="hidden lg:block w-6 h-6 text-muted-foreground/30" />
-                )}
+                <h3 className="font-display font-bold text-lg mb-1">{type.title}</h3>
+                <p className="text-xs text-primary font-semibold mb-3 tracking-wide">{type.subtitle}</p>
+                <p className="text-muted-foreground text-sm leading-relaxed">{type.description}</p>
               </motion.div>
             ))}
           </div>
         </div>
       </section>
 
-      {/* What We Analyze */}
-      <section className="py-20 bg-gradient-subtle">
+      {/* How It Works - Timeline */}
+      <section className="py-24">
         <div className="container mx-auto px-4">
           <motion.div
             initial={{ opacity: 0 }}
             whileInView={{ opacity: 1 }}
             viewport={{ once: true }}
-            className="text-center mb-12"
+            className="text-center mb-16"
           >
-            <h2 className="text-3xl md:text-4xl font-bold mb-4">Beyond Website Analysis</h2>
-            <p className="text-muted-foreground max-w-xl mx-auto">
+            <h2 className="font-display text-3xl md:text-4xl lg:text-5xl font-extrabold mb-5 tracking-tight">How It Works</h2>
+            <p className="text-muted-foreground max-w-xl mx-auto leading-relaxed">
+              From search to send in 5 simple steps. Our AI handles the heavy lifting.
+            </p>
+          </motion.div>
+
+          {/* Timeline rail */}
+          <div className="max-w-4xl mx-auto">
+            <div className="flex flex-wrap justify-center gap-0 lg:flex-nowrap items-start">
+              {steps.map((item, i) => (
+                <motion.div
+                  key={i}
+                  initial={{ opacity: 0, y: 20 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ delay: i * 0.1 }}
+                  className="flex items-center flex-1 min-w-0"
+                >
+                  <div className="flex flex-col items-center text-center px-2 lg:px-4 w-full">
+                    <div className="relative">
+                      <div className="w-14 h-14 rounded-2xl bg-gradient-accent text-primary-foreground flex items-center justify-center text-xl font-display font-extrabold shadow-glow">
+                        {item.step}
+                      </div>
+                    </div>
+                    <h3 className="font-display font-bold mt-4 mb-1">{item.title}</h3>
+                    <p className="text-xs text-muted-foreground max-w-[120px] leading-relaxed">{item.description}</p>
+                  </div>
+                  {i < steps.length - 1 && (
+                    <div className="hidden lg:block w-full h-[2px] bg-border-subtle mt-7 -mx-2 relative">
+                      <div className="absolute right-0 top-1/2 -translate-y-1/2">
+                        <ArrowRight className="w-4 h-4 text-muted-foreground/30" />
+                      </div>
+                    </div>
+                  )}
+                </motion.div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* What We Analyze */}
+      <section className="py-24 bg-gradient-subtle">
+        <div className="container mx-auto px-4">
+          <motion.div
+            initial={{ opacity: 0 }}
+            whileInView={{ opacity: 1 }}
+            viewport={{ once: true }}
+            className="text-center mb-16"
+          >
+            <h2 className="font-display text-3xl md:text-4xl lg:text-5xl font-extrabold mb-5 tracking-tight">Beyond Website Analysis</h2>
+            <p className="text-muted-foreground max-w-xl mx-auto leading-relaxed">
               We audit their entire online presence — not just their website — to find pain points that make them reply.
             </p>
           </motion.div>
 
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-4xl mx-auto">
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-5 max-w-4xl mx-auto">
             {[
               { icon: BarChart3, title: "Website Copy", desc: "Is their copy compelling? Does it convert visitors to leads?" },
               { icon: Linkedin, title: "LinkedIn", desc: "Is their profile optimized? Posting strategy? Bio compelling?" },
@@ -219,15 +226,15 @@ export default function Landing() {
                 initial={{ opacity: 0, y: 20 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
-                transition={{ delay: i * 0.05 }}
-                className="flex items-start gap-3 p-4 rounded-xl bg-card border"
+                transition={{ delay: i * 0.06 }}
+                className="flex items-start gap-4 p-5 rounded-xl bg-card border border-border-subtle card-hover"
               >
-                <div className="w-10 h-10 rounded-lg bg-primary/10 text-primary flex items-center justify-center shrink-0">
+                <div className="w-10 h-10 rounded-xl bg-primary/8 text-primary flex items-center justify-center shrink-0">
                   <item.icon className="w-5 h-5" />
                 </div>
                 <div>
-                  <h3 className="font-semibold text-sm mb-0.5">{item.title}</h3>
-                  <p className="text-xs text-muted-foreground">{item.desc}</p>
+                  <h3 className="font-display font-bold text-sm mb-1">{item.title}</h3>
+                  <p className="text-xs text-muted-foreground leading-relaxed">{item.desc}</p>
                 </div>
               </motion.div>
             ))}
@@ -238,7 +245,7 @@ export default function Landing() {
       <DifferentiatorsSection />
 
       {/* Features */}
-      <section className="py-20 bg-gradient-subtle">
+      <section className="py-24 bg-gradient-subtle">
         <div className="container mx-auto px-4">
           <motion.div
             initial={{ opacity: 0 }}
@@ -246,27 +253,27 @@ export default function Landing() {
             viewport={{ once: true }}
             className="text-center mb-16"
           >
-            <h2 className="text-3xl md:text-4xl font-bold mb-4">Everything You Need</h2>
-            <p className="text-muted-foreground max-w-xl mx-auto">
+            <h2 className="font-display text-3xl md:text-4xl lg:text-5xl font-extrabold mb-5 tracking-tight">Everything You Need</h2>
+            <p className="text-muted-foreground max-w-xl mx-auto leading-relaxed">
               Powerful features for freelancers and startups looking to grow.
             </p>
           </motion.div>
 
-          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-5">
             {features.map((feature, i) => (
               <motion.div
                 key={i}
                 initial={{ opacity: 0, y: 20 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
-                transition={{ delay: i * 0.1 }}
-                className="group p-6 rounded-2xl bg-card border hover:shadow-xl hover:-translate-y-1 transition-all duration-300"
+                transition={{ delay: i * 0.1, ease: [0.22, 1, 0.36, 1] }}
+                className="group p-7 rounded-2xl bg-card border border-border-subtle card-hover"
               >
-                <div className="w-12 h-12 rounded-xl bg-primary/10 text-primary flex items-center justify-center mb-4 group-hover:bg-primary group-hover:text-primary-foreground transition-colors">
+                <div className="w-12 h-12 rounded-xl bg-primary/8 text-primary flex items-center justify-center mb-5 group-hover:bg-primary group-hover:text-primary-foreground transition-colors duration-300">
                   <feature.icon className="w-6 h-6" />
                 </div>
-                <h3 className="font-semibold text-lg mb-2">{feature.title}</h3>
-                <p className="text-muted-foreground text-sm">{feature.description}</p>
+                <h3 className="font-display font-bold text-lg mb-2">{feature.title}</h3>
+                <p className="text-muted-foreground text-sm leading-relaxed">{feature.description}</p>
               </motion.div>
             ))}
           </div>
@@ -280,19 +287,21 @@ export default function Landing() {
       <FAQSection />
 
       {/* CTA Section */}
-      <section className="py-20 bg-gradient-hero">
-        <div className="container mx-auto px-4">
+      <section className="py-24 bg-gradient-hero grain relative overflow-hidden">
+        {/* Orb */}
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[400px] h-[400px] rounded-full bg-primary/10 blur-[100px] animate-orb pointer-events-none" />
+        <div className="container mx-auto px-4 relative z-10">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             className="max-w-2xl mx-auto text-center"
           >
-            <Target className="w-12 h-12 mx-auto mb-6 text-primary-foreground/80" />
-            <h2 className="text-3xl md:text-4xl font-bold text-primary-foreground mb-4">
+            <Target className="w-12 h-12 mx-auto mb-6 text-primary-foreground/60" />
+            <h2 className="font-display text-3xl md:text-4xl lg:text-5xl font-extrabold text-primary-foreground mb-5 tracking-tight">
               Ready to Land More Clients?
             </h2>
-            <p className="text-primary-foreground/80 mb-8">
+            <p className="text-primary-foreground/60 mb-10 leading-relaxed">
               Join freelancers and startups using AI to find clients, pitch investors, and grow their business.
             </p>
             <Button variant="hero" size="xl" asChild>
@@ -301,12 +310,12 @@ export default function Landing() {
                 <ArrowRight className="w-5 h-5 ml-2" />
               </Link>
             </Button>
-            <div className="mt-6 flex items-center justify-center gap-6 text-sm text-primary-foreground/60">
-              <span className="flex items-center gap-1">
+            <div className="mt-8 flex items-center justify-center gap-6 text-sm text-primary-foreground/40">
+              <span className="flex items-center gap-1.5">
                 <CheckCircle2 className="w-4 h-4" />
                 No credit card required
               </span>
-              <span className="flex items-center gap-1">
+              <span className="flex items-center gap-1.5">
                 <CheckCircle2 className="w-4 h-4" />
                 3-day free trial
               </span>

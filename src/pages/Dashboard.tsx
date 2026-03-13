@@ -87,7 +87,6 @@ export default function Dashboard() {
   const navigate = useNavigate();
   const { toast } = useToast();
   
-  // Onboarding
   const { showTour, showWizard, markOnboardingComplete } = useOnboarding(user?.id);
 
   useEffect(() => {
@@ -116,7 +115,6 @@ export default function Dashboard() {
 
   const fetchDashboardData = async (userId: string) => {
     try {
-      // Fetch campaigns
       const { data: campaignsData, error: campaignsError } = await supabase
         .from("campaigns")
         .select("*")
@@ -126,7 +124,6 @@ export default function Dashboard() {
       if (campaignsError) throw campaignsError;
       setCampaigns(campaignsData || []);
 
-      // Calculate stats
       const totalEmailsSent = campaignsData?.reduce((sum, c) => sum + c.emails_sent, 0) || 0;
       const totalOpens = campaignsData?.reduce((sum, c) => sum + c.emails_opened, 0) || 0;
       const totalReplies = campaignsData?.reduce((sum, c) => sum + c.replies, 0) || 0;
@@ -136,12 +133,11 @@ export default function Dashboard() {
         totalEmailsSent,
         totalOpens,
         totalReplies,
-        totalBounced: 0, // Would need to query emails table
+        totalBounced: 0,
         openRate: totalEmailsSent > 0 ? Math.round((totalOpens / totalEmailsSent) * 100) : 0,
         replyRate: totalEmailsSent > 0 ? Math.round((totalReplies / totalEmailsSent) * 100) : 0,
       });
 
-      // Generate performance data for the last 7 days
       const last7Days = Array.from({ length: 7 }, (_, i) => {
         const date = new Date();
         date.setDate(date.getDate() - (6 - i));
@@ -153,10 +149,7 @@ export default function Dashboard() {
         };
       });
 
-      // In a real implementation, you'd query emails by date
-      // For now, show the structure
       if (totalEmailsSent > 0) {
-        // Distribute data across days for demo
         const perDay = Math.ceil(totalEmailsSent / 7);
         last7Days.forEach((day, i) => {
           if (i >= 4) {
@@ -168,16 +161,9 @@ export default function Dashboard() {
       }
       setPerformanceData(last7Days);
 
-      // Fetch recent emails
       const { data: emailsData } = await supabase
         .from("emails")
-        .select(`
-          id,
-          to_email,
-          status,
-          sent_at,
-          opened_at
-        `)
+        .select(`id, to_email, status, sent_at, opened_at`)
         .order("created_at", { ascending: false })
         .limit(10);
 
@@ -203,12 +189,12 @@ export default function Dashboard() {
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case "sent": return "bg-blue-500/10 text-blue-500 border-blue-500/30";
-      case "opened": return "bg-green-500/10 text-green-500 border-green-500/30";
-      case "replied": return "bg-purple-500/10 text-purple-500 border-purple-500/30";
-      case "bounced": return "bg-red-500/10 text-red-500 border-red-500/30";
-      case "failed": return "bg-red-500/10 text-red-500 border-red-500/30";
-      default: return "bg-gray-500/10 text-gray-500 border-gray-500/30";
+      case "sent": return "bg-info/10 text-info border-info/30";
+      case "opened": return "bg-success/10 text-success border-success/30";
+      case "replied": return "bg-primary/10 text-primary border-primary/30";
+      case "bounced": return "bg-destructive/10 text-destructive border-destructive/30";
+      case "failed": return "bg-destructive/10 text-destructive border-destructive/30";
+      default: return "bg-muted text-muted-foreground";
     }
   };
 
@@ -258,7 +244,6 @@ export default function Dashboard() {
       <Header isAuthenticated={true} onLogout={handleLogout} />
       <FeatureUpdatePopup />
       
-      {/* Onboarding Wizard for new users */}
       {showWizard && user && (
         <OnboardingWizard
           userId={user.id}
@@ -267,17 +252,16 @@ export default function Dashboard() {
           onComplete={markOnboardingComplete}
         />
       )}
-      {/* Onboarding Tour (legacy) */}
       {showTour && !showWizard && <OnboardingTour onComplete={markOnboardingComplete} />}
       <main className="container mx-auto px-4 pt-24 pb-12">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="mb-6 sm:mb-8"
+          className="mb-8"
         >
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div>
-              <h1 className="text-xl sm:text-2xl md:text-3xl font-bold">
+              <h1 className="font-display text-2xl md:text-3xl font-extrabold tracking-tight">
                 Welcome, {user?.user_metadata?.full_name || "there"}! 👋
               </h1>
               <p className="text-sm text-muted-foreground mt-1">
@@ -299,7 +283,7 @@ export default function Dashboard() {
                   </Button>
                 }
               />
-              <Button asChild size="default" className="bg-primary text-primary-foreground shadow-md">
+              <Button asChild size="default">
                 <Link to="/campaigns/new">
                   <Plus className="w-5 h-5 mr-1 sm:mr-2" />
                   <span className="font-semibold">New Campaign</span>
@@ -327,44 +311,24 @@ export default function Dashboard() {
           transition={{ delay: 0.12 }}
           className="mb-8"
         >
-          <h2 className="text-lg font-semibold mb-3">Career Tools</h2>
+          <h2 className="font-display text-lg font-bold mb-3 tracking-tight">Career Tools</h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            <Card className="hover:border-primary/50 transition-colors cursor-pointer group" onClick={() => navigate("/cv-builder")}>
-              <CardContent className="p-4 text-center">
-                <div className="w-10 h-10 mx-auto mb-2 rounded-xl bg-primary/10 flex items-center justify-center group-hover:bg-primary/20 transition-colors">
-                  <FileText className="w-5 h-5 text-primary" />
-                </div>
-                <p className="font-medium text-sm">CV Builder</p>
-                <p className="text-xs text-muted-foreground">Build or optimize</p>
-              </CardContent>
-            </Card>
-            <Card className="hover:border-primary/50 transition-colors cursor-pointer group" onClick={() => navigate("/ats-checker")}>
-              <CardContent className="p-4 text-center">
-                <div className="w-10 h-10 mx-auto mb-2 rounded-xl bg-primary/10 flex items-center justify-center group-hover:bg-primary/20 transition-colors">
-                  <Target className="w-5 h-5 text-primary" />
-                </div>
-                <p className="font-medium text-sm">ATS Checker</p>
-                <p className="text-xs text-muted-foreground">Instant score</p>
-              </CardContent>
-            </Card>
-            <Card className="hover:border-primary/50 transition-colors cursor-pointer group" onClick={() => navigate("/campaigns/new")}>
-              <CardContent className="p-4 text-center">
-                <div className="w-10 h-10 mx-auto mb-2 rounded-xl bg-primary/10 flex items-center justify-center group-hover:bg-primary/20 transition-colors">
-                  <Briefcase className="w-5 h-5 text-primary" />
-                </div>
-                <p className="font-medium text-sm">Job Search</p>
-                <p className="text-xs text-muted-foreground">Find & apply to 50</p>
-              </CardContent>
-            </Card>
-            <Card className="hover:border-primary/50 transition-colors cursor-pointer group" onClick={() => navigate("/campaigns/new")}>
-              <CardContent className="p-4 text-center">
-                <div className="w-10 h-10 mx-auto mb-2 rounded-xl bg-primary/10 flex items-center justify-center group-hover:bg-primary/20 transition-colors">
-                  <Send className="w-5 h-5 text-primary" />
-                </div>
-                <p className="font-medium text-sm">Outreach</p>
-                <p className="text-xs text-muted-foreground">Find clients</p>
-              </CardContent>
-            </Card>
+            {[
+              { icon: FileText, label: "CV Builder", sub: "Build or optimize", route: "/cv-builder" },
+              { icon: Target, label: "ATS Checker", sub: "Instant score", route: "/ats-checker" },
+              { icon: Briefcase, label: "Job Search", sub: "Find & apply to 50", route: "/campaigns/new" },
+              { icon: Send, label: "Outreach", sub: "Find clients", route: "/campaigns/new" },
+            ].map((tool, i) => (
+              <Card key={i} className="border-border-subtle card-hover cursor-pointer group" onClick={() => navigate(tool.route)}>
+                <CardContent className="p-4 text-center">
+                  <div className="w-10 h-10 mx-auto mb-2 rounded-xl bg-primary/8 flex items-center justify-center group-hover:bg-primary group-hover:text-primary-foreground transition-colors duration-300">
+                    <tool.icon className="w-5 h-5 text-primary group-hover:text-primary-foreground" />
+                  </div>
+                  <p className="font-display font-bold text-sm">{tool.label}</p>
+                  <p className="text-xs text-muted-foreground">{tool.sub}</p>
+                </CardContent>
+              </Card>
+            ))}
           </div>
         </motion.div>
 
@@ -383,7 +347,7 @@ export default function Dashboard() {
           </Button>
         </motion.div>
 
-        {/* Email Queue Status - Real-time updates */}
+        {/* Email Queue Status */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -402,14 +366,16 @@ export default function Dashboard() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: i * 0.1 }}
             >
-              <Card>
+              <Card className="border-border-subtle bg-gradient-stat">
                 <CardContent className="p-6">
-                  <div className="flex items-center justify-between mb-2">
-                    <stat.icon className={`w-5 h-5 ${stat.color}`} />
-                    <TrendingUp className="w-4 h-4 text-muted-foreground" />
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="w-9 h-9 rounded-lg bg-card flex items-center justify-center shadow-xs">
+                      <stat.icon className={`w-4 h-4 ${stat.color}`} />
+                    </div>
+                    <TrendingUp className="w-4 h-4 text-muted-foreground/40" />
                   </div>
-                  <div className="text-2xl font-bold">{stat.value}</div>
-                  <div className="text-sm text-muted-foreground">{stat.label}</div>
+                  <div className="font-display text-3xl font-extrabold tracking-tight">{stat.value}</div>
+                  <div className="text-xs text-muted-foreground mt-1 font-medium">{stat.label}</div>
                 </CardContent>
               </Card>
             </motion.div>
@@ -417,48 +383,40 @@ export default function Dashboard() {
         </div>
 
         {campaigns.length === 0 ? (
-          /* Enhanced Empty State with step-by-step guide */
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.4 }}
           >
-            <Card className="border-dashed">
+            <Card className="border-dashed border-border-subtle">
               <CardContent className="py-12 text-center">
-                <div className="w-16 h-16 mx-auto mb-6 rounded-2xl bg-primary/10 flex items-center justify-center">
+                <div className="w-16 h-16 mx-auto mb-6 rounded-2xl bg-primary/8 flex items-center justify-center">
                   <Mail className="w-8 h-8 text-primary" />
                 </div>
-                <h3 className="text-xl font-semibold mb-2">Welcome! Here's how to get started 🚀</h3>
+                <h3 className="font-display text-xl font-bold mb-2">Welcome! Here's how to get started 🚀</h3>
                 <p className="text-muted-foreground max-w-md mx-auto mb-8">
                   Land your first client in 3 simple steps
                 </p>
 
-                {/* Step-by-step guide */}
-                <div className="max-w-lg mx-auto space-y-4 text-left mb-8">
-                  <div className="flex items-start gap-4 p-4 rounded-xl bg-muted/50 border">
-                    <div className="w-8 h-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-sm font-bold shrink-0">1</div>
-                    <div>
-                      <p className="font-medium">Connect your email</p>
-                      <p className="text-sm text-muted-foreground">Go to Settings and add your email so we can send pitches on your behalf.</p>
+                <div className="max-w-lg mx-auto space-y-3 text-left mb-8">
+                  {[
+                    { step: "1", title: "Connect your email", desc: "Go to Settings and add your email so we can send pitches on your behalf.", link: "/settings", linkText: "Set Up", linkIcon: Settings },
+                    { step: "2", title: "Create a campaign", desc: "Search for businesses, let AI analyze their websites, and generate personalized pitches.", link: null, linkText: null, linkIcon: null },
+                    { step: "3", title: "Send & track", desc: "Review AI-generated pitches, approve them, and send. We'll track opens and replies for you.", link: null, linkText: null, linkIcon: null },
+                  ].map((item) => (
+                    <div key={item.step} className="flex items-start gap-4 p-4 rounded-xl bg-muted/50 border border-border-subtle">
+                      <div className="w-8 h-8 rounded-full bg-gradient-accent text-primary-foreground flex items-center justify-center text-sm font-display font-bold shrink-0">{item.step}</div>
+                      <div className="flex-1">
+                        <p className="font-display font-bold text-sm">{item.title}</p>
+                        <p className="text-sm text-muted-foreground">{item.desc}</p>
+                      </div>
+                      {item.link && item.linkIcon && (
+                        <Button asChild variant="outline" size="sm" className="shrink-0 mt-0.5">
+                          <Link to={item.link}><item.linkIcon className="w-3 h-3 mr-1" />{item.linkText}</Link>
+                        </Button>
+                      )}
                     </div>
-                    <Button asChild variant="outline" size="sm" className="shrink-0 mt-0.5">
-                      <Link to="/settings"><Settings className="w-3 h-3 mr-1" />Set Up</Link>
-                    </Button>
-                  </div>
-                  <div className="flex items-start gap-4 p-4 rounded-xl bg-muted/50 border">
-                    <div className="w-8 h-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-sm font-bold shrink-0">2</div>
-                    <div>
-                      <p className="font-medium">Create a campaign</p>
-                      <p className="text-sm text-muted-foreground">Search for businesses, let AI analyze their websites, and generate personalized pitches.</p>
-                    </div>
-                  </div>
-                  <div className="flex items-start gap-4 p-4 rounded-xl bg-muted/50 border">
-                    <div className="w-8 h-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-sm font-bold shrink-0">3</div>
-                    <div>
-                      <p className="font-medium">Send & track</p>
-                      <p className="text-sm text-muted-foreground">Review AI-generated pitches, approve them, and send. We'll track opens and replies for you.</p>
-                    </div>
-                  </div>
+                  ))}
                 </div>
 
                 <Button asChild size="lg">
@@ -472,7 +430,6 @@ export default function Dashboard() {
           </motion.div>
         ) : (
           <>
-            {/* Charts Section */}
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
@@ -492,24 +449,23 @@ export default function Dashboard() {
             </motion.div>
 
             <div className="grid gap-8 lg:grid-cols-3">
-              {/* Campaigns List */}
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.5 }}
                 className="lg:col-span-2"
               >
-                <Card>
+                <Card className="border-border-subtle">
                   <CardHeader>
                     <div className="flex items-center justify-between">
                       <div>
-                        <CardTitle className="text-lg">Your Campaigns</CardTitle>
+                        <CardTitle className="font-display text-lg font-bold tracking-tight">Your Campaigns</CardTitle>
                         <CardDescription>{campaigns.length} campaigns total</CardDescription>
                       </div>
                     </div>
                   </CardHeader>
                   <CardContent>
-                    <div className="space-y-4">
+                    <div className="space-y-3">
                       {campaigns.slice(0, 5).map((campaign) => {
                         const openRate = campaign.emails_sent > 0 
                           ? Math.round((campaign.emails_opened / campaign.emails_sent) * 100) 
@@ -518,12 +474,12 @@ export default function Dashboard() {
                         return (
                           <div 
                             key={campaign.id} 
-                            className="p-4 rounded-lg border bg-card hover:bg-accent/5 transition-colors"
+                            className="p-4 rounded-xl border border-border-subtle bg-card transition-all duration-200 hover:shadow-sm hover:border-border"
                           >
                             <div className="flex items-start justify-between mb-3">
                               <div>
-                                <h4 className="font-semibold">{campaign.name}</h4>
-                                <p className="text-sm text-muted-foreground">
+                                <h4 className="font-display font-bold text-sm">{campaign.name}</h4>
+                                <p className="text-xs text-muted-foreground">
                                   {campaign.business_type} in {campaign.location}
                                 </p>
                               </div>
@@ -534,15 +490,15 @@ export default function Dashboard() {
                             
                             <div className="grid grid-cols-2 gap-4 text-sm mb-3">
                               <div>
-                                <div className="text-muted-foreground">Sent</div>
-                                <div className="font-medium flex items-center gap-1">
+                                <div className="text-xs text-muted-foreground">Sent</div>
+                                <div className="font-display font-bold flex items-center gap-1">
                                   <Send className="w-3 h-3" />
                                   {campaign.emails_sent}
                                 </div>
                               </div>
                               <div>
-                                <div className="text-muted-foreground">Opened</div>
-                                <div className="font-medium flex items-center gap-1">
+                                <div className="text-xs text-muted-foreground">Opened</div>
+                                <div className="font-display font-bold flex items-center gap-1">
                                   <Eye className="w-3 h-3" />
                                   {campaign.emails_opened}
                                 </div>
@@ -553,13 +509,13 @@ export default function Dashboard() {
                               <div>
                                 <div className="flex justify-between text-xs text-muted-foreground mb-1">
                                   <span>Open rate</span>
-                                  <span>{openRate}%</span>
+                                  <span className="font-mono">{openRate}%</span>
                                 </div>
-                                <Progress value={openRate} className="h-1.5" />
+                                <Progress value={openRate} className="h-1" />
                               </div>
                             )}
 
-                            <div className="flex items-center justify-between mt-3 pt-3 border-t">
+                            <div className="flex items-center justify-between mt-3 pt-3 border-t border-border-subtle">
                               <div className="flex items-center gap-1 text-xs text-muted-foreground">
                                 <Calendar className="w-3 h-3" />
                                 {formatDate(campaign.created_at)}
@@ -573,15 +529,14 @@ export default function Dashboard() {
                 </Card>
               </motion.div>
 
-              {/* Recent Activity */}
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.6 }}
               >
-                <Card>
+                <Card className="border-border-subtle">
                   <CardHeader>
-                    <CardTitle className="text-lg">Recent Emails</CardTitle>
+                    <CardTitle className="font-display text-lg font-bold tracking-tight">Recent Emails</CardTitle>
                     <CardDescription>Latest email activity</CardDescription>
                   </CardHeader>
                   <CardContent>
@@ -591,9 +546,9 @@ export default function Dashboard() {
                         No emails sent yet
                       </div>
                     ) : (
-                      <div className="space-y-3">
+                      <div className="space-y-2">
                         {recentEmails.map((email) => (
-                          <div key={email.id} className="flex items-start gap-3 p-3 rounded-lg border bg-card">
+                          <div key={email.id} className="flex items-start gap-3 p-3 rounded-lg border border-border-subtle bg-card">
                             <div className="flex-1 min-w-0">
                               <div className="font-medium text-sm truncate">
                                 {email.to_email}
@@ -616,20 +571,19 @@ export default function Dashboard() {
                   </CardContent>
                 </Card>
 
-                {/* Performance Summary */}
-                <Card className="mt-4">
+                <Card className="mt-4 border-border-subtle">
                   <CardHeader>
-                    <CardTitle className="text-lg">Performance</CardTitle>
+                    <CardTitle className="font-display text-lg font-bold tracking-tight">Performance</CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-4">
                     <div>
                       <div className="flex justify-between text-sm mb-1">
                         <span className="text-muted-foreground">Open Rate</span>
-                        <span className="font-medium">{stats.openRate}%</span>
+                        <span className="font-display font-bold">{stats.openRate}%</span>
                       </div>
-                      <Progress value={stats.openRate} className="h-2" />
+                      <Progress value={stats.openRate} className="h-1.5" />
                     </div>
-                    <div className="pt-2 border-t">
+                    <div className="pt-2 border-t border-border-subtle">
                       <p className="text-xs text-muted-foreground">
                         Industry average: 20-30% open rate
                       </p>
