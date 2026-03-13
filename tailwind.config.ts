@@ -58,6 +58,12 @@ export default {
           DEFAULT: "hsl(var(--success))",
           foreground: "hsl(var(--success-foreground))",
         },
+        purple: {
+          DEFAULT: "hsl(var(--purple))",
+        },
+        pink: {
+          DEFAULT: "hsl(var(--pink))",
+        },
         warning: {
           DEFAULT: "hsl(var(--warning))",
           foreground: "hsl(var(--warning-foreground))",
