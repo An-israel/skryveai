@@ -87,7 +87,14 @@ export function CampaignTypeSelector({ onSelect }: CampaignTypeSelectorProps) {
                     <CardTitle className="text-xl">{type.title}</CardTitle>
                     <CardDescription className="text-sm font-medium mt-0.5">{type.subtitle}</CardDescription>
                   </div>
-                  <ArrowRight className="w-5 h-5 text-muted-foreground group-hover:text-primary group-hover:translate-x-1 transition-all" />
+                  <div className="flex items-center gap-2">
+                    {type.isNew && (
+                      <Badge className="bg-gradient-to-r from-green-500 to-emerald-600 text-white border-0 text-[10px] px-1.5 py-0">
+                        NEW
+                      </Badge>
+                    )}
+                    <ArrowRight className="w-5 h-5 text-muted-foreground group-hover:text-primary group-hover:translate-x-1 transition-all" />
+                  </div>
                 </div>
               </CardHeader>
               <CardContent className="space-y-4">
