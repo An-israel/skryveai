@@ -90,6 +90,8 @@ function isValidEmail(email: string): boolean {
   if (!localPart || localPart.length < 1 || localPart.length > 64) return false;
   if (localPart.startsWith('.') || localPart.endsWith('.') || localPart.includes('..')) return false;
   if (!domain || domain.length < 3) return false;
+  // Reject blocked domains (platforms, known-bad)
+  if (BLOCKED_EMAIL_DOMAINS.has(domain)) return false;
   const domainParts = domain.split('.');
   if (domainParts.length < 2) return false;
   const tld = domainParts[domainParts.length - 1];
