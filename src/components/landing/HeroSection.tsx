@@ -41,9 +41,9 @@ export function HeroSection() {
             Cold outreach was never built for you. Until now.
           </p>
 
-          <h1 className="font-display text-4xl md:text-6xl lg:text-7xl font-extrabold text-primary-foreground mb-7 leading-[1.05] tracking-tight">
+          <h1 className="font-display text-4xl md:text-6xl lg:text-7xl font-extrabold text-foreground mb-7 leading-[1.05] tracking-tight">
             Your Talent Was Never the Problem.{" "}
-            <span className="text-gradient">Now Your Pitch Won't Be Either.</span>
+            <span className="text-gradient-rich">Now Your Pitch Won't Be Either.</span>
           </h1>
 
           <p className="text-base md:text-lg text-primary-foreground/60 mb-5 max-w-2xl mx-auto leading-relaxed">
