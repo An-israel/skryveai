@@ -701,6 +701,7 @@ export default function NewCampaign() {
             address: job.location,
             website: job.url,
             email,
+            emailVerified: Boolean(appResult?.emailVerified),
             category: job.platform,
             selected: true,
           };
