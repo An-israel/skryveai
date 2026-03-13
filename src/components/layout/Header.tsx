@@ -175,10 +175,6 @@ export function Header({ isAuthenticated: isAuthenticatedProp, onLogout }: Heade
                      <NotificationBell />
                      <span className="text-sm font-medium text-muted-foreground">Notifications</span>
                    </div>
-                   <div className="flex items-center gap-2 py-2">
-                     <ThemeToggle />
-                     <span className="text-sm font-medium text-muted-foreground">Theme</span>
-                   </div>
                    <Link to="/settings" className="py-2 text-sm font-medium text-muted-foreground hover:text-foreground">
                      Settings
                    </Link>
