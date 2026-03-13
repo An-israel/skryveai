@@ -1,7 +1,7 @@
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Menu, X, Settings, Shield } from "lucide-react";
-import { ThemeToggle } from "@/components/ui/theme-toggle";
+
 import { NotificationBell } from "@/components/layout/NotificationBell";
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
@@ -107,7 +107,6 @@ export function Header({ isAuthenticated: isAuthenticatedProp, onLogout }: Heade
                 </Link>
               )}
               <NotificationBell />
-              <ThemeToggle />
               <Link to="/settings" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
                 <Settings className="w-4 h-4" />
               </Link>
@@ -117,7 +116,6 @@ export function Header({ isAuthenticated: isAuthenticatedProp, onLogout }: Heade
             </>
           ) : (
             <>
-              <ThemeToggle />
               <Link to="/login" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
                 Sign In
               </Link>
@@ -176,10 +174,6 @@ export function Header({ isAuthenticated: isAuthenticatedProp, onLogout }: Heade
                    <div className="flex items-center gap-2 py-2">
                      <NotificationBell />
                      <span className="text-sm font-medium text-muted-foreground">Notifications</span>
-                   </div>
-                   <div className="flex items-center gap-2 py-2">
-                     <ThemeToggle />
-                     <span className="text-sm font-medium text-muted-foreground">Theme</span>
                    </div>
                    <Link to="/settings" className="py-2 text-sm font-medium text-muted-foreground hover:text-foreground">
                      Settings
