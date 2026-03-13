@@ -1,7 +1,7 @@
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Menu, X, Settings, Shield } from "lucide-react";
-import { ThemeToggle } from "@/components/ui/theme-toggle";
+
 import { NotificationBell } from "@/components/layout/NotificationBell";
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
