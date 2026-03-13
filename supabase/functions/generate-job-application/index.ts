@@ -6,31 +6,140 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-function extractEmailsFromContent(content: string): string | null {
+const PLATFORM_DOMAINS = [
+  "indeed.com", "linkedin.com", "glassdoor.com", "wellfound.com", "dice.com",
+  "ziprecruiter.com", "weworkremotely.com", "remote.co", "monster.com",
+  "careerbuilder.com", "simplyhired.com", "lever.co", "greenhouse.io",
+  "workday.com", "icims.com", "taleo.net", "smartrecruiters.com",
+];
+
+const GENERIC_PREFIXES = [
+  "noreply", "no-reply", "donotreply", "support", "privacy", "feedback",
+  "terms", "legal", "info@indeed", "careerguide", "mailer-daemon", "postmaster",
+  "webmaster", "notifications",
+];
+
+function isValidCompanyEmail(email: string): boolean {
+  const lower = email.toLowerCase();
+  if (lower.endsWith(".png") || lower.endsWith(".jpg") || lower.endsWith(".jpeg")) return false;
+  for (const d of PLATFORM_DOMAINS) { if (lower.includes(`@${d}`)) return false; }
+  for (const p of GENERIC_PREFIXES) { if (lower.startsWith(p) || lower.includes(p)) return false; }
+  return true;
+}
+
+function extractBestEmail(content: string): string | null {
   const emailRegex = /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g;
-  const emails = content.match(emailRegex) || [];
-  const filtered = emails.filter((e: string) => {
-    const lower = e.toLowerCase();
-    return !lower.includes("noreply") && !lower.includes("no-reply") &&
-           !lower.includes("example.com") && !lower.includes("support@") &&
-           !lower.includes("privacy@") && !lower.includes("donotreply") &&
-           !lower.endsWith(".png") && !lower.endsWith(".jpg") &&
-           !lower.includes("careerguide@") && !lower.includes("@indeed.com") &&
-           !lower.includes("@linkedin.com") && !lower.includes("@glassdoor.com") &&
-           !lower.includes("@wellfound.com") && !lower.includes("@dice.com") &&
-           !lower.includes("@ziprecruiter.com") && !lower.includes("@weworkremotely.com") &&
-           !lower.includes("@remote.co") && !lower.includes("feedback@") &&
-           !lower.includes("terms@") && !lower.includes("legal@") &&
-           !lower.includes("info@indeed");
+  const emails = (content.match(emailRegex) || []).filter(isValidCompanyEmail);
+  if (emails.length === 0) return null;
+  const priority = emails.find((e) => {
+    const l = e.toLowerCase();
+    return l.startsWith("hr@") || l.startsWith("hiring@") || l.startsWith("careers@") ||
+      l.startsWith("jobs@") || l.startsWith("recruit") || l.startsWith("talent") ||
+      l.startsWith("people@") || l.startsWith("humanresources@");
   });
-  if (filtered.length === 0) return null;
-  const priority = filtered.find((e: string) => {
-    const lower = e.toLowerCase();
-    return lower.startsWith("hr@") || lower.startsWith("hiring@") ||
-           lower.startsWith("careers@") || lower.startsWith("jobs@") ||
-           lower.startsWith("recruit") || lower.startsWith("talent");
-  });
-  return priority || filtered[0];
+  return priority || emails[0];
+}
+
+function guessCompanyDomain(company: string): string {
+  return company
+    .toLowerCase()
+    .replace(/\s*(inc|llc|ltd|corp|corporation|co|group|holdings|limited|pvt|pty|gmbh|ag|sa|plc)\s*\.?\s*$/gi, "")
+    .replace(/[^a-z0-9]/g, "")
+    + ".com";
+}
+
+async function discoverCompanyEmail(company: string, jobUrl: string | null, firecrawlKey: string): Promise<string | null> {
+  // Tier 1: Scrape the job posting URL itself
+  if (jobUrl) {
+    try {
+      const resp = await fetch("https://api.firecrawl.dev/v1/scrape", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${firecrawlKey}`, "Content-Type": "application/json" },
+        body: JSON.stringify({ url: jobUrl, formats: ["markdown"], onlyMainContent: true, timeout: 10000 }),
+      });
+      if (resp.ok) {
+        const data = await resp.json();
+        const email = extractBestEmail(data?.data?.markdown || data?.markdown || "");
+        if (email) { console.log(`[Tier1] Found ${email} from job URL`); return email; }
+      }
+    } catch { /* continue */ }
+  }
+
+  if (!company || company === "Company") return null;
+
+  // Tier 2: Scrape company's actual website (contact, about, careers pages)
+  const domain = guessCompanyDomain(company);
+  console.log(`[Tier2] Scraping ${domain} for "${company}"`);
+
+  const pagesToTry = [
+    `https://${domain}/contact`,
+    `https://${domain}/contact-us`,
+    `https://${domain}/about`,
+    `https://${domain}/careers`,
+    `https://${domain}`,
+  ];
+
+  // Try first 3 pages in parallel for speed
+  const firstBatch = pagesToTry.slice(0, 3);
+  const results = await Promise.allSettled(
+    firstBatch.map(async (pageUrl) => {
+      const resp = await fetch("https://api.firecrawl.dev/v1/scrape", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${firecrawlKey}`, "Content-Type": "application/json" },
+        body: JSON.stringify({ url: pageUrl, formats: ["markdown"], onlyMainContent: false, timeout: 10000 }),
+      });
+      if (!resp.ok) return null;
+      const data = await resp.json();
+      return extractBestEmail(data?.data?.markdown || data?.markdown || "");
+    })
+  );
+
+  for (const r of results) {
+    if (r.status === "fulfilled" && r.value) {
+      console.log(`[Tier2] Found ${r.value} from company website`);
+      return r.value;
+    }
+  }
+
+  // Try remaining pages
+  for (const pageUrl of pagesToTry.slice(3)) {
+    try {
+      const resp = await fetch("https://api.firecrawl.dev/v1/scrape", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${firecrawlKey}`, "Content-Type": "application/json" },
+        body: JSON.stringify({ url: pageUrl, formats: ["markdown"], onlyMainContent: false, timeout: 10000 }),
+      });
+      if (!resp.ok) continue;
+      const data = await resp.json();
+      const email = extractBestEmail(data?.data?.markdown || data?.markdown || "");
+      if (email) { console.log(`[Tier2] Found ${email} from ${pageUrl}`); return email; }
+    } catch { /* continue */ }
+  }
+
+  // Tier 3: Web search for company HR email
+  try {
+    console.log(`[Tier3] Searching web for "${company}" HR email`);
+    const searchResp = await fetch("https://api.firecrawl.dev/v1/search", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${firecrawlKey}`, "Content-Type": "application/json" },
+      body: JSON.stringify({
+        query: `"${company}" HR email OR careers email OR hiring email`,
+        limit: 3,
+        scrapeOptions: { formats: ["markdown"] },
+      }),
+    });
+    const searchData = await searchResp.json();
+    if (searchData.success !== false && searchData.data) {
+      for (const result of searchData.data) {
+        const email = extractBestEmail(result.markdown || result.description || "");
+        if (email) { console.log(`[Tier3] Found ${email} from web search`); return email; }
+      }
+    }
+  } catch { /* continue */ }
+
+  // Tier 4: Fallback to common HR email pattern
+  console.log(`[Tier4] Generating hr@${domain} as fallback`);
+  return `hr@${domain}`;
 }
 
 serve(async (req) => {
@@ -42,8 +151,7 @@ serve(async (req) => {
     const authHeader = req.headers.get("authorization");
     if (!authHeader?.startsWith("Bearer ")) {
       return new Response(JSON.stringify({ error: "Unauthorized" }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
@@ -54,19 +162,16 @@ serve(async (req) => {
     const token = authHeader.replace("Bearer ", "");
     const { data: { user }, error: authError } = await serviceClient.auth.getUser(token);
     if (authError || !user) {
-      console.error("Auth error:", authError?.message);
       return new Response(JSON.stringify({ error: "Unauthorized" }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    const { jobTitle, company, jobDescription, cvContent, userProfile, jobUrl } = await req.json();
+    const { jobTitle, company, jobDescription, cvContent, userProfile, jobUrl, email: existingEmail } = await req.json();
 
     if (!jobTitle || !company) {
       return new Response(JSON.stringify({ error: "Job title and company are required" }), {
-        status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
@@ -74,108 +179,17 @@ serve(async (req) => {
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) {
       return new Response(JSON.stringify({ error: "AI service not configured" }), {
-        status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    // Step 1: Try to extract email from job posting URL
-    let extractedEmail: string | null = null;
-    
-    if (jobUrl && FIRECRAWL_API_KEY) {
-      try {
-        console.log(`Scraping job URL for email: ${jobUrl}`);
-        const scrapeResp = await fetch("https://api.firecrawl.dev/v1/scrape", {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${FIRECRAWL_API_KEY}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            url: jobUrl,
-            formats: ["markdown"],
-            onlyMainContent: true,
-          }),
-        });
-
-        const scrapeData = await scrapeResp.json();
-        const content = scrapeData?.data?.markdown || scrapeData?.markdown || "";
-        extractedEmail = extractEmailsFromContent(content);
-        
-        if (extractedEmail) {
-          console.log(`Found email from job posting: ${extractedEmail}`);
-        }
-      } catch (scrapeErr) {
-        console.error("Failed to scrape job URL:", scrapeErr);
-      }
+    // Discover email (skip if already provided and valid)
+    let extractedEmail = existingEmail || null;
+    if ((!extractedEmail || !isValidCompanyEmail(extractedEmail)) && FIRECRAWL_API_KEY) {
+      extractedEmail = await discoverCompanyEmail(company, jobUrl, FIRECRAWL_API_KEY);
     }
 
-    // Step 2: Fallback - try to find company HR email by scraping company website
-    if (!extractedEmail && FIRECRAWL_API_KEY && company && company !== "Company") {
-      try {
-        console.log(`Fallback: searching for ${company} careers/contact page`);
-        
-        // Search for company careers or contact page
-        const searchResp = await fetch("https://api.firecrawl.dev/v1/search", {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${FIRECRAWL_API_KEY}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            query: `${company} careers contact email hiring`,
-            limit: 3,
-            scrapeOptions: { formats: ["markdown"] },
-          }),
-        });
-
-        const searchData = await searchResp.json();
-        if (searchData.success !== false && searchData.data) {
-          for (const result of searchData.data) {
-            const content = result.markdown || result.description || "";
-            const email = extractEmailsFromContent(content);
-            if (email) {
-              extractedEmail = email;
-              console.log(`Found email from company website fallback: ${extractedEmail}`);
-              break;
-            }
-          }
-        }
-
-        // If still no email, try scraping the company's main website contact/careers page
-        if (!extractedEmail) {
-          const mapResp = await fetch("https://api.firecrawl.dev/v1/search", {
-            method: "POST",
-            headers: {
-              Authorization: `Bearer ${FIRECRAWL_API_KEY}`,
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-              query: `"${company}" site:${company.toLowerCase().replace(/\s+/g, '')}.com contact OR careers OR jobs email`,
-              limit: 2,
-              scrapeOptions: { formats: ["markdown"] },
-            }),
-          });
-
-          const mapData = await mapResp.json();
-          if (mapData.success !== false && mapData.data) {
-            for (const result of mapData.data) {
-              const content = result.markdown || result.description || "";
-              const email = extractEmailsFromContent(content);
-              if (email) {
-                extractedEmail = email;
-                console.log(`Found email from company domain search: ${extractedEmail}`);
-                break;
-              }
-            }
-          }
-        }
-      } catch (fallbackErr) {
-        console.error("Fallback email scraping failed:", fallbackErr);
-      }
-    }
-
-    // Step 3: Generate tailored cover letter using Lovable AI
+    // Generate cover letter with AI (in parallel with email discovery if needed)
     const systemPrompt = `You are an expert career consultant and professional cover letter writer. Your job is to:
 1. Analyze the job posting details carefully
 2. Review the applicant's CV/profile
@@ -222,35 +236,23 @@ Return the response using the generate_application function.`;
           { role: "system", content: systemPrompt },
           { role: "user", content: userPrompt },
         ],
-        tools: [
-          {
-            type: "function",
-            function: {
-              name: "generate_application",
-              description: "Generate a tailored job application with subject line and cover letter",
-              parameters: {
-                type: "object",
-                properties: {
-                  subject: {
-                    type: "string",
-                    description: "Email subject line for the application (compelling, under 80 chars)",
-                  },
-                  coverLetter: {
-                    type: "string",
-                    description: "The full cover letter body, professionally formatted",
-                  },
-                  keyMatchingSkills: {
-                    type: "array",
-                    items: { type: "string" },
-                    description: "3-5 key skills from the CV that match the job requirements",
-                  },
-                },
-                required: ["subject", "coverLetter", "keyMatchingSkills"],
-                additionalProperties: false,
+        tools: [{
+          type: "function",
+          function: {
+            name: "generate_application",
+            description: "Generate a tailored job application with subject line and cover letter",
+            parameters: {
+              type: "object",
+              properties: {
+                subject: { type: "string", description: "Email subject line (compelling, under 80 chars)" },
+                coverLetter: { type: "string", description: "The full cover letter body" },
+                keyMatchingSkills: { type: "array", items: { type: "string" }, description: "3-5 matching skills" },
               },
+              required: ["subject", "coverLetter", "keyMatchingSkills"],
+              additionalProperties: false,
             },
           },
-        ],
+        }],
         tool_choice: { type: "function", function: { name: "generate_application" } },
       }),
     });
@@ -258,42 +260,31 @@ Return the response using the generate_application function.`;
     if (!aiResponse.ok) {
       const errText = await aiResponse.text();
       console.error("AI gateway error:", aiResponse.status, errText);
-      
       if (aiResponse.status === 429) {
         return new Response(JSON.stringify({ error: "AI rate limit reached. Please try again in a moment." }), {
-          status: 429,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
+          status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
-      if (aiResponse.status === 402) {
-        return new Response(JSON.stringify({ error: "AI credits exhausted. Please add credits." }), {
-          status: 402,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
-      
       throw new Error("Failed to generate application");
     }
 
     const aiData = await aiResponse.json();
-    
     const toolCall = aiData.choices?.[0]?.message?.tool_calls?.[0];
     let application = { subject: "", coverLetter: "", keyMatchingSkills: [] as string[] };
-    
+
     if (toolCall?.function?.arguments) {
       try {
         application = JSON.parse(toolCall.function.arguments);
       } catch {
-        const content = aiData.choices?.[0]?.message?.content || "";
         application = {
           subject: `Application for ${jobTitle} at ${company}`,
-          coverLetter: content,
+          coverLetter: aiData.choices?.[0]?.message?.content || "",
           keyMatchingSkills: [],
         };
       }
     }
 
-    console.log(`Generated application for ${jobTitle} at ${company}, email: ${extractedEmail || "none found"}`);
+    console.log(`Generated application for ${jobTitle} at ${company}, email: ${extractedEmail || "none"}`);
 
     return new Response(
       JSON.stringify({
