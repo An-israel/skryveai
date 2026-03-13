@@ -107,7 +107,6 @@ export function Header({ isAuthenticated: isAuthenticatedProp, onLogout }: Heade
                 </Link>
               )}
               <NotificationBell />
-              <ThemeToggle />
               <Link to="/settings" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
                 <Settings className="w-4 h-4" />
               </Link>
