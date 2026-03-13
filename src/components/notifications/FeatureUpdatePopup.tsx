@@ -2,10 +2,10 @@ import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Briefcase, X, Sparkles, ArrowRight } from "lucide-react";
+import { X, Sparkles, ArrowRight, FileText, Target, BookOpen } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
-const FEATURE_UPDATE_KEY = "skryve_feature_update_job_applications_v1";
+const FEATURE_UPDATE_KEY = "skryve_feature_update_career_tools_v2";
 
 export function FeatureUpdatePopup() {
   const [show, setShow] = useState(false);
@@ -14,7 +14,6 @@ export function FeatureUpdatePopup() {
   useEffect(() => {
     const dismissed = localStorage.getItem(FEATURE_UPDATE_KEY);
     if (!dismissed) {
-      // Show after a small delay so the page loads first
       const timer = setTimeout(() => setShow(true), 1500);
       return () => clearTimeout(timer);
     }
@@ -25,9 +24,9 @@ export function FeatureUpdatePopup() {
     setShow(false);
   };
 
-  const tryIt = () => {
+  const goTo = (path: string) => {
     dismiss();
-    navigate("/campaigns/new");
+    navigate(path);
   };
 
   return (
@@ -60,12 +59,11 @@ export function FeatureUpdatePopup() {
                 </Button>
                 <div className="flex items-center gap-3">
                   <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center">
-                    <Briefcase className="w-6 h-6 text-primary" />
+                    <Sparkles className="w-6 h-6 text-primary" />
                   </div>
                   <div>
                     <div className="flex items-center gap-2">
-                      <CardTitle className="text-lg">New: Apply for Jobs in Bulk!</CardTitle>
-                      <Sparkles className="w-4 h-4 text-yellow-500" />
+                      <CardTitle className="text-lg">New: Career Tools Suite!</CardTitle>
                     </div>
                     <p className="text-sm text-muted-foreground">Free for all users</p>
                   </div>
@@ -73,31 +71,52 @@ export function FeatureUpdatePopup() {
               </CardHeader>
               <CardContent className="space-y-4">
                 <p className="text-sm text-muted-foreground">
-                  Search jobs across <strong>LinkedIn, Indeed, Glassdoor</strong> and more. 
-                  Our AI will tailor your CV and write personalized cover letters for each job — 
-                  <strong> apply to up to 50 jobs at once!</strong>
+                  We've launched <strong>3 powerful career tools</strong> to help you land your dream job faster:
                 </p>
-                <ul className="space-y-2 text-sm">
-                  <li className="flex items-center gap-2">
-                    <div className="w-1.5 h-1.5 rounded-full bg-primary" />
-                    Search 7+ job platforms (last 24 hours)
-                  </li>
-                  <li className="flex items-center gap-2">
-                    <div className="w-1.5 h-1.5 rounded-full bg-primary" />
-                    AI scrapes employer emails automatically
-                  </li>
-                  <li className="flex items-center gap-2">
-                    <div className="w-1.5 h-1.5 rounded-full bg-primary" />
-                    CV tailored per job + cover letters generated
-                  </li>
-                  <li className="flex items-center gap-2">
-                    <div className="w-1.5 h-1.5 rounded-full bg-primary" />
-                    Send all applications at once — save hours
-                  </li>
-                </ul>
+                <div className="space-y-3">
+                  <button
+                    onClick={() => goTo("/cv-builder")}
+                    className="w-full flex items-start gap-3 p-3 rounded-lg border hover:border-primary/50 hover:bg-primary/5 transition-colors text-left"
+                  >
+                    <div className="w-9 h-9 shrink-0 rounded-lg bg-primary/10 flex items-center justify-center">
+                      <FileText className="w-4 h-4 text-primary" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-semibold">CV / Resume Builder</p>
+                      <p className="text-xs text-muted-foreground">Build or optimize your CV with AI. Download as PDF or DOCX. Includes LinkedIn guide.</p>
+                    </div>
+                  </button>
+
+                  <button
+                    onClick={() => goTo("/ats-checker")}
+                    className="w-full flex items-start gap-3 p-3 rounded-lg border hover:border-primary/50 hover:bg-primary/5 transition-colors text-left"
+                  >
+                    <div className="w-9 h-9 shrink-0 rounded-lg bg-primary/10 flex items-center justify-center">
+                      <Target className="w-4 h-4 text-primary" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-semibold">ATS Score Checker</p>
+                      <p className="text-xs text-muted-foreground">Instant 8-category ATS compatibility score with actionable improvements.</p>
+                    </div>
+                  </button>
+
+                  <button
+                    onClick={() => goTo("/cv-builder")}
+                    className="w-full flex items-start gap-3 p-3 rounded-lg border hover:border-primary/50 hover:bg-primary/5 transition-colors text-left"
+                  >
+                    <div className="w-9 h-9 shrink-0 rounded-lg bg-primary/10 flex items-center justify-center">
+                      <BookOpen className="w-4 h-4 text-primary" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-semibold">LinkedIn Optimization Guide</p>
+                      <p className="text-xs text-muted-foreground">Personalized 11-section guide with copy-paste content for your LinkedIn profile.</p>
+                    </div>
+                  </button>
+                </div>
+
                 <div className="flex gap-3 pt-2">
-                  <Button className="flex-1" onClick={tryIt}>
-                    Try It Now
+                  <Button className="flex-1" onClick={() => goTo("/cv-builder")}>
+                    Try CV Builder
                     <ArrowRight className="w-4 h-4 ml-1" />
                   </Button>
                   <Button variant="outline" onClick={dismiss}>
