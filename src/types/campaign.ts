@@ -50,4 +50,28 @@ export interface Campaign {
   replies: number;
 }
 
+export interface JobListing {
+  id: string;
+  jobTitle: string;
+  company: string;
+  platform: string;
+  url: string;
+  description: string;
+  fullContent?: string;
+  location: string;
+  postedDate: string;
+  selected: boolean;
+  email?: string;
+}
+
+export interface JobApplication {
+  jobId: string;
+  subject: string;
+  body: string;
+  keyMatchingSkills: string[];
+  extractedEmail: string | null;
+  edited: boolean;
+  approved: boolean;
+}
+
 export type CampaignStep = 'search' | 'select' | 'analyze' | 'pitch' | 'send' | 'complete';
