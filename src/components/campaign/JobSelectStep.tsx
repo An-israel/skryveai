@@ -5,7 +5,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { ArrowLeft, ArrowRight, ExternalLink, MapPin, Building2, Globe, CheckCircle2 } from "lucide-react";
+import { ArrowLeft, ArrowRight, ExternalLink, MapPin, Building2, Globe, CheckCircle2, ShieldCheck, AlertTriangle, Mail } from "lucide-react";
 import type { JobListing } from "@/types/campaign";
 
 interface JobSelectStepProps {
@@ -118,6 +118,23 @@ export function JobSelectStep({ jobs, onSelect, onBack, maxSelect = 50 }: JobSel
                         {job.postedDate}
                       </span>
                     </div>
+                    {job.email && (
+                      <div className="flex items-center gap-1.5 mt-2 text-xs">
+                        <Mail className="w-3 h-3 text-muted-foreground" />
+                        <span className="text-muted-foreground">{job.email}</span>
+                        {job.emailVerified ? (
+                          <span className="inline-flex items-center gap-0.5 text-green-600" title="MX-verified domain">
+                            <ShieldCheck className="w-3 h-3" />
+                            Verified
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center gap-0.5 text-yellow-600" title="Domain not MX-verified">
+                            <AlertTriangle className="w-3 h-3" />
+                            Unverified
+                          </span>
+                        )}
+                      </div>
+                    )}
                     {job.description && (
                       <p className="text-sm text-muted-foreground mt-2 line-clamp-2">
                         {job.description}

@@ -62,6 +62,7 @@ export interface JobListing {
   postedDate: string;
   selected: boolean;
   email?: string;
+  emailVerified?: boolean;
 }
 
 export interface JobApplication {
