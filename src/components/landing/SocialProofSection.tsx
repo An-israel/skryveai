@@ -24,16 +24,16 @@ const testimonials = [
 
 export function SocialProofSection() {
   return (
-    <section className="py-20 bg-gradient-subtle">
+    <section className="py-24 bg-gradient-subtle">
       <div className="container mx-auto px-4">
         <motion.div
           initial={{ opacity: 0 }}
           whileInView={{ opacity: 1 }}
           viewport={{ once: true }}
-          className="text-center mb-12"
+          className="text-center mb-16"
         >
-          <p className="text-sm font-medium text-primary uppercase tracking-wider mb-2">Trusted by Freelancers & Startups</p>
-          <h2 className="text-3xl md:text-4xl font-bold mb-4">
+          <p className="text-xs font-semibold text-primary uppercase tracking-[0.2em] mb-3">Trusted by Freelancers & Startups</p>
+          <h2 className="font-display text-3xl md:text-4xl lg:text-5xl font-extrabold mb-5 tracking-tight">
             Real Results from Real Users
           </h2>
         </motion.div>
@@ -45,18 +45,18 @@ export function SocialProofSection() {
               initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
-              transition={{ delay: i * 0.1 }}
-              className="p-6 rounded-2xl bg-card border relative"
+              transition={{ delay: i * 0.1, ease: [0.22, 1, 0.36, 1] }}
+              className="p-6 rounded-2xl bg-card border border-border-subtle relative card-hover"
             >
-              <Quote className="w-8 h-8 text-primary/15 absolute top-4 right-4" />
-              <div className="flex gap-0.5 mb-3">
+              <Quote className="w-8 h-8 text-primary/10 absolute top-5 right-5" />
+              <div className="flex gap-0.5 mb-4">
                 {Array.from({ length: item.rating }).map((_, j) => (
                   <Star key={j} className="w-4 h-4 fill-warning text-warning" />
                 ))}
               </div>
-              <p className="text-sm text-muted-foreground mb-4 italic">"{item.quote}"</p>
-              <div>
-                <p className="font-semibold text-sm">{item.name}</p>
+              <p className="text-sm text-muted-foreground mb-5 italic leading-relaxed">"{item.quote}"</p>
+              <div className="pt-4 border-t border-border-subtle">
+                <p className="font-display font-bold text-sm">{item.name}</p>
                 <p className="text-xs text-muted-foreground">{item.role}</p>
               </div>
             </motion.div>
