@@ -363,7 +363,6 @@ export default function Dashboard() {
                 </div>
                 <p className="font-medium text-sm">Outreach</p>
                 <p className="text-xs text-muted-foreground">Find clients</p>
-                <Badge variant="secondary" className="mt-1 text-[10px]">PAID</Badge>
               </CardContent>
             </Card>
           </div>
