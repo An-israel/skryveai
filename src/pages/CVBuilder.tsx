@@ -13,8 +13,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   FileText, Upload, Sparkles, ArrowLeft, ArrowRight, Plus, Trash2,
-  CheckCircle2, Download, Loader2, Target, BookOpen, Award, Briefcase
+  CheckCircle2, Download, Loader2, Target, BookOpen, Award, Briefcase, FileDown
 } from "lucide-react";
+import { downloadCvAsPdf, downloadCvAsDocx, downloadGuideAsPdf, downloadGuideAsDocx } from "@/lib/cv-download";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/use-auth";
