@@ -1,3 +1,4 @@
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
 
 const corsHeaders = {
@@ -5,7 +6,27 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-Deno.serve(async (req) => {
+function extractEmailsFromContent(content: string): string | null {
+  const emailRegex = /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g;
+  const emails = content.match(emailRegex) || [];
+  const filtered = emails.filter((e: string) => {
+    const lower = e.toLowerCase();
+    return !lower.includes("noreply") && !lower.includes("no-reply") &&
+           !lower.includes("example.com") && !lower.includes("support@") &&
+           !lower.includes("privacy@") && !lower.includes("donotreply") &&
+           !lower.endsWith(".png") && !lower.endsWith(".jpg");
+  });
+  if (filtered.length === 0) return null;
+  const priority = filtered.find((e: string) => {
+    const lower = e.toLowerCase();
+    return lower.startsWith("hr@") || lower.startsWith("hiring@") ||
+           lower.startsWith("careers@") || lower.startsWith("jobs@") ||
+           lower.startsWith("recruit") || lower.startsWith("talent");
+  });
+  return priority || filtered[0];
+}
+
+serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
@@ -20,13 +41,13 @@ Deno.serve(async (req) => {
     }
 
     const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
-    const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY")!;
-    const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-      global: { headers: { Authorization: authHeader } },
-    });
+    const SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    const serviceClient = createClient(SUPABASE_URL, SERVICE_KEY);
 
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    const token = authHeader.replace("Bearer ", "");
+    const { data: { user }, error: authError } = await serviceClient.auth.getUser(token);
     if (authError || !user) {
+      console.error("Auth error:", authError?.message);
       return new Response(JSON.stringify({ error: "Unauthorized" }), {
         status: 401,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -42,6 +63,7 @@ Deno.serve(async (req) => {
       });
     }
 
+    const FIRECRAWL_API_KEY = Deno.env.get("FIRECRAWL_API_KEY");
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) {
       return new Response(JSON.stringify({ error: "AI service not configured" }), {
@@ -50,12 +72,12 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Also try to extract email from job posting using Firecrawl if URL provided
+    // Step 1: Try to extract email from job posting URL
     let extractedEmail: string | null = null;
-    const FIRECRAWL_API_KEY = Deno.env.get("FIRECRAWL_API_KEY");
     
     if (jobUrl && FIRECRAWL_API_KEY) {
       try {
+        console.log(`Scraping job URL for email: ${jobUrl}`);
         const scrapeResp = await fetch("https://api.firecrawl.dev/v1/scrape", {
           method: "POST",
           headers: {
@@ -71,40 +93,82 @@ Deno.serve(async (req) => {
 
         const scrapeData = await scrapeResp.json();
         const content = scrapeData?.data?.markdown || scrapeData?.markdown || "";
+        extractedEmail = extractEmailsFromContent(content);
         
-        // Extract emails from content
-        const emailRegex = /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g;
-        const emails = content.match(emailRegex) || [];
-        
-        // Filter out common non-personal emails
-        const filteredEmails = emails.filter((e: string) => {
-          const lower = e.toLowerCase();
-          return !lower.includes("noreply") && 
-                 !lower.includes("no-reply") && 
-                 !lower.includes("example.com") &&
-                 !lower.includes("support@") &&
-                 !lower.includes("privacy@") &&
-                 !lower.includes("donotreply") &&
-                 !lower.endsWith(".png") &&
-                 !lower.endsWith(".jpg");
-        });
-
-        if (filteredEmails.length > 0) {
-          // Prefer hr@, hiring@, careers@, jobs@, recruit@ emails
-          const priorityEmail = filteredEmails.find((e: string) => {
-            const lower = e.toLowerCase();
-            return lower.startsWith("hr@") || lower.startsWith("hiring@") || 
-                   lower.startsWith("careers@") || lower.startsWith("jobs@") ||
-                   lower.startsWith("recruit") || lower.startsWith("talent");
-          });
-          extractedEmail = priorityEmail || filteredEmails[0];
+        if (extractedEmail) {
+          console.log(`Found email from job posting: ${extractedEmail}`);
         }
       } catch (scrapeErr) {
-        console.error("Failed to scrape job URL for email:", scrapeErr);
+        console.error("Failed to scrape job URL:", scrapeErr);
       }
     }
 
-    // Generate tailored cover letter using Lovable AI
+    // Step 2: Fallback - try to find company HR email by scraping company website
+    if (!extractedEmail && FIRECRAWL_API_KEY && company && company !== "Company") {
+      try {
+        console.log(`Fallback: searching for ${company} careers/contact page`);
+        
+        // Search for company careers or contact page
+        const searchResp = await fetch("https://api.firecrawl.dev/v1/search", {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${FIRECRAWL_API_KEY}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            query: `${company} careers contact email hiring`,
+            limit: 3,
+            scrapeOptions: { formats: ["markdown"] },
+          }),
+        });
+
+        const searchData = await searchResp.json();
+        if (searchData.success !== false && searchData.data) {
+          for (const result of searchData.data) {
+            const content = result.markdown || result.description || "";
+            const email = extractEmailsFromContent(content);
+            if (email) {
+              extractedEmail = email;
+              console.log(`Found email from company website fallback: ${extractedEmail}`);
+              break;
+            }
+          }
+        }
+
+        // If still no email, try scraping the company's main website contact/careers page
+        if (!extractedEmail) {
+          const mapResp = await fetch("https://api.firecrawl.dev/v1/search", {
+            method: "POST",
+            headers: {
+              Authorization: `Bearer ${FIRECRAWL_API_KEY}`,
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              query: `"${company}" site:${company.toLowerCase().replace(/\s+/g, '')}.com contact OR careers OR jobs email`,
+              limit: 2,
+              scrapeOptions: { formats: ["markdown"] },
+            }),
+          });
+
+          const mapData = await mapResp.json();
+          if (mapData.success !== false && mapData.data) {
+            for (const result of mapData.data) {
+              const content = result.markdown || result.description || "";
+              const email = extractEmailsFromContent(content);
+              if (email) {
+                extractedEmail = email;
+                console.log(`Found email from company domain search: ${extractedEmail}`);
+                break;
+              }
+            }
+          }
+        }
+      } catch (fallbackErr) {
+        console.error("Fallback email scraping failed:", fallbackErr);
+      }
+    }
+
+    // Step 3: Generate tailored cover letter using Lovable AI
     const systemPrompt = `You are an expert career consultant and professional cover letter writer. Your job is to:
 1. Analyze the job posting details carefully
 2. Review the applicant's CV/profile
@@ -129,9 +193,6 @@ JOB TITLE: ${jobTitle}
 COMPANY: ${company}
 JOB DESCRIPTION: ${jobDescription || "Not available - tailor based on the job title and company"}
 
-APPLICANT'S CV/PROFILE:
-${cvContent || "Not provided"}
-
 APPLICANT'S PROFILE INFO:
 Name: ${userProfile?.full_name || "Applicant"}
 Bio: ${userProfile?.bio || "Not provided"}
@@ -139,6 +200,8 @@ Expertise: ${userProfile?.expertise?.join(", ") || "Not provided"}
 Portfolio: ${userProfile?.portfolio_url || "Not provided"}
 
 Return the response using the generate_application function.`;
+
+    console.log(`Generating application for ${jobTitle} at ${company}`);
 
     const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
@@ -207,7 +270,6 @@ Return the response using the generate_application function.`;
 
     const aiData = await aiResponse.json();
     
-    // Extract tool call response
     const toolCall = aiData.choices?.[0]?.message?.tool_calls?.[0];
     let application = { subject: "", coverLetter: "", keyMatchingSkills: [] as string[] };
     
@@ -215,7 +277,6 @@ Return the response using the generate_application function.`;
       try {
         application = JSON.parse(toolCall.function.arguments);
       } catch {
-        // Fallback: try to extract from message content
         const content = aiData.choices?.[0]?.message?.content || "";
         application = {
           subject: `Application for ${jobTitle} at ${company}`,
@@ -225,7 +286,7 @@ Return the response using the generate_application function.`;
       }
     }
 
-    console.log(`Generated application for ${jobTitle} at ${company}`);
+    console.log(`Generated application for ${jobTitle} at ${company}, email: ${extractedEmail || "none found"}`);
 
     return new Response(
       JSON.stringify({
