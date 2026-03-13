@@ -29,7 +29,10 @@ import {
   Send,
   Calendar,
   Settings,
-  Gift
+  Gift,
+  FileText,
+  Target,
+  Briefcase
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -317,11 +320,63 @@ export default function Dashboard() {
           <CreditsDisplay userId={user?.id} />
         </motion.div>
 
-        {/* Referral link */}
+        {/* Career Tools */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.12 }}
+          className="mb-8"
+        >
+          <h2 className="text-lg font-semibold mb-3">Career Tools</h2>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <Card className="hover:border-primary/50 transition-colors cursor-pointer group" onClick={() => navigate("/cv-builder")}>
+              <CardContent className="p-4 text-center">
+                <div className="w-10 h-10 mx-auto mb-2 rounded-xl bg-primary/10 flex items-center justify-center group-hover:bg-primary/20 transition-colors">
+                  <FileText className="w-5 h-5 text-primary" />
+                </div>
+                <p className="font-medium text-sm">CV Builder</p>
+                <p className="text-xs text-muted-foreground">Build or optimize</p>
+                <Badge variant="secondary" className="mt-1 text-[10px]">FREE</Badge>
+              </CardContent>
+            </Card>
+            <Card className="hover:border-primary/50 transition-colors cursor-pointer group" onClick={() => navigate("/ats-checker")}>
+              <CardContent className="p-4 text-center">
+                <div className="w-10 h-10 mx-auto mb-2 rounded-xl bg-primary/10 flex items-center justify-center group-hover:bg-primary/20 transition-colors">
+                  <Target className="w-5 h-5 text-primary" />
+                </div>
+                <p className="font-medium text-sm">ATS Checker</p>
+                <p className="text-xs text-muted-foreground">Instant score</p>
+                <Badge variant="secondary" className="mt-1 text-[10px]">FREE</Badge>
+              </CardContent>
+            </Card>
+            <Card className="hover:border-primary/50 transition-colors cursor-pointer group" onClick={() => navigate("/campaigns/new")}>
+              <CardContent className="p-4 text-center">
+                <div className="w-10 h-10 mx-auto mb-2 rounded-xl bg-primary/10 flex items-center justify-center group-hover:bg-primary/20 transition-colors">
+                  <Briefcase className="w-5 h-5 text-primary" />
+                </div>
+                <p className="font-medium text-sm">Job Search</p>
+                <p className="text-xs text-muted-foreground">Find & apply to 50</p>
+                <Badge variant="secondary" className="mt-1 text-[10px]">FREE + PAID</Badge>
+              </CardContent>
+            </Card>
+            <Card className="hover:border-primary/50 transition-colors cursor-pointer group" onClick={() => navigate("/campaigns/new")}>
+              <CardContent className="p-4 text-center">
+                <div className="w-10 h-10 mx-auto mb-2 rounded-xl bg-primary/10 flex items-center justify-center group-hover:bg-primary/20 transition-colors">
+                  <Send className="w-5 h-5 text-primary" />
+                </div>
+                <p className="font-medium text-sm">Outreach</p>
+                <p className="text-xs text-muted-foreground">Find clients</p>
+                <Badge variant="secondary" className="mt-1 text-[10px]">PAID</Badge>
+              </CardContent>
+            </Card>
+          </div>
+        </motion.div>
+
+        {/* Referral link */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.14 }}
           className="mb-8"
         >
           <Button asChild variant="outline" size="sm">
