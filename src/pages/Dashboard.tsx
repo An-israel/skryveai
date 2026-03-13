@@ -243,6 +243,7 @@ export default function Dashboard() {
   return (
     <div className="min-h-screen bg-background">
       <Header isAuthenticated={true} onLogout={handleLogout} />
+      <UIRefreshPopup />
       <FeatureUpdatePopup />
       
       {showWizard && user && (
