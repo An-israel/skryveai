@@ -75,6 +75,11 @@ export default function NewCampaign() {
   const [teamProfiles, setTeamProfiles] = useState<TeamProfile[]>([]);
   const [selectedTeamProfile, setSelectedTeamProfile] = useState<TeamProfile | null>(null);
   const [teamInfo, setTeamInfo] = useState<TeamInfo | null>(null);
+  
+  // Job application state
+  const [jobListings, setJobListings] = useState<JobListing[]>([]);
+  const [selectedJobs, setSelectedJobs] = useState<JobListing[]>([]);
+  const [jobApplications, setJobApplications] = useState<Record<string, JobApplication>>({});
 
   const navigate = useNavigate();
   const { toast } = useToast();
