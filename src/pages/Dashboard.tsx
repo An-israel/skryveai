@@ -336,7 +336,6 @@ export default function Dashboard() {
                 </div>
                 <p className="font-medium text-sm">CV Builder</p>
                 <p className="text-xs text-muted-foreground">Build or optimize</p>
-                <Badge variant="secondary" className="mt-1 text-[10px]">FREE</Badge>
               </CardContent>
             </Card>
             <Card className="hover:border-primary/50 transition-colors cursor-pointer group" onClick={() => navigate("/ats-checker")}>
