@@ -5,7 +5,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { ArrowLeft, ArrowRight, ExternalLink, MapPin, Building2, Globe, CheckCircle2 } from "lucide-react";
+import { ArrowLeft, ArrowRight, ExternalLink, MapPin, Building2, Globe, CheckCircle2, ShieldCheck, AlertTriangle, Mail } from "lucide-react";
 import type { JobListing } from "@/types/campaign";
 
 interface JobSelectStepProps {
