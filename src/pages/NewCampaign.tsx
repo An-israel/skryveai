@@ -853,12 +853,29 @@ export default function NewCampaign() {
               <DirectClientStep key="direct-client" onSubmit={handleDirectClient} isLoading={isLoading} />
             )}
             
-            {/* Investor flow: InvestorSearchStep → Select → Analyze → Pitch → Send */}
+            {/* Investor flow: InvestorSearchStep → Select → Pitch → Send */}
             {campaignType === "investor" && currentStep === 'search' && (
               <InvestorSearchStep key="investor-search" onSubmit={handleInvestorSearch} isLoading={isLoading} />
             )}
-            
-            {currentStep === 'select' && (
+
+            {/* Job Application flow: JobSearchStep → JobSelectStep → Pitch → Send */}
+            {campaignType === "job_application" && currentStep === 'search' && (
+              <JobSearchStep key="job-search" onSearch={handleJobSearch} isLoading={isLoading} />
+            )}
+
+            {/* Job application select step */}
+            {campaignType === "job_application" && currentStep === 'select' && (
+              <JobSelectStep
+                key="job-select"
+                jobs={jobListings}
+                onSelect={handleJobSelect}
+                onBack={() => setCurrentStep('search')}
+                maxSelect={50}
+              />
+            )}
+
+            {/* Non-job select step */}
+            {campaignType !== "job_application" && currentStep === 'select' && (
               <SelectStep key="select" businesses={businesses} onSelect={handleSelect} onBack={() => setCurrentStep('search')} />
             )}
             {currentStep === 'analyze' && (
@@ -882,11 +899,11 @@ export default function NewCampaign() {
                 key="pitch"
                 businesses={selectedBusinesses}
                 pitches={pitches}
-                isGenerating={false}
+                isGenerating={isLoading}
                 onUpdatePitch={handleUpdatePitch}
                 onRegeneratePitch={handleRegeneratePitch}
                 onContinue={handlePitchContinue}
-                onBack={() => setCurrentStep(campaignType === "investor" ? 'select' : 'analyze')}
+                onBack={() => setCurrentStep(campaignType === "investor" || campaignType === "job_application" ? 'select' : 'analyze')}
               />
             )}
             {currentStep === 'send' && (
