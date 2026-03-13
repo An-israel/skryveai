@@ -13,8 +13,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   FileText, Upload, Sparkles, ArrowLeft, ArrowRight, Plus, Trash2,
-  CheckCircle2, Download, Loader2, Target, BookOpen, Award, Briefcase
+  CheckCircle2, Download, Loader2, Target, BookOpen, Award, Briefcase, FileDown
 } from "lucide-react";
+import { downloadCvAsPdf, downloadCvAsDocx, downloadGuideAsPdf, downloadGuideAsDocx } from "@/lib/cv-download";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/use-auth";
@@ -309,11 +310,16 @@ export default function CVBuilder() {
 
               <TabsContent value="cv">
                 <Card>
-                  <CardHeader className="flex flex-row items-center justify-between">
+                  <CardHeader className="flex flex-row items-center justify-between flex-wrap gap-2">
                     <CardTitle>CV Preview</CardTitle>
-                    <Button onClick={downloadCvAsText} size="sm">
-                      <Download className="w-4 h-4 mr-2" /> Download
-                    </Button>
+                    <div className="flex gap-2">
+                      <Button onClick={() => downloadCvAsPdf(cvResult)} size="sm" variant="default">
+                        <FileDown className="w-4 h-4 mr-1" /> PDF
+                      </Button>
+                      <Button onClick={() => downloadCvAsDocx(cvResult)} size="sm" variant="outline">
+                        <FileDown className="w-4 h-4 mr-1" /> DOCX
+                      </Button>
+                    </div>
                   </CardHeader>
                   <CardContent>
                     <div className="bg-white text-black p-8 rounded-lg shadow-inner max-w-[800px] mx-auto font-serif" style={{ lineHeight: 1.6 }}>
@@ -437,9 +443,12 @@ export default function CVBuilder() {
                   </Card>
                 ) : linkedInGuide ? (
                   <div className="space-y-6">
-                    <div className="flex justify-end">
-                      <Button onClick={downloadGuideAsText} size="sm" variant="outline">
-                        <Download className="w-4 h-4 mr-2" /> Download Guide
+                    <div className="flex justify-end gap-2">
+                      <Button onClick={() => downloadGuideAsPdf(linkedInGuide)} size="sm" variant="default">
+                        <FileDown className="w-4 h-4 mr-1" /> PDF
+                      </Button>
+                      <Button onClick={() => downloadGuideAsDocx(linkedInGuide)} size="sm" variant="outline">
+                        <FileDown className="w-4 h-4 mr-1" /> DOCX
                       </Button>
                     </div>
 
