@@ -589,6 +589,122 @@ export default function NewCampaign() {
     }
   };
 
+  // ─── Job Application flow handlers ───
+
+  const handleJobSearch = async (expertise: string, location: string) => {
+    setIsLoading(true);
+    setSearchParams({ businessType: expertise, location: location || "Remote" });
+    try {
+      const { data, error } = await supabase.functions.invoke("search-jobs", {
+        body: { expertise, location, limit: 50 },
+      });
+
+      if (error) throw new Error(error.message || "Failed to search jobs");
+      if (!data?.jobs) throw new Error("No results returned");
+
+      setJobListings(data.jobs);
+      setCompletedSteps([...completedSteps, "search"]);
+      setCurrentStep("select");
+      toast({ title: "Jobs Found!", description: `Found ${data.total} job postings from the last 24 hours.` });
+    } catch (error) {
+      console.error("Job search error:", error);
+      toast({ title: "Search Failed", description: error instanceof Error ? error.message : "Failed to search jobs", variant: "destructive" });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleJobSelect = async (selected: JobListing[]) => {
+    setSelectedJobs(selected);
+    setCompletedSteps([...completedSteps, "select"]);
+    setIsLoading(true);
+
+    // Fetch user profile and CV content for AI tailoring
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) { navigate("/login"); return; }
+
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("full_name, bio, expertise, portfolio_url, cv_url")
+      .eq("user_id", user.id)
+      .single();
+
+    // Convert selected jobs to businesses for the pitch step
+    const jobBusinesses: Business[] = [];
+    const newPitches: Record<string, GeneratedPitch> = {};
+    const newApplications: Record<string, JobApplication> = {};
+
+    for (let i = 0; i < selected.length; i++) {
+      const job = selected[i];
+      setCurrentAnalyzing(`${job.jobTitle} at ${job.company} (${i + 1}/${selected.length})`);
+      setAnalysisProgress((i / selected.length) * 100);
+
+      try {
+        const { data: appResult, error: appError } = await supabase.functions.invoke("generate-job-application", {
+          body: {
+            jobTitle: job.jobTitle,
+            company: job.company,
+            jobDescription: job.fullContent || job.description,
+            jobUrl: job.url,
+            userProfile: profile,
+          },
+        });
+
+        if (appError) {
+          console.error(`Application generation failed for ${job.jobTitle}:`, appError);
+          continue;
+        }
+
+        const email = appResult?.extractedEmail || job.email;
+        
+        // Map job to business for reusing existing pitch/send infrastructure
+        const business: Business = {
+          id: job.id,
+          name: `${job.jobTitle} — ${job.company}`,
+          address: job.location,
+          website: job.url,
+          email,
+          category: job.platform,
+          selected: true,
+        };
+        jobBusinesses.push(business);
+
+        newPitches[job.id] = {
+          businessId: job.id,
+          subject: appResult?.subject || `Application for ${job.jobTitle}`,
+          body: appResult?.body || "",
+          edited: false,
+          approved: false,
+        };
+
+        newApplications[job.id] = {
+          jobId: job.id,
+          subject: appResult?.subject || "",
+          body: appResult?.body || "",
+          keyMatchingSkills: appResult?.keyMatchingSkills || [],
+          extractedEmail: email,
+          edited: false,
+          approved: false,
+        };
+
+        setSelectedBusinesses([...jobBusinesses]);
+        setPitches({ ...newPitches });
+        setJobApplications({ ...newApplications });
+      } catch (error) {
+        console.error(`Error generating application for ${job.jobTitle}:`, error);
+      }
+    }
+
+    setAnalysisProgress(100);
+    setCurrentAnalyzing(undefined);
+    setIsLoading(false);
+    setCurrentStep("pitch");
+    toast({
+      title: "Applications Generated!",
+      description: `Created ${Object.keys(newPitches).length} tailored applications. Review and approve them before sending.`,
+    });
+  };
+
   const handleLogout = async () => {
     await supabase.auth.signOut();
     navigate("/");
