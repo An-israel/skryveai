@@ -36,7 +36,8 @@ export default function About() {
     <div className="min-h-screen">
       <Header />
 
-      <section className="relative pt-24 pb-16 bg-gradient-hero">
+      <section className="relative pt-32 pb-20 bg-gradient-subtle overflow-hidden">
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] rounded-full bg-primary/[0.04] blur-[120px] pointer-events-none" />
         <div className="container mx-auto px-4 relative">
           <motion.div
             initial={{ opacity: 0, y: 30 }}
@@ -44,10 +45,10 @@ export default function About() {
             transition={{ duration: 0.6 }}
             className="max-w-3xl mx-auto text-center"
           >
-            <h1 className="text-4xl md:text-5xl font-bold text-primary-foreground mb-6">
-              About <span className="text-gradient">SkryveAI</span>
+            <h1 className="font-display text-4xl md:text-6xl font-extrabold text-foreground mb-6 tracking-tight">
+              About <span className="text-gradient-rich">SkryveAI</span>
             </h1>
-            <p className="text-xl text-primary-foreground/80 max-w-2xl mx-auto font-medium">
+            <p className="text-xl text-muted-foreground max-w-2xl mx-auto font-medium leading-relaxed">
               Your talent was never the problem. Now your pitch won't be either.
             </p>
           </motion.div>
@@ -55,7 +56,7 @@ export default function About() {
       </section>
 
       {/* Origin Story */}
-      <section className="py-16">
+      <section className="py-20">
         <div className="container mx-auto px-4 max-w-4xl">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -63,7 +64,7 @@ export default function About() {
             viewport={{ once: true }}
             className="space-y-6 text-lg text-muted-foreground"
           >
-            <h2 className="text-2xl font-bold text-foreground">The Origin</h2>
+            <h2 className="font-display text-2xl md:text-3xl font-bold text-foreground tracking-tight">The Origin</h2>
             <p>
               Somewhere right now, a brilliant freelancer is staring at an inbox full of silence. They sent 50 cold emails this week. Well-crafted, honest, genuine. They spent hours on each one — researching the company, understanding what they do, trying to make it feel real. And still — nothing.
             </p>
@@ -78,7 +79,7 @@ export default function About() {
       </section>
 
       {/* The Insight */}
-      <section className="py-16 bg-gradient-subtle">
+      <section className="py-20 bg-gradient-subtle">
         <div className="container mx-auto px-4 max-w-4xl">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -86,7 +87,7 @@ export default function About() {
             viewport={{ once: true }}
             className="space-y-6 text-lg text-muted-foreground"
           >
-            <h2 className="text-2xl font-bold text-foreground">The Insight</h2>
+            <h2 className="font-display text-2xl md:text-3xl font-bold text-foreground tracking-tight">The Insight</h2>
             <p>
               The freelancers landing clients consistently weren't more talented. They were better at showing up. They sent emails that proved they had done their homework — referencing a real problem the prospect had, showing they understood the business, making it impossible to ignore.
             </p>
@@ -98,17 +99,17 @@ export default function About() {
       </section>
 
       {/* Mission & Vision */}
-      <section className="py-16">
+      <section className="py-20">
         <div className="container mx-auto px-4 max-w-4xl">
-          <div className="grid md:grid-cols-2 gap-8">
+          <div className="grid md:grid-cols-2 gap-6">
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
-              className="p-6 rounded-2xl bg-card border"
+              className="p-8 rounded-2xl bg-card border border-border-subtle card-hover"
             >
-              <h2 className="text-2xl font-bold text-foreground mb-4">Our Mission</h2>
-              <p className="text-muted-foreground">
+              <h2 className="font-display text-2xl font-bold text-foreground mb-4">Our Mission</h2>
+              <p className="text-muted-foreground leading-relaxed">
                 To make high-converting cold outreach accessible to every skilled freelancer and startup founder — regardless of where they are in the world — by automating the research, audit, and personalization that turns cold emails into real conversations.
               </p>
             </motion.div>
@@ -118,10 +119,10 @@ export default function About() {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ delay: 0.1 }}
-              className="p-6 rounded-2xl bg-card border"
+              className="p-8 rounded-2xl bg-card border border-border-subtle card-hover"
             >
-              <h2 className="text-2xl font-bold text-foreground mb-4">Our Vision</h2>
-              <p className="text-muted-foreground">
+              <h2 className="font-display text-2xl font-bold text-foreground mb-4">Our Vision</h2>
+              <p className="text-muted-foreground leading-relaxed">
                 A world where talent alone is enough. Where a developer in Port Harcourt competes on equal footing with an agency in New York. Where the door to opportunity is open to everyone who has the skill to walk through it.
               </p>
             </motion.div>
@@ -130,18 +131,18 @@ export default function About() {
       </section>
 
       {/* Core Values */}
-      <section className="py-16 bg-gradient-subtle">
+      <section className="py-20 bg-gradient-subtle">
         <div className="container mx-auto px-4 max-w-4xl">
           <motion.div
             initial={{ opacity: 0 }}
             whileInView={{ opacity: 1 }}
             viewport={{ once: true }}
-            className="text-center mb-12"
+            className="text-center mb-14"
           >
-            <h2 className="text-2xl font-bold mb-2">Our Core Values</h2>
+            <h2 className="font-display text-2xl md:text-3xl font-bold mb-3 tracking-tight">Our Core Values</h2>
             <p className="text-muted-foreground">What drives every decision we make</p>
           </motion.div>
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-5">
             {values.map((value, i) => (
               <motion.div
                 key={value.title}
@@ -149,13 +150,13 @@ export default function About() {
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
                 transition={{ delay: i * 0.1 }}
-                className="p-6 rounded-2xl bg-card border"
+                className="p-7 rounded-2xl bg-card border border-border-subtle card-hover"
               >
-                <div className="w-12 h-12 rounded-xl bg-primary/10 text-primary flex items-center justify-center mb-4">
+                <div className="w-12 h-12 rounded-xl bg-primary/8 text-primary flex items-center justify-center mb-5">
                   <value.icon className="w-6 h-6" />
                 </div>
-                <h3 className="font-semibold text-lg mb-2">{value.title}</h3>
-                <p className="text-muted-foreground text-sm">{value.description}</p>
+                <h3 className="font-display font-bold text-lg mb-2">{value.title}</h3>
+                <p className="text-muted-foreground text-sm leading-relaxed">{value.description}</p>
               </motion.div>
             ))}
           </div>
@@ -163,7 +164,7 @@ export default function About() {
       </section>
 
       {/* Brand Truth */}
-      <section className="py-16">
+      <section className="py-20">
         <div className="container mx-auto px-4 max-w-3xl">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -172,7 +173,7 @@ export default function About() {
             className="text-center"
           >
             <Sparkles className="w-10 h-10 mx-auto mb-4 text-primary" />
-            <p className="text-xl md:text-2xl font-semibold text-foreground leading-relaxed">
+            <p className="text-xl md:text-2xl font-display font-bold text-foreground leading-relaxed">
               SkryveAI is the great equalizer — giving every freelancer, anywhere in the world, the same unfair advantage that used to belong only to the few with access, connections, and resources.
             </p>
           </motion.div>
