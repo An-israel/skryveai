@@ -9,6 +9,7 @@ export interface Business {
   category?: string;
   placeId?: string;
   email?: string;
+  emailVerified?: boolean;
   selected?: boolean;
 }
 
