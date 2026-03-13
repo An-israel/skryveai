@@ -224,7 +224,13 @@
 
   /* Premium glass morphism — dark mode optimized */
   .glass {
-    @apply bg-white/[0.03] backdrop-blur-xl border border-white/[0.08];
+    @apply backdrop-blur-xl border;
+    background: hsl(var(--card) / 0.7);
+    border-color: hsl(var(--border));
+    box-shadow: var(--shadow-md);
+  }
+  .dark .glass {
+    @apply bg-white/[0.03] border-white/[0.08];
     box-shadow: 0 8px 32px -8px hsl(217 91% 60% / 0.1);
   }
 
