@@ -116,7 +116,6 @@ export function Header({ isAuthenticated: isAuthenticatedProp, onLogout }: Heade
             </>
           ) : (
             <>
-              <ThemeToggle />
               <Link to="/login" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
                 Sign In
               </Link>
