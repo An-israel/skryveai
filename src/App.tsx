@@ -24,6 +24,8 @@ import Contact from "./pages/Contact";
 import TeamManagement from "./pages/TeamManagement";
 import Referrals from "./pages/Referrals";
 import Careers from "./pages/Careers";
+import CVBuilder from "./pages/CVBuilder";
+import ATSChecker from "./pages/ATSChecker";
 
 const queryClient = new QueryClient();
 
