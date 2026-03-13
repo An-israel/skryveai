@@ -12,12 +12,12 @@ import {
   Send, 
   ArrowRight,
   CheckCircle2,
-  Target,
   TrendingUp,
   UserPlus,
   Linkedin,
   Instagram,
   Sparkles,
+  Target,
 } from "lucide-react";
 import { HeroSection } from "@/components/landing/HeroSection";
 import { ProblemSection } from "@/components/landing/ProblemSection";
