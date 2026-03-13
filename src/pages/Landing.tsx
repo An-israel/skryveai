@@ -286,10 +286,11 @@ export default function Landing() {
 
       <FAQSection />
 
-      {/* CTA Section */}
-      <section className="py-24 bg-gradient-hero grain relative overflow-hidden">
-        {/* Orb */}
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[400px] h-[400px] rounded-full bg-primary/10 blur-[100px] animate-orb pointer-events-none" />
+      {/* CTA Section — Instantly-style dark gradient block */}
+      <section className="py-24 bg-gradient-dark-section relative overflow-hidden rounded-t-[2rem] mx-4 md:mx-8 lg:mx-16">
+        {/* Gradient orbs */}
+        <div className="absolute top-0 right-0 w-[500px] h-[500px] rounded-full bg-purple-500/20 blur-[120px] pointer-events-none" />
+        <div className="absolute bottom-0 left-0 w-[400px] h-[400px] rounded-full bg-blue-500/20 blur-[100px] pointer-events-none" />
         <div className="container mx-auto px-4 relative z-10">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -297,20 +298,19 @@ export default function Landing() {
             viewport={{ once: true }}
             className="max-w-2xl mx-auto text-center"
           >
-            <Target className="w-12 h-12 mx-auto mb-6 text-primary-foreground/60" />
-            <h2 className="font-display text-3xl md:text-4xl lg:text-5xl font-extrabold text-primary-foreground mb-5 tracking-tight">
+            <h2 className="font-display text-3xl md:text-4xl lg:text-5xl font-extrabold text-white mb-5 tracking-tight">
               Ready to Land More Clients?
             </h2>
-            <p className="text-primary-foreground/60 mb-10 leading-relaxed">
+            <p className="text-white/60 mb-10 leading-relaxed text-lg">
               Join freelancers and startups using AI to find clients, pitch investors, and grow their business.
             </p>
-            <Button variant="hero" size="xl" asChild>
-              <Link to="/login">
-                Get Started
+            <Button size="xl" className="bg-gradient-accent text-white font-bold text-base px-10 py-6 rounded-full shadow-glow hover:shadow-glow-lg transition-all duration-300 hover:scale-[1.02]" asChild>
+              <Link to="/signup">
+                START FOR FREE
                 <ArrowRight className="w-5 h-5 ml-2" />
               </Link>
             </Button>
-            <div className="mt-8 flex items-center justify-center gap-6 text-sm text-primary-foreground/40">
+            <div className="mt-8 flex items-center justify-center gap-6 text-sm text-white/40">
               <span className="flex items-center gap-1.5">
                 <CheckCircle2 className="w-4 h-4" />
                 No credit card required
