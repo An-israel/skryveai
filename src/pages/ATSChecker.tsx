@@ -62,7 +62,7 @@ export default function ATSChecker() {
   };
 
   const handleLogout = async () => {
-    await logout();
+    await signOut();
     navigate("/");
   };
 

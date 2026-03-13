@@ -221,7 +221,7 @@ export default function CVBuilder() {
   };
 
   const handleLogout = async () => {
-    await logout();
+    await signOut();
     navigate("/");
   };
 
