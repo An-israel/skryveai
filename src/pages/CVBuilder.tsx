@@ -445,10 +445,7 @@ export default function CVBuilder() {
                   <div className="space-y-6">
                     <div className="flex justify-end gap-2">
                       <Button onClick={() => downloadGuideAsPdf(linkedInGuide)} size="sm" variant="default">
-                        <FileDown className="w-4 h-4 mr-1" /> PDF
-                      </Button>
-                      <Button onClick={() => downloadGuideAsDocx(linkedInGuide)} size="sm" variant="outline">
-                        <FileDown className="w-4 h-4 mr-1" /> DOCX
+                        <FileDown className="w-4 h-4 mr-1" /> Download PDF
                       </Button>
                     </div>
 
