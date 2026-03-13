@@ -1000,7 +1000,9 @@ export default function NewCampaign() {
                 businesses={selectedBusinesses}
                 pitches={pitches}
                 isGenerating={isLoading}
+                requireRecipientEmail={campaignType === "job_application"}
                 onUpdatePitch={handleUpdatePitch}
+                onUpdateBusinessEmail={handleUpdateBusinessEmail}
                 onRegeneratePitch={handleRegeneratePitch}
                 onContinue={handlePitchContinue}
                 onBack={() => setCurrentStep(campaignType === "investor" || campaignType === "job_application" ? 'select' : 'analyze')}
