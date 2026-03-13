@@ -21,7 +21,35 @@ interface SendEmailRequest {
 // Simple email validation
 function isValidEmail(email: string): boolean {
   const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
-  return emailRegex.test(email) && email.length <= 254;
+  if (!emailRegex.test(email) || email.length > 254) return false;
+  // Reject known-bad domains
+  const domain = email.split('@')[1]?.toLowerCase();
+  const badDomains = ['booksrus.com', 'example.com', 'test.com', 'sample.com',
+    'indeed.com', 'linkedin.com', 'glassdoor.com', 'wellfound.com'];
+  if (badDomains.includes(domain)) return false;
+  // Reject file-extension-like TLDs
+  const tld = domain?.split('.').pop();
+  const badTlds = new Set(['png', 'jpg', 'jpeg', 'gif', 'svg', 'webp', 'css', 'js', 'html']);
+  if (tld && badTlds.has(tld)) return false;
+  return true;
+}
+
+// MX record verification via Google DNS
+async function verifyMX(email: string): Promise<boolean> {
+  try {
+    const domain = email.split('@')[1];
+    if (!domain) return false;
+    const trusted = new Set(['gmail.com', 'yahoo.com', 'outlook.com', 'hotmail.com', 'icloud.com', 'protonmail.com', 'zoho.com', 'live.com']);
+    if (trusted.has(domain)) return true;
+    const resp = await fetch(`https://dns.google/resolve?name=${encodeURIComponent(domain)}&type=MX`, { signal: AbortSignal.timeout(4000) });
+    if (!resp.ok) return true; // Don't block on DNS failure
+    const data = await resp.json();
+    if (data.Status === 0 && data.Answer?.some((a: { type: number }) => a.type === 15)) return true;
+    // Fallback: check A record
+    const aResp = await fetch(`https://dns.google/resolve?name=${encodeURIComponent(domain)}&type=A`, { signal: AbortSignal.timeout(3000) });
+    if (aResp.ok) { const aData = await aResp.json(); if (aData.Status === 0 && aData.Answer?.length > 0) return true; }
+    return false;
+  } catch { return true; }
 }
 
 // Simple UUID validation
@@ -119,6 +147,15 @@ serve(async (req) => {
     if (!isValidEmail(toEmail)) {
       return new Response(
         JSON.stringify({ error: "Invalid email address" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // MX verification - prevent sending to domains that can't receive mail
+    const mxValid = await verifyMX(toEmail);
+    if (!mxValid) {
+      return new Response(
+        JSON.stringify({ error: "Email domain cannot receive mail (no MX record)" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }

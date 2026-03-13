@@ -59,6 +59,16 @@ const INVALID_EMAIL_TLDS = new Set([
   'exe', 'dll', 'dmg', 'apk', 'msi',
 ]);
 
+// Known-bad domains that should never be used as company emails
+const BLOCKED_EMAIL_DOMAINS = new Set([
+  'booksrus.com', 'example.com', 'test.com', 'sample.com',
+  'indeed.com', 'linkedin.com', 'glassdoor.com', 'wellfound.com',
+  'dice.com', 'ziprecruiter.com', 'weworkremotely.com', 'remote.co',
+  'monster.com', 'careerbuilder.com', 'simplyhired.com',
+  'lever.co', 'greenhouse.io', 'workday.com', 'icims.com',
+  'taleo.net', 'smartrecruiters.com',
+]);
+
 const INVALID_LOCAL_PATTERNS = [
   /^\d+x\d*$/i, /^image/i, /^img/i, /^photo/i, /^icon/i, /^logo/i,
   /^banner/i, /^bg/i, /^thumb/i, /^screen/i, /^avatar/i, /^placeholder/i,
@@ -80,6 +90,8 @@ function isValidEmail(email: string): boolean {
   if (!localPart || localPart.length < 1 || localPart.length > 64) return false;
   if (localPart.startsWith('.') || localPart.endsWith('.') || localPart.includes('..')) return false;
   if (!domain || domain.length < 3) return false;
+  // Reject blocked domains (platforms, known-bad)
+  if (BLOCKED_EMAIL_DOMAINS.has(domain)) return false;
   const domainParts = domain.split('.');
   if (domainParts.length < 2) return false;
   const tld = domainParts[domainParts.length - 1];
