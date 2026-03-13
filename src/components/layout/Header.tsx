@@ -18,7 +18,6 @@ export function Header({ isAuthenticated: isAuthenticatedProp, onLogout }: Heade
   const [authState, setAuthState] = useState<boolean>(isAuthenticatedProp ?? false);
   const navigate = useNavigate();
 
-  // Self-detect auth state if not provided via props
   useEffect(() => {
     const checkAuth = async () => {
       const { data: { session } } = await supabase.auth.getSession();
@@ -73,65 +72,70 @@ export function Header({ isAuthenticated: isAuthenticatedProp, onLogout }: Heade
 
   return (
     <header className="fixed top-0 left-0 right-0 z-50 glass border-b">
-      <div className="container mx-auto px-4 h-16 flex items-center justify-between">
-        <Link to="/" className="flex items-center gap-2 group">
+      <div className="container mx-auto px-4 h-[68px] flex items-center justify-between">
+        <Link to="/" className="flex items-center gap-2.5 group">
           <img src="/logo.png" alt="SkryveAI logo" className="w-8 h-8 object-contain" />
-          <span className="font-bold text-2xl text-foreground">SkryveAI</span>
+          <span className="font-display font-bold text-xl text-foreground tracking-tight">SkryveAI</span>
         </Link>
 
         {/* Desktop Navigation */}
-        <nav className="hidden md:flex items-center gap-6">
-          <Link to="/about" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
-            About
-          </Link>
-          <Link to="/careers" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
-            Careers
-          </Link>
-          <Link to="/pricing" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
-            Pricing
-          </Link>
+        <nav className="hidden md:flex items-center gap-1">
+          {/* Nav links */}
+          <div className="flex items-center gap-0.5 mr-4">
+            <Link to="/about" className="px-3.5 py-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors rounded-lg hover:bg-muted/50">
+              About
+            </Link>
+            <Link to="/careers" className="px-3.5 py-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors rounded-lg hover:bg-muted/50">
+              Careers
+            </Link>
+            <Link to="/pricing" className="px-3.5 py-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors rounded-lg hover:bg-muted/50">
+              Pricing
+            </Link>
+          </div>
+
           {isAuthenticated ? (
-            <>
-              <Link to="/dashboard" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
+            <div className="flex items-center gap-0.5">
+              <Link to="/dashboard" className="px-3.5 py-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors rounded-lg hover:bg-muted/50">
                 Dashboard
               </Link>
-              <Link to="/campaigns/new" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
+              <Link to="/campaigns/new" className="px-3.5 py-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors rounded-lg hover:bg-muted/50">
                 New Campaign
               </Link>
-              <Link to="/team" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
+              <Link to="/team" className="px-3.5 py-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors rounded-lg hover:bg-muted/50">
                 Team
               </Link>
               {isAdmin && (
-                <Link to="/admin" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
+                <Link to="/admin" className="p-2 text-muted-foreground hover:text-foreground transition-colors rounded-lg hover:bg-muted/50">
                   <Shield className="w-4 h-4" />
                 </Link>
               )}
               <NotificationBell />
-              <Link to="/settings" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
+              <Link to="/settings" className="p-2 text-muted-foreground hover:text-foreground transition-colors rounded-lg hover:bg-muted/50">
                 <Settings className="w-4 h-4" />
               </Link>
-              <Button variant="ghost" onClick={handleLogout}>
+              <div className="w-px h-5 bg-border mx-2" />
+              <Button variant="ghost" onClick={handleLogout} className="text-sm font-medium text-muted-foreground hover:text-foreground">
                 Log Out
               </Button>
-            </>
+            </div>
           ) : (
-            <>
-              <Link to="/login" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
+            <div className="flex items-center gap-2 ml-2">
+              <Link to="/login" className="px-4 py-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
                 Sign In
               </Link>
-              <Button asChild>
+              <Button asChild className="rounded-full px-6 font-bold shadow-glow hover:shadow-glow-lg transition-all duration-300 hover:scale-[1.02]">
                 <Link to="/signup">Get Started</Link>
               </Button>
-            </>
+            </div>
           )}
         </nav>
 
         {/* Mobile Menu Button */}
         <button
-          className="md:hidden p-2"
+          className="md:hidden p-2 rounded-lg hover:bg-muted/50 transition-colors"
           onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
         >
-          {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+          {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
         </button>
       </div>
 
@@ -144,52 +148,55 @@ export function Header({ isAuthenticated: isAuthenticatedProp, onLogout }: Heade
             exit={{ opacity: 0, height: 0 }}
             className="md:hidden glass border-t"
           >
-            <nav className="container mx-auto px-4 py-4 flex flex-col gap-3">
-              <Link to="/about" className="py-2 text-sm font-medium text-muted-foreground hover:text-foreground">
+            <nav className="container mx-auto px-4 py-4 flex flex-col gap-1">
+              <Link to="/about" className="py-2.5 px-3 text-sm font-medium text-muted-foreground hover:text-foreground rounded-lg hover:bg-muted/50 transition-colors">
                 About
               </Link>
-              <Link to="/careers" className="py-2 text-sm font-medium text-muted-foreground hover:text-foreground">
+              <Link to="/careers" className="py-2.5 px-3 text-sm font-medium text-muted-foreground hover:text-foreground rounded-lg hover:bg-muted/50 transition-colors">
                 Careers
               </Link>
-              <Link to="/pricing" className="py-2 text-sm font-medium text-muted-foreground hover:text-foreground">
+              <Link to="/pricing" className="py-2.5 px-3 text-sm font-medium text-muted-foreground hover:text-foreground rounded-lg hover:bg-muted/50 transition-colors">
                 Pricing
               </Link>
               {isAuthenticated ? (
                 <>
-                  <Link to="/dashboard" className="py-2 text-sm font-medium text-muted-foreground hover:text-foreground">
+                  <Link to="/dashboard" className="py-2.5 px-3 text-sm font-medium text-muted-foreground hover:text-foreground rounded-lg hover:bg-muted/50 transition-colors">
                     Dashboard
                   </Link>
-                  <Link to="/campaigns/new" className="py-2 text-sm font-medium text-muted-foreground hover:text-foreground">
+                  <Link to="/campaigns/new" className="py-2.5 px-3 text-sm font-medium text-muted-foreground hover:text-foreground rounded-lg hover:bg-muted/50 transition-colors">
                     New Campaign
                   </Link>
-                  <Link to="/team" className="py-2 text-sm font-medium text-muted-foreground hover:text-foreground">
+                  <Link to="/team" className="py-2.5 px-3 text-sm font-medium text-muted-foreground hover:text-foreground rounded-lg hover:bg-muted/50 transition-colors">
                     Team
                   </Link>
                   {isAdmin && (
-                    <Link to="/admin" className="py-2 text-sm font-medium text-muted-foreground hover:text-foreground flex items-center gap-2">
+                    <Link to="/admin" className="py-2.5 px-3 text-sm font-medium text-muted-foreground hover:text-foreground rounded-lg hover:bg-muted/50 flex items-center gap-2 transition-colors">
                       <Shield className="w-4 h-4" />
                       Admin
                     </Link>
                   )}
-                   <div className="flex items-center gap-2 py-2">
-                     <NotificationBell />
-                     <span className="text-sm font-medium text-muted-foreground">Notifications</span>
-                   </div>
-                   <Link to="/settings" className="py-2 text-sm font-medium text-muted-foreground hover:text-foreground">
-                     Settings
-                   </Link>
-                  <Button variant="ghost" onClick={handleLogout} className="justify-start">
+                  <div className="flex items-center gap-2 py-2 px-3">
+                    <NotificationBell />
+                    <span className="text-sm font-medium text-muted-foreground">Notifications</span>
+                  </div>
+                  <Link to="/settings" className="py-2.5 px-3 text-sm font-medium text-muted-foreground hover:text-foreground rounded-lg hover:bg-muted/50 transition-colors">
+                    Settings
+                  </Link>
+                  <div className="h-px bg-border my-1" />
+                  <Button variant="ghost" onClick={handleLogout} className="justify-start px-3">
                     Log Out
                   </Button>
                 </>
               ) : (
                 <>
-                  <Link to="/login" className="py-2 text-sm font-medium text-muted-foreground hover:text-foreground">
+                  <Link to="/login" className="py-2.5 px-3 text-sm font-medium text-muted-foreground hover:text-foreground rounded-lg hover:bg-muted/50 transition-colors">
                     Sign In
                   </Link>
-                  <Button asChild className="w-full">
-                    <Link to="/signup">Get Started</Link>
-                  </Button>
+                  <div className="pt-2">
+                    <Button asChild className="w-full rounded-full font-bold shadow-glow">
+                      <Link to="/signup">Get Started</Link>
+                    </Button>
+                  </div>
                 </>
               )}
             </nav>
