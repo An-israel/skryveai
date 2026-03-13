@@ -76,7 +76,7 @@ export function Header({ isAuthenticated: isAuthenticatedProp, onLogout }: Heade
       <div className="container mx-auto px-4 h-16 flex items-center justify-between">
         <Link to="/" className="flex items-center gap-2 group">
           <img src="/logo.png" alt="SkryveAI logo" className="w-8 h-8 object-contain" />
-          <span className="font-bold text-2xl" style={{ color: '#0B162B' }}>SkryveAI</span>
+          <span className="font-bold text-2xl text-foreground">SkryveAI</span>
         </Link>
 
         {/* Desktop Navigation */}
