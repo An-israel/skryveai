@@ -11,6 +11,7 @@ import { SubscriptionStats } from "@/components/dashboard/SubscriptionStats";
 import { EmailQueueStatus } from "@/components/dashboard/EmailQueueStatus";
 import { CreditsDisplay } from "@/components/dashboard/CreditsDisplay";
 
+import { EmailSettingsDialog } from "@/components/settings/EmailSettingsDialog";
 import { FeatureUpdatePopup } from "@/components/notifications/FeatureUpdatePopup";
 import { OnboardingTour } from "@/components/onboarding/OnboardingTour";
 import { OnboardingWizard } from "@/components/onboarding/OnboardingWizard";
