@@ -316,23 +316,40 @@ export default function Dashboard() {
           className="mb-8"
         >
           <h2 className="font-display text-lg font-bold mb-3 tracking-tight">Career Tools</h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            {[
-              { icon: FileText, label: "CV Builder", sub: "Build or optimize", route: "/cv-builder" },
-              { icon: Target, label: "ATS Checker", sub: "Instant score", route: "/ats-checker" },
-              { icon: Briefcase, label: "Job Search", sub: "Find & apply to 50", route: "/campaigns/new" },
-              { icon: Send, label: "Outreach", sub: "Find clients", route: "/campaigns/new" },
-            ].map((tool, i) => (
-              <Card key={i} className="border-border-subtle card-hover cursor-pointer group" onClick={() => navigate(tool.route)}>
-                <CardContent className="p-4 text-center">
-                  <div className="w-10 h-10 mx-auto mb-2 rounded-xl bg-primary/8 flex items-center justify-center group-hover:bg-primary group-hover:text-primary-foreground transition-colors duration-300">
-                    <tool.icon className="w-5 h-5 text-primary group-hover:text-primary-foreground" />
-                  </div>
-                  <p className="font-display font-bold text-sm">{tool.label}</p>
-                  <p className="text-xs text-muted-foreground">{tool.sub}</p>
-                </CardContent>
-              </Card>
-            ))}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            {/* CV Builder - prominent */}
+            <Card className="border-primary/30 bg-primary/5 card-hover cursor-pointer group sm:col-span-1" onClick={() => navigate("/cv-builder")}>
+              <CardContent className="p-5 text-center">
+                <div className="w-12 h-12 mx-auto mb-3 rounded-xl bg-primary flex items-center justify-center">
+                  <FileText className="w-6 h-6 text-primary-foreground" />
+                </div>
+                <p className="font-display font-bold text-base">CV Builder</p>
+                <p className="text-xs text-muted-foreground mt-1">Build or optimize your resume</p>
+                <Button size="sm" className="mt-3 w-full">
+                  Get Started <ArrowRight className="w-3 h-3 ml-1" />
+                </Button>
+              </CardContent>
+            </Card>
+            {/* ATS Checker */}
+            <Card className="border-border-subtle card-hover cursor-pointer group" onClick={() => navigate("/ats-checker")}>
+              <CardContent className="p-4 text-center">
+                <div className="w-10 h-10 mx-auto mb-2 rounded-xl bg-primary/8 flex items-center justify-center group-hover:bg-primary group-hover:text-primary-foreground transition-colors duration-300">
+                  <Target className="w-5 h-5 text-primary group-hover:text-primary-foreground" />
+                </div>
+                <p className="font-display font-bold text-sm">ATS Checker</p>
+                <p className="text-xs text-muted-foreground">Instant score</p>
+              </CardContent>
+            </Card>
+            {/* Outreach */}
+            <Card className="border-border-subtle card-hover cursor-pointer group" onClick={() => navigate("/campaigns/new")}>
+              <CardContent className="p-4 text-center">
+                <div className="w-10 h-10 mx-auto mb-2 rounded-xl bg-primary/8 flex items-center justify-center group-hover:bg-primary group-hover:text-primary-foreground transition-colors duration-300">
+                  <Send className="w-5 h-5 text-primary group-hover:text-primary-foreground" />
+                </div>
+                <p className="font-display font-bold text-sm">Outreach</p>
+                <p className="text-xs text-muted-foreground">Find clients</p>
+              </CardContent>
+            </Card>
           </div>
         </motion.div>
 
