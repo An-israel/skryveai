@@ -5,7 +5,9 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { ArrowLeft, ArrowRight, ExternalLink, MapPin, Building2, Globe, CheckCircle2, ShieldCheck, AlertTriangle, Mail } from "lucide-react";
+import { ArrowLeft, ArrowRight, ExternalLink, MapPin, Building2, Globe, CheckCircle2, ShieldCheck, AlertTriangle, Mail, Search, Loader2 } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "@/hooks/use-toast";
 import type { JobListing } from "@/types/campaign";
 
 interface JobSelectStepProps {
@@ -27,8 +29,10 @@ const platformColors: Record<string, string> = {
   Other: "bg-muted text-muted-foreground",
 };
 
-export function JobSelectStep({ jobs, onSelect, onBack, maxSelect = 50 }: JobSelectStepProps) {
+export function JobSelectStep({ jobs: initialJobs, onSelect, onBack, maxSelect = 50 }: JobSelectStepProps) {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [jobs, setJobs] = useState<JobListing[]>(initialJobs);
+  const [searchingIds, setSearchingIds] = useState<Set<string>>(new Set());
 
   const toggleJob = (id: string) => {
     setSelectedIds((prev) => {
@@ -52,6 +56,53 @@ export function JobSelectStep({ jobs, onSelect, onBack, maxSelect = 50 }: JobSel
   const handleContinue = () => {
     const selected = jobs.filter((j) => selectedIds.has(j.id));
     onSelect(selected);
+  };
+
+  const handleFindEmail = async (e: React.MouseEvent, job: JobListing) => {
+    e.stopPropagation();
+    setSearchingIds((prev) => new Set(prev).add(job.id));
+
+    try {
+      const { data, error } = await supabase.functions.invoke("search-jobs", {
+        body: { findEmailFor: job.company, jobId: job.id },
+      });
+
+      if (error) throw error;
+
+      const foundEmail = data?.email;
+      const verified = data?.emailVerified ?? false;
+
+      if (foundEmail) {
+        setJobs((prev) =>
+          prev.map((j) =>
+            j.id === job.id ? { ...j, email: foundEmail, emailVerified: verified } : j
+          )
+        );
+        toast({
+          title: "Email found",
+          description: `${foundEmail} ${verified ? "(verified)" : "(unverified)"}`,
+        });
+      } else {
+        toast({
+          title: "No email found",
+          description: `Could not find a contact email for ${job.company}`,
+          variant: "destructive",
+        });
+      }
+    } catch (err) {
+      console.error("Find email error:", err);
+      toast({
+        title: "Search failed",
+        description: "Could not search for email. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setSearchingIds((prev) => {
+        const next = new Set(prev);
+        next.delete(job.id);
+        return next;
+      });
+    }
   };
 
   return (
@@ -118,7 +169,7 @@ export function JobSelectStep({ jobs, onSelect, onBack, maxSelect = 50 }: JobSel
                         {job.postedDate}
                       </span>
                     </div>
-                    {job.email && (
+                    {job.email ? (
                       <div className="flex items-center gap-1.5 mt-2 text-xs">
                         <Mail className="w-3 h-3 text-muted-foreground" />
                         <span className="text-muted-foreground">{job.email}</span>
@@ -134,6 +185,26 @@ export function JobSelectStep({ jobs, onSelect, onBack, maxSelect = 50 }: JobSel
                           </span>
                         )}
                       </div>
+                    ) : (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="mt-2 h-7 text-xs gap-1.5"
+                        disabled={searchingIds.has(job.id)}
+                        onClick={(e) => handleFindEmail(e, job)}
+                      >
+                        {searchingIds.has(job.id) ? (
+                          <>
+                            <Loader2 className="w-3 h-3 animate-spin" />
+                            Searching…
+                          </>
+                        ) : (
+                          <>
+                            <Search className="w-3 h-3" />
+                            Find Email
+                          </>
+                        )}
+                      </Button>
                     )}
                     {job.description && (
                       <p className="text-sm text-muted-foreground mt-2 line-clamp-2">
