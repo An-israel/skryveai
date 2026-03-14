@@ -187,9 +187,9 @@ export function SendUserEmailDialog({ open, onOpenChange, userEmail, userId, use
     }
   };
 
-  const handleSend = async () => {
-    if (selectedUsers.length === 0) {
-      toast({ title: "Please select at least one user", variant: "destructive" });
+  const sendToUsers = async (usersToSend: UserProfile[]) => {
+    if (usersToSend.length === 0) {
+      toast({ title: "No users to send to", variant: "destructive" });
       return;
     }
     if (!subject || !body) {
@@ -199,42 +199,45 @@ export function SendUserEmailDialog({ open, onOpenChange, userEmail, userId, use
 
     setSending(true);
     setShowProgress(true);
-    const total = selectedUsers.length;
+    setFailedUsers([]);
+    const total = usersToSend.length;
     setSendProgress({ sent: 0, failed: 0, total });
 
     let sent = 0;
     let failed = 0;
+    const newFailedUsers: UserProfile[] = [];
 
-    // Send in batches of 5 concurrently
-    const batchSize = 5;
-    for (let i = 0; i < selectedUsers.length; i += batchSize) {
-      const batch = selectedUsers.slice(i, i + batchSize);
-      const results = await Promise.allSettled(
-        batch.map(async (user) => {
-          const personalizedBody = body.replace(/\{name\}/g, user.full_name || "there");
-          const { data, error } = await supabase.functions.invoke("send-admin-email", {
-            body: {
-              toEmail: user.email,
-              toUserId: user.user_id,
-              subject,
-              body: personalizedBody,
-              templateType: template !== "custom" ? template : null,
-            },
-          });
-          if (error) throw error;
-          if (data?.error) throw new Error(data.error);
-        })
-      );
-
-      results.forEach((r) => {
-        if (r.status === "fulfilled") sent++;
-        else failed++;
-      });
-
+    // Send one at a time with 600ms delay to respect 2/sec rate limit
+    for (let i = 0; i < usersToSend.length; i++) {
+      const user = usersToSend[i];
+      try {
+        const personalizedBody = body.replace(/\{name\}/g, user.full_name || "there");
+        const { data, error } = await supabase.functions.invoke("send-admin-email", {
+          body: {
+            toEmail: user.email,
+            toUserId: user.user_id,
+            subject,
+            body: personalizedBody,
+            templateType: template !== "custom" ? template : null,
+          },
+        });
+        if (error) throw error;
+        if (data?.error) throw new Error(data.error);
+        sent++;
+      } catch {
+        failed++;
+        newFailedUsers.push(user);
+      }
       setSendProgress({ sent, failed, total });
+
+      // Wait 600ms between sends to stay under 2/sec rate limit
+      if (i < usersToSend.length - 1) {
+        await new Promise((r) => setTimeout(r, 600));
+      }
     }
 
     setSending(false);
+    setFailedUsers(newFailedUsers);
 
     if (failed === 0) {
       toast({ title: `✅ All ${sent} email${sent !== 1 ? "s" : ""} sent successfully!` });
@@ -245,6 +248,7 @@ export function SendUserEmailDialog({ open, onOpenChange, userEmail, userId, use
         setBody("");
         setTemplate("custom");
         setShowProgress(false);
+        setFailedUsers([]);
       }, 1500);
     } else {
       toast({
@@ -254,6 +258,10 @@ export function SendUserEmailDialog({ open, onOpenChange, userEmail, userId, use
       });
     }
   };
+
+  const handleSend = () => sendToUsers(selectedUsers);
+
+  const handleRetryFailed = () => sendToUsers(failedUsers);
 
   const allFilteredSelected = filteredUsers.length > 0 && filteredUsers.every((u) => isUserSelected(u.user_id));
 
