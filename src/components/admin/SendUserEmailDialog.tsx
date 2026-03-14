@@ -460,6 +460,30 @@ export function SendUserEmailDialog({ open, onOpenChange, userEmail, userId, use
                   </span>
                 )}
               </div>
+
+              {/* Failed users list with retry */}
+              {failedUsers.length > 0 && !sending && (
+                <div className="mt-2 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <Label className="text-xs text-destructive">Failed recipients:</Label>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="h-7 text-xs gap-1"
+                      onClick={handleRetryFailed}
+                    >
+                      <Send className="w-3 h-3" /> Retry {failedUsers.length} failed
+                    </Button>
+                  </div>
+                  <div className="flex flex-wrap gap-1 max-h-[80px] overflow-y-auto">
+                    {failedUsers.map((u) => (
+                      <Badge key={u.user_id} variant="destructive" className="text-xs">
+                        {u.full_name || u.email}
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           )}
         </div>
