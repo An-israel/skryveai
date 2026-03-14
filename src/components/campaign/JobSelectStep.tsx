@@ -5,7 +5,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { ArrowLeft, ArrowRight, ExternalLink, MapPin, Building2, Globe, CheckCircle2, ShieldCheck, AlertTriangle, Mail, Search, Loader2 } from "lucide-react";
+import { ArrowLeft, ArrowRight, ExternalLink, MapPin, Building2, Globe, CheckCircle2, ShieldCheck, AlertTriangle, Mail, Search, Loader2, RefreshCw } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import type { JobListing } from "@/types/campaign";
@@ -29,6 +29,19 @@ const platformColors: Record<string, string> = {
   Other: "bg-muted text-muted-foreground",
 };
 
+const confidenceBadge: Record<string, { label: string; className: string }> = {
+  high: { label: "High", className: "bg-green-500/10 text-green-600 border-green-200" },
+  medium: { label: "Medium", className: "bg-yellow-500/10 text-yellow-600 border-yellow-200" },
+  low: { label: "Low", className: "bg-red-500/10 text-red-600 border-red-200" },
+};
+
+const sourceLabel: Record<string, string> = {
+  job_page: "From job listing",
+  employer_site: "From company site",
+  search_snippet: "From web search",
+  none: "",
+};
+
 export function JobSelectStep({ jobs: initialJobs, onSelect, onBack, maxSelect = 50 }: JobSelectStepProps) {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [jobs, setJobs] = useState<JobListing[]>(initialJobs);
@@ -37,26 +50,15 @@ export function JobSelectStep({ jobs: initialJobs, onSelect, onBack, maxSelect =
   const toggleJob = (id: string) => {
     setSelectedIds((prev) => {
       const next = new Set(prev);
-      if (next.has(id)) {
-        next.delete(id);
-      } else if (next.size < maxSelect) {
-        next.add(id);
-      }
+      if (next.has(id)) next.delete(id);
+      else if (next.size < maxSelect) next.add(id);
       return next;
     });
   };
 
-  const selectAll = () => {
-    const all = new Set(jobs.slice(0, maxSelect).map((j) => j.id));
-    setSelectedIds(all);
-  };
-
+  const selectAll = () => setSelectedIds(new Set(jobs.slice(0, maxSelect).map((j) => j.id)));
   const deselectAll = () => setSelectedIds(new Set());
-
-  const handleContinue = () => {
-    const selected = jobs.filter((j) => selectedIds.has(j.id));
-    onSelect(selected);
-  };
+  const handleContinue = () => onSelect(jobs.filter((j) => selectedIds.has(j.id)));
 
   const handleFindEmail = async (e: React.MouseEvent, job: JobListing) => {
     e.stopPropagation();
@@ -64,23 +66,34 @@ export function JobSelectStep({ jobs: initialJobs, onSelect, onBack, maxSelect =
 
     try {
       const { data, error } = await supabase.functions.invoke("search-jobs", {
-        body: { findEmailFor: job.company, jobId: job.id },
+        body: {
+          findEmailFor: job.company,
+          jobUrl: job.url,
+          jobTitle: job.jobTitle,
+          jobDescription: job.description,
+        },
       });
 
       if (error) throw error;
 
-      const foundEmail = data?.email;
-      const verified = data?.emailVerified ?? false;
-
-      if (foundEmail) {
+      if (data?.email) {
         setJobs((prev) =>
           prev.map((j) =>
-            j.id === job.id ? { ...j, email: foundEmail, emailVerified: verified } : j
+            j.id === job.id
+              ? {
+                  ...j,
+                  email: data.email,
+                  emailVerified: data.emailVerified ?? false,
+                  emailSource: data.emailSource ?? "search_snippet",
+                  emailConfidence: data.emailConfidence ?? "low",
+                  employerDomain: data.employerDomain ?? null,
+                }
+              : j
           )
         );
         toast({
           title: "Email found",
-          description: `${foundEmail} ${verified ? "(verified)" : "(unverified)"}`,
+          description: `${data.email} (${data.emailConfidence || "unknown"} confidence)`,
         });
       } else {
         toast({
@@ -91,11 +104,7 @@ export function JobSelectStep({ jobs: initialJobs, onSelect, onBack, maxSelect =
       }
     } catch (err) {
       console.error("Find email error:", err);
-      toast({
-        title: "Search failed",
-        description: "Could not search for email. Please try again.",
-        variant: "destructive",
-      });
+      toast({ title: "Search failed", description: "Could not search for email.", variant: "destructive" });
     } finally {
       setSearchingIds((prev) => {
         const next = new Set(prev);
@@ -104,6 +113,9 @@ export function JobSelectStep({ jobs: initialJobs, onSelect, onBack, maxSelect =
       });
     }
   };
+
+  const showFindButton = (job: JobListing) =>
+    !job.email || job.emailConfidence === "low" || !job.emailVerified;
 
   return (
     <motion.div
@@ -120,12 +132,8 @@ export function JobSelectStep({ jobs: initialJobs, onSelect, onBack, maxSelect =
           </p>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" size="sm" onClick={selectAll}>
-            Select All
-          </Button>
-          <Button variant="outline" size="sm" onClick={deselectAll}>
-            Deselect All
-          </Button>
+          <Button variant="outline" size="sm" onClick={selectAll}>Select All</Button>
+          <Button variant="outline" size="sm" onClick={deselectAll}>Deselect All</Button>
         </div>
       </div>
 
@@ -169,23 +177,38 @@ export function JobSelectStep({ jobs: initialJobs, onSelect, onBack, maxSelect =
                         {job.postedDate}
                       </span>
                     </div>
+
+                    {/* Email display with confidence */}
                     {job.email ? (
-                      <div className="flex items-center gap-1.5 mt-2 text-xs">
+                      <div className="flex items-center gap-1.5 mt-2 text-xs flex-wrap">
                         <Mail className="w-3 h-3 text-muted-foreground" />
                         <span className="text-muted-foreground">{job.email}</span>
                         {job.emailVerified ? (
-                          <span className="inline-flex items-center gap-0.5 text-green-600" title="MX-verified domain">
+                          <span className="inline-flex items-center gap-0.5 text-green-600">
                             <ShieldCheck className="w-3 h-3" />
                             Verified
                           </span>
                         ) : (
-                          <span className="inline-flex items-center gap-0.5 text-yellow-600" title="Domain not MX-verified">
+                          <span className="inline-flex items-center gap-0.5 text-yellow-600">
                             <AlertTriangle className="w-3 h-3" />
                             Unverified
                           </span>
                         )}
+                        {job.emailConfidence && confidenceBadge[job.emailConfidence] && (
+                          <Badge variant="outline" className={`text-[10px] py-0 px-1.5 ${confidenceBadge[job.emailConfidence].className}`}>
+                            {confidenceBadge[job.emailConfidence].label}
+                          </Badge>
+                        )}
+                        {job.emailSource && sourceLabel[job.emailSource] && (
+                          <span className="text-[10px] text-muted-foreground">
+                            · {sourceLabel[job.emailSource]}
+                          </span>
+                        )}
                       </div>
-                    ) : (
+                    ) : null}
+
+                    {/* Find / Re-find email button */}
+                    {showFindButton(job) && (
                       <Button
                         variant="outline"
                         size="sm"
@@ -198,6 +221,11 @@ export function JobSelectStep({ jobs: initialJobs, onSelect, onBack, maxSelect =
                             <Loader2 className="w-3 h-3 animate-spin" />
                             Searching…
                           </>
+                        ) : job.email ? (
+                          <>
+                            <RefreshCw className="w-3 h-3" />
+                            Re-find Email
+                          </>
                         ) : (
                           <>
                             <Search className="w-3 h-3" />
@@ -206,10 +234,9 @@ export function JobSelectStep({ jobs: initialJobs, onSelect, onBack, maxSelect =
                         )}
                       </Button>
                     )}
+
                     {job.description && (
-                      <p className="text-sm text-muted-foreground mt-2 line-clamp-2">
-                        {job.description}
-                      </p>
+                      <p className="text-sm text-muted-foreground mt-2 line-clamp-2">{job.description}</p>
                     )}
                     {job.url && (
                       <a

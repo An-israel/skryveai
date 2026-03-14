@@ -51,6 +51,9 @@ export interface Campaign {
   replies: number;
 }
 
+export type EmailSource = 'job_page' | 'employer_site' | 'search_snippet' | 'none';
+export type EmailConfidence = 'high' | 'medium' | 'low';
+
 export interface JobListing {
   id: string;
   jobTitle: string;
@@ -64,6 +67,9 @@ export interface JobListing {
   selected: boolean;
   email?: string;
   emailVerified?: boolean;
+  emailSource?: EmailSource;
+  emailConfidence?: EmailConfidence;
+  employerDomain?: string;
 }
 
 export interface JobApplication {

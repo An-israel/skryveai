@@ -6,7 +6,6 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-// Domains that are job platforms, NOT employer websites
 const PLATFORM_DOMAINS = [
   "indeed.com", "linkedin.com", "glassdoor.com", "wellfound.com", "dice.com",
   "ziprecruiter.com", "weworkremotely.com", "remote.co", "monster.com",
@@ -14,13 +13,12 @@ const PLATFORM_DOMAINS = [
   "greenhouse.io", "workday.com", "icims.com", "taleo.net", "smartrecruiters.com",
   "booksrus.com", "example.com", "test.com", "sample.com", "google.com",
   "facebook.com", "twitter.com", "youtube.com", "wikipedia.org", "reddit.com",
-  "instagram.com", "tiktok.com", "pinterest.com", "yelp.com",
+  "instagram.com", "tiktok.com", "pinterest.com", "yelp.com", "apply.workable.com",
+  "jobs.lever.co", "boards.greenhouse.io",
 ];
 
 const EMAIL_REGEX = /[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}/g;
-
 const NOREPLY_PREFIXES = ["noreply", "no-reply", "donotreply", "do-not-reply", "mailer-daemon", "postmaster"];
-
 const HR_PREFIXES = ["hr", "hiring", "recruit", "recruiting", "recruitment", "careers", "career", "jobs", "talent", "people", "humanresources", "human.resources"];
 const GOOD_PREFIXES = [...HR_PREFIXES, "info", "hello", "contact", "team", "apply", "applications", "admin", "office"];
 
@@ -40,7 +38,6 @@ function isValidEmail(email: string): boolean {
   if (!domain) return false;
   if (isDomainPlatform(domain)) return false;
   if (isNoreplyEmail(email)) return false;
-  // Filter out image/file extensions mistaken as emails
   if (/\.(png|jpg|jpeg|gif|svg|css|js)$/i.test(domain)) return false;
   return true;
 }
@@ -49,7 +46,6 @@ function scoreEmail(email: string): number {
   const prefix = email.split("@")[0].toLowerCase();
   if (HR_PREFIXES.some(h => prefix === h || prefix.startsWith(h + "."))) return 100;
   if (GOOD_PREFIXES.some(g => prefix === g)) return 50;
-  // Personal-looking emails (first.last) are decent
   if (/^[a-z]+\.[a-z]+$/.test(prefix)) return 30;
   return 10;
 }
@@ -62,19 +58,15 @@ function extractEmails(text: string): string[] {
 
 function getDomainFromUrl(url: string): string | null {
   try {
-    const hostname = new URL(url).hostname.replace(/^www\./, "");
-    return hostname;
+    return new URL(url).hostname.replace(/^www\./, "");
   } catch { return null; }
 }
 
-// Extract real company name from job title
 function extractCompanyFromTitle(title: string, fallback: string): string {
   const platformNames = ["indeed", "linkedin", "glassdoor", "wellfound", "remote.co",
     "company", "weworkremotely", "dice", "monster", "ziprecruiter"];
-
   const fallbackLower = fallback.toLowerCase().trim();
   const isGeneric = platformNames.some(p => fallbackLower === p || fallbackLower.includes(p));
-
   if (!isGeneric && fallback !== "Company") return fallback;
 
   const atMatch = title.match(/(?:job\s+)?at\s+([A-Z][A-Za-z\s&.,'-]+?)(?:\s+in\s|\s*$)/i);
@@ -85,11 +77,12 @@ function extractCompanyFromTitle(title: string, fallback: string): string {
     const last = parts[parts.length - 1].trim();
     if (!platformNames.some(p => last.toLowerCase().includes(p))) return last;
   }
-
   return fallback;
 }
 
+// ============================================================
 // Firecrawl helpers
+// ============================================================
 async function firecrawlSearch(apiKey: string, query: string, limit = 3): Promise<any[]> {
   try {
     const resp = await fetch("https://api.firecrawl.dev/v1/search", {
@@ -111,14 +104,33 @@ async function firecrawlScrape(apiKey: string, url: string): Promise<string> {
     const resp = await fetch("https://api.firecrawl.dev/v1/scrape", {
       method: "POST",
       headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
-      body: JSON.stringify({ url, formats: ["markdown"], onlyMainContent: false }),
-      signal: AbortSignal.timeout(8000),
+      body: JSON.stringify({ url, formats: ["markdown", "links"], onlyMainContent: false }),
+      signal: AbortSignal.timeout(10000),
     });
     const data = await resp.json();
     return data.data?.markdown || data.markdown || "";
   } catch (e) {
     console.error("[Firecrawl scrape error]", url, e);
     return "";
+  }
+}
+
+async function firecrawlScrapeWithLinks(apiKey: string, url: string): Promise<{ markdown: string; links: string[] }> {
+  try {
+    const resp = await fetch("https://api.firecrawl.dev/v1/scrape", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ url, formats: ["markdown", "links"], onlyMainContent: false }),
+      signal: AbortSignal.timeout(10000),
+    });
+    const data = await resp.json();
+    return {
+      markdown: data.data?.markdown || data.markdown || "",
+      links: data.data?.links || data.links || [],
+    };
+  } catch (e) {
+    console.error("[Firecrawl scrape+links error]", url, e);
+    return { markdown: "", links: [] };
   }
 }
 
@@ -138,59 +150,78 @@ async function firecrawlMap(apiKey: string, url: string): Promise<string[]> {
   }
 }
 
-// MX verification fallback
-async function verifyDomainMX(domain: string): Promise<boolean> {
-  try {
-    const resp = await fetch(`https://dns.google/resolve?name=${encodeURIComponent(domain)}&type=MX`, {
-      signal: AbortSignal.timeout(4000),
-    });
-    if (!resp.ok) return false;
-    const data = await resp.json();
-    return data.Status === 0 && data.Answer && data.Answer.length > 0;
-  } catch { return false; }
-}
-
 // ============================================================
-// MAIN EMAIL DISCOVERY AGENT — per company, with 10s timeout
+// PER-JOB EMAIL RESOLVER — scrapes the actual job URL first
 // ============================================================
-async function discoverRealEmail(
-  apiKey: string,
-  company: string
-): Promise<{ email: string | null; verified: boolean; discoveryMethod: string }> {
-  if (!company || company === "Company") return { email: null, verified: false, discoveryMethod: "none" };
 
-  // --- Step 1: Find company website via Firecrawl search ---
-  console.log(`[Agent] Step 1 — Finding website for "${company}"`);
-  const searchResults = await firecrawlSearch(apiKey, `"${company}" official website contact`, 5);
+type EmailResult = {
+  email: string | null;
+  emailVerified: boolean;
+  emailSource: "job_page" | "employer_site" | "search_snippet" | "none";
+  emailConfidence: "high" | "medium" | "low";
+  employerDomain: string | null;
+};
 
-  let companyDomain: string | null = null;
-  let companyUrl: string | null = null;
-
-  for (const r of searchResults) {
-    const domain = getDomainFromUrl(r.url);
-    if (domain && !isDomainPlatform(domain)) {
-      companyDomain = domain;
-      companyUrl = r.url;
-      break;
-    }
-    // Also check for emails in search result snippets
-    const snippetEmails = extractEmails((r.markdown || "") + " " + (r.description || ""));
-    if (snippetEmails.length > 0) {
-      const best = snippetEmails.sort((a, b) => scoreEmail(b) - scoreEmail(a))[0];
-      console.log(`[Agent] Found email in search snippet for "${company}": ${best}`);
-      return { email: best, verified: true, discoveryMethod: "searched" };
+// Extract employer domain from job page outbound links
+function resolveEmployerDomain(links: string[], jobUrl: string): string | null {
+  const jobDomain = getDomainFromUrl(jobUrl);
+  for (const link of links) {
+    const domain = getDomainFromUrl(link);
+    if (domain && !isDomainPlatform(domain) && domain !== jobDomain) {
+      return domain;
     }
   }
+  return null;
+}
 
-  // --- Step 2: Scrape company website contact/careers pages ---
-  if (companyDomain && companyUrl) {
-    console.log(`[Agent] Step 2 — Scraping ${companyDomain} for emails`);
+async function resolveJobEmail(
+  apiKey: string,
+  jobUrl: string,
+  company: string,
+  jobTitle: string,
+  description: string,
+): Promise<EmailResult> {
+  const empty: EmailResult = { email: null, emailVerified: false, emailSource: "none", emailConfidence: "low", employerDomain: null };
 
-    // Map the site to find contact-related pages
-    const baseUrl = `https://${companyDomain}`;
+  // ── Step A: Scrape the job listing page itself ──
+  console.log(`[PerJob] Step A — scraping job URL: ${jobUrl}`);
+  const { markdown: jobPageContent, links: jobPageLinks } = await firecrawlScrapeWithLinks(apiKey, jobUrl);
+
+  // Check for emails directly on job page
+  const jobPageEmails = extractEmails(jobPageContent);
+  const employerDomain = resolveEmployerDomain(jobPageLinks, jobUrl);
+
+  if (jobPageEmails.length > 0) {
+    // If we resolved an employer domain, prefer emails matching it
+    if (employerDomain) {
+      const domainMatch = jobPageEmails
+        .filter(e => e.split("@")[1]?.toLowerCase() === employerDomain)
+        .sort((a, b) => scoreEmail(b) - scoreEmail(a));
+      if (domainMatch.length > 0) {
+        console.log(`[PerJob] Found domain-matched email on job page: ${domainMatch[0]}`);
+        return { email: domainMatch[0], emailVerified: true, emailSource: "job_page", emailConfidence: "high", employerDomain };
+      }
+    }
+    // Otherwise take best-scored non-platform email from the page
+    const best = jobPageEmails.sort((a, b) => scoreEmail(b) - scoreEmail(a))[0];
+    console.log(`[PerJob] Found email on job page: ${best}`);
+    return {
+      email: best,
+      emailVerified: Boolean(employerDomain && best.split("@")[1]?.toLowerCase() === employerDomain),
+      emailSource: "job_page",
+      emailConfidence: employerDomain ? "medium" : "medium",
+      employerDomain,
+    };
+  }
+
+  // ── Step B: Scrape employer website contact pages ──
+  const resolvedDomain = employerDomain || guessEmployerDomain(company);
+  if (resolvedDomain && !isDomainPlatform(resolvedDomain)) {
+    console.log(`[PerJob] Step B — scraping employer site: ${resolvedDomain}`);
+    const baseUrl = `https://${resolvedDomain}`;
+
+    // Map the employer site for contact pages
     const siteUrls = await firecrawlMap(apiKey, baseUrl);
-
-    // Pick best pages to scrape (contact, about, careers, team)
     const contactPatterns = [/contact/i, /about/i, /career/i, /team/i, /jobs/i, /hiring/i, /join/i];
     const pagesToScrape: string[] = [];
 
@@ -200,11 +231,8 @@ async function discoverRealEmail(
         if (pagesToScrape.length >= 3) break;
       }
     }
-
-    // Always include the homepage
     if (pagesToScrape.length === 0) pagesToScrape.push(baseUrl);
 
-    // Scrape pages in parallel
     const scrapeResults = await Promise.allSettled(
       pagesToScrape.map(url => firecrawlScrape(apiKey, url))
     );
@@ -217,16 +245,24 @@ async function discoverRealEmail(
     }
 
     if (allEmails.length > 0) {
-      const best = [...new Set(allEmails)].sort((a, b) => scoreEmail(b) - scoreEmail(a))[0];
-      console.log(`[Agent] Scraped email for "${company}": ${best}`);
-      return { email: best, verified: true, discoveryMethod: "scraped" };
+      // Prefer emails matching the employer domain
+      const domainEmails = allEmails.filter(e => e.split("@")[1]?.toLowerCase() === resolvedDomain);
+      const pool = domainEmails.length > 0 ? domainEmails : allEmails;
+      const best = [...new Set(pool)].sort((a, b) => scoreEmail(b) - scoreEmail(a))[0];
+      console.log(`[PerJob] Scraped email from employer site: ${best}`);
+      return {
+        email: best,
+        emailVerified: best.split("@")[1]?.toLowerCase() === resolvedDomain,
+        emailSource: "employer_site",
+        emailConfidence: best.split("@")[1]?.toLowerCase() === resolvedDomain ? "high" : "medium",
+        employerDomain: resolvedDomain,
+      };
     }
   }
 
-  // --- Step 3: Targeted web search fallback ---
-  console.log(`[Agent] Step 3 — Web search fallback for "${company}"`);
+  // ── Step C: Targeted web search fallback ──
+  console.log(`[PerJob] Step C — web search for "${company}" email`);
   const fallbackResults = await firecrawlSearch(apiKey, `"${company}" HR email contact hiring`, 5);
-
   const searchEmails: string[] = [];
   for (const r of fallbackResults) {
     searchEmails.push(...extractEmails((r.markdown || "") + " " + (r.description || "") + " " + (r.title || "")));
@@ -234,30 +270,53 @@ async function discoverRealEmail(
 
   if (searchEmails.length > 0) {
     const best = [...new Set(searchEmails)].sort((a, b) => scoreEmail(b) - scoreEmail(a))[0];
-    console.log(`[Agent] Search fallback email for "${company}": ${best}`);
-    return { email: best, verified: true, discoveryMethod: "searched" };
+    console.log(`[PerJob] Search fallback email: ${best}`);
+    return {
+      email: best,
+      emailVerified: false,
+      emailSource: "search_snippet",
+      emailConfidence: "low",
+      employerDomain: resolvedDomain || null,
+    };
   }
 
-  // --- Step 4: Pattern fallback (last resort) ---
-  console.log(`[Agent] Step 4 — Pattern fallback for "${company}"`);
-  if (companyDomain) {
-    const hasMX = await verifyDomainMX(companyDomain);
-    if (hasMX) {
-      return { email: `info@${companyDomain}`, verified: false, discoveryMethod: "pattern" };
-    }
-  }
+  // ── No pattern fallback — return null so user can manually find or edit ──
+  console.log(`[PerJob] No email found for "${company}"`);
+  return empty;
+}
 
-  // Build domain from company name as absolute last resort
+function guessEmployerDomain(company: string): string | null {
+  if (!company || company === "Company") return null;
   const base = company.toLowerCase()
     .replace(/\s*(Inc\.?|LLC|Ltd\.?|Corp\.?|Corporation|Co\.?|Group|Holdings|Limited)\s*$/gi, "")
     .trim().replace(/[^a-z0-9\s]/g, "").replace(/\s+/g, "");
-  const fallbackDomain = `${base}.com`;
-  const hasMX = await verifyDomainMX(fallbackDomain);
-  if (hasMX) {
-    return { email: `info@${fallbackDomain}`, verified: false, discoveryMethod: "pattern" };
-  }
+  if (!base) return null;
+  return `${base}.com`;
+}
 
-  return { email: null, verified: false, discoveryMethod: "none" };
+// ============================================================
+// Anti-contamination: detect same email across different domains
+// ============================================================
+function decontaminate(jobs: any[]): void {
+  const emailDomainMap = new Map<string, Set<string>>();
+  for (const job of jobs) {
+    if (!job.email) continue;
+    if (!emailDomainMap.has(job.email)) emailDomainMap.set(job.email, new Set());
+    emailDomainMap.get(job.email)!.add(job.employerDomain || job.company);
+  }
+  for (const [email, domains] of emailDomainMap) {
+    if (domains.size > 3) {
+      console.warn(`[Decontaminate] Email ${email} appeared across ${domains.size} different entities — clearing`);
+      for (const job of jobs) {
+        if (job.email === email) {
+          job.email = null;
+          job.emailVerified = false;
+          job.emailSource = "none";
+          job.emailConfidence = "low";
+        }
+      }
+    }
+  }
 }
 
 // ============================================================
@@ -288,8 +347,6 @@ serve(async (req) => {
       });
     }
 
-    console.log(`User ${user.id} searching for jobs`);
-
     const { data: sub } = await serviceClient
       .from("subscriptions")
       .select("credits, plan")
@@ -311,17 +368,41 @@ serve(async (req) => {
       });
     }
 
-    // === Single-company email lookup mode ===
+    // === Single-job email lookup mode (manual "Find Email" button) ===
     if (body.findEmailFor) {
       const company = body.findEmailFor as string;
-      console.log(`[FindEmail] Deep search for "${company}"`);
-      const result = await discoverRealEmail(FIRECRAWL_API_KEY, company);
+      const jobUrl = body.jobUrl as string | undefined;
+      const jobTitle = body.jobTitle as string | undefined;
+      const jobDescription = body.jobDescription as string | undefined;
+
+      console.log(`[FindEmail] Deep search for "${company}" (URL: ${jobUrl || "none"})`);
+
+      let result: EmailResult;
+      if (jobUrl) {
+        // Use the full per-job resolver with the actual job URL
+        result = await resolveJobEmail(FIRECRAWL_API_KEY, jobUrl, company, jobTitle || "", jobDescription || "");
+      } else {
+        // Fallback: search-only mode when no URL provided
+        const searchResults = await firecrawlSearch(FIRECRAWL_API_KEY, `"${company}" HR email contact hiring`, 5);
+        const emails: string[] = [];
+        for (const r of searchResults) {
+          emails.push(...extractEmails((r.markdown || "") + " " + (r.description || "") + " " + (r.title || "")));
+        }
+        if (emails.length > 0) {
+          const best = [...new Set(emails)].sort((a, b) => scoreEmail(b) - scoreEmail(a))[0];
+          result = { email: best, emailVerified: false, emailSource: "search_snippet", emailConfidence: "low", employerDomain: null };
+        } else {
+          result = { email: null, emailVerified: false, emailSource: "none", emailConfidence: "low", employerDomain: null };
+        }
+      }
+
       return new Response(
-        JSON.stringify({ email: result.email, emailVerified: result.verified, discoveryMethod: result.discoveryMethod }),
+        JSON.stringify(result),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
+    // === Bulk job search mode ===
     const { expertise, location, limit = 50 } = body;
 
     if (!expertise || expertise.trim().length === 0) {
@@ -339,7 +420,7 @@ serve(async (req) => {
     const allJobs: any[] = [];
     const seenUrls = new Set<string>();
 
-    // Phase 1: Collect job listings
+    // Phase 1: Collect job listings (no email discovery yet)
     for (const query of searchQueries) {
       try {
         console.log("Searching:", query);
@@ -380,7 +461,6 @@ serve(async (req) => {
             const titleParts = title.split(/\s[-–|]\s/);
             const jobTitle = titleParts[0]?.trim() || title;
             const rawCompany = titleParts.length > 1 ? titleParts[titleParts.length - 1]?.trim() : "Company";
-
             const company = extractCompanyFromTitle(title, rawCompany);
 
             allJobs.push({
@@ -395,6 +475,10 @@ serve(async (req) => {
               postedDate: "Within 24 hours",
               selected: false,
               email: null,
+              emailVerified: false,
+              emailSource: "none",
+              emailConfidence: "low",
+              employerDomain: null,
             });
           }
         }
@@ -403,52 +487,46 @@ serve(async (req) => {
       }
     }
 
-    // Phase 2: Real email discovery agent — parallel batches of 5
-    const uniqueCompanies = [...new Set(allJobs.map(j => j.company).filter(c => c && c !== "Company"))];
-    const companyEmailCache = new Map<string, { email: string | null; verified: boolean; discoveryMethod: string }>();
-
-    console.log(`[EmailAgent] Discovering emails for ${uniqueCompanies.length} companies`);
+    // Phase 2: Per-job email discovery — parallel batches of 5
+    console.log(`[EmailAgent] Resolving emails for ${allJobs.length} jobs individually`);
 
     const BATCH_SIZE = 5;
-    for (let i = 0; i < uniqueCompanies.length; i += BATCH_SIZE) {
-      const batch = uniqueCompanies.slice(i, i + BATCH_SIZE);
+    for (let i = 0; i < allJobs.length; i += BATCH_SIZE) {
+      const batch = allJobs.slice(i, i + BATCH_SIZE);
       const results = await Promise.allSettled(
-        batch.map(async (company) => {
-          // Wrap with 10s timeout per company
-          const controller = new AbortController();
-          const timeout = setTimeout(() => controller.abort(), 10000);
+        batch.map(async (job) => {
           try {
-            const result = await discoverRealEmail(FIRECRAWL_API_KEY, company);
-            return { company, ...result };
+            const result = await resolveJobEmail(
+              FIRECRAWL_API_KEY,
+              job.url,
+              job.company,
+              job.jobTitle,
+              job.description,
+            );
+            return { jobId: job.id, ...result };
           } catch (e) {
-            console.error(`[EmailAgent] Timeout/error for "${company}":`, e);
-            return { company, email: null, verified: false, discoveryMethod: "none" };
-          } finally {
-            clearTimeout(timeout);
+            console.error(`[EmailAgent] Error for "${job.company}":`, e);
+            return { jobId: job.id, email: null, emailVerified: false, emailSource: "none" as const, emailConfidence: "low" as const, employerDomain: null };
           }
         })
       );
 
       for (const r of results) {
         if (r.status === "fulfilled") {
-          companyEmailCache.set(r.value.company, {
-            email: r.value.email,
-            verified: r.value.verified,
-            discoveryMethod: r.value.discoveryMethod,
-          });
+          const job = allJobs.find(j => j.id === r.value.jobId);
+          if (job) {
+            job.email = r.value.email;
+            job.emailVerified = r.value.emailVerified;
+            job.emailSource = r.value.emailSource;
+            job.emailConfidence = r.value.emailConfidence;
+            job.employerDomain = r.value.employerDomain;
+          }
         }
       }
     }
 
-    // Apply discovered emails to jobs
-    for (const job of allJobs) {
-      const cached = companyEmailCache.get(job.company);
-      if (cached) {
-        job.email = cached.email;
-        job.emailVerified = cached.verified;
-        job.discoveryMethod = cached.discoveryMethod;
-      }
-    }
+    // Phase 3: Anti-contamination — clear emails that appear across many different employers
+    decontaminate(allJobs);
 
     // Deduct 1 credit
     if (sub && sub.plan !== "lifetime") {
@@ -459,10 +537,10 @@ serve(async (req) => {
     }
 
     const withEmail = allJobs.filter(j => j.email).length;
-    const scraped = allJobs.filter(j => j.discoveryMethod === "scraped").length;
-    const searched = allJobs.filter(j => j.discoveryMethod === "searched").length;
-    const pattern = allJobs.filter(j => j.discoveryMethod === "pattern").length;
-    console.log(`Found ${allJobs.length} jobs: ${scraped} scraped, ${searched} searched, ${pattern} pattern, ${allJobs.length - withEmail} no email`);
+    const high = allJobs.filter(j => j.emailConfidence === "high").length;
+    const medium = allJobs.filter(j => j.emailConfidence === "medium").length;
+    const low = allJobs.filter(j => j.emailConfidence === "low" && j.email).length;
+    console.log(`Found ${allJobs.length} jobs: ${high} high, ${medium} medium, ${low} low confidence, ${allJobs.length - withEmail} no email`);
 
     return new Response(
       JSON.stringify({
