@@ -302,18 +302,31 @@ serve(async (req) => {
       });
     }
 
-    const { expertise, location, limit = 50 } = await req.json();
-
-    if (!expertise || expertise.trim().length === 0) {
-      return new Response(JSON.stringify({ error: "Expertise/skill is required" }), {
-        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
+    const body = await req.json();
 
     const FIRECRAWL_API_KEY = Deno.env.get("FIRECRAWL_API_KEY");
     if (!FIRECRAWL_API_KEY) {
       return new Response(JSON.stringify({ error: "Search service not configured" }), {
         status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // === Single-company email lookup mode ===
+    if (body.findEmailFor) {
+      const company = body.findEmailFor as string;
+      console.log(`[FindEmail] Deep search for "${company}"`);
+      const result = await discoverRealEmail(FIRECRAWL_API_KEY, company);
+      return new Response(
+        JSON.stringify({ email: result.email, emailVerified: result.verified, discoveryMethod: result.discoveryMethod }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    const { expertise, location, limit = 50 } = body;
+
+    if (!expertise || expertise.trim().length === 0) {
+      return new Response(JSON.stringify({ error: "Expertise/skill is required" }), {
+        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
