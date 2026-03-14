@@ -5,9 +5,12 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Progress } from "@/components/ui/progress";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Send, Search, ChevronDown, User, X } from "lucide-react";
+import { Loader2, Send, Search, ChevronDown, User, X, Users, CheckCircle2, AlertCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface SendUserEmailDialogProps {
@@ -80,26 +83,33 @@ export function SendUserEmailDialog({ open, onOpenChange, userEmail, userId, use
   const [subject, setSubject] = useState("");
   const [body, setBody] = useState("");
   const [sending, setSending] = useState(false);
-  const [toEmail, setToEmail] = useState(userEmail || "");
-  const [selectedUserId, setSelectedUserId] = useState(userId || "");
-  const [selectedUserName, setSelectedUserName] = useState(userName || "");
   const { toast } = useToast();
 
-  // User picker state
+  // Multi-select user state
+  const [selectedUsers, setSelectedUsers] = useState<UserProfile[]>([]);
   const [users, setUsers] = useState<UserProfile[]>([]);
   const [loadingUsers, setLoadingUsers] = useState(false);
   const [userSearch, setUserSearch] = useState("");
   const [showUserDropdown, setShowUserDropdown] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
-  // Fetch users when dialog opens
+  // Bulk send progress
+  const [sendProgress, setSendProgress] = useState({ sent: 0, failed: 0, total: 0 });
+  const [showProgress, setShowProgress] = useState(false);
+
   useEffect(() => {
     if (open) {
       fetchUsers();
+      // Pre-select if a specific user was passed
+      if (userEmail && userId && userName) {
+        setSelectedUsers([{ user_id: userId, full_name: userName, email: userEmail }]);
+      }
+    } else {
+      setShowProgress(false);
+      setSendProgress({ sent: 0, failed: 0, total: 0 });
     }
   }, [open]);
 
-  // Close dropdown on outside click
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
       if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
@@ -110,15 +120,6 @@ export function SendUserEmailDialog({ open, onOpenChange, userEmail, userId, use
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  // Sync props when dialog opens
-  useEffect(() => {
-    if (open) {
-      setToEmail(userEmail || "");
-      setSelectedUserId(userId || "");
-      setSelectedUserName(userName || "");
-    }
-  }, [open, userEmail, userId, userName]);
-
   const fetchUsers = async () => {
     setLoadingUsers(true);
     try {
@@ -126,7 +127,6 @@ export function SendUserEmailDialog({ open, onOpenChange, userEmail, userId, use
         .from("profiles")
         .select("user_id, full_name, email")
         .order("created_at", { ascending: false });
-
       if (error) throw error;
       setUsers(data || []);
     } catch (err) {
@@ -144,26 +144,35 @@ export function SendUserEmailDialog({ open, onOpenChange, userEmail, userId, use
       )
     : users;
 
-  const selectUser = (user: UserProfile) => {
-    setToEmail(user.email);
-    setSelectedUserId(user.user_id);
-    setSelectedUserName(user.full_name);
-    setShowUserDropdown(false);
-    setUserSearch("");
+  const isUserSelected = (userId: string) => selectedUsers.some((u) => u.user_id === userId);
 
-    // If a template is already selected, update the body with the new name
-    if (template !== "custom") {
-      const tmpl = EMAIL_TEMPLATES[template as keyof typeof EMAIL_TEMPLATES];
-      if (tmpl) {
-        setBody(tmpl.body.replace(/\{name\}/g, user.full_name || "there"));
-      }
-    }
+  const toggleUser = (user: UserProfile) => {
+    setSelectedUsers((prev) =>
+      isUserSelected(user.user_id)
+        ? prev.filter((u) => u.user_id !== user.user_id)
+        : [...prev, user]
+    );
   };
 
-  const clearSelectedUser = () => {
-    setToEmail("");
-    setSelectedUserId("");
-    setSelectedUserName("");
+  const removeUser = (userId: string) => {
+    setSelectedUsers((prev) => prev.filter((u) => u.user_id !== userId));
+  };
+
+  const selectAll = () => {
+    // Select all currently filtered users
+    const newSelected = [...selectedUsers];
+    filteredUsers.forEach((u) => {
+      if (!isUserSelected(u.user_id)) {
+        newSelected.push(u);
+      }
+    });
+    setSelectedUsers(newSelected);
+  };
+
+  const deselectAll = () => {
+    // Deselect only the filtered ones
+    const filteredIds = new Set(filteredUsers.map((u) => u.user_id));
+    setSelectedUsers((prev) => prev.filter((u) => !filteredIds.has(u.user_id)));
   };
 
   const handleTemplateChange = (value: string) => {
@@ -171,190 +180,212 @@ export function SendUserEmailDialog({ open, onOpenChange, userEmail, userId, use
     const tmpl = EMAIL_TEMPLATES[value as keyof typeof EMAIL_TEMPLATES];
     if (tmpl) {
       setSubject(tmpl.subject);
-      setBody(tmpl.body.replace(/\{name\}/g, selectedUserName || userName || "there"));
+      // Use {name} placeholder — edge function will personalize per user
+      setBody(tmpl.body);
     }
   };
 
   const handleSend = async () => {
-    if (!toEmail || !subject || !body) {
-      toast({ title: "Please fill all fields", variant: "destructive" });
+    if (selectedUsers.length === 0) {
+      toast({ title: "Please select at least one user", variant: "destructive" });
+      return;
+    }
+    if (!subject || !body) {
+      toast({ title: "Please fill subject and body", variant: "destructive" });
       return;
     }
 
     setSending(true);
-    try {
-      const { data, error } = await supabase.functions.invoke("send-admin-email", {
-        body: {
-          toEmail: toEmail,
-          toUserId: selectedUserId || userId,
-          subject,
-          body,
-          templateType: template !== "custom" ? template : null,
-        },
+    setShowProgress(true);
+    const total = selectedUsers.length;
+    setSendProgress({ sent: 0, failed: 0, total });
+
+    let sent = 0;
+    let failed = 0;
+
+    // Send in batches of 5 concurrently
+    const batchSize = 5;
+    for (let i = 0; i < selectedUsers.length; i += batchSize) {
+      const batch = selectedUsers.slice(i, i + batchSize);
+      const results = await Promise.allSettled(
+        batch.map(async (user) => {
+          const personalizedBody = body.replace(/\{name\}/g, user.full_name || "there");
+          const { data, error } = await supabase.functions.invoke("send-admin-email", {
+            body: {
+              toEmail: user.email,
+              toUserId: user.user_id,
+              subject,
+              body: personalizedBody,
+              templateType: template !== "custom" ? template : null,
+            },
+          });
+          if (error) throw error;
+          if (data?.error) throw new Error(data.error);
+        })
+      );
+
+      results.forEach((r) => {
+        if (r.status === "fulfilled") sent++;
+        else failed++;
       });
 
-      if (error) {
-        console.error("Function invoke error:", error);
-        throw new Error(error.message || "Edge function error");
-      }
-      if (data?.error) {
-        console.error("Function returned error:", data.error);
-        throw new Error(data.error);
-      }
+      setSendProgress({ sent, failed, total });
+    }
 
-      toast({ title: "Email sent successfully!" });
-      onOpenChange(false);
-      setSubject("");
-      setBody("");
-      setTemplate("custom");
-      clearSelectedUser();
-    } catch (error) {
+    setSending(false);
+
+    if (failed === 0) {
+      toast({ title: `✅ All ${sent} email${sent !== 1 ? "s" : ""} sent successfully!` });
+      setTimeout(() => {
+        onOpenChange(false);
+        setSelectedUsers([]);
+        setSubject("");
+        setBody("");
+        setTemplate("custom");
+        setShowProgress(false);
+      }, 1500);
+    } else {
       toast({
-        title: "Failed to send email",
-        description: error instanceof Error ? error.message : "Unknown error",
+        title: `Sent ${sent} of ${total} emails`,
+        description: `${failed} failed. You can retry the failed ones.`,
         variant: "destructive",
       });
-    } finally {
-      setSending(false);
     }
   };
+
+  const allFilteredSelected = filteredUsers.length > 0 && filteredUsers.every((u) => isUserSelected(u.user_id));
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <Send className="w-5 h-5" /> Send Email to User
+            <Send className="w-5 h-5" /> Send Email to Users
           </DialogTitle>
           <DialogDescription>
-            Select a user from the list or type an email manually
+            Select one or multiple users — use {`{name}`} in the body to personalize
           </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4 py-2">
-          {/* User Picker */}
-          <div className="space-y-2">
-            <Label>To</Label>
+          {/* Selected user badges */}
+          {selectedUsers.length > 0 && (
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <Label className="flex items-center gap-1.5">
+                  <Users className="w-4 h-4" />
+                  {selectedUsers.length} recipient{selectedUsers.length !== 1 ? "s" : ""}
+                </Label>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-7 text-xs text-muted-foreground"
+                  onClick={() => setSelectedUsers([])}
+                >
+                  Clear all
+                </Button>
+              </div>
+              <div className="flex flex-wrap gap-1.5 max-h-[100px] overflow-y-auto p-2 rounded-md border bg-muted/30">
+                {selectedUsers.map((user) => (
+                  <Badge key={user.user_id} variant="secondary" className="gap-1 pr-1 text-xs">
+                    {user.full_name || user.email}
+                    <button
+                      type="button"
+                      onClick={() => removeUser(user.user_id)}
+                      className="ml-0.5 rounded-full p-0.5 hover:bg-foreground/10"
+                    >
+                      <X className="w-3 h-3" />
+                    </button>
+                  </Badge>
+                ))}
+              </div>
+            </div>
+          )}
 
-            {/* Selected user chip */}
-            {selectedUserName && toEmail ? (
-              <div className="flex items-center gap-2 p-2.5 rounded-md border bg-muted/50">
-                <div className="flex items-center gap-2 flex-1 min-w-0">
-                  <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
-                    <User className="w-4 h-4 text-primary" />
-                  </div>
-                  <div className="min-w-0">
-                    <p className="text-sm font-medium truncate">{selectedUserName}</p>
-                    <p className="text-xs text-muted-foreground truncate">{toEmail}</p>
-                  </div>
-                </div>
+          {/* User search & dropdown */}
+          <div className="space-y-2">
+            <Label>Search & select users</Label>
+            <div ref={dropdownRef} className="relative">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                <Input
+                  value={userSearch}
+                  onChange={(e) => {
+                    setUserSearch(e.target.value);
+                    setShowUserDropdown(true);
+                  }}
+                  onFocus={() => setShowUserDropdown(true)}
+                  placeholder="Search by name or email..."
+                  className="pl-9 pr-8"
+                />
                 <button
                   type="button"
-                  onClick={clearSelectedUser}
-                  className="p-1 rounded-full hover:bg-background transition-colors shrink-0"
+                  onClick={() => setShowUserDropdown(!showUserDropdown)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground"
                 >
-                  <X className="w-4 h-4 text-muted-foreground" />
+                  <ChevronDown className={cn("w-4 h-4 transition-transform", showUserDropdown && "rotate-180")} />
                 </button>
               </div>
-            ) : (
-              <div ref={dropdownRef} className="relative">
-                <div className="relative">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                  <Input
-                    value={userSearch}
-                    onChange={(e) => {
-                      setUserSearch(e.target.value);
-                      setShowUserDropdown(true);
-                    }}
-                    onFocus={() => setShowUserDropdown(true)}
-                    placeholder="Search by name or email..."
-                    className="pl-9 pr-8"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowUserDropdown(!showUserDropdown)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground"
-                  >
-                    <ChevronDown className={cn("w-4 h-4 transition-transform", showUserDropdown && "rotate-180")} />
-                  </button>
-                </div>
 
-                {showUserDropdown && (
-                  <div className="absolute z-50 w-full mt-1 bg-popover border rounded-md shadow-lg overflow-hidden">
-                    {loadingUsers ? (
-                      <div className="flex items-center justify-center py-6">
-                        <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
-                        <span className="ml-2 text-sm text-muted-foreground">Loading users...</span>
-                      </div>
-                    ) : filteredUsers.length === 0 ? (
-                      <div className="px-3 py-6 text-center text-sm text-muted-foreground">
-                        {userSearch ? `No users found for "${userSearch}"` : "No users found"}
-                      </div>
-                    ) : (
-                      <div className="max-h-[200px] overflow-y-auto">
-                        {filteredUsers.map((user) => (
+              {showUserDropdown && (
+                <div className="absolute z-50 w-full mt-1 bg-popover border rounded-md shadow-lg overflow-hidden">
+                  {/* Select all / Deselect all bar */}
+                  {!loadingUsers && filteredUsers.length > 0 && (
+                    <div className="flex items-center justify-between px-3 py-2 border-b bg-muted/30">
+                      <span className="text-xs text-muted-foreground">
+                        {filteredUsers.length} user{filteredUsers.length !== 1 ? "s" : ""}
+                        {userSearch && " matching"}
+                      </span>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-6 text-xs px-2"
+                        onClick={allFilteredSelected ? deselectAll : selectAll}
+                      >
+                        {allFilteredSelected ? "Deselect all" : "Select all"}
+                      </Button>
+                    </div>
+                  )}
+
+                  {loadingUsers ? (
+                    <div className="flex items-center justify-center py-6">
+                      <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
+                      <span className="ml-2 text-sm text-muted-foreground">Loading users...</span>
+                    </div>
+                  ) : filteredUsers.length === 0 ? (
+                    <div className="px-3 py-6 text-center text-sm text-muted-foreground">
+                      {userSearch ? `No users found for "${userSearch}"` : "No users found"}
+                    </div>
+                  ) : (
+                    <div className="max-h-[220px] overflow-y-auto">
+                      {filteredUsers.map((user) => {
+                        const selected = isUserSelected(user.user_id);
+                        return (
                           <button
                             key={user.user_id}
                             type="button"
-                            onClick={() => selectUser(user)}
-                            className="w-full flex items-center gap-3 px-3 py-2.5 text-left hover:bg-accent transition-colors"
+                            onClick={() => toggleUser(user)}
+                            className={cn(
+                              "w-full flex items-center gap-3 px-3 py-2.5 text-left transition-colors",
+                              selected ? "bg-primary/5" : "hover:bg-accent"
+                            )}
                           >
-                            <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
-                              <User className="w-4 h-4 text-primary" />
+                            <Checkbox checked={selected} className="pointer-events-none" />
+                            <div className="w-7 h-7 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                              <User className="w-3.5 h-3.5 text-primary" />
                             </div>
                             <div className="min-w-0 flex-1">
                               <p className="text-sm font-medium truncate">{user.full_name || "Unnamed"}</p>
                               <p className="text-xs text-muted-foreground truncate">{user.email}</p>
                             </div>
                           </button>
-                        ))}
-                      </div>
-                    )}
-
-                    {/* Manual entry option */}
-                    {userSearch && userSearch.includes("@") && (
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setToEmail(userSearch);
-                          setSelectedUserName("");
-                          setShowUserDropdown(false);
-                          setUserSearch("");
-                        }}
-                        className="w-full flex items-center gap-3 px-3 py-2.5 text-left border-t hover:bg-accent transition-colors"
-                      >
-                        <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center shrink-0">
-                          <Send className="w-4 h-4 text-muted-foreground" />
-                        </div>
-                        <div className="min-w-0">
-                          <p className="text-sm font-medium">Send to "{userSearch}"</p>
-                          <p className="text-xs text-muted-foreground">Use this email directly</p>
-                        </div>
-                      </button>
-                    )}
-                  </div>
-                )}
-              </div>
-            )}
-
-            {/* Show manual email input if user selected without name (manual entry) */}
-            {toEmail && !selectedUserName && (
-              <div className="flex items-center gap-2 p-2.5 rounded-md border bg-muted/50">
-                <div className="flex items-center gap-2 flex-1 min-w-0">
-                  <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center shrink-0">
-                    <Send className="w-4 h-4 text-muted-foreground" />
-                  </div>
-                  <p className="text-sm truncate">{toEmail}</p>
+                        );
+                      })}
+                    </div>
+                  )}
                 </div>
-                <button
-                  type="button"
-                  onClick={clearSelectedUser}
-                  className="p-1 rounded-full hover:bg-background transition-colors shrink-0"
-                >
-                  <X className="w-4 h-4 text-muted-foreground" />
-                </button>
-              </div>
-            )}
+              )}
+            </div>
           </div>
 
           <div className="space-y-2">
@@ -382,7 +413,10 @@ export function SendUserEmailDialog({ open, onOpenChange, userEmail, userId, use
           </div>
 
           <div className="space-y-2">
-            <Label>Body</Label>
+            <div className="flex items-center justify-between">
+              <Label>Body</Label>
+              <span className="text-xs text-muted-foreground">Use {`{name}`} for personalization</span>
+            </div>
             <Textarea
               value={body}
               onChange={(e) => setBody(e.target.value)}
@@ -390,13 +424,49 @@ export function SendUserEmailDialog({ open, onOpenChange, userEmail, userId, use
               rows={10}
             />
           </div>
+
+          {/* Bulk send progress */}
+          {showProgress && (
+            <div className="space-y-2 p-3 rounded-md border bg-muted/30">
+              <div className="flex items-center justify-between text-sm">
+                <span className="font-medium">
+                  Sending {sendProgress.sent + sendProgress.failed} of {sendProgress.total}
+                </span>
+                <span className="text-xs text-muted-foreground">
+                  {Math.round(((sendProgress.sent + sendProgress.failed) / sendProgress.total) * 100)}%
+                </span>
+              </div>
+              <Progress
+                value={((sendProgress.sent + sendProgress.failed) / sendProgress.total) * 100}
+                className="h-2"
+              />
+              <div className="flex items-center gap-4 text-xs">
+                <span className="flex items-center gap-1 text-green-600">
+                  <CheckCircle2 className="w-3.5 h-3.5" /> {sendProgress.sent} sent
+                </span>
+                {sendProgress.failed > 0 && (
+                  <span className="flex items-center gap-1 text-destructive">
+                    <AlertCircle className="w-3.5 h-3.5" /> {sendProgress.failed} failed
+                  </span>
+                )}
+              </div>
+            </div>
+          )}
         </div>
 
         <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
-          <Button onClick={handleSend} disabled={sending} className="gap-2">
-            {sending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
-            Send Email
+          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={sending}>
+            Cancel
+          </Button>
+          <Button onClick={handleSend} disabled={sending || selectedUsers.length === 0} className="gap-2">
+            {sending ? (
+              <Loader2 className="w-4 h-4 animate-spin" />
+            ) : (
+              <Send className="w-4 h-4" />
+            )}
+            {selectedUsers.length > 1
+              ? `Send to ${selectedUsers.length} users`
+              : "Send Email"}
           </Button>
         </DialogFooter>
       </DialogContent>
