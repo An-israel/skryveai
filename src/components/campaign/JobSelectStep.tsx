@@ -118,6 +118,66 @@ export function JobSelectStep({ jobs: initialJobs, onSelect, onBack, maxSelect =
   const showFindButton = (job: JobListing) =>
     !job.email || job.emailConfidence === "low" || !job.emailVerified;
 
+  const jobsNeedingEmails = jobs.filter(showFindButton);
+
+  const handleFindAllEmails = async () => {
+    if (bulkSearching || jobsNeedingEmails.length === 0) return;
+    setBulkSearching(true);
+    let found = 0;
+    const total = jobsNeedingEmails.length;
+    const batchSize = 3;
+
+    for (let i = 0; i < total; i += batchSize) {
+      const batch = jobsNeedingEmails.slice(i, i + batchSize);
+      await Promise.all(
+        batch.map(async (job) => {
+          setSearchingIds((prev) => new Set(prev).add(job.id));
+          try {
+            const { data, error } = await supabase.functions.invoke("search-jobs", {
+              body: {
+                findEmailFor: job.company,
+                jobUrl: job.url,
+                jobTitle: job.jobTitle,
+                jobDescription: job.description,
+              },
+            });
+            if (!error && data?.email) {
+              found++;
+              setJobs((prev) =>
+                prev.map((j) =>
+                  j.id === job.id
+                    ? {
+                        ...j,
+                        email: data.email,
+                        emailVerified: data.emailVerified ?? false,
+                        emailSource: data.emailSource ?? "search_snippet",
+                        emailConfidence: data.emailConfidence ?? "low",
+                        employerDomain: data.employerDomain ?? null,
+                      }
+                    : j
+                )
+              );
+            }
+          } catch (err) {
+            console.error("Bulk find email error for", job.company, err);
+          } finally {
+            setSearchingIds((prev) => {
+              const next = new Set(prev);
+              next.delete(job.id);
+              return next;
+            });
+          }
+        })
+      );
+    }
+
+    setBulkSearching(false);
+    toast({
+      title: "Bulk email search complete",
+      description: `Found ${found} of ${total} emails`,
+    });
+  };
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
