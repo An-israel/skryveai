@@ -108,6 +108,7 @@ export function SendUserEmailDialog({ open, onOpenChange, userEmail, userId, use
     } else {
       setShowProgress(false);
       setSendProgress({ sent: 0, failed: 0, total: 0 });
+      setFailedUsers([]);
     }
   }, [open]);
 
