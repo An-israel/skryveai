@@ -256,6 +256,27 @@ export type Database = {
         }
         Relationships: []
       }
+      daily_email_log: {
+        Row: {
+          created_at: string
+          id: string
+          sent_date: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          sent_date?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          sent_date?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       email_followups: {
         Row: {
           body: string
@@ -704,6 +725,57 @@ export type Database = {
           referral_code?: string | null
           referred_by?: string | null
           signup_ip?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      push_config: {
+        Row: {
+          created_at: string
+          id: number
+          private_key: string
+          public_key: string
+        }
+        Insert: {
+          created_at?: string
+          id?: number
+          private_key: string
+          public_key: string
+        }
+        Update: {
+          created_at?: string
+          id?: number
+          private_key?: string
+          public_key?: string
+        }
+        Relationships: []
+      }
+      push_subscriptions: {
+        Row: {
+          auth: string
+          created_at: string
+          endpoint: string
+          id: string
+          p256dh: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          auth: string
+          created_at?: string
+          endpoint: string
+          id?: string
+          p256dh: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          auth?: string
+          created_at?: string
+          endpoint?: string
+          id?: string
+          p256dh?: string
           updated_at?: string
           user_id?: string
         }

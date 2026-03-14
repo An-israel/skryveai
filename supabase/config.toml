@@ -113,3 +113,31 @@ verify_jwt = false
 
 [functions.generate-linkedin-guide]
 verify_jwt = false
+
+[functions.manage-push]
+verify_jwt = false
+
+[functions.send-push-notifications]
+verify_jwt = false
+
+[functions.send-daily-encouragement]
+verify_jwt = false
+
+[functions.process-daily-credits]
+verify_jwt = false
+
+[crons.send-push-morning]
+schedule = "0 6 * * *"
+function = "send-push-notifications"
+
+[crons.send-push-evening]
+schedule = "0 16 * * *"
+function = "send-push-notifications"
+
+[crons.send-daily-encouragement]
+schedule = "0 7 * * *"
+function = "send-daily-encouragement"
+
+[crons.process-daily-credits]
+schedule = "0 0 * * *"
+function = "process-daily-credits"

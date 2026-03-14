@@ -14,6 +14,7 @@ import { CreditsDisplay } from "@/components/dashboard/CreditsDisplay";
 import { EmailSettingsDialog } from "@/components/settings/EmailSettingsDialog";
 import { FeatureUpdatePopup } from "@/components/notifications/FeatureUpdatePopup";
 import { UIRefreshPopup } from "@/components/notifications/UIRefreshPopup";
+import { MotivationalPopup } from "@/components/notifications/MotivationalPopup";
 import { OnboardingTour } from "@/components/onboarding/OnboardingTour";
 import { OnboardingWizard } from "@/components/onboarding/OnboardingWizard";
 import { useOnboarding } from "@/hooks/use-onboarding";
@@ -245,6 +246,7 @@ export default function Dashboard() {
       <Header isAuthenticated={true} onLogout={handleLogout} />
       <UIRefreshPopup />
       <FeatureUpdatePopup />
+      <MotivationalPopup />
       
       {showWizard && user && (
         <OnboardingWizard
