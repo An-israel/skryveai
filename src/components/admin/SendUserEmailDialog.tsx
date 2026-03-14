@@ -96,6 +96,7 @@ export function SendUserEmailDialog({ open, onOpenChange, userEmail, userId, use
   // Bulk send progress
   const [sendProgress, setSendProgress] = useState({ sent: 0, failed: 0, total: 0 });
   const [showProgress, setShowProgress] = useState(false);
+  const [failedUsers, setFailedUsers] = useState<UserProfile[]>([]);
 
   useEffect(() => {
     if (open) {
