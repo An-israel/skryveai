@@ -1,6 +1,8 @@
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Search, UserPlus, TrendingUp, Briefcase, ArrowRight } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { supabase } from "@/integrations/supabase/client";
 
 export type CampaignType = "freelancer" | "direct_client" | "investor" | "job_application";
 
