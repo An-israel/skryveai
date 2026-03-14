@@ -44,6 +44,78 @@ function isValidEmail(email: string): boolean {
   return true;
 }
 
+// Lightweight RCPT TO verification — checks if the mailbox exists before sending
+async function verifyRecipientExists(email: string): Promise<{ exists: boolean; reason?: string }> {
+  const domain = email.split('@')[1];
+  if (!domain) return { exists: false, reason: "Invalid email format" };
+
+  // Skip verification for known providers that block RCPT TO checks
+  const skipVerify = new Set(['gmail.com', 'yahoo.com', 'outlook.com', 'hotmail.com', 'icloud.com', 'protonmail.com', 'live.com']);
+  if (skipVerify.has(domain.toLowerCase())) return { exists: true };
+
+  try {
+    // Get MX record for the domain
+    const mxResp = await fetch(`https://dns.google/resolve?name=${encodeURIComponent(domain)}&type=MX`, { signal: AbortSignal.timeout(4000) });
+    if (!mxResp.ok) return { exists: true }; // Can't verify, assume exists
+    const mxData = await mxResp.json();
+    
+    const mxRecords = mxData.Answer?.filter((a: { type: number }) => a.type === 15) || [];
+    if (mxRecords.length === 0) return { exists: false, reason: `No mail server found for ${domain}` };
+
+    // Extract the MX hostname (lowest priority = preferred)
+    const sorted = mxRecords.sort((a: { data: string }, b: { data: string }) => {
+      const pa = parseInt(a.data.split(' ')[0]) || 0;
+      const pb = parseInt(b.data.split(' ')[0]) || 0;
+      return pa - pb;
+    });
+    let mxHost = sorted[0].data.split(' ').pop()?.replace(/\.$/, '') || '';
+    if (!mxHost) return { exists: true };
+
+    // Connect to the mail server and try RCPT TO
+    const conn = await Deno.connect({ hostname: mxHost, port: 25 });
+    const encoder = new TextEncoder();
+    const decoder = new TextDecoder();
+
+    const readResponse = async (): Promise<string> => {
+      const buf = new Uint8Array(1024);
+      const n = await conn.read(buf);
+      return n ? decoder.decode(buf.subarray(0, n)) : "";
+    };
+
+    const sendCommand = async (cmd: string): Promise<string> => {
+      await conn.write(encoder.encode(cmd + "\r\n"));
+      return await readResponse();
+    };
+
+    try {
+      // Read greeting
+      const greeting = await readResponse();
+      if (!greeting.startsWith("220")) {
+        conn.close();
+        return { exists: true }; // Can't verify
+      }
+
+      await sendCommand(`EHLO verify.local`);
+      await sendCommand(`MAIL FROM:<verify@verify.local>`);
+      const rcptResponse = await sendCommand(`RCPT TO:<${email}>`);
+      await sendCommand("QUIT");
+      conn.close();
+
+      // 250 = accepted, 550/551/552/553 = rejected
+      const code = parseInt(rcptResponse.substring(0, 3));
+      if (code === 250 || code === 251) return { exists: true };
+      if (code >= 550 && code <= 559) return { exists: false, reason: `Mailbox rejected: ${rcptResponse.trim()}` };
+      
+      return { exists: true }; // Unknown response, assume exists
+    } catch {
+      conn.close();
+      return { exists: true }; // Connection error, assume exists
+    }
+  } catch {
+    return { exists: true }; // Any error, assume exists to avoid blocking
+  }
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -63,6 +135,13 @@ serve(async (req) => {
     const mxValid = await verifyMX(to);
     if (!mxValid) {
       throw new Error("Email domain cannot receive mail (no MX record)");
+    }
+
+    // Verify recipient mailbox exists before attempting send
+    const recipientCheck = await verifyRecipientExists(to);
+    if (!recipientCheck.exists) {
+      console.warn(`RCPT TO verification failed for ${to}: ${recipientCheck.reason}`);
+      throw new Error(`Email address does not exist: ${recipientCheck.reason || to}`);
     }
 
     const supabase = createClient(supabaseUrl, supabaseServiceKey);

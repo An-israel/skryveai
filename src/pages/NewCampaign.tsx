@@ -681,6 +681,8 @@ export default function NewCampaign() {
               jobDescription: job.fullContent || job.description,
               jobUrl: job.url,
               userProfile: profile,
+              email: job.email,
+              emailVerified: job.emailVerified,
             },
           });
 
@@ -693,7 +695,9 @@ export default function NewCampaign() {
         completedCount++;
         if (result.status === "fulfilled") {
           const { job, appResult } = result.value;
-          const email = appResult?.extractedEmail || job.email;
+          // Prefer the email from search-jobs (Firecrawl-scraped) over pattern-guessed fallback
+          const email = job.email || appResult?.extractedEmail;
+          const isVerified = job.email ? Boolean(job.emailVerified) : Boolean(appResult?.emailVerified);
 
           const business: Business = {
             id: job.id,
@@ -701,7 +705,7 @@ export default function NewCampaign() {
             address: job.location,
             website: job.url,
             email,
-            emailVerified: Boolean(appResult?.emailVerified),
+            emailVerified: isVerified,
             category: job.platform,
             selected: true,
           };
