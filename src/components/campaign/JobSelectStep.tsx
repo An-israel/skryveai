@@ -192,9 +192,31 @@ export function JobSelectStep({ jobs: initialJobs, onSelect, onBack, maxSelect =
             {selectedIds.size} of {jobs.length} jobs selected (max {maxSelect})
           </p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-2 flex-wrap">
           <Button variant="outline" size="sm" onClick={selectAll}>Select All</Button>
           <Button variant="outline" size="sm" onClick={deselectAll}>Deselect All</Button>
+          {jobsNeedingEmails.length > 0 && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleFindAllEmails}
+              disabled={bulkSearching}
+              className="gap-1.5"
+            >
+              {bulkSearching ? (
+                <>
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                  Finding Emails…
+                </>
+              ) : (
+                <>
+                  <Mail className="w-3.5 h-3.5" />
+                  <Search className="w-3.5 h-3.5 -ml-1" />
+                  Find All Emails ({jobsNeedingEmails.length})
+                </>
+              )}
+            </Button>
+          )}
         </div>
       </div>
 

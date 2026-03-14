@@ -384,7 +384,7 @@ export default function Settings() {
                           </div>
                         </div>
                       ) : (
-                        <div className="space-y-2">
+                        <div className="space-y-3">
                           <Upload className="w-12 h-12 mx-auto text-muted-foreground" />
                           <p className="text-sm text-muted-foreground">PDF or Word document, max 5MB</p>
                           <Button variant="outline" onClick={() => fileInputRef.current?.click()} disabled={uploadingCV}>
@@ -400,6 +400,17 @@ export default function Settings() {
                               </>
                             )}
                           </Button>
+                          <div className="border-t pt-3 mt-3">
+                            <p className="text-sm text-muted-foreground">Don't have a CV yet?</p>
+                            <Button
+                              variant="link"
+                              className="text-sm p-0 h-auto gap-1.5"
+                              onClick={() => navigate("/cv-builder")}
+                            >
+                              <FileText className="w-4 h-4" />
+                              Create one with our CV Builder
+                            </Button>
+                          </div>
                         </div>
                       )}
                     </div>
