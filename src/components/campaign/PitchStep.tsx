@@ -168,9 +168,9 @@ export function PitchStep({
                       </div>
                       <div className="min-w-0">
                         <h3 className="font-display font-bold text-sm truncate">{business.name}</h3>
-                        <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                        <div className="flex items-center gap-2 text-xs text-muted-foreground flex-wrap">
                           <Mail className="w-3 h-3 shrink-0" />
-                          <span className="truncate">{business.email || "Email not set"}</span>
+                          <span className="truncate">{business.email || "⚠ Email not set — click Edit to add"}</span>
                           {business.email && (
                             business.emailVerified ? (
                               <span className="inline-flex items-center gap-0.5 text-success shrink-0 font-medium">
@@ -180,7 +180,7 @@ export function PitchStep({
                             ) : (
                               <span className="inline-flex items-center gap-0.5 text-warning shrink-0 font-medium">
                                 <AlertTriangle className="w-3 h-3" />
-                                Unverified
+                                Unverified — review before sending
                               </span>
                             )
                           )}
