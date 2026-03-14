@@ -6,61 +6,80 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
+// Domains that are job platforms, NOT employer websites
 const PLATFORM_DOMAINS = [
   "indeed.com", "linkedin.com", "glassdoor.com", "wellfound.com", "dice.com",
   "ziprecruiter.com", "weworkremotely.com", "remote.co", "monster.com",
   "careerbuilder.com", "simplyhired.com", "jobvite.com", "lever.co",
   "greenhouse.io", "workday.com", "icims.com", "taleo.net", "smartrecruiters.com",
-  "booksrus.com", "example.com", "test.com", "sample.com",
+  "booksrus.com", "example.com", "test.com", "sample.com", "google.com",
+  "facebook.com", "twitter.com", "youtube.com", "wikipedia.org", "reddit.com",
+  "instagram.com", "tiktok.com", "pinterest.com", "yelp.com",
 ];
 
-// Verify domain has MX records using Google DNS-over-HTTPS
-async function verifyDomainMX(domain: string): Promise<boolean> {
-  try {
-    const resp = await fetch(`https://dns.google/resolve?name=${encodeURIComponent(domain)}&type=MX`, {
-      signal: AbortSignal.timeout(5000),
-    });
-    if (!resp.ok) return false;
-    const data = await resp.json();
-    return data.Status === 0 && data.Answer && data.Answer.length > 0;
-  } catch {
-    return false;
-  }
+const EMAIL_REGEX = /[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}/g;
+
+const NOREPLY_PREFIXES = ["noreply", "no-reply", "donotreply", "do-not-reply", "mailer-daemon", "postmaster"];
+
+const HR_PREFIXES = ["hr", "hiring", "recruit", "recruiting", "recruitment", "careers", "career", "jobs", "talent", "people", "humanresources", "human.resources"];
+const GOOD_PREFIXES = [...HR_PREFIXES, "info", "hello", "contact", "team", "apply", "applications", "admin", "office"];
+
+function isDomainPlatform(domain: string): boolean {
+  const lower = domain.toLowerCase();
+  return PLATFORM_DOMAINS.some(p => lower === p || lower.endsWith(`.${p}`));
 }
 
-// Build candidate domains from company name
-function buildCandidateDomains(company: string): string[] {
-  const cleaned = company
-    .replace(/\s*(Inc\.?|LLC|Ltd\.?|Corp\.?|Corporation|Co\.?|Group|Holdings|Limited|Pvt\.?|Pty\.?|GmbH|AG|SA|PLC|Company)\s*$/gi, "")
-    .trim();
-  
-  const base = cleaned.toLowerCase().replace(/[^a-z0-9\s]/g, "").replace(/\s+/g, "");
-  const hyphenated = cleaned.toLowerCase().replace(/[^a-z0-9\s]/g, "").replace(/\s+/g, "-");
-  
-  const domains = new Set<string>();
-  domains.add(`${base}.com`);
-  if (base !== hyphenated) domains.add(`${hyphenated}.com`);
-  domains.add(`${base}.io`);
-  domains.add(`${base}.co`);
-  
-  return [...domains];
+function isNoreplyEmail(email: string): boolean {
+  const prefix = email.split("@")[0].toLowerCase();
+  return NOREPLY_PREFIXES.some(n => prefix.includes(n));
+}
+
+function isValidEmail(email: string): boolean {
+  if (!email || email.length > 254) return false;
+  const domain = email.split("@")[1]?.toLowerCase();
+  if (!domain) return false;
+  if (isDomainPlatform(domain)) return false;
+  if (isNoreplyEmail(email)) return false;
+  // Filter out image/file extensions mistaken as emails
+  if (/\.(png|jpg|jpeg|gif|svg|css|js)$/i.test(domain)) return false;
+  return true;
+}
+
+function scoreEmail(email: string): number {
+  const prefix = email.split("@")[0].toLowerCase();
+  if (HR_PREFIXES.some(h => prefix === h || prefix.startsWith(h + "."))) return 100;
+  if (GOOD_PREFIXES.some(g => prefix === g)) return 50;
+  // Personal-looking emails (first.last) are decent
+  if (/^[a-z]+\.[a-z]+$/.test(prefix)) return 30;
+  return 10;
+}
+
+function extractEmails(text: string): string[] {
+  if (!text) return [];
+  const matches = text.match(EMAIL_REGEX) || [];
+  return [...new Set(matches)].filter(isValidEmail);
+}
+
+function getDomainFromUrl(url: string): string | null {
+  try {
+    const hostname = new URL(url).hostname.replace(/^www\./, "");
+    return hostname;
+  } catch { return null; }
 }
 
 // Extract real company name from job title
 function extractCompanyFromTitle(title: string, fallback: string): string {
-  const platformNames = ["indeed", "linkedin", "glassdoor", "wellfound", "remote.co", 
+  const platformNames = ["indeed", "linkedin", "glassdoor", "wellfound", "remote.co",
     "company", "weworkremotely", "dice", "monster", "ziprecruiter"];
-  
+
   const fallbackLower = fallback.toLowerCase().trim();
   const isGeneric = platformNames.some(p => fallbackLower === p || fallbackLower.includes(p));
-  
+
   if (!isGeneric && fallback !== "Company") return fallback;
 
-  // "Role at CompanyName" or "Role job at CompanyName"
   const atMatch = title.match(/(?:job\s+)?at\s+([A-Z][A-Za-z\s&.,'-]+?)(?:\s+in\s|\s*$)/i);
   if (atMatch) return atMatch[1].trim();
 
-  // "Role — CompanyName" or "Role | CompanyName"
   const parts = title.split(/\s*[—|–]\s*/);
   if (parts.length > 1) {
     const last = parts[parts.length - 1].trim();
@@ -70,32 +89,180 @@ function extractCompanyFromTitle(title: string, fallback: string): string {
   return fallback;
 }
 
-// Smart email discovery with MX verification
-async function discoverEmailForCompany(company: string): Promise<{ email: string | null; verified: boolean }> {
-  if (!company || company === "Company") return { email: null, verified: false };
+// Firecrawl helpers
+async function firecrawlSearch(apiKey: string, query: string, limit = 3): Promise<any[]> {
+  try {
+    const resp = await fetch("https://api.firecrawl.dev/v1/search", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ query, limit, scrapeOptions: { formats: ["markdown"] } }),
+      signal: AbortSignal.timeout(8000),
+    });
+    const data = await resp.json();
+    return data.data || [];
+  } catch (e) {
+    console.error("[Firecrawl search error]", e);
+    return [];
+  }
+}
 
-  const candidateDomains = buildCandidateDomains(company);
-  
-  // Check MX records in parallel
-  const mxResults = await Promise.allSettled(
-    candidateDomains.map(async (domain) => {
-      const hasMX = await verifyDomainMX(domain);
-      return { domain, hasMX };
-    })
-  );
+async function firecrawlScrape(apiKey: string, url: string): Promise<string> {
+  try {
+    const resp = await fetch("https://api.firecrawl.dev/v1/scrape", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ url, formats: ["markdown"], onlyMainContent: false }),
+      signal: AbortSignal.timeout(8000),
+    });
+    const data = await resp.json();
+    return data.data?.markdown || data.markdown || "";
+  } catch (e) {
+    console.error("[Firecrawl scrape error]", url, e);
+    return "";
+  }
+}
 
-  for (const r of mxResults) {
-    if (r.status === "fulfilled" && r.value.hasMX) {
-      const domain = r.value.domain;
-      console.log(`[MX] Verified: ${domain} for "${company}"`);
-      return { email: `careers@${domain}`, verified: true };
+async function firecrawlMap(apiKey: string, url: string): Promise<string[]> {
+  try {
+    const resp = await fetch("https://api.firecrawl.dev/v1/map", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ url, search: "contact careers about team", limit: 10, includeSubdomains: false }),
+      signal: AbortSignal.timeout(5000),
+    });
+    const data = await resp.json();
+    return data.links || [];
+  } catch (e) {
+    console.error("[Firecrawl map error]", url, e);
+    return [];
+  }
+}
+
+// MX verification fallback
+async function verifyDomainMX(domain: string): Promise<boolean> {
+  try {
+    const resp = await fetch(`https://dns.google/resolve?name=${encodeURIComponent(domain)}&type=MX`, {
+      signal: AbortSignal.timeout(4000),
+    });
+    if (!resp.ok) return false;
+    const data = await resp.json();
+    return data.Status === 0 && data.Answer && data.Answer.length > 0;
+  } catch { return false; }
+}
+
+// ============================================================
+// MAIN EMAIL DISCOVERY AGENT — per company, with 10s timeout
+// ============================================================
+async function discoverRealEmail(
+  apiKey: string,
+  company: string
+): Promise<{ email: string | null; verified: boolean; discoveryMethod: string }> {
+  if (!company || company === "Company") return { email: null, verified: false, discoveryMethod: "none" };
+
+  // --- Step 1: Find company website via Firecrawl search ---
+  console.log(`[Agent] Step 1 — Finding website for "${company}"`);
+  const searchResults = await firecrawlSearch(apiKey, `"${company}" official website contact`, 5);
+
+  let companyDomain: string | null = null;
+  let companyUrl: string | null = null;
+
+  for (const r of searchResults) {
+    const domain = getDomainFromUrl(r.url);
+    if (domain && !isDomainPlatform(domain)) {
+      companyDomain = domain;
+      companyUrl = r.url;
+      break;
+    }
+    // Also check for emails in search result snippets
+    const snippetEmails = extractEmails((r.markdown || "") + " " + (r.description || ""));
+    if (snippetEmails.length > 0) {
+      const best = snippetEmails.sort((a, b) => scoreEmail(b) - scoreEmail(a))[0];
+      console.log(`[Agent] Found email in search snippet for "${company}": ${best}`);
+      return { email: best, verified: true, discoveryMethod: "searched" };
     }
   }
 
-  // No MX verified - return unverified fallback
-  return { email: `careers@${candidateDomains[0]}`, verified: false };
+  // --- Step 2: Scrape company website contact/careers pages ---
+  if (companyDomain && companyUrl) {
+    console.log(`[Agent] Step 2 — Scraping ${companyDomain} for emails`);
+
+    // Map the site to find contact-related pages
+    const baseUrl = `https://${companyDomain}`;
+    const siteUrls = await firecrawlMap(apiKey, baseUrl);
+
+    // Pick best pages to scrape (contact, about, careers, team)
+    const contactPatterns = [/contact/i, /about/i, /career/i, /team/i, /jobs/i, /hiring/i, /join/i];
+    const pagesToScrape: string[] = [];
+
+    for (const url of siteUrls) {
+      if (contactPatterns.some(p => p.test(url))) {
+        pagesToScrape.push(url);
+        if (pagesToScrape.length >= 3) break;
+      }
+    }
+
+    // Always include the homepage
+    if (pagesToScrape.length === 0) pagesToScrape.push(baseUrl);
+
+    // Scrape pages in parallel
+    const scrapeResults = await Promise.allSettled(
+      pagesToScrape.map(url => firecrawlScrape(apiKey, url))
+    );
+
+    const allEmails: string[] = [];
+    for (const r of scrapeResults) {
+      if (r.status === "fulfilled" && r.value) {
+        allEmails.push(...extractEmails(r.value));
+      }
+    }
+
+    if (allEmails.length > 0) {
+      const best = [...new Set(allEmails)].sort((a, b) => scoreEmail(b) - scoreEmail(a))[0];
+      console.log(`[Agent] Scraped email for "${company}": ${best}`);
+      return { email: best, verified: true, discoveryMethod: "scraped" };
+    }
+  }
+
+  // --- Step 3: Targeted web search fallback ---
+  console.log(`[Agent] Step 3 — Web search fallback for "${company}"`);
+  const fallbackResults = await firecrawlSearch(apiKey, `"${company}" HR email contact hiring`, 5);
+
+  const searchEmails: string[] = [];
+  for (const r of fallbackResults) {
+    searchEmails.push(...extractEmails((r.markdown || "") + " " + (r.description || "") + " " + (r.title || "")));
+  }
+
+  if (searchEmails.length > 0) {
+    const best = [...new Set(searchEmails)].sort((a, b) => scoreEmail(b) - scoreEmail(a))[0];
+    console.log(`[Agent] Search fallback email for "${company}": ${best}`);
+    return { email: best, verified: true, discoveryMethod: "searched" };
+  }
+
+  // --- Step 4: Pattern fallback (last resort) ---
+  console.log(`[Agent] Step 4 — Pattern fallback for "${company}"`);
+  if (companyDomain) {
+    const hasMX = await verifyDomainMX(companyDomain);
+    if (hasMX) {
+      return { email: `info@${companyDomain}`, verified: false, discoveryMethod: "pattern" };
+    }
+  }
+
+  // Build domain from company name as absolute last resort
+  const base = company.toLowerCase()
+    .replace(/\s*(Inc\.?|LLC|Ltd\.?|Corp\.?|Corporation|Co\.?|Group|Holdings|Limited)\s*$/gi, "")
+    .trim().replace(/[^a-z0-9\s]/g, "").replace(/\s+/g, "");
+  const fallbackDomain = `${base}.com`;
+  const hasMX = await verifyDomainMX(fallbackDomain);
+  if (hasMX) {
+    return { email: `info@${fallbackDomain}`, verified: false, discoveryMethod: "pattern" };
+  }
+
+  return { email: null, verified: false, discoveryMethod: "none" };
 }
 
+// ============================================================
+// MAIN HANDLER
+// ============================================================
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -159,7 +326,7 @@ serve(async (req) => {
     const allJobs: any[] = [];
     const seenUrls = new Set<string>();
 
-    // Phase 1: Collect job listings (NO email extraction from page content)
+    // Phase 1: Collect job listings
     for (const query of searchQueries) {
       try {
         console.log("Searching:", query);
@@ -200,8 +367,7 @@ serve(async (req) => {
             const titleParts = title.split(/\s[-–|]\s/);
             const jobTitle = titleParts[0]?.trim() || title;
             const rawCompany = titleParts.length > 1 ? titleParts[titleParts.length - 1]?.trim() : "Company";
-            
-            // Extract real company name (not platform name)
+
             const company = extractCompanyFromTitle(title, rawCompany);
 
             allJobs.push({
@@ -215,7 +381,7 @@ serve(async (req) => {
               location: locationFilter.trim() || "Remote/Not specified",
               postedDate: "Within 24 hours",
               selected: false,
-              email: null, // Will be discovered via MX verification
+              email: null,
             });
           }
         }
@@ -224,26 +390,39 @@ serve(async (req) => {
       }
     }
 
-    // Phase 2: MX-verified email discovery for unique companies (parallel)
+    // Phase 2: Real email discovery agent — parallel batches of 5
     const uniqueCompanies = [...new Set(allJobs.map(j => j.company).filter(c => c && c !== "Company"))];
-    const companyEmailCache = new Map<string, { email: string | null; verified: boolean }>();
+    const companyEmailCache = new Map<string, { email: string | null; verified: boolean; discoveryMethod: string }>();
 
-    console.log(`[EmailDiscovery] Verifying MX for ${uniqueCompanies.length} companies`);
+    console.log(`[EmailAgent] Discovering emails for ${uniqueCompanies.length} companies`);
 
-    // Process in parallel batches of 5 (MX checks are fast, just DNS lookups)
-    const MX_BATCH = 5;
-    for (let i = 0; i < uniqueCompanies.length; i += MX_BATCH) {
-      const batch = uniqueCompanies.slice(i, i + MX_BATCH);
+    const BATCH_SIZE = 5;
+    for (let i = 0; i < uniqueCompanies.length; i += BATCH_SIZE) {
+      const batch = uniqueCompanies.slice(i, i + BATCH_SIZE);
       const results = await Promise.allSettled(
         batch.map(async (company) => {
-          const result = await discoverEmailForCompany(company);
-          return { company, ...result };
+          // Wrap with 10s timeout per company
+          const controller = new AbortController();
+          const timeout = setTimeout(() => controller.abort(), 10000);
+          try {
+            const result = await discoverRealEmail(FIRECRAWL_API_KEY, company);
+            return { company, ...result };
+          } catch (e) {
+            console.error(`[EmailAgent] Timeout/error for "${company}":`, e);
+            return { company, email: null, verified: false, discoveryMethod: "none" };
+          } finally {
+            clearTimeout(timeout);
+          }
         })
       );
 
       for (const r of results) {
         if (r.status === "fulfilled") {
-          companyEmailCache.set(r.value.company, { email: r.value.email, verified: r.value.verified });
+          companyEmailCache.set(r.value.company, {
+            email: r.value.email,
+            verified: r.value.verified,
+            discoveryMethod: r.value.discoveryMethod,
+          });
         }
       }
     }
@@ -254,10 +433,11 @@ serve(async (req) => {
       if (cached) {
         job.email = cached.email;
         job.emailVerified = cached.verified;
+        job.discoveryMethod = cached.discoveryMethod;
       }
     }
 
-    // Deduct 1 credit for search
+    // Deduct 1 credit
     if (sub && sub.plan !== "lifetime") {
       await serviceClient
         .from("subscriptions")
@@ -266,8 +446,10 @@ serve(async (req) => {
     }
 
     const withEmail = allJobs.filter(j => j.email).length;
-    const verified = allJobs.filter(j => j.emailVerified).length;
-    console.log(`Found ${allJobs.length} jobs, ${withEmail} with emails (${verified} MX-verified) for "${expertise}"`);
+    const scraped = allJobs.filter(j => j.discoveryMethod === "scraped").length;
+    const searched = allJobs.filter(j => j.discoveryMethod === "searched").length;
+    const pattern = allJobs.filter(j => j.discoveryMethod === "pattern").length;
+    console.log(`Found ${allJobs.length} jobs: ${scraped} scraped, ${searched} searched, ${pattern} pattern, ${allJobs.length - withEmail} no email`);
 
     return new Response(
       JSON.stringify({
