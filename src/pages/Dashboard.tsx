@@ -246,6 +246,7 @@ export default function Dashboard() {
       <Header isAuthenticated={true} onLogout={handleLogout} />
       <UIRefreshPopup />
       <FeatureUpdatePopup />
+      <MotivationalPopup />
       
       {showWizard && user && (
         <OnboardingWizard
