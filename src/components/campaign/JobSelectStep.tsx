@@ -46,6 +46,7 @@ export function JobSelectStep({ jobs: initialJobs, onSelect, onBack, maxSelect =
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [jobs, setJobs] = useState<JobListing[]>(initialJobs);
   const [searchingIds, setSearchingIds] = useState<Set<string>>(new Set());
+  const [bulkSearching, setBulkSearching] = useState(false);
 
   const toggleJob = (id: string) => {
     setSelectedIds((prev) => {
@@ -117,6 +118,66 @@ export function JobSelectStep({ jobs: initialJobs, onSelect, onBack, maxSelect =
   const showFindButton = (job: JobListing) =>
     !job.email || job.emailConfidence === "low" || !job.emailVerified;
 
+  const jobsNeedingEmails = jobs.filter(showFindButton);
+
+  const handleFindAllEmails = async () => {
+    if (bulkSearching || jobsNeedingEmails.length === 0) return;
+    setBulkSearching(true);
+    let found = 0;
+    const total = jobsNeedingEmails.length;
+    const batchSize = 3;
+
+    for (let i = 0; i < total; i += batchSize) {
+      const batch = jobsNeedingEmails.slice(i, i + batchSize);
+      await Promise.all(
+        batch.map(async (job) => {
+          setSearchingIds((prev) => new Set(prev).add(job.id));
+          try {
+            const { data, error } = await supabase.functions.invoke("search-jobs", {
+              body: {
+                findEmailFor: job.company,
+                jobUrl: job.url,
+                jobTitle: job.jobTitle,
+                jobDescription: job.description,
+              },
+            });
+            if (!error && data?.email) {
+              found++;
+              setJobs((prev) =>
+                prev.map((j) =>
+                  j.id === job.id
+                    ? {
+                        ...j,
+                        email: data.email,
+                        emailVerified: data.emailVerified ?? false,
+                        emailSource: data.emailSource ?? "search_snippet",
+                        emailConfidence: data.emailConfidence ?? "low",
+                        employerDomain: data.employerDomain ?? null,
+                      }
+                    : j
+                )
+              );
+            }
+          } catch (err) {
+            console.error("Bulk find email error for", job.company, err);
+          } finally {
+            setSearchingIds((prev) => {
+              const next = new Set(prev);
+              next.delete(job.id);
+              return next;
+            });
+          }
+        })
+      );
+    }
+
+    setBulkSearching(false);
+    toast({
+      title: "Bulk email search complete",
+      description: `Found ${found} of ${total} emails`,
+    });
+  };
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
@@ -131,9 +192,31 @@ export function JobSelectStep({ jobs: initialJobs, onSelect, onBack, maxSelect =
             {selectedIds.size} of {jobs.length} jobs selected (max {maxSelect})
           </p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-2 flex-wrap">
           <Button variant="outline" size="sm" onClick={selectAll}>Select All</Button>
           <Button variant="outline" size="sm" onClick={deselectAll}>Deselect All</Button>
+          {jobsNeedingEmails.length > 0 && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleFindAllEmails}
+              disabled={bulkSearching}
+              className="gap-1.5"
+            >
+              {bulkSearching ? (
+                <>
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                  Finding Emails…
+                </>
+              ) : (
+                <>
+                  <Mail className="w-3.5 h-3.5" />
+                  <Search className="w-3.5 h-3.5 -ml-1" />
+                  Find All Emails ({jobsNeedingEmails.length})
+                </>
+              )}
+            </Button>
+          )}
         </div>
       </div>
 
