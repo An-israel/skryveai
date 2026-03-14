@@ -46,6 +46,7 @@ export function JobSelectStep({ jobs: initialJobs, onSelect, onBack, maxSelect =
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [jobs, setJobs] = useState<JobListing[]>(initialJobs);
   const [searchingIds, setSearchingIds] = useState<Set<string>>(new Set());
+  const [bulkSearching, setBulkSearching] = useState(false);
 
   const toggleJob = (id: string) => {
     setSelectedIds((prev) => {
