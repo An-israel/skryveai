@@ -1,6 +1,8 @@
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Search, UserPlus, TrendingUp, Briefcase, ArrowRight } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { supabase } from "@/integrations/supabase/client";
 
 export type CampaignType = "freelancer" | "direct_client" | "investor" | "job_application";
 
@@ -48,6 +50,30 @@ const campaignTypes = [
 ];
 
 export function CampaignTypeSelector({ onSelect }: CampaignTypeSelectorProps) {
+  const [disabledTypes, setDisabledTypes] = useState<Set<string>>(new Set());
+
+  useEffect(() => {
+    const checkFeatureFlags = async () => {
+      const { data } = await supabase
+        .from("site_pages")
+        .select("route, is_enabled")
+        .like("route", "/feature/%");
+
+      if (data) {
+        const disabled = new Set<string>();
+        data.forEach((flag) => {
+          if (!flag.is_enabled && flag.route === "/feature/job-applications") {
+            disabled.add("job_application");
+          }
+        });
+        setDisabledTypes(disabled);
+      }
+    };
+    checkFeatureFlags();
+  }, []);
+
+  const visibleTypes = campaignTypes.filter((t) => !disabledTypes.has(t.id));
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
@@ -62,7 +88,7 @@ export function CampaignTypeSelector({ onSelect }: CampaignTypeSelectorProps) {
       </div>
 
       <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-5">
-        {campaignTypes.map((type, i) => (
+        {visibleTypes.map((type, i) => (
           <motion.div
             key={type.id}
             initial={{ opacity: 0, y: 20 }}
@@ -71,12 +97,10 @@ export function CampaignTypeSelector({ onSelect }: CampaignTypeSelectorProps) {
             onClick={() => onSelect(type.id)}
             className="group cursor-pointer p-7 rounded-2xl bg-card border-2 border-border-subtle hover:border-primary/40 transition-all duration-300 hover:shadow-lg hover:-translate-y-1 flex flex-col"
           >
-            {/* Icon */}
             <div className="w-14 h-14 rounded-2xl bg-primary/8 text-primary flex items-center justify-center mb-5 group-hover:bg-primary group-hover:text-primary-foreground transition-colors duration-300">
               <type.icon className="w-7 h-7" />
             </div>
 
-            {/* Title row */}
             <div className="flex items-center gap-2 mb-1">
               <h3 className="font-display font-bold text-lg">{type.title}</h3>
               {type.isNew && (
@@ -88,12 +112,10 @@ export function CampaignTypeSelector({ onSelect }: CampaignTypeSelectorProps) {
             </div>
             <p className="text-xs text-primary font-semibold mb-4 tracking-wide">{type.subtitle}</p>
 
-            {/* Description */}
             <p className="text-sm text-muted-foreground leading-relaxed mb-5 flex-1">
               {type.description}
             </p>
 
-            {/* Features */}
             <ul className="space-y-2.5 pt-4 border-t border-border-subtle">
               {type.features.map((feature) => (
                 <li key={feature} className="flex items-center gap-2.5 text-sm text-foreground/80">
