@@ -27,6 +27,7 @@ import { ReferralManager } from "@/components/admin/ReferralManager";
 import { SendUserEmailDialog } from "@/components/admin/SendUserEmailDialog";
 import { StaffReports } from "@/components/admin/StaffReports";
 import { PageToggleManager } from "@/components/admin/PageToggleManager";
+import { AdminEmailTracker } from "@/components/admin/AdminEmailTracker";
 
 interface AdminStats {
   totalUsers: number;
