@@ -52,6 +52,8 @@ export type Database = {
           body: string
           created_at: string
           id: string
+          opened_at: string | null
+          resend_id: string | null
           sent_by: string
           status: string
           subject: string
@@ -63,6 +65,8 @@ export type Database = {
           body: string
           created_at?: string
           id?: string
+          opened_at?: string | null
+          resend_id?: string | null
           sent_by: string
           status?: string
           subject: string
@@ -74,6 +78,8 @@ export type Database = {
           body?: string
           created_at?: string
           id?: string
+          opened_at?: string | null
+          resend_id?: string | null
           sent_by?: string
           status?: string
           subject?: string
