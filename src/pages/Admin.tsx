@@ -556,6 +556,7 @@ export default function Admin() {
                 referrals: "Referrals",
                 analytics: "Analytics",
                 "send-email": "Email Users",
+                "email-tracker": "Email Tracker",
                 reports: "Reports",
                 "page-toggle": "Visibility",
               };
