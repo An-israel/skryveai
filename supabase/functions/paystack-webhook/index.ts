@@ -104,7 +104,7 @@ async function notifyStaffOfSubscription(email: string, plan: string, amount: nu
   }
 }
 
-
+async function verifyPaystackSignature(body: string, signature: string): Promise<boolean> {
   const encoder = new TextEncoder();
   const key = await globalThis.crypto.subtle.importKey(
     "raw",
