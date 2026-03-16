@@ -214,7 +214,7 @@ export function AdminEmailTracker() {
                     </TableCell>
                     <TableCell>
                       {email.opened_at ? (
-                        <Badge className="gap-1 bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400">
+                        <Badge className="gap-1 bg-success/10 text-success">
                           <Eye className="w-3 h-3" /> Opened
                         </Badge>
                       ) : (
