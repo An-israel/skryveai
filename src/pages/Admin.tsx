@@ -68,6 +68,7 @@ const TAB_PERMISSIONS: Record<TabId, string[]> = {
   referrals: ["super_admin"],
   analytics: ["super_admin", "content_editor", "support_agent"],
   "send-email": ["super_admin", "support_agent"],
+  "email-tracker": ["super_admin", "support_agent"],
   reports: ["super_admin", "content_editor", "support_agent"],
   "page-toggle": ["super_admin"],
 };
