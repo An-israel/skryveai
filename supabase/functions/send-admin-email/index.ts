@@ -33,7 +33,7 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Verify user via Supabase REST API directly (no SDK import needed)
+    // Verify user via Supabase REST API directly
     const userRes = await fetch(`${SUPABASE_URL}/auth/v1/user`, {
       headers: {
         "Authorization": `Bearer ${token}`,
@@ -104,7 +104,14 @@ Deno.serve(async (req) => {
     const profiles = await profileRes.json();
     const senderName = profiles?.[0]?.full_name || "SkryveAI Team";
 
-    // Build HTML email
+    // Generate a unique ID for tracking this admin email
+    const adminEmailId = crypto.randomUUID();
+
+    // Build tracking pixel URL
+    const baseUrl = SUPABASE_URL.replace('.supabase.co', '.supabase.co/functions/v1');
+    const trackingPixelUrl = `${baseUrl}/email-webhook?type=admin-open&adminEmailId=${adminEmailId}`;
+
+    // Build HTML email with tracking pixel
     const htmlBody = `<!DOCTYPE html>
 <html>
 <head><meta charset="utf-8"></head>
@@ -115,6 +122,7 @@ Deno.serve(async (req) => {
   ${body.split('\n').map((line: string) => `<p style="margin: 0 0 16px 0;">${line}</p>`).join('')}
   <hr style="border: none; border-top: 1px solid #eee; margin: 32px 0;">
   <p style="font-size: 12px; color: #666;">Sent by ${senderName} from SkryveAI Team</p>
+  <img src="${trackingPixelUrl}" width="1" height="1" style="display:none;" alt="">
 </body>
 </html>`;
 
@@ -145,7 +153,13 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Log email in admin_emails table
+    let resendId: string | null = null;
+    try {
+      const parsed = JSON.parse(resendResult);
+      resendId = parsed?.id || null;
+    } catch { /* ignore */ }
+
+    // Log email in admin_emails table with the tracking ID
     const insertRes = await fetch(`${SUPABASE_URL}/rest/v1/admin_emails`, {
       method: "POST",
       headers: {
@@ -155,6 +169,7 @@ Deno.serve(async (req) => {
         "Prefer": "return=minimal",
       },
       body: JSON.stringify({
+        id: adminEmailId,
         sent_by: userId,
         to_email: toEmail,
         to_user_id: toUserId || null,
@@ -162,6 +177,7 @@ Deno.serve(async (req) => {
         body,
         template_type: templateType || null,
         status: "sent",
+        resend_id: resendId,
       }),
     });
 

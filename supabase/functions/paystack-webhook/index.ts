@@ -123,6 +123,12 @@ serve(async (req) => {
               })
               .eq("user_id", profile.user_id);
 
+            // Send subscription receipt email to user
+            await sendSubscriptionReceipt(customer.email, payment.plan, amount, currency);
+
+            // Notify admin and marketing staff in-app
+            await notifyStaffOfSubscription(customer.email, payment.plan, amount, currency);
+
             // Handle referral commission
             if (profile.referred_by) {
               // Get referral record
