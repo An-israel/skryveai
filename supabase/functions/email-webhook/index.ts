@@ -82,6 +82,40 @@ serve(async (req) => {
         });
       }
 
+      if (type === "admin-open") {
+        // Track admin email opens
+        const adminEmailId = url.searchParams.get("adminEmailId");
+        if (adminEmailId) {
+          const { error: adminOpenErr } = await supabase
+            .from("admin_emails")
+            .update({ opened_at: new Date().toISOString() })
+            .eq("id", adminEmailId)
+            .is("opened_at", null); // Only record first open
+
+          if (adminOpenErr) {
+            console.error("Error recording admin email open:", adminOpenErr);
+          } else {
+            console.log(`Admin email ${adminEmailId} opened`);
+          }
+        }
+
+        // Return 1x1 transparent GIF
+        const adminGif = Uint8Array.from([
+          0x47, 0x49, 0x46, 0x38, 0x39, 0x61, 0x01, 0x00,
+          0x01, 0x00, 0x80, 0x00, 0x00, 0xff, 0xff, 0xff,
+          0x00, 0x00, 0x00, 0x21, 0xf9, 0x04, 0x01, 0x00,
+          0x00, 0x00, 0x00, 0x2c, 0x00, 0x00, 0x00, 0x00,
+          0x01, 0x00, 0x01, 0x00, 0x00, 0x02, 0x02, 0x44,
+          0x01, 0x00, 0x3b
+        ]);
+        return new Response(adminGif, {
+          headers: {
+            "Content-Type": "image/gif",
+            "Cache-Control": "no-store, no-cache, must-revalidate",
+          },
+        });
+      }
+
       if (type === "unsubscribe") {
         // Mark as unsubscribed (you could create a separate unsubscribe table)
         console.log(`Unsubscribe requested for email ${emailId}`);

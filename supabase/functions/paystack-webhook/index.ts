@@ -11,6 +11,98 @@ const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const paystackSecretKey = Deno.env.get("PAYSTACK_SECRET_KEY")!;
 
 const supabase = createClient(supabaseUrl, supabaseServiceKey);
+const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
+
+async function sendSubscriptionReceipt(email: string, plan: string, amount: number, currency: string) {
+  if (!RESEND_API_KEY) {
+    console.error("RESEND_API_KEY not configured, skipping receipt");
+    return;
+  }
+
+  const planNames: Record<string, string> = {
+    monthly: "Monthly Plan",
+    yearly: "Yearly Plan",
+    lifetime: "Lifetime Plan",
+  };
+
+  const formattedAmount = `${currency} ${(amount / 100).toLocaleString()}`;
+  const date = new Date().toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" });
+
+  const htmlBody = `<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"></head>
+<body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
+  <div style="text-align: center; margin-bottom: 24px;">
+    <h2 style="color: #0B162B; margin: 0;">SkryveAI</h2>
+  </div>
+  <h3 style="color: #333;">🎉 Thank you for subscribing!</h3>
+  <p>We're thrilled to have you as a ${planNames[plan] || plan} subscriber! Your account has been upgraded and you now have full access to all premium features.</p>
+  <div style="background: #f8f9fa; border-radius: 12px; padding: 24px; margin: 24px 0; border: 1px solid #e9ecef;">
+    <h4 style="margin: 0 0 16px; color: #333;">Payment Receipt</h4>
+    <table style="width: 100%; border-collapse: collapse;">
+      <tr><td style="padding: 8px 0; color: #666;">Plan</td><td style="padding: 8px 0; text-align: right; font-weight: 600;">${planNames[plan] || plan}</td></tr>
+      <tr><td style="padding: 8px 0; color: #666;">Amount</td><td style="padding: 8px 0; text-align: right; font-weight: 600;">${formattedAmount}</td></tr>
+      <tr><td style="padding: 8px 0; color: #666;">Date</td><td style="padding: 8px 0; text-align: right; font-weight: 600;">${date}</td></tr>
+      <tr><td style="padding: 8px 0; color: #666;">Status</td><td style="padding: 8px 0; text-align: right; font-weight: 600; color: #22c55e;">✅ Paid</td></tr>
+    </table>
+  </div>
+  <p>Here's what you can do now:</p>
+  <ul style="padding-left: 20px;">
+    <li>Run unlimited outreach campaigns</li>
+    <li>Use AI-powered website analysis</li>
+    <li>Track email opens and replies</li>
+    <li>Set up automated follow-ups</li>
+  </ul>
+  <p>If you have any questions, just reply to this email — we're here to help!</p>
+  <p>Let's get you more clients 💪</p>
+  <p style="margin: 0;">— The SkryveAI Team</p>
+  <hr style="border: none; border-top: 1px solid #eee; margin: 32px 0;">
+  <p style="font-size: 12px; color: #666; text-align: center;">SkryveAI Limited | RC: 9388330Y</p>
+</body>
+</html>`;
+
+  try {
+    await fetch("https://api.resend.com/emails", {
+      method: "POST",
+      headers: { "Authorization": `Bearer ${RESEND_API_KEY}`, "Content-Type": "application/json" },
+      body: JSON.stringify({
+        from: "SkryveAI <outreach@skryveai.com>",
+        to: [email],
+        subject: `🎉 Welcome to SkryveAI ${planNames[plan] || plan} — Payment Confirmed`,
+        html: htmlBody,
+      }),
+    });
+    console.log(`Subscription receipt sent to ${email}`);
+  } catch (err) {
+    console.error("Failed to send subscription receipt:", err);
+  }
+}
+
+async function notifyStaffOfSubscription(email: string, plan: string, amount: number, currency: string) {
+  try {
+    const formattedAmount = `${currency} ${(amount / 100).toLocaleString()}`;
+    const { data: staffUsers } = await supabase
+      .from("user_roles")
+      .select("user_id, role")
+      .in("role", ["super_admin", "content_editor"]);
+
+    if (!staffUsers || staffUsers.length === 0) return;
+
+    const uniqueUserIds = [...new Set(staffUsers.map((u: { user_id: string }) => u.user_id))];
+    const notifications = uniqueUserIds.map(userId => ({
+      user_id: userId,
+      title: "💰 New Subscription!",
+      message: `${email} subscribed to ${plan} plan (${formattedAmount})`,
+      type: "subscription",
+      data: { email, plan, amount: formattedAmount },
+    }));
+
+    await supabase.from("notifications").insert(notifications);
+    console.log(`Notified ${uniqueUserIds.length} staff about new subscription`);
+  } catch (err) {
+    console.error("Failed to notify staff of subscription:", err);
+  }
+}
 
 async function verifyPaystackSignature(body: string, signature: string): Promise<boolean> {
   const encoder = new TextEncoder();
@@ -122,6 +214,12 @@ serve(async (req) => {
                 campaign_limit: null, // Remove limit on paid plans
               })
               .eq("user_id", profile.user_id);
+
+            // Send subscription receipt email to user
+            await sendSubscriptionReceipt(customer.email, payment.plan, amount, currency);
+
+            // Notify admin and marketing staff in-app
+            await notifyStaffOfSubscription(customer.email, payment.plan, amount, currency);
 
             // Handle referral commission
             if (profile.referred_by) {

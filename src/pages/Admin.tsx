@@ -27,6 +27,7 @@ import { ReferralManager } from "@/components/admin/ReferralManager";
 import { SendUserEmailDialog } from "@/components/admin/SendUserEmailDialog";
 import { StaffReports } from "@/components/admin/StaffReports";
 import { PageToggleManager } from "@/components/admin/PageToggleManager";
+import { AdminEmailTracker } from "@/components/admin/AdminEmailTracker";
 
 interface AdminStats {
   totalUsers: number;
@@ -52,7 +53,7 @@ interface CMSPage {
 }
 
 // Role-based tab definitions
-type TabId = "users" | "campaigns" | "email-queue" | "pages" | "images" | "staff" | "activity" | "ip-addresses" | "credits" | "referrals" | "analytics" | "send-email" | "reports" | "page-toggle";
+type TabId = "users" | "campaigns" | "email-queue" | "pages" | "images" | "staff" | "activity" | "ip-addresses" | "credits" | "referrals" | "analytics" | "send-email" | "email-tracker" | "reports" | "page-toggle";
 
 const TAB_PERMISSIONS: Record<TabId, string[]> = {
   users: ["super_admin", "support_agent"],
@@ -67,6 +68,7 @@ const TAB_PERMISSIONS: Record<TabId, string[]> = {
   referrals: ["super_admin"],
   analytics: ["super_admin", "content_editor", "support_agent"],
   "send-email": ["super_admin", "support_agent"],
+  "email-tracker": ["super_admin", "support_agent"],
   reports: ["super_admin", "content_editor", "support_agent"],
   "page-toggle": ["super_admin"],
 };
@@ -537,6 +539,7 @@ export default function Admin() {
                 referrals: <Gift className="w-3.5 h-3.5 shrink-0" />,
                 analytics: <BarChart3 className="w-3.5 h-3.5 shrink-0" />,
                 "send-email": <MessageSquare className="w-3.5 h-3.5 shrink-0" />,
+                "email-tracker": <MailCheck className="w-3.5 h-3.5 shrink-0" />,
                 reports: <ClipboardList className="w-3.5 h-3.5 shrink-0" />,
                 "page-toggle": <Shield className="w-3.5 h-3.5 shrink-0" />,
               };
@@ -553,6 +556,7 @@ export default function Admin() {
                 referrals: "Referrals",
                 analytics: "Analytics",
                 "send-email": "Email Users",
+                "email-tracker": "Email Tracker",
                 reports: "Reports",
                 "page-toggle": "Visibility",
               };
@@ -1075,6 +1079,13 @@ export default function Admin() {
                   </div>
                 </CardContent>
               </Card>
+            </TabsContent>
+          )}
+
+          {/* Email Tracker Tab */}
+          {hasTabAccess("email-tracker") && (
+            <TabsContent value="email-tracker">
+              <AdminEmailTracker />
             </TabsContent>
           )}
 
