@@ -1082,6 +1082,13 @@ export default function Admin() {
             </TabsContent>
           )}
 
+          {/* Email Tracker Tab */}
+          {hasTabAccess("email-tracker") && (
+            <TabsContent value="email-tracker">
+              <AdminEmailTracker />
+            </TabsContent>
+          )}
+
           {/* Reports Tab */}
           {hasTabAccess("reports") && (
             <TabsContent value="reports">
