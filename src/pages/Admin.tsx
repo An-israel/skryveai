@@ -539,6 +539,7 @@ export default function Admin() {
                 referrals: <Gift className="w-3.5 h-3.5 shrink-0" />,
                 analytics: <BarChart3 className="w-3.5 h-3.5 shrink-0" />,
                 "send-email": <MessageSquare className="w-3.5 h-3.5 shrink-0" />,
+                "email-tracker": <MailCheck className="w-3.5 h-3.5 shrink-0" />,
                 reports: <ClipboardList className="w-3.5 h-3.5 shrink-0" />,
                 "page-toggle": <Shield className="w-3.5 h-3.5 shrink-0" />,
               };
