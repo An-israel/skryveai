@@ -124,7 +124,7 @@ export function AdminEmailTracker() {
               <Eye className="w-4 h-4" />
               <span className="text-xs">Opened</span>
             </div>
-            <p className="text-2xl font-bold text-green-600">{stats.opened}</p>
+            <p className="text-2xl font-bold text-success">{stats.opened}</p>
           </CardContent>
         </Card>
         <Card>
