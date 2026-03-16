@@ -40,7 +40,6 @@ export function AdminEmailTracker() {
   const [senders, setSenders] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
-  const { toast } = await import("@/hooks/use-toast").then(m => ({ toast: null as any }));
 
   useEffect(() => {
     loadEmails();
