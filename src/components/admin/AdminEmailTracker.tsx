@@ -6,9 +6,10 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
 import { 
   Mail, Eye, EyeOff, RefreshCw, Search, Loader2, Send, 
-  MessageSquare, ChevronDown, ChevronUp, Plus, Trash2, Clock
+  MessageSquare, ChevronDown, ChevronUp, Plus, Trash2, Clock, Reply
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { formatDistanceToNow, format } from "date-fns";
@@ -50,10 +51,21 @@ export function AdminEmailTracker() {
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [replies, setReplies] = useState<Record<string, AdminEmailReply[]>>({});
   const [loadingReplies, setLoadingReplies] = useState<string | null>(null);
+
+  // Log reply dialog
   const [logDialogOpen, setLogDialogOpen] = useState(false);
   const [logEmailId, setLogEmailId] = useState<string | null>(null);
   const [replyContent, setReplyContent] = useState("");
   const [saving, setSaving] = useState(false);
+
+  // Direct reply dialog
+  const [replyDialogOpen, setReplyDialogOpen] = useState(false);
+  const [replyToEmail, setReplyToEmail] = useState("");
+  const [replyToUserId, setReplyToUserId] = useState<string | null>(null);
+  const [replySubject, setReplySubject] = useState("");
+  const [replyBody, setReplyBody] = useState("");
+  const [sending, setSending] = useState(false);
+
   const { toast } = useToast();
 
   useEffect(() => {
@@ -138,8 +150,9 @@ export function AdminEmailTracker() {
       toast({ title: "Reply logged", description: "The reply has been recorded successfully." });
       setLogDialogOpen(false);
       setReplyContent("");
+      // Reload replies for this email
+      await loadReplies(logEmailId);
       setLogEmailId(null);
-      loadReplies(logEmailId);
     } catch (err) {
       console.error("Failed to log reply:", err);
       toast({ title: "Error", description: "Failed to log reply", variant: "destructive" });
@@ -162,6 +175,46 @@ export function AdminEmailTracker() {
     }
   };
 
+  const openDirectReply = (email: AdminEmail) => {
+    setReplyToEmail(email.to_email);
+    setReplyToUserId(email.to_user_id);
+    setReplySubject(email.subject.startsWith("Re:") ? email.subject : `Re: ${email.subject}`);
+    setReplyBody("");
+    setReplyDialogOpen(true);
+  };
+
+  const handleSendReply = async () => {
+    if (!replyToEmail || !replySubject.trim() || !replyBody.trim()) return;
+    setSending(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error("Not authenticated");
+
+      const res = await supabase.functions.invoke("send-admin-email", {
+        body: {
+          toEmail: replyToEmail,
+          toUserId: replyToUserId,
+          subject: replySubject,
+          body: replyBody,
+          templateType: "reply",
+        },
+      });
+
+      if (res.error) throw res.error;
+
+      toast({ title: "Reply sent!", description: `Email sent to ${replyToEmail}` });
+      setReplyDialogOpen(false);
+      setReplyBody("");
+      // Refresh emails list to show the new sent reply
+      loadEmails();
+    } catch (err) {
+      console.error("Failed to send reply:", err);
+      toast({ title: "Failed to send", description: "Could not send the reply email", variant: "destructive" });
+    } finally {
+      setSending(false);
+    }
+  };
+
   const filteredEmails = search.trim()
     ? emails.filter(
         (e) =>
@@ -175,7 +228,6 @@ export function AdminEmailTracker() {
     total: emails.length,
     opened: emails.filter((e) => e.opened_at).length,
     unopened: emails.filter((e) => !e.opened_at).length,
-    replied: Object.values(replies).filter(r => r.length > 0).length,
   };
 
   const openRate = stats.total > 0 ? Math.round((stats.opened / stats.total) * 100) : 0;
@@ -238,7 +290,7 @@ export function AdminEmailTracker() {
               <Mail className="w-5 h-5" />
               Sent Emails &amp; Replies
             </CardTitle>
-            <CardDescription>Track emails sent by support staff and log user replies</CardDescription>
+            <CardDescription>Track emails, log user replies, and respond directly</CardDescription>
           </div>
           <div className="flex gap-2">
             <div className="relative">
@@ -273,7 +325,7 @@ export function AdminEmailTracker() {
                     <TableHead>Sent By</TableHead>
                     <TableHead>Status</TableHead>
                     <TableHead>Sent</TableHead>
-                    <TableHead className="w-10"></TableHead>
+                    <TableHead className="w-24">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -327,19 +379,33 @@ export function AdminEmailTracker() {
                             {formatDistanceToNow(new Date(email.created_at), { addSuffix: true })}
                           </TableCell>
                           <TableCell>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="h-7 w-7 p-0"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setLogEmailId(email.id);
-                                setLogDialogOpen(true);
-                              }}
-                              title="Log a reply"
-                            >
-                              <Plus className="w-4 h-4" />
-                            </Button>
+                            <div className="flex items-center gap-1">
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-7 w-7 p-0"
+                                title="Reply to user"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  openDirectReply(email);
+                                }}
+                              >
+                                <Reply className="w-4 h-4" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-7 w-7 p-0"
+                                title="Log a received reply"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setLogEmailId(email.id);
+                                  setLogDialogOpen(true);
+                                }}
+                              >
+                                <Plus className="w-4 h-4" />
+                              </Button>
+                            </div>
                           </TableCell>
                         </TableRow>
 
@@ -397,17 +463,27 @@ export function AdminEmailTracker() {
                                   <p className="text-xs text-muted-foreground italic">No replies logged yet</p>
                                 )}
 
-                                <Button
-                                  variant="outline"
-                                  size="sm"
-                                  onClick={() => {
-                                    setLogEmailId(email.id);
-                                    setLogDialogOpen(true);
-                                  }}
-                                >
-                                  <Plus className="w-4 h-4 mr-2" />
-                                  Log a Reply
-                                </Button>
+                                <div className="flex gap-2">
+                                  <Button
+                                    variant="default"
+                                    size="sm"
+                                    onClick={() => openDirectReply(email)}
+                                  >
+                                    <Reply className="w-4 h-4 mr-2" />
+                                    Reply to User
+                                  </Button>
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => {
+                                      setLogEmailId(email.id);
+                                      setLogDialogOpen(true);
+                                    }}
+                                  >
+                                    <Plus className="w-4 h-4 mr-2" />
+                                    Log a Reply
+                                  </Button>
+                                </div>
                               </div>
                             </TableCell>
                           </TableRow>
@@ -445,6 +521,52 @@ export function AdminEmailTracker() {
             <Button onClick={handleLogReply} disabled={saving || !replyContent.trim()}>
               {saving ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Plus className="w-4 h-4 mr-2" />}
               Save Reply
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Direct Reply Dialog */}
+      <Dialog open={replyDialogOpen} onOpenChange={setReplyDialogOpen}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Reply className="w-5 h-5" />
+              Reply to User
+            </DialogTitle>
+            <DialogDescription>
+              Send a direct email reply to the user. This will be sent from SkryveAI and tracked.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label className="text-xs text-muted-foreground">To</Label>
+              <Input value={replyToEmail} disabled className="mt-1 bg-muted/50" />
+            </div>
+            <div>
+              <Label className="text-xs text-muted-foreground">Subject</Label>
+              <Input
+                value={replySubject}
+                onChange={(e) => setReplySubject(e.target.value)}
+                className="mt-1"
+              />
+            </div>
+            <div>
+              <Label className="text-xs text-muted-foreground">Message</Label>
+              <Textarea
+                value={replyBody}
+                onChange={(e) => setReplyBody(e.target.value)}
+                placeholder="Type your reply..."
+                rows={8}
+                className="mt-1"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setReplyDialogOpen(false)}>Cancel</Button>
+            <Button onClick={handleSendReply} disabled={sending || !replyBody.trim()}>
+              {sending ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Send className="w-4 h-4 mr-2" />}
+              Send Reply
             </Button>
           </DialogFooter>
         </DialogContent>
