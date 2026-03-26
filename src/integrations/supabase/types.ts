@@ -47,6 +47,41 @@ export type Database = {
         }
         Relationships: []
       }
+      admin_email_replies: {
+        Row: {
+          admin_email_id: string
+          created_at: string
+          id: string
+          logged_by: string
+          received_at: string
+          reply_content: string
+        }
+        Insert: {
+          admin_email_id: string
+          created_at?: string
+          id?: string
+          logged_by: string
+          received_at?: string
+          reply_content: string
+        }
+        Update: {
+          admin_email_id?: string
+          created_at?: string
+          id?: string
+          logged_by?: string
+          received_at?: string
+          reply_content?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "admin_email_replies_admin_email_id_fkey"
+            columns: ["admin_email_id"]
+            isOneToOne: false
+            referencedRelation: "admin_emails"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       admin_emails: {
         Row: {
           body: string
