@@ -6,7 +6,36 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Briefcase, MapPin, Clock, Send, Users, TrendingUp, Sparkles } from "lucide-react";
 
-const roles = [
+const roles: { title: string; type: string; location: string; icon: typeof TrendingUp; description: string; responsibilities: string[]; requirements: string[]; niceToHaves: string[] }[] = [
+  {
+    title: "Project Assistant",
+    type: "Full-Time",
+    location: "Remote",
+    icon: Sparkles,
+    description:
+      "We're looking for a sharp, proactive Project Assistant to work directly with the founder. You'll act as a right hand — coordinating hiring, managing staff operations, driving brand growth initiatives, and ensuring the team runs like a well-oiled machine. This is a high-impact role for someone who thrives on ownership and wants to shape the future of SkryveAI.",
+    responsibilities: [
+      "Assist in recruiting, onboarding, and managing team members across departments",
+      "Coordinate day-to-day operations and ensure projects stay on track",
+      "Drive brand growth initiatives — partnerships, outreach, community building",
+      "Act as a liaison between the founder and the rest of the team",
+      "Monitor team performance, compile reports, and flag blockers early",
+      "Help define and refine internal processes as the company scales",
+    ],
+    requirements: [
+      "2+ years of experience in project management, operations, or a chief-of-staff type role",
+      "Exceptional organizational and communication skills",
+      "Ability to context-switch between hiring, strategy, and execution",
+      "Strong leadership instincts — comfortable managing people and holding them accountable",
+      "Self-motivated with a bias for action and getting things done",
+    ],
+    niceToHaves: [
+      "Experience in a startup or early-stage tech company",
+      "Familiarity with the African tech ecosystem",
+      "Background in HR, talent acquisition, or people operations",
+      "Experience with project management tools (Notion, Trello, Asana, etc.)",
+    ],
+  },
   {
     title: "Marketing Manager",
     type: "Full-Time",
