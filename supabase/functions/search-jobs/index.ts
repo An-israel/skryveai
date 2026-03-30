@@ -174,6 +174,50 @@ function resolveEmployerDomain(links: string[], jobUrl: string): string | null {
   return null;
 }
 
+// Hunter.io integration for high-confidence email discovery
+async function hunterDomainSearch(domain: string): Promise<{ email: string | null; confidence: number; verified: boolean }> {
+  const HUNTER_API_KEY = Deno.env.get("HUNTER_API_KEY");
+  if (!HUNTER_API_KEY) return { email: null, confidence: 0, verified: false };
+  
+  try {
+    const url = `https://api.hunter.io/v2/domain-search?domain=${encodeURIComponent(domain)}&api_key=${HUNTER_API_KEY}&limit=5`;
+    const resp = await fetch(url, { signal: AbortSignal.timeout(6000) });
+    const data = await resp.json();
+    
+    if (data.errors || !data.data?.emails?.length) {
+      return { email: null, confidence: 0, verified: false };
+    }
+    
+    const emails = data.data.emails;
+    // Prefer HR/hiring/generic department emails
+    const scored = emails.map((e: any) => {
+      const prefix = (e.value || "").split("@")[0]?.toLowerCase();
+      const isHR = HR_PREFIXES.some(h => prefix === h || prefix.startsWith(h + "."));
+      const isGood = GOOD_PREFIXES.some(g => prefix === g);
+      return { ...e, sortScore: (isHR ? 2000 : 0) + (isGood ? 1000 : 0) + (e.confidence || 0) + (e.sources || 0) * 5 };
+    });
+    scored.sort((a: any, b: any) => b.sortScore - a.sortScore);
+    const best = scored[0];
+    
+    // Optionally verify
+    let verified = (best.confidence || 0) >= 80;
+    if (!verified && best.value) {
+      try {
+        const vUrl = `https://api.hunter.io/v2/email-verifier?email=${encodeURIComponent(best.value)}&api_key=${HUNTER_API_KEY}`;
+        const vResp = await fetch(vUrl, { signal: AbortSignal.timeout(5000) });
+        const vData = await vResp.json();
+        verified = vData.data?.result === "deliverable";
+      } catch { /* skip verification */ }
+    }
+    
+    console.log(`[Hunter] Found ${best.value} for ${domain} (confidence: ${best.confidence}, verified: ${verified})`);
+    return { email: best.value, confidence: best.confidence || 0, verified };
+  } catch (e) {
+    console.error("[Hunter] Domain search error:", e);
+    return { email: null, confidence: 0, verified: false };
+  }
+}
+
 async function resolveJobEmail(
   apiKey: string,
   jobUrl: string,
@@ -182,6 +226,22 @@ async function resolveJobEmail(
   description: string,
 ): Promise<EmailResult> {
   const empty: EmailResult = { email: null, emailVerified: false, emailSource: "none", emailConfidence: "low", employerDomain: null };
+
+  // ── Step 0: Try Hunter.io first (fastest + highest quality) ──
+  const guessedDomain = guessEmployerDomain(company);
+  if (guessedDomain && !isDomainPlatform(guessedDomain)) {
+    console.log(`[PerJob] Step 0 — Hunter.io lookup for ${guessedDomain}`);
+    const hunterResult = await hunterDomainSearch(guessedDomain);
+    if (hunterResult.email && hunterResult.confidence >= 50) {
+      return {
+        email: hunterResult.email,
+        emailVerified: hunterResult.verified,
+        emailSource: "employer_site",
+        emailConfidence: hunterResult.confidence >= 80 ? "high" : "medium",
+        employerDomain: guessedDomain,
+      };
+    }
+  }
 
   // ── Step A: Scrape the job listing page itself ──
   console.log(`[PerJob] Step A — scraping job URL: ${jobUrl}`);
@@ -377,12 +437,30 @@ serve(async (req) => {
 
       console.log(`[FindEmail] Deep search for "${company}" (URL: ${jobUrl || "none"})`);
 
+      // Try Hunter.io first for manual lookups
+      const domain = guessEmployerDomain(company);
+      if (domain && !isDomainPlatform(domain)) {
+        const hunterResult = await hunterDomainSearch(domain);
+        if (hunterResult.email && hunterResult.confidence >= 50) {
+          console.log(`[FindEmail] Hunter found: ${hunterResult.email} (confidence: ${hunterResult.confidence})`);
+          return new Response(
+            JSON.stringify({
+              email: hunterResult.email,
+              emailVerified: hunterResult.verified,
+              emailSource: "employer_site",
+              emailConfidence: hunterResult.confidence >= 80 ? "high" : "medium",
+              employerDomain: domain,
+            }),
+            { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
+        }
+      }
+
+      // Fallback to Firecrawl-based resolution
       let result: EmailResult;
       if (jobUrl) {
-        // Use the full per-job resolver with the actual job URL
         result = await resolveJobEmail(FIRECRAWL_API_KEY, jobUrl, company, jobTitle || "", jobDescription || "");
       } else {
-        // Fallback: search-only mode when no URL provided
         const searchResults = await firecrawlSearch(FIRECRAWL_API_KEY, `"${company}" HR email contact hiring`, 5);
         const emails: string[] = [];
         for (const r of searchResults) {

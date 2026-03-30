@@ -802,11 +802,39 @@ DO NOT include:
       }
     }
 
-    // Extract and MX-validate email from website
-    const rawEmailMatches = (htmlContent + " " + websiteContent).match(
-      /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g
-    );
-    const email = await findBestEmail(rawEmailMatches || [], formattedUrl);
+    // Extract email: Try Hunter.io first, then fall back to scraping + MX validation
+    let email: string | null = null;
+    const HUNTER_API_KEY = Deno.env.get("HUNTER_API_KEY");
+    
+    if (HUNTER_API_KEY && formattedUrl) {
+      try {
+        const domain = new URL(formattedUrl).hostname.replace(/^www\./, "");
+        const hunterUrl = `https://api.hunter.io/v2/domain-search?domain=${encodeURIComponent(domain)}&api_key=${HUNTER_API_KEY}&limit=3`;
+        const hunterResp = await fetch(hunterUrl, { signal: AbortSignal.timeout(6000) });
+        const hunterData = await hunterResp.json();
+        const hunterEmails = hunterData.data?.emails || [];
+        if (hunterEmails.length > 0) {
+          const DEPT = ["info", "contact", "hello", "support", "sales", "admin", "office", "team"];
+          const sorted = [...hunterEmails].sort((a: any, b: any) => {
+            const aD = DEPT.some(p => (a.value || "").split("@")[0]?.toLowerCase() === p);
+            const bD = DEPT.some(p => (b.value || "").split("@")[0]?.toLowerCase() === p);
+            return (bD ? 1000 : 0) + (b.confidence || 0) - ((aD ? 1000 : 0) + (a.confidence || 0));
+          });
+          email = sorted[0].value;
+          console.log(`[Hunter] Found email for analysis: ${email} (confidence: ${sorted[0].confidence})`);
+        }
+      } catch (e) {
+        console.error("[Hunter] Error during analysis email lookup:", e);
+      }
+    }
+
+    // Fallback to scraped emails if Hunter didn't find anything
+    if (!email) {
+      const rawEmailMatches = (htmlContent + " " + websiteContent).match(
+        /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g
+      );
+      email = await findBestEmail(rawEmailMatches || [], formattedUrl);
+    }
 
     console.log(`Analysis complete: ${issues.length} issues found, score: ${overallScore}, email: ${email || 'none'}, social profiles scraped: ${Object.keys(socialResults).length}`);
 
