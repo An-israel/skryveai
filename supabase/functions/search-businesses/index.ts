@@ -103,6 +103,8 @@ serve(async (req) => {
       throw new Error("GOOGLE_PLACES_API_KEY is not configured");
     }
 
+    const HUNTER_API_KEY = Deno.env.get("HUNTER_API_KEY");
+
     const { businessType, location, limit = 20 }: SearchRequest = await req.json();
 
     // Input validation
