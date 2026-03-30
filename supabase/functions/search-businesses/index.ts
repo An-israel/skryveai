@@ -183,7 +183,42 @@ serve(async (req) => {
       })
     );
 
-    console.log(`Returning ${businesses.length} businesses for "${query}"`);
+    // Step 3: Enrich with Hunter.io emails for businesses that have websites
+    if (HUNTER_API_KEY) {
+      console.log("[Hunter] Enriching businesses with email discovery");
+      const BATCH = 5;
+      for (let i = 0; i < businesses.length; i += BATCH) {
+        const batch = businesses.slice(i, i + BATCH);
+        await Promise.allSettled(
+          batch.map(async (biz: any) => {
+            if (!biz.website) return;
+            try {
+              const domain = new URL(biz.website).hostname.replace(/^www\./, "");
+              const url = `https://api.hunter.io/v2/domain-search?domain=${encodeURIComponent(domain)}&api_key=${HUNTER_API_KEY}&limit=3`;
+              const resp = await fetch(url, { signal: AbortSignal.timeout(6000) });
+              const data = await resp.json();
+              const emails = data.data?.emails || [];
+              if (emails.length > 0) {
+                // Prefer generic/department emails
+                const DEPT = ["info", "contact", "hello", "support", "sales", "admin", "office", "team", "help", "enquir", "booking"];
+                const sorted = [...emails].sort((a: any, b: any) => {
+                  const aIsDept = DEPT.some(p => (a.value || "").split("@")[0]?.toLowerCase() === p);
+                  const bIsDept = DEPT.some(p => (b.value || "").split("@")[0]?.toLowerCase() === p);
+                  return (bIsDept ? 1000 : 0) + (b.confidence || 0) - ((aIsDept ? 1000 : 0) + (a.confidence || 0));
+                });
+                biz.email = sorted[0].value;
+                console.log(`[Hunter] Found email for ${biz.name}: ${biz.email} (confidence: ${sorted[0].confidence})`);
+              }
+            } catch (e) {
+              console.error(`[Hunter] Error for ${biz.name}:`, e);
+            }
+          })
+        );
+      }
+    }
+
+    const withEmail = businesses.filter((b: any) => b.email).length;
+    console.log(`Returning ${businesses.length} businesses (${withEmail} with emails) for "${query}"`);
 
     return new Response(
       JSON.stringify({ businesses, total: businesses.length }),

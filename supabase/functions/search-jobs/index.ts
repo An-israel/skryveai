@@ -437,12 +437,30 @@ serve(async (req) => {
 
       console.log(`[FindEmail] Deep search for "${company}" (URL: ${jobUrl || "none"})`);
 
+      // Try Hunter.io first for manual lookups
+      const domain = guessEmployerDomain(company);
+      if (domain && !isDomainPlatform(domain)) {
+        const hunterResult = await hunterDomainSearch(domain);
+        if (hunterResult.email && hunterResult.confidence >= 50) {
+          console.log(`[FindEmail] Hunter found: ${hunterResult.email} (confidence: ${hunterResult.confidence})`);
+          return new Response(
+            JSON.stringify({
+              email: hunterResult.email,
+              emailVerified: hunterResult.verified,
+              emailSource: "employer_site",
+              emailConfidence: hunterResult.confidence >= 80 ? "high" : "medium",
+              employerDomain: domain,
+            }),
+            { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
+        }
+      }
+
+      // Fallback to Firecrawl-based resolution
       let result: EmailResult;
       if (jobUrl) {
-        // Use the full per-job resolver with the actual job URL
         result = await resolveJobEmail(FIRECRAWL_API_KEY, jobUrl, company, jobTitle || "", jobDescription || "");
       } else {
-        // Fallback: search-only mode when no URL provided
         const searchResults = await firecrawlSearch(FIRECRAWL_API_KEY, `"${company}" HR email contact hiring`, 5);
         const emails: string[] = [];
         for (const r of searchResults) {
