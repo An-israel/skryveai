@@ -102,7 +102,10 @@ export default function Team() {
           .from("team_members")
           .select("*")
           .eq("team_id", memberRow.team_id)
-        setMembers(allMembers || [])
+        setMembers((allMembers || []).map(m => ({
+          ...m,
+          role: m.role as "owner" | "admin" | "member",
+        })))
       }
     } catch (err) {
       console.error(err)
