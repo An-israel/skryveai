@@ -114,6 +114,7 @@ export function Header({ isAuthenticated: isAuthenticatedProp, onLogout }: Heade
               <Link to="/settings" className="p-2 text-muted-foreground hover:text-foreground transition-colors rounded-lg hover:bg-muted/50">
                 <Settings className="w-4 h-4" />
               </Link>
+              <ThemeToggle />
               <div className="w-px h-5 bg-border mx-2" />
               <Button variant="ghost" onClick={handleLogout} className="text-sm font-medium text-muted-foreground hover:text-foreground">
                 Log Out
