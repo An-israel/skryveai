@@ -156,7 +156,7 @@ export function AutoPilotDashboard({
   // ── Fetch recent activity ──────────────────────────────────────────────────
   const fetchActivity = useCallback(async () => {
     if (!user) return;
-    const { data } = await supabase
+    const { data } = await (supabase as any)
       .from("autopilot_activity")
       .select(
         "id, business_name, business_location, contact_email, email_subject, status, opened, clicked, replied, created_at"
