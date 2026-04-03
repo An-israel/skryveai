@@ -27,7 +27,7 @@ import Referrals from "./pages/Referrals";
 import Careers from "./pages/Careers";
 import CVBuilder from "./pages/CVBuilder";
 import ATSChecker from "./pages/ATSChecker";
-import CampaignDetails from "./pages/CampaignDetails";
+
 
 const queryClient = new QueryClient();
 
