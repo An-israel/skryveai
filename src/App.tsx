@@ -27,7 +27,7 @@ import Referrals from "./pages/Referrals";
 import Careers from "./pages/Careers";
 import CVBuilder from "./pages/CVBuilder";
 import ATSChecker from "./pages/ATSChecker";
-import CampaignDetails from "./pages/CampaignDetails";
+
 
 const queryClient = new QueryClient();
 
@@ -36,7 +36,7 @@ const GuardedRoute = ({ children }: { children: React.ReactNode }) => (
 );
 
 const App = () => (
-  <ThemeProvider attribute="class" defaultTheme="light" enableSystem={false}>
+  <ThemeProvider attribute="class" defaultTheme="light" enableSystem storageKey="skryveai-theme">
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
         <Toaster />
@@ -64,7 +64,7 @@ const App = () => (
           <Route path="/careers" element={<GuardedRoute><Careers /></GuardedRoute>} />
           <Route path="/cv-builder" element={<GuardedRoute><CVBuilder /></GuardedRoute>} />
           <Route path="/ats-checker" element={<GuardedRoute><ATSChecker /></GuardedRoute>} />
-          <Route path="/campaigns/:id" element={<GuardedRoute><CampaignDetails /></GuardedRoute>} />
+          
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>
