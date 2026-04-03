@@ -23,7 +23,7 @@ export default function AutoPilot() {
     if (!user) return;
     setConfigLoading(true);
     try {
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from("autopilot_configs")
         .select("*")
         .eq("user_id", user.id)

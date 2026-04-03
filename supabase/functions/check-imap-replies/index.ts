@@ -1,6 +1,6 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { ImapFlow } from "npm:imapflow";
+import { ImapFlow } from "https://esm.sh/imapflow@1.0.162";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",

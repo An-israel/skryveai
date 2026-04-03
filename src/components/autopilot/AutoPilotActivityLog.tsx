@@ -147,7 +147,7 @@ export function AutoPilotActivityLog({ userId, onBack }: AutoPilotActivityLogPro
     try {
       const range = dateFilterToRange(dateFilter, customFrom, customTo);
 
-      let query = supabase
+      let query = (supabase as any)
         .from("autopilot_activity")
         .select(
           "id, business_name, business_location, contact_email, email_subject, email_body, status, opened, clicked, replied, created_at",
