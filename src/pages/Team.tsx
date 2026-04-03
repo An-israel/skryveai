@@ -102,7 +102,10 @@ export default function Team() {
           .from("team_members")
           .select("*")
           .eq("team_id", memberRow.team_id)
-        setMembers(allMembers || [])
+        setMembers((allMembers || []).map(m => ({
+          ...m,
+          role: m.role as "owner" | "admin" | "member",
+        })))
       }
     } catch (err) {
       console.error(err)
@@ -127,11 +130,12 @@ export default function Team() {
       if (teamError) throw new Error(teamError.message)
 
       // Add owner as member
-      await supabase.from("team_members").insert({
+      await supabase.from("team_members").insert([{
         team_id: newTeam.id,
         user_id: user!.id,
+        email: user!.email || "",
         role: "owner",
-      })
+      }])
 
       setTeam(newTeam)
       setMembers([{ id: crypto.randomUUID(), user_id: user!.id, role: "owner", joined_at: new Date().toISOString(), email: user!.email }])
@@ -195,7 +199,7 @@ export default function Team() {
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
-      <Header user={user} />
+      <Header isAuthenticated={!!user} />
       <main className="flex-1 py-10 px-4">
         <div className="max-w-3xl mx-auto space-y-6">
 

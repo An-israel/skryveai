@@ -37,7 +37,7 @@ const GuardedRoute = ({ children }: { children: React.ReactNode }) => (
 );
 
 const App = () => (
-  <ThemeProvider attribute="class" defaultTheme="light" enableSystem={false}>
+  <ThemeProvider attribute="class" defaultTheme="dark" enableSystem={false} storageKey="skryveai-theme">
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
         <Toaster />

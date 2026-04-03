@@ -1,6 +1,7 @@
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Menu, X, Settings, Shield, Bot } from "lucide-react";
+import { ThemeToggle } from "@/components/ThemeToggle";
 
 import { NotificationBell } from "@/components/layout/NotificationBell";
 import { useState, useEffect } from "react";
@@ -117,6 +118,7 @@ export function Header({ isAuthenticated: isAuthenticatedProp, onLogout }: Heade
               <Link to="/settings" className="p-2 text-muted-foreground hover:text-foreground transition-colors rounded-lg hover:bg-muted/50">
                 <Settings className="w-4 h-4" />
               </Link>
+              <ThemeToggle />
               <div className="w-px h-5 bg-border mx-2" />
               <Button variant="ghost" onClick={handleLogout} className="text-sm font-medium text-muted-foreground hover:text-foreground">
                 Log Out
@@ -124,6 +126,7 @@ export function Header({ isAuthenticated: isAuthenticatedProp, onLogout }: Heade
             </div>
           ) : (
             <div className="flex items-center gap-2 ml-2">
+              <ThemeToggle />
               <Link to="/login" className="px-4 py-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
                 Sign In
               </Link>
