@@ -53,10 +53,17 @@ export function CMSImageUploader({ open, onOpenChange, onUpload }: CMSImageUploa
       // Generate unique filename
       const fileExt = file.name.split(".").pop();
       const fileName = `${Date.now()}-${name.replace(/\s+/g, "-").toLowerCase()}.${fileExt}`;
-      
-      // Upload to Supabase Storage (using cv-uploads bucket for now, or create cms-images)
-      // For now, we'll store a placeholder URL - in production you'd use actual storage
-      const imageUrl = `https://placehold.co/800x600?text=${encodeURIComponent(name)}`;
+
+      // Upload to Supabase Storage
+      const { error: uploadError } = await supabase.storage
+        .from("cms-images")
+        .upload(fileName, file, { upsert: false });
+
+      if (uploadError) throw uploadError;
+
+      const { data: { publicUrl: imageUrl } } = supabase.storage
+        .from("cms-images")
+        .getPublicUrl(fileName);
 
       // Insert into cms_images table
       const { error } = await supabase
