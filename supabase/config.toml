@@ -42,17 +42,17 @@ verify_jwt = false
 [functions.notify-admin-failed-emails]
 verify_jwt = false
 
-[crons.process-email-queue]
-schedule = "* * * * *"
-function = "process-email-queue"
+# [crons.process-email-queue]
+# schedule = "* * * * *"
+# function = "process-email-queue"
 
-[crons.process-trial-reminders]
-schedule = "0 9 * * *"
-function = "process-trial-reminders"
+# [crons.process-trial-reminders]
+# schedule = "0 9 * * *"
+# function = "process-trial-reminders"
 
-[crons.notify-admin-failed-emails]
-schedule = "0 */4 * * *"
-function = "notify-admin-failed-emails"
+# [crons.notify-admin-failed-emails]
+# schedule = "0 */4 * * *"
+# function = "notify-admin-failed-emails"
 
 [functions.gmail-auth]
 verify_jwt = false
@@ -78,13 +78,13 @@ verify_jwt = false
 [functions.process-followups]
 verify_jwt = false
 
-[crons.check-imap-replies]
-schedule = "*/5 * * * *"
-function = "check-imap-replies"
+# [crons.check-imap-replies]
+# schedule = "*/5 * * * *"
+# function = "check-imap-replies"
 
-[crons.process-followups]
-schedule = "*/30 * * * *"
-function = "process-followups"
+# [crons.process-followups]
+# schedule = "*/30 * * * *"
+# function = "process-followups"
 
 [functions.send-team-invite]
 verify_jwt = false
@@ -95,9 +95,9 @@ verify_jwt = false
 [functions.process-confirmation-reminders]
 verify_jwt = false
 
-[crons.process-confirmation-reminders]
-schedule = "0 */2 * * *"
-function = "process-confirmation-reminders"
+# [crons.process-confirmation-reminders]
+# schedule = "0 */2 * * *"
+# function = "process-confirmation-reminders"
 
 [functions.search-jobs]
 verify_jwt = false
@@ -126,18 +126,28 @@ verify_jwt = false
 [functions.process-daily-credits]
 verify_jwt = false
 
-[crons.send-push-morning]
-schedule = "0 6 * * *"
-function = "send-push-notifications"
+# [crons.send-push-morning]
+# schedule = "0 6 * * *"
+# function = "send-push-notifications"
 
-[crons.send-push-evening]
-schedule = "0 16 * * *"
-function = "send-push-notifications"
+# [crons.send-push-evening]
+# schedule = "0 16 * * *"
+# function = "send-push-notifications"
 
-[crons.send-daily-encouragement]
-schedule = "0 7 * * *"
-function = "send-daily-encouragement"
+# [crons.send-daily-encouragement]
+# schedule = "0 7 * * *"
+# function = "send-daily-encouragement"
 
-[crons.process-daily-credits]
-schedule = "0 0 * * *"
-function = "process-daily-credits"
+# [crons.process-daily-credits]
+# schedule = "0 0 * * *"
+# function = "process-daily-credits"
+
+[functions.autopilot-run]
+verify_jwt = false
+
+[functions.autopilot-config]
+verify_jwt = false
+
+# [crons.autopilot-run]
+# schedule = "* * * * *"
+# function = "autopilot-run"

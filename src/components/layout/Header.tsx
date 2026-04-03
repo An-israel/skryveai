@@ -1,6 +1,6 @@
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Menu, X, Settings, Shield } from "lucide-react";
+import { Menu, X, Settings, Shield, Bot } from "lucide-react";
 import { ThemeToggle } from "@/components/ThemeToggle";
 
 import { NotificationBell } from "@/components/layout/NotificationBell";
@@ -105,6 +105,10 @@ export function Header({ isAuthenticated: isAuthenticatedProp, onLogout }: Heade
               <Link to="/team" className="px-3.5 py-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors rounded-lg hover:bg-muted/50">
                 Team
               </Link>
+              <Link to="/auto-pilot" className="px-3.5 py-2 text-sm font-medium flex items-center gap-1.5 text-primary hover:text-primary/80 transition-colors rounded-lg hover:bg-primary/10">
+                <Bot className="w-3.5 h-3.5" />
+                Auto-Pilot
+              </Link>
               {isAdmin && (
                 <Link to="/admin" className="p-2 text-muted-foreground hover:text-foreground transition-colors rounded-lg hover:bg-muted/50">
                   <Shield className="w-4 h-4" />
@@ -171,6 +175,10 @@ export function Header({ isAuthenticated: isAuthenticatedProp, onLogout }: Heade
                   </Link>
                   <Link to="/team" className="py-2.5 px-3 text-sm font-medium text-muted-foreground hover:text-foreground rounded-lg hover:bg-muted/50 transition-colors">
                     Team
+                  </Link>
+                  <Link to="/auto-pilot" className="py-2.5 px-3 text-sm font-medium text-primary hover:text-primary/80 rounded-lg hover:bg-primary/10 transition-colors flex items-center gap-2">
+                    <Bot className="w-4 h-4" />
+                    Auto-Pilot
                   </Link>
                   {isAdmin && (
                     <Link to="/admin" className="py-2.5 px-3 text-sm font-medium text-muted-foreground hover:text-foreground rounded-lg hover:bg-muted/50 flex items-center gap-2 transition-colors">
