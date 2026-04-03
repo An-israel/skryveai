@@ -8,7 +8,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
-import type { AutoPilotConfig } from "@/pages/AutoPilot";
+import type { AutoPilotConfig } from "@/types/autopilot";
 import {
   Pause,
   Play,
