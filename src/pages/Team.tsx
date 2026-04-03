@@ -195,7 +195,7 @@ export default function Team() {
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
-      <Header user={user} />
+      <Header isAuthenticated={!!user} />
       <main className="flex-1 py-10 px-4">
         <div className="max-w-3xl mx-auto space-y-6">
 
