@@ -122,6 +122,7 @@ export function Header({ isAuthenticated: isAuthenticatedProp, onLogout }: Heade
             </div>
           ) : (
             <div className="flex items-center gap-2 ml-2">
+              <ThemeToggle />
               <Link to="/login" className="px-4 py-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
                 Sign In
               </Link>
