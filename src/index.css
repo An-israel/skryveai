@@ -325,6 +325,12 @@
     box-shadow: 0 1px 3px hsl(222 47% 20% / 0.04), 0 1px 0 hsl(0 0% 100% / 0.8) inset;
   }
 
+  .dark .glass {
+    background: hsl(222 47% 9% / 0.82);
+    border-color: hsl(var(--border) / 0.4);
+    box-shadow: 0 1px 3px hsl(0 0% 0% / 0.2), 0 1px 0 hsl(0 0% 100% / 0.03) inset;
+  }
+
   /* ─── Grain Texture ─── */
   .grain::after {
     content: "";
