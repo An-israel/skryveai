@@ -130,11 +130,11 @@ export default function Team() {
       if (teamError) throw new Error(teamError.message)
 
       // Add owner as member
-      await supabase.from("team_members").insert({
+      await supabase.from("team_members").insert([{
         team_id: newTeam.id,
         user_id: user!.id,
         role: "owner",
-      })
+      }])
 
       setTeam(newTeam)
       setMembers([{ id: crypto.randomUUID(), user_id: user!.id, role: "owner", joined_at: new Date().toISOString(), email: user!.email }])
