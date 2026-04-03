@@ -144,7 +144,7 @@ export function AutoPilotDashboard({
   // ── Fetch today's session ──────────────────────────────────────────────────
   const fetchSession = useCallback(async () => {
     if (!user) return;
-    const { data } = await supabase
+    const { data } = await (supabase as any)
       .from("autopilot_sessions")
       .select("*")
       .eq("user_id", user.id)
