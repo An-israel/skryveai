@@ -133,6 +133,7 @@ export default function Team() {
       await supabase.from("team_members").insert([{
         team_id: newTeam.id,
         user_id: user!.id,
+        email: user!.email || "",
         role: "owner",
       }])
 
