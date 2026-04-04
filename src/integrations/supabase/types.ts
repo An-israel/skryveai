@@ -124,6 +124,146 @@ export type Database = {
         }
         Relationships: []
       }
+      autopilot_activity: {
+        Row: {
+          business_location: string | null
+          business_name: string | null
+          clicked: boolean | null
+          contact_email: string | null
+          created_at: string | null
+          email_body: string | null
+          email_subject: string | null
+          id: string
+          opened: boolean | null
+          replied: boolean | null
+          session_id: string | null
+          status: string | null
+          user_id: string
+        }
+        Insert: {
+          business_location?: string | null
+          business_name?: string | null
+          clicked?: boolean | null
+          contact_email?: string | null
+          created_at?: string | null
+          email_body?: string | null
+          email_subject?: string | null
+          id?: string
+          opened?: boolean | null
+          replied?: boolean | null
+          session_id?: string | null
+          status?: string | null
+          user_id: string
+        }
+        Update: {
+          business_location?: string | null
+          business_name?: string | null
+          clicked?: boolean | null
+          contact_email?: string | null
+          created_at?: string | null
+          email_body?: string | null
+          email_subject?: string | null
+          id?: string
+          opened?: boolean | null
+          replied?: boolean | null
+          session_id?: string | null
+          status?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "autopilot_activity_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "autopilot_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      autopilot_configs: {
+        Row: {
+          compliance: Json | null
+          created_at: string | null
+          daily_quota: Json | null
+          email_style: Json | null
+          expertise: Json | null
+          id: string
+          is_active: boolean | null
+          locations: Json | null
+          target_businesses: Json | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          compliance?: Json | null
+          created_at?: string | null
+          daily_quota?: Json | null
+          email_style?: Json | null
+          expertise?: Json | null
+          id?: string
+          is_active?: boolean | null
+          locations?: Json | null
+          target_businesses?: Json | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          compliance?: Json | null
+          created_at?: string | null
+          daily_quota?: Json | null
+          email_style?: Json | null
+          expertise?: Json | null
+          id?: string
+          is_active?: boolean | null
+          locations?: Json | null
+          target_businesses?: Json | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      autopilot_sessions: {
+        Row: {
+          current_activity: string | null
+          current_location: string | null
+          date: string
+          emails_failed: number | null
+          emails_sent: number | null
+          emails_skipped: number | null
+          id: string
+          started_at: string | null
+          status: string | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          current_activity?: string | null
+          current_location?: string | null
+          date: string
+          emails_failed?: number | null
+          emails_sent?: number | null
+          emails_skipped?: number | null
+          id?: string
+          started_at?: string | null
+          status?: string | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          current_activity?: string | null
+          current_location?: string | null
+          date?: string
+          emails_failed?: number | null
+          emails_sent?: number | null
+          emails_skipped?: number | null
+          id?: string
+          started_at?: string | null
+          status?: string | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       businesses: {
         Row: {
           address: string
@@ -294,6 +434,27 @@ export type Database = {
           title?: string
           updated_at?: string
           updated_by?: string | null
+        }
+        Relationships: []
+      }
+      contacted_businesses: {
+        Row: {
+          contacted_at: string | null
+          domain: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          contacted_at?: string | null
+          domain: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          contacted_at?: string | null
+          domain?: string
+          id?: string
+          user_id?: string
         }
         Relationships: []
       }
@@ -1189,6 +1350,30 @@ export type Database = {
           owner_id?: string
           plan?: string
           updated_at?: string
+        }
+        Relationships: []
+      }
+      tool_usage: {
+        Row: {
+          created_at: string | null
+          id: string
+          metadata: Json | null
+          tool_name: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          metadata?: Json | null
+          tool_name: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          metadata?: Json | null
+          tool_name?: string
+          user_id?: string
         }
         Relationships: []
       }
