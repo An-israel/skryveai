@@ -109,20 +109,20 @@ export function Header({ isAuthenticated: isAuthenticatedProp, onLogout }: Heade
               <Link
                 to="/auto-pilot"
                 className={`
-                  relative ml-2 flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-semibold
-                  transition-all duration-300 hover:scale-[1.03]
+                  relative ml-2 flex items-center gap-1.5 px-5 py-2.5 rounded-full text-sm font-bold
+                  transition-all duration-300 hover:scale-[1.05]
                   ${isAutoPilotActive
-                    ? "bg-primary text-primary-foreground shadow-[0_0_16px_hsl(var(--primary)/0.5)]"
-                    : "bg-primary/10 text-primary border border-primary/30 hover:bg-primary hover:text-primary-foreground hover:shadow-[0_0_16px_hsl(var(--primary)/0.4)]"
+                    ? "bg-gradient-to-r from-primary to-primary/80 text-primary-foreground shadow-[0_0_24px_hsl(var(--primary)/0.6)] ring-2 ring-primary/30"
+                    : "bg-gradient-to-r from-primary to-primary/80 text-primary-foreground shadow-[0_4px_20px_hsl(var(--primary)/0.4)] hover:shadow-[0_4px_28px_hsl(var(--primary)/0.6)] ring-1 ring-primary/20"
                   }
                 `}
               >
-                <Zap className="w-3.5 h-3.5" fill="currentColor" />
+                <Zap className="w-4 h-4" fill="currentColor" />
                 Auto-Pilot
                 {!isAutoPilotActive && (
-                  <span className="absolute -top-1.5 -right-1.5 flex h-3.5 w-3.5">
-                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-60" />
-                    <span className="relative inline-flex rounded-full h-3.5 w-3.5 bg-primary" />
+                  <span className="absolute -top-1 -right-1 flex h-3 w-3">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-75" />
+                    <span className="relative inline-flex rounded-full h-3 w-3 bg-white" />
                   </span>
                 )}
               </Link>

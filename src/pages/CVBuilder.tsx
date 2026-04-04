@@ -139,6 +139,10 @@ export default function CVBuilder() {
 
       setCvResult(data.cv);
       setAtsScore(data.atsScore);
+      // Track usage
+      if (user) {
+        supabase.from("tool_usage").insert({ user_id: user.id, tool_name: "cv_builder", metadata: { mode, ats_score: data.atsScore } } as any).then(() => {});
+      }
 
       // Auto-generate LinkedIn guide
       setGenerationStep("Generating LinkedIn Optimization Guide...");

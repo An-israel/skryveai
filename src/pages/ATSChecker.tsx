@@ -50,6 +50,10 @@ export default function ATSChecker() {
       if (error) throw new Error(error.message);
       setResult(data);
       toast({ title: "Score Ready!", description: `Your ATS score: ${data.overallScore}% (${data.grade})` });
+      // Track usage
+      if (user) {
+        supabase.from("tool_usage").insert({ user_id: user.id, tool_name: "ats_checker", metadata: { score: data.overallScore, grade: data.grade } } as any).then(() => {});
+      }
     } catch (error) {
       toast({
         title: "Check Failed",

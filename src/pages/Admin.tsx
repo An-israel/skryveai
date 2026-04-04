@@ -13,7 +13,7 @@ import {
   LayoutDashboard, Users, CreditCard, FileText, Image, UserCog, Activity,
   Loader2, Plus, Trash2, Edit, Search, Download, RefreshCw, BarChart3,
   Mail, Target, Send, Shield, Coins, Gift, MessageSquare, ClipboardList,
-  CheckCircle, XCircle, MailCheck, ShieldCheck,
+  CheckCircle, XCircle, MailCheck, ShieldCheck, Wrench,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -28,6 +28,7 @@ import { SendUserEmailDialog } from "@/components/admin/SendUserEmailDialog";
 import { StaffReports } from "@/components/admin/StaffReports";
 import { PageToggleManager } from "@/components/admin/PageToggleManager";
 import { AdminEmailTracker } from "@/components/admin/AdminEmailTracker";
+import { ToolUsageTracker } from "@/components/admin/ToolUsageTracker";
 
 interface AdminStats {
   totalUsers: number;
@@ -53,7 +54,7 @@ interface CMSPage {
 }
 
 // Role-based tab definitions
-type TabId = "users" | "campaigns" | "email-queue" | "pages" | "images" | "staff" | "activity" | "ip-addresses" | "credits" | "referrals" | "analytics" | "send-email" | "email-tracker" | "reports" | "page-toggle";
+type TabId = "users" | "campaigns" | "email-queue" | "pages" | "images" | "staff" | "activity" | "ip-addresses" | "credits" | "referrals" | "analytics" | "send-email" | "email-tracker" | "reports" | "page-toggle" | "tool-usage";
 
 const TAB_PERMISSIONS: Record<TabId, string[]> = {
   users: ["super_admin", "support_agent"],
@@ -71,6 +72,7 @@ const TAB_PERMISSIONS: Record<TabId, string[]> = {
   "email-tracker": ["super_admin", "support_agent"],
   reports: ["super_admin", "content_editor", "support_agent"],
   "page-toggle": ["super_admin"],
+  "tool-usage": ["super_admin", "content_editor", "support_agent"],
 };
 
 export default function Admin() {
@@ -542,6 +544,7 @@ export default function Admin() {
                 "email-tracker": <MailCheck className="w-3.5 h-3.5 shrink-0" />,
                 reports: <ClipboardList className="w-3.5 h-3.5 shrink-0" />,
                 "page-toggle": <Shield className="w-3.5 h-3.5 shrink-0" />,
+                "tool-usage": <Wrench className="w-3.5 h-3.5 shrink-0" />,
               };
               const labels: Record<TabId, string> = {
                 users: "Users",
@@ -559,6 +562,7 @@ export default function Admin() {
                 "email-tracker": "Email Tracker",
                 reports: "Reports",
                 "page-toggle": "Visibility",
+                "tool-usage": "Tool Usage",
               };
               return (
                 <TabsTrigger key={tab} value={tab} className="gap-1 text-xs sm:text-sm px-2 py-1.5">
@@ -1100,6 +1104,13 @@ export default function Admin() {
           {hasTabAccess("page-toggle") && (
             <TabsContent value="page-toggle">
               <PageToggleManager />
+            </TabsContent>
+          )}
+
+          {/* Tool Usage Tab */}
+          {hasTabAccess("tool-usage") && (
+            <TabsContent value="tool-usage">
+              <ToolUsageTracker />
             </TabsContent>
           )}
         </Tabs>
