@@ -1,20 +1,29 @@
 import { useState, useEffect } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { PasswordInput } from "@/components/ui/password-input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Mail, Lock, User, Loader2, Phone, Gift, CheckCircle2 } from "lucide-react";
+import { Mail, Lock, User, Loader2, Phone, Gift, CheckCircle2, Sparkles, Zap, Search, BarChart3, Bot, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 
+const features = [
+  { icon: Search, title: "Smart Business Discovery", desc: "Find ideal clients using AI-powered search across any industry and location" },
+  { icon: BarChart3, title: "Website Audit & Scoring", desc: "Automatically analyze prospects' websites and identify improvement opportunities" },
+  { icon: Sparkles, title: "AI-Generated Pitches", desc: "Personalized cold emails crafted by AI based on real website analysis" },
+  { icon: Zap, title: "One-Click Send", desc: "Send verified emails directly from the platform with tracking built in" },
+  { icon: Bot, title: "Auto-Pilot Mode", desc: "Set it and forget it — let AI find and pitch clients for you daily" },
+];
+
 export default function Signup() {
   const [searchParams] = useSearchParams();
   const referralCode = searchParams.get("ref") || "";
+  const [showAnnouncement, setShowAnnouncement] = useState(false);
   
   const [formData, setFormData] = useState({
     fullName: "",
@@ -28,6 +37,11 @@ export default function Signup() {
   const [showEmailConfirm, setShowEmailConfirm] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
+
+  useEffect(() => {
+    const timer = setTimeout(() => setShowAnnouncement(true), 600);
+    return () => clearTimeout(timer);
+  }, []);
 
   // Check if referral code is valid
   useEffect(() => {
@@ -120,7 +134,73 @@ export default function Signup() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center px-4 py-12 bg-gradient-subtle">
+    <div className="min-h-screen flex items-center justify-center px-4 py-12 bg-gradient-subtle relative">
+      {/* Welcome Announcement Overlay */}
+      <AnimatePresence>
+        {showAnnouncement && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4"
+            onClick={() => setShowAnnouncement(false)}
+          >
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9, y: 20 }}
+              transition={{ type: "spring", duration: 0.5 }}
+              className="w-full max-w-lg bg-card border border-border rounded-2xl shadow-2xl overflow-hidden"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="relative bg-gradient-to-br from-primary/20 via-primary/10 to-transparent p-6 pb-4">
+                <button
+                  onClick={() => setShowAnnouncement(false)}
+                  className="absolute top-3 right-3 p-1.5 rounded-full hover:bg-muted transition-colors"
+                >
+                  <X className="w-4 h-4 text-muted-foreground" />
+                </button>
+                <div className="flex items-center gap-2 mb-2">
+                  <Sparkles className="w-6 h-6 text-primary" />
+                  <h2 className="text-xl font-bold text-foreground">Welcome to SkryveAI 🚀</h2>
+                </div>
+                <p className="text-sm text-muted-foreground">
+                  The AI-powered outreach platform that helps freelancers & startups land more clients on autopilot.
+                </p>
+              </div>
+              <div className="p-6 pt-4 space-y-3">
+                {features.map((f, i) => (
+                  <motion.div
+                    key={f.title}
+                    initial={{ opacity: 0, x: -10 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: 0.1 + i * 0.08 }}
+                    className="flex items-start gap-3"
+                  >
+                    <div className="mt-0.5 p-1.5 rounded-lg bg-primary/10 shrink-0">
+                      <f.icon className="w-4 h-4 text-primary" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-semibold text-foreground">{f.title}</p>
+                      <p className="text-xs text-muted-foreground">{f.desc}</p>
+                    </div>
+                  </motion.div>
+                ))}
+              </div>
+              <div className="px-6 pb-6">
+                <Button
+                  onClick={() => setShowAnnouncement(false)}
+                  className="w-full"
+                  size="lg"
+                >
+                  Let's Get Started
+                </Button>
+                <p className="text-center text-xs text-muted-foreground mt-2">3-day free trial • No credit card required</p>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
