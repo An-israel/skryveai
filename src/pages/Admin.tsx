@@ -1105,6 +1105,13 @@ export default function Admin() {
               <PageToggleManager />
             </TabsContent>
           )}
+
+          {/* Tool Usage Tab */}
+          {hasTabAccess("tool-usage") && (
+            <TabsContent value="tool-usage">
+              <ToolUsageTracker />
+            </TabsContent>
+          )}
         </Tabs>
       </div>
 
