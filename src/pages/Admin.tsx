@@ -561,6 +561,7 @@ export default function Admin() {
                 "email-tracker": "Email Tracker",
                 reports: "Reports",
                 "page-toggle": "Visibility",
+                "tool-usage": "Tool Usage",
               };
               return (
                 <TabsTrigger key={tab} value={tab} className="gap-1 text-xs sm:text-sm px-2 py-1.5">
