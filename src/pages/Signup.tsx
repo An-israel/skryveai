@@ -12,9 +12,18 @@ import { useToast } from "@/hooks/use-toast";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 
+const features = [
+  { icon: Search, title: "Smart Business Discovery", desc: "Find ideal clients using AI-powered search across any industry and location" },
+  { icon: BarChart3, title: "Website Audit & Scoring", desc: "Automatically analyze prospects' websites and identify improvement opportunities" },
+  { icon: Sparkles, title: "AI-Generated Pitches", desc: "Personalized cold emails crafted by AI based on real website analysis" },
+  { icon: Zap, title: "One-Click Send", desc: "Send verified emails directly from the platform with tracking built in" },
+  { icon: Bot, title: "Auto-Pilot Mode", desc: "Set it and forget it — let AI find and pitch clients for you daily" },
+];
+
 export default function Signup() {
   const [searchParams] = useSearchParams();
   const referralCode = searchParams.get("ref") || "";
+  const [showAnnouncement, setShowAnnouncement] = useState(false);
   
   const [formData, setFormData] = useState({
     fullName: "",
