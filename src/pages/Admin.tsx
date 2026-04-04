@@ -71,6 +71,7 @@ const TAB_PERMISSIONS: Record<TabId, string[]> = {
   "email-tracker": ["super_admin", "support_agent"],
   reports: ["super_admin", "content_editor", "support_agent"],
   "page-toggle": ["super_admin"],
+  "tool-usage": ["super_admin", "content_editor", "support_agent"],
 };
 
 export default function Admin() {
