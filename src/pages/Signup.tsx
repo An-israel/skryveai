@@ -38,6 +38,11 @@ export default function Signup() {
   const navigate = useNavigate();
   const { toast } = useToast();
 
+  useEffect(() => {
+    const timer = setTimeout(() => setShowAnnouncement(true), 600);
+    return () => clearTimeout(timer);
+  }, []);
+
   // Check if referral code is valid
   useEffect(() => {
     if (referralCode) {
