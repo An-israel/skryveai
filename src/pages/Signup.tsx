@@ -134,7 +134,73 @@ export default function Signup() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center px-4 py-12 bg-gradient-subtle">
+    <div className="min-h-screen flex items-center justify-center px-4 py-12 bg-gradient-subtle relative">
+      {/* Welcome Announcement Overlay */}
+      <AnimatePresence>
+        {showAnnouncement && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4"
+            onClick={() => setShowAnnouncement(false)}
+          >
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9, y: 20 }}
+              transition={{ type: "spring", duration: 0.5 }}
+              className="w-full max-w-lg bg-card border border-border rounded-2xl shadow-2xl overflow-hidden"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="relative bg-gradient-to-br from-primary/20 via-primary/10 to-transparent p-6 pb-4">
+                <button
+                  onClick={() => setShowAnnouncement(false)}
+                  className="absolute top-3 right-3 p-1.5 rounded-full hover:bg-muted transition-colors"
+                >
+                  <X className="w-4 h-4 text-muted-foreground" />
+                </button>
+                <div className="flex items-center gap-2 mb-2">
+                  <Sparkles className="w-6 h-6 text-primary" />
+                  <h2 className="text-xl font-bold text-foreground">Welcome to SkryveAI 🚀</h2>
+                </div>
+                <p className="text-sm text-muted-foreground">
+                  The AI-powered outreach platform that helps freelancers & startups land more clients on autopilot.
+                </p>
+              </div>
+              <div className="p-6 pt-4 space-y-3">
+                {features.map((f, i) => (
+                  <motion.div
+                    key={f.title}
+                    initial={{ opacity: 0, x: -10 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: 0.1 + i * 0.08 }}
+                    className="flex items-start gap-3"
+                  >
+                    <div className="mt-0.5 p-1.5 rounded-lg bg-primary/10 shrink-0">
+                      <f.icon className="w-4 h-4 text-primary" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-semibold text-foreground">{f.title}</p>
+                      <p className="text-xs text-muted-foreground">{f.desc}</p>
+                    </div>
+                  </motion.div>
+                ))}
+              </div>
+              <div className="px-6 pb-6">
+                <Button
+                  onClick={() => setShowAnnouncement(false)}
+                  className="w-full"
+                  size="lg"
+                >
+                  Let's Get Started
+                </Button>
+                <p className="text-center text-xs text-muted-foreground mt-2">3-day free trial • No credit card required</p>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
