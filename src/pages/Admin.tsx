@@ -28,6 +28,7 @@ import { SendUserEmailDialog } from "@/components/admin/SendUserEmailDialog";
 import { StaffReports } from "@/components/admin/StaffReports";
 import { PageToggleManager } from "@/components/admin/PageToggleManager";
 import { AdminEmailTracker } from "@/components/admin/AdminEmailTracker";
+import { ToolUsageTracker } from "@/components/admin/ToolUsageTracker";
 
 interface AdminStats {
   totalUsers: number;
