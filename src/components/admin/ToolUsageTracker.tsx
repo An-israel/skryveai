@@ -43,7 +43,7 @@ export function ToolUsageTracker() {
       if (error) throw error;
 
       // Fetch user profiles for display
-      const userIds = [...new Set((data || []).map((r: any) => r.user_id))];
+      const userIds = [...new Set((data || []).map((r: any) => r.user_id))] as string[];
       const { data: profiles } = await supabase
         .from("profiles")
         .select("user_id, full_name, email")
