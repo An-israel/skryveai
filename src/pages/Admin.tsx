@@ -543,6 +543,7 @@ export default function Admin() {
                 "email-tracker": <MailCheck className="w-3.5 h-3.5 shrink-0" />,
                 reports: <ClipboardList className="w-3.5 h-3.5 shrink-0" />,
                 "page-toggle": <Shield className="w-3.5 h-3.5 shrink-0" />,
+                "tool-usage": <Wrench className="w-3.5 h-3.5 shrink-0" />,
               };
               const labels: Record<TabId, string> = {
                 users: "Users",
