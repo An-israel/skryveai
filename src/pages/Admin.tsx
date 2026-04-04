@@ -53,7 +53,7 @@ interface CMSPage {
 }
 
 // Role-based tab definitions
-type TabId = "users" | "campaigns" | "email-queue" | "pages" | "images" | "staff" | "activity" | "ip-addresses" | "credits" | "referrals" | "analytics" | "send-email" | "email-tracker" | "reports" | "page-toggle";
+type TabId = "users" | "campaigns" | "email-queue" | "pages" | "images" | "staff" | "activity" | "ip-addresses" | "credits" | "referrals" | "analytics" | "send-email" | "email-tracker" | "reports" | "page-toggle" | "tool-usage";
 
 const TAB_PERMISSIONS: Record<TabId, string[]> = {
   users: ["super_admin", "support_agent"],
