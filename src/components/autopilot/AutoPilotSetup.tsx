@@ -273,7 +273,8 @@ export function AutoPilotSetup({ onComplete }: AutoPilotSetupProps) {
 
       if (!response.ok) {
         const err = await response.json();
-        throw new Error(err.error ?? "Failed to save config");
+        const msg = typeof err.error === "string" ? err.error : err.message || JSON.stringify(err.error) || "Failed to save config";
+        throw new Error(msg);
       }
 
       toast({ title: "Auto-Pilot launched!", description: "Your agent is now active." });

@@ -1,6 +1,6 @@
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Menu, X, Settings, Shield, Bot } from "lucide-react";
+import { Menu, X, Settings, Shield, Zap } from "lucide-react";
 import { ThemeToggle } from "@/components/ThemeToggle";
 
 import { NotificationBell } from "@/components/layout/NotificationBell";
@@ -18,6 +18,8 @@ export function Header({ isAuthenticated: isAuthenticatedProp, onLogout }: Heade
   const [isAdmin, setIsAdmin] = useState(false);
   const [authState, setAuthState] = useState<boolean>(isAuthenticatedProp ?? false);
   const navigate = useNavigate();
+  const location = useLocation();
+  const isAutoPilotActive = location.pathname === "/auto-pilot";
 
   useEffect(() => {
     const checkAuth = async () => {
@@ -81,36 +83,52 @@ export function Header({ isAuthenticated: isAuthenticatedProp, onLogout }: Heade
 
         {/* Desktop Navigation */}
         <nav className="hidden md:flex items-center gap-1">
-          {/* Nav links */}
-          <div className="flex items-center gap-0.5 mr-4">
-            <Link to="/about" className="px-3.5 py-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors rounded-lg hover:bg-muted/50">
+          {/* Public links */}
+          <div className="flex items-center gap-0.5 mr-3">
+            <Link to="/about" className="px-3 py-1.5 text-xs font-medium text-muted-foreground/70 hover:text-muted-foreground transition-colors rounded-lg hover:bg-muted/40">
               About
             </Link>
-            <Link to="/careers" className="px-3.5 py-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors rounded-lg hover:bg-muted/50">
-              Careers
-            </Link>
-            <Link to="/pricing" className="px-3.5 py-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors rounded-lg hover:bg-muted/50">
+            <Link to="/pricing" className="px-3 py-1.5 text-xs font-medium text-muted-foreground/70 hover:text-muted-foreground transition-colors rounded-lg hover:bg-muted/40">
               Pricing
             </Link>
           </div>
 
           {isAuthenticated ? (
             <div className="flex items-center gap-0.5">
-              <Link to="/dashboard" className="px-3.5 py-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors rounded-lg hover:bg-muted/50">
+              <Link to="/dashboard" className="px-3 py-1.5 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors rounded-lg hover:bg-muted/50">
                 Dashboard
               </Link>
-              <Link to="/campaigns/new" className="px-3.5 py-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors rounded-lg hover:bg-muted/50">
+              <Link to="/campaigns/new" className="px-3 py-1.5 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors rounded-lg hover:bg-muted/50">
                 New Campaign
               </Link>
-              <Link to="/team" className="px-3.5 py-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors rounded-lg hover:bg-muted/50">
+              <Link to="/team" className="px-3 py-1.5 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors rounded-lg hover:bg-muted/50">
                 Team
               </Link>
-              <Link to="/auto-pilot" className="px-3.5 py-2 text-sm font-medium flex items-center gap-1.5 text-primary hover:text-primary/80 transition-colors rounded-lg hover:bg-primary/10">
-                <Bot className="w-3.5 h-3.5" />
+
+              {/* ── Auto-Pilot CTA ── */}
+              <Link
+                to="/auto-pilot"
+                className={`
+                  relative ml-2 flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-semibold
+                  transition-all duration-300 hover:scale-[1.03]
+                  ${isAutoPilotActive
+                    ? "bg-primary text-primary-foreground shadow-[0_0_16px_hsl(var(--primary)/0.5)]"
+                    : "bg-primary/10 text-primary border border-primary/30 hover:bg-primary hover:text-primary-foreground hover:shadow-[0_0_16px_hsl(var(--primary)/0.4)]"
+                  }
+                `}
+              >
+                <Zap className="w-3.5 h-3.5" fill="currentColor" />
                 Auto-Pilot
+                {!isAutoPilotActive && (
+                  <span className="absolute -top-1.5 -right-1.5 flex h-3.5 w-3.5">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-60" />
+                    <span className="relative inline-flex rounded-full h-3.5 w-3.5 bg-primary" />
+                  </span>
+                )}
               </Link>
+
               {isAdmin && (
-                <Link to="/admin" className="p-2 text-muted-foreground hover:text-foreground transition-colors rounded-lg hover:bg-muted/50">
+                <Link to="/admin" className="p-2 ml-1 text-muted-foreground hover:text-foreground transition-colors rounded-lg hover:bg-muted/50">
                   <Shield className="w-4 h-4" />
                 </Link>
               )}
@@ -119,8 +137,8 @@ export function Header({ isAuthenticated: isAuthenticatedProp, onLogout }: Heade
                 <Settings className="w-4 h-4" />
               </Link>
               <ThemeToggle />
-              <div className="w-px h-5 bg-border mx-2" />
-              <Button variant="ghost" onClick={handleLogout} className="text-sm font-medium text-muted-foreground hover:text-foreground">
+              <div className="w-px h-5 bg-border mx-1" />
+              <Button variant="ghost" onClick={handleLogout} className="text-sm font-medium text-muted-foreground hover:text-foreground px-3">
                 Log Out
               </Button>
             </div>
@@ -156,13 +174,10 @@ export function Header({ isAuthenticated: isAuthenticatedProp, onLogout }: Heade
             className="md:hidden glass border-t"
           >
             <nav className="container mx-auto px-4 py-4 flex flex-col gap-1">
-              <Link to="/about" className="py-2.5 px-3 text-sm font-medium text-muted-foreground hover:text-foreground rounded-lg hover:bg-muted/50 transition-colors">
+              <Link to="/about" className="py-2 px-3 text-xs font-medium text-muted-foreground/70 hover:text-muted-foreground rounded-lg hover:bg-muted/40 transition-colors">
                 About
               </Link>
-              <Link to="/careers" className="py-2.5 px-3 text-sm font-medium text-muted-foreground hover:text-foreground rounded-lg hover:bg-muted/50 transition-colors">
-                Careers
-              </Link>
-              <Link to="/pricing" className="py-2.5 px-3 text-sm font-medium text-muted-foreground hover:text-foreground rounded-lg hover:bg-muted/50 transition-colors">
+              <Link to="/pricing" className="py-2 px-3 text-xs font-medium text-muted-foreground/70 hover:text-muted-foreground rounded-lg hover:bg-muted/40 transition-colors">
                 Pricing
               </Link>
               {isAuthenticated ? (
@@ -176,9 +191,16 @@ export function Header({ isAuthenticated: isAuthenticatedProp, onLogout }: Heade
                   <Link to="/team" className="py-2.5 px-3 text-sm font-medium text-muted-foreground hover:text-foreground rounded-lg hover:bg-muted/50 transition-colors">
                     Team
                   </Link>
-                  <Link to="/auto-pilot" className="py-2.5 px-3 text-sm font-medium text-primary hover:text-primary/80 rounded-lg hover:bg-primary/10 transition-colors flex items-center gap-2">
-                    <Bot className="w-4 h-4" />
+
+                  {/* Mobile Auto-Pilot CTA */}
+                  <Link
+                    to="/auto-pilot"
+                    className="mt-1 mx-0 py-3 px-4 rounded-xl text-sm font-semibold flex items-center gap-2 bg-primary/10 text-primary border border-primary/30 hover:bg-primary hover:text-primary-foreground transition-all duration-200"
+                    onClick={() => setMobileMenuOpen(false)}
+                  >
+                    <Zap className="w-4 h-4" fill="currentColor" />
                     Auto-Pilot
+                    <span className="ml-auto text-xs bg-primary text-primary-foreground px-2 py-0.5 rounded-full font-bold">NEW</span>
                   </Link>
                   {isAdmin && (
                     <Link to="/admin" className="py-2.5 px-3 text-sm font-medium text-muted-foreground hover:text-foreground rounded-lg hover:bg-muted/50 flex items-center gap-2 transition-colors">

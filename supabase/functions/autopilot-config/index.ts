@@ -91,7 +91,7 @@ serve(async (req) => {
         .select()
         .single();
 
-      if (upsertError) throw upsertError;
+      if (upsertError) throw new Error(upsertError.message || JSON.stringify(upsertError));
 
       // Create initial session for today if none exists
       await supabase
@@ -156,9 +156,9 @@ serve(async (req) => {
     return jsonResponse({ error: "Method not allowed" }, 405);
   } catch (err) {
     console.error("autopilot-config error:", err);
-    return jsonResponse(
-      { error: err instanceof Error ? err.message : String(err) },
-      500
-    );
+    const errMsg = err instanceof Error
+      ? err.message
+      : (err as any)?.message || (err as any)?.details || JSON.stringify(err);
+    return jsonResponse({ error: errMsg }, 500);
   }
 });
