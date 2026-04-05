@@ -136,7 +136,7 @@ export default function Admin() {
         .eq("user_id", user.id);
 
       const adminRole = roles?.find(r => 
-        ["super_admin", "content_editor", "support_agent"].includes(r.role)
+        ["super_admin", "content_editor", "support_agent", "staff"].includes(r.role)
       );
 
       if (!adminRole) {
