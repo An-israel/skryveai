@@ -551,8 +551,11 @@ export default function Admin() {
                 reports: <ClipboardList className="w-3.5 h-3.5 shrink-0" />,
                 "page-toggle": <Shield className="w-3.5 h-3.5 shrink-0" />,
                 "tool-usage": <Wrench className="w-3.5 h-3.5 shrink-0" />,
+                "cs-dashboard": <Users className="w-3.5 h-3.5 shrink-0" />,
+                growth: <TrendingUp className="w-3.5 h-3.5 shrink-0" />,
               };
               const labels: Record<TabId, string> = {
+                "cs-dashboard": "CS Dashboard",
                 users: "Users",
                 campaigns: "Campaigns",
                 "email-queue": "Queue",
@@ -569,6 +572,7 @@ export default function Admin() {
                 reports: "Reports",
                 "page-toggle": "Visibility",
                 "tool-usage": "Tool Usage",
+                growth: "Growth",
               };
               return (
                 <TabsTrigger key={tab} value={tab} className="gap-1 text-xs sm:text-sm px-2 py-1.5">
