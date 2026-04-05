@@ -13,7 +13,7 @@ import {
   LayoutDashboard, Users, CreditCard, FileText, Image, UserCog, Activity,
   Loader2, Plus, Trash2, Edit, Search, Download, RefreshCw, BarChart3,
   Mail, Target, Send, Shield, Coins, Gift, MessageSquare, ClipboardList,
-  CheckCircle, XCircle, MailCheck, ShieldCheck, Wrench,
+  CheckCircle, XCircle, MailCheck, ShieldCheck, Wrench, TrendingUp,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
