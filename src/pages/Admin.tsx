@@ -56,9 +56,10 @@ interface CMSPage {
 }
 
 // Role-based tab definitions
-type TabId = "users" | "campaigns" | "email-queue" | "pages" | "images" | "staff" | "activity" | "ip-addresses" | "credits" | "referrals" | "analytics" | "send-email" | "email-tracker" | "reports" | "page-toggle" | "tool-usage";
+type TabId = "users" | "campaigns" | "email-queue" | "pages" | "images" | "staff" | "activity" | "ip-addresses" | "credits" | "referrals" | "analytics" | "send-email" | "email-tracker" | "reports" | "page-toggle" | "tool-usage" | "cs-dashboard" | "growth";
 
 const TAB_PERMISSIONS: Record<TabId, string[]> = {
+  "cs-dashboard": ["super_admin", "support_agent"],
   users: ["super_admin", "support_agent"],
   campaigns: ["super_admin"],
   "email-queue": ["super_admin"],
@@ -72,9 +73,10 @@ const TAB_PERMISSIONS: Record<TabId, string[]> = {
   analytics: ["super_admin", "content_editor", "support_agent"],
   "send-email": ["super_admin", "support_agent"],
   "email-tracker": ["super_admin", "support_agent"],
-  reports: ["super_admin", "content_editor", "support_agent"],
+  reports: ["super_admin", "content_editor", "support_agent", "staff"],
   "page-toggle": ["super_admin"],
   "tool-usage": ["super_admin", "content_editor", "support_agent"],
+  growth: ["super_admin", "staff"],
 };
 
 export default function Admin() {
