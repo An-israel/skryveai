@@ -942,8 +942,8 @@ export default function Admin() {
                           <TableCell className="font-medium">{member.profiles?.full_name || "Unknown"}</TableCell>
                           <TableCell>{member.profiles?.email || "Unknown"}</TableCell>
                           <TableCell>
-                            <Badge variant={member.role === "super_admin" ? "default" : "secondary"}>
-                              {member.role === "content_editor" ? "Marketing Manager" : member.role === "support_agent" ? "Customer Success" : member.role.replace("_", " ")}
+                             <Badge variant={member.role === "super_admin" ? "default" : "secondary"}>
+                              {member.role === "content_editor" ? "Marketing Manager" : member.role === "support_agent" ? "Customer Success" : member.role === "staff" ? "Growth Expert" : member.role.replace("_", " ")}
                             </Badge>
                           </TableCell>
                           <TableCell>{new Date(member.created_at).toLocaleDateString()}</TableCell>
