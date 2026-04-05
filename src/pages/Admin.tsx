@@ -13,7 +13,7 @@ import {
   LayoutDashboard, Users, CreditCard, FileText, Image, UserCog, Activity,
   Loader2, Plus, Trash2, Edit, Search, Download, RefreshCw, BarChart3,
   Mail, Target, Send, Shield, Coins, Gift, MessageSquare, ClipboardList,
-  CheckCircle, XCircle, MailCheck, ShieldCheck, Wrench,
+  CheckCircle, XCircle, MailCheck, ShieldCheck, Wrench, TrendingUp,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -29,6 +29,8 @@ import { StaffReports } from "@/components/admin/StaffReports";
 import { PageToggleManager } from "@/components/admin/PageToggleManager";
 import { AdminEmailTracker } from "@/components/admin/AdminEmailTracker";
 import { ToolUsageTracker } from "@/components/admin/ToolUsageTracker";
+import { CustomerSuccessDashboard } from "@/components/admin/CustomerSuccessDashboard";
+import { GrowthDashboard } from "@/components/admin/GrowthDashboard";
 
 interface AdminStats {
   totalUsers: number;
@@ -54,9 +56,10 @@ interface CMSPage {
 }
 
 // Role-based tab definitions
-type TabId = "users" | "campaigns" | "email-queue" | "pages" | "images" | "staff" | "activity" | "ip-addresses" | "credits" | "referrals" | "analytics" | "send-email" | "email-tracker" | "reports" | "page-toggle" | "tool-usage";
+type TabId = "users" | "campaigns" | "email-queue" | "pages" | "images" | "staff" | "activity" | "ip-addresses" | "credits" | "referrals" | "analytics" | "send-email" | "email-tracker" | "reports" | "page-toggle" | "tool-usage" | "cs-dashboard" | "growth";
 
 const TAB_PERMISSIONS: Record<TabId, string[]> = {
+  "cs-dashboard": ["super_admin", "support_agent"],
   users: ["super_admin", "support_agent"],
   campaigns: ["super_admin"],
   "email-queue": ["super_admin"],
@@ -70,9 +73,10 @@ const TAB_PERMISSIONS: Record<TabId, string[]> = {
   analytics: ["super_admin", "content_editor", "support_agent"],
   "send-email": ["super_admin", "support_agent"],
   "email-tracker": ["super_admin", "support_agent"],
-  reports: ["super_admin", "content_editor", "support_agent"],
+  reports: ["super_admin", "content_editor", "support_agent", "staff"],
   "page-toggle": ["super_admin"],
   "tool-usage": ["super_admin", "content_editor", "support_agent"],
+  growth: ["super_admin", "staff"],
 };
 
 export default function Admin() {
@@ -132,7 +136,7 @@ export default function Admin() {
         .eq("user_id", user.id);
 
       const adminRole = roles?.find(r => 
-        ["super_admin", "content_editor", "support_agent"].includes(r.role)
+        ["super_admin", "content_editor", "support_agent", "staff"].includes(r.role)
       );
 
       if (!adminRole) {
@@ -404,7 +408,8 @@ export default function Admin() {
   const getDefaultTab = (): TabId => {
     if (isSuperAdmin) return "users";
     if (userRole === "content_editor") return "pages";
-    if (userRole === "support_agent") return "users";
+    if (userRole === "support_agent") return "cs-dashboard";
+    if (userRole === "staff") return "growth";
     return "reports";
   };
 
@@ -413,6 +418,7 @@ export default function Admin() {
     if (userRole === "super_admin") return "Super Admin";
     if (userRole === "content_editor") return "Marketing Manager";
     if (userRole === "support_agent") return "Customer Success";
+    if (userRole === "staff") return "Growth Expert";
     return userRole;
   };
 
@@ -545,8 +551,11 @@ export default function Admin() {
                 reports: <ClipboardList className="w-3.5 h-3.5 shrink-0" />,
                 "page-toggle": <Shield className="w-3.5 h-3.5 shrink-0" />,
                 "tool-usage": <Wrench className="w-3.5 h-3.5 shrink-0" />,
+                "cs-dashboard": <Users className="w-3.5 h-3.5 shrink-0" />,
+                growth: <TrendingUp className="w-3.5 h-3.5 shrink-0" />,
               };
               const labels: Record<TabId, string> = {
+                "cs-dashboard": "CS Dashboard",
                 users: "Users",
                 campaigns: "Campaigns",
                 "email-queue": "Queue",
@@ -563,6 +572,7 @@ export default function Admin() {
                 reports: "Reports",
                 "page-toggle": "Visibility",
                 "tool-usage": "Tool Usage",
+                growth: "Growth",
               };
               return (
                 <TabsTrigger key={tab} value={tab} className="gap-1 text-xs sm:text-sm px-2 py-1.5">
@@ -903,6 +913,7 @@ export default function Admin() {
                               <SelectItem value="super_admin">Super Admin</SelectItem>
                               <SelectItem value="content_editor">Marketing Manager</SelectItem>
                               <SelectItem value="support_agent">Customer Success</SelectItem>
+                              <SelectItem value="staff">Growth Expert</SelectItem>
                             </SelectContent>
                           </Select>
                         </div>
@@ -931,8 +942,8 @@ export default function Admin() {
                           <TableCell className="font-medium">{member.profiles?.full_name || "Unknown"}</TableCell>
                           <TableCell>{member.profiles?.email || "Unknown"}</TableCell>
                           <TableCell>
-                            <Badge variant={member.role === "super_admin" ? "default" : "secondary"}>
-                              {member.role === "content_editor" ? "Marketing Manager" : member.role === "support_agent" ? "Customer Success" : member.role.replace("_", " ")}
+                             <Badge variant={member.role === "super_admin" ? "default" : "secondary"}>
+                              {member.role === "content_editor" ? "Marketing Manager" : member.role === "support_agent" ? "Customer Success" : member.role === "staff" ? "Growth Expert" : member.role.replace("_", " ")}
                             </Badge>
                           </TableCell>
                           <TableCell>{new Date(member.created_at).toLocaleDateString()}</TableCell>
@@ -1111,6 +1122,20 @@ export default function Admin() {
           {hasTabAccess("tool-usage") && (
             <TabsContent value="tool-usage">
               <ToolUsageTracker />
+            </TabsContent>
+          )}
+
+          {/* CS Dashboard Tab */}
+          {hasTabAccess("cs-dashboard") && (
+            <TabsContent value="cs-dashboard">
+              <CustomerSuccessDashboard />
+            </TabsContent>
+          )}
+
+          {/* Growth Dashboard Tab */}
+          {hasTabAccess("growth") && (
+            <TabsContent value="growth">
+              <GrowthDashboard />
             </TabsContent>
           )}
         </Tabs>
