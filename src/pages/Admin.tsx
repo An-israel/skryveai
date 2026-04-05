@@ -1123,6 +1123,20 @@ export default function Admin() {
               <ToolUsageTracker />
             </TabsContent>
           )}
+
+          {/* CS Dashboard Tab */}
+          {hasTabAccess("cs-dashboard") && (
+            <TabsContent value="cs-dashboard">
+              <CustomerSuccessDashboard />
+            </TabsContent>
+          )}
+
+          {/* Growth Dashboard Tab */}
+          {hasTabAccess("growth") && (
+            <TabsContent value="growth">
+              <GrowthDashboard />
+            </TabsContent>
+          )}
         </Tabs>
       </div>
 
