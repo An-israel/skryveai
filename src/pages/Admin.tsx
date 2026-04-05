@@ -29,6 +29,8 @@ import { StaffReports } from "@/components/admin/StaffReports";
 import { PageToggleManager } from "@/components/admin/PageToggleManager";
 import { AdminEmailTracker } from "@/components/admin/AdminEmailTracker";
 import { ToolUsageTracker } from "@/components/admin/ToolUsageTracker";
+import { CustomerSuccessDashboard } from "@/components/admin/CustomerSuccessDashboard";
+import { GrowthDashboard } from "@/components/admin/GrowthDashboard";
 
 interface AdminStats {
   totalUsers: number;
