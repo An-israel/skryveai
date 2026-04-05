@@ -913,6 +913,7 @@ export default function Admin() {
                               <SelectItem value="super_admin">Super Admin</SelectItem>
                               <SelectItem value="content_editor">Marketing Manager</SelectItem>
                               <SelectItem value="support_agent">Customer Success</SelectItem>
+                              <SelectItem value="staff">Growth Expert</SelectItem>
                             </SelectContent>
                           </Select>
                         </div>
