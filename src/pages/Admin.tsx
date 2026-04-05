@@ -408,7 +408,8 @@ export default function Admin() {
   const getDefaultTab = (): TabId => {
     if (isSuperAdmin) return "users";
     if (userRole === "content_editor") return "pages";
-    if (userRole === "support_agent") return "users";
+    if (userRole === "support_agent") return "cs-dashboard";
+    if (userRole === "staff") return "growth";
     return "reports";
   };
 
@@ -417,6 +418,7 @@ export default function Admin() {
     if (userRole === "super_admin") return "Super Admin";
     if (userRole === "content_editor") return "Marketing Manager";
     if (userRole === "support_agent") return "Customer Success";
+    if (userRole === "staff") return "Growth Expert";
     return userRole;
   };
 
