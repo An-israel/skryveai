@@ -660,10 +660,13 @@ export default function Admin() {
                   <Table>
                     <TableHeader>
                       <TableRow>
-                        <TableHead>Name</TableHead>
-                        <TableHead>Email</TableHead>
-                        <TableHead>Verified</TableHead>
-                        <TableHead>Subscription</TableHead>
+                         <TableHead>Name</TableHead>
+                         <TableHead>Email</TableHead>
+                         <TableHead>Verified</TableHead>
+                         <TableHead>Products Used</TableHead>
+                         <TableHead>Subscription</TableHead>
+                         <TableHead>Joined</TableHead>
+                         <TableHead>Actions</TableHead>
                         <TableHead>Joined</TableHead>
                         <TableHead>Actions</TableHead>
                       </TableRow>
