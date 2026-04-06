@@ -29,6 +29,7 @@ import CVBuilder from "./pages/CVBuilder";
 import ATSChecker from "./pages/ATSChecker";
 import CampaignDetails from "./pages/CampaignDetails";
 import AutoPilot from "./pages/AutoPilot";
+import EmailReply from "./pages/EmailReply";
 
 const queryClient = new QueryClient();
 
@@ -67,6 +68,7 @@ const App = () => (
           <Route path="/ats-checker" element={<GuardedRoute><ATSChecker /></GuardedRoute>} />
           <Route path="/campaigns/:id" element={<GuardedRoute><CampaignDetails /></GuardedRoute>} />
           <Route path="/auto-pilot" element={<GuardedRoute><AutoPilot /></GuardedRoute>} />
+          <Route path="/reply" element={<EmailReply />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>

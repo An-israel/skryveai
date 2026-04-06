@@ -111,7 +111,11 @@ Deno.serve(async (req) => {
     const baseUrl = SUPABASE_URL.replace('.supabase.co', '.supabase.co/functions/v1');
     const trackingPixelUrl = `${baseUrl}/email-webhook?type=admin-open&adminEmailId=${adminEmailId}`;
 
-    // Build HTML email with tracking pixel
+    // Build reply link URL
+    const appUrl = "https://skryveai.lovable.app";
+    const replyLink = `${appUrl}/reply?id=${adminEmailId}`;
+
+    // Build HTML email with tracking pixel and reply link
     const htmlBody = `<!DOCTYPE html>
 <html>
 <head><meta charset="utf-8"></head>
@@ -120,6 +124,9 @@ Deno.serve(async (req) => {
     <h2 style="color: #0B162B; margin: 0;">SkryveAI</h2>
   </div>
   ${body.split('\n').map((line: string) => `<p style="margin: 0 0 16px 0;">${line}</p>`).join('')}
+  <div style="margin: 32px 0; text-align: center;">
+    <a href="${replyLink}" style="display: inline-block; background-color: #2563eb; color: #ffffff; padding: 12px 28px; border-radius: 8px; text-decoration: none; font-weight: 600; font-size: 14px;">Reply to this message</a>
+  </div>
   <hr style="border: none; border-top: 1px solid #eee; margin: 32px 0;">
   <p style="font-size: 12px; color: #666;">Sent by ${senderName} from SkryveAI Team</p>
   <img src="${trackingPixelUrl}" width="1" height="1" style="display:none;" alt="">
