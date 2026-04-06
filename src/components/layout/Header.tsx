@@ -113,7 +113,7 @@ export function Header({ isAuthenticated: isAuthenticatedProp, onLogout }: Heade
                   transition-all duration-300 hover:scale-[1.05]
                   ${isAutoPilotActive
                     ? "bg-gradient-to-r from-primary to-primary/80 text-primary-foreground shadow-[0_0_24px_hsl(var(--primary)/0.6)] ring-2 ring-primary/30"
-                    : "bg-gradient-to-r from-primary to-primary/80 text-primary-foreground shadow-[0_4px_20px_hsl(var(--primary)/0.4)] hover:shadow-[0_4px_28px_hsl(var(--primary)/0.6)] ring-1 ring-primary/20"
+                    : "bg-gradient-to-r from-primary to-primary/80 text-primary-foreground shadow-[0_4px_20px_hsl(var(--primary)/0.4)] hover:shadow-[0_4px_28px_hsl(var(--primary)/0.6)] ring-1 ring-primary/20 animate-[pulse-glow_2s_ease-in-out_infinite]"
                   }
                 `}
               >

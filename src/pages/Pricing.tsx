@@ -193,7 +193,7 @@ export default function Pricing() {
                 </CardHeader>
                 <CardContent>
                   <ul className="space-y-2.5 mb-6">
-                    {["AI-powered business discovery", "All campaign modes", "Find Clients + Pitch a Client", "Find Investors mode", "Automated website analysis", "Personalized pitch generation", "Email sending & tracking", "Reply detection", "Campaign analytics", "Auto follow-up emails"].map(f => (
+                    {["AI-powered business discovery", "All campaign modes", "Find Clients + Pitch a Client", "Find Investors mode", "Automated website analysis", "Personalized pitch generation", "Email sending & tracking", "Reply detection", "Campaign analytics", "Auto follow-up emails", "⚡ Auto-Pilot Mode"].map(f => (
                       <li key={f} className="flex items-start gap-2">
                         <Check className="w-4 h-4 text-primary mt-0.5 shrink-0" />
                         <span className="text-sm">{f}</span>
@@ -231,7 +231,7 @@ export default function Pricing() {
                 </CardHeader>
                 <CardContent>
                   <ul className="space-y-2.5 mb-6">
-                    {["Everything in Popular", "Unlimited credits", "Priority support", "All future features", "No campaign limits"].map(f => (
+                    {["Everything in Popular", "Unlimited credits", "⚡ Auto-Pilot Mode", "Priority support", "All future features", "No campaign limits"].map(f => (
                       <li key={f} className="flex items-start gap-2">
                         <Check className="w-4 h-4 text-primary mt-0.5 shrink-0" />
                         <span className="text-sm">{f}</span>
