@@ -109,6 +109,10 @@ export default {
           "0%": { backgroundPosition: "-200% 0" },
           "100%": { backgroundPosition: "200% 0" },
         },
+        "pulse-glow": {
+          "0%, 100%": { boxShadow: "0 4px 20px hsl(var(--primary) / 0.4)" },
+          "50%": { boxShadow: "0 4px 30px hsl(var(--primary) / 0.7)" },
+        },
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
@@ -116,6 +120,7 @@ export default {
         "slide-up": "slide-up 0.4s ease-out",
         "fade-in": "fade-in 0.3s ease-out",
         shimmer: "shimmer 2s infinite linear",
+        "pulse-glow": "pulse-glow 2s ease-in-out infinite",
       },
     },
   },
