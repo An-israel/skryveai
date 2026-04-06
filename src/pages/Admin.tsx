@@ -702,6 +702,17 @@ export default function Admin() {
                             )}
                           </TableCell>
                           <TableCell>
+                            <div className="flex flex-wrap gap-1 max-w-48">
+                              {user.productsUsed?.length > 0 ? user.productsUsed.map((p: string) => (
+                                <Badge key={p} variant="outline" className="text-[10px] px-1.5 py-0">
+                                  {p}
+                                </Badge>
+                              )) : (
+                                <span className="text-xs text-muted-foreground">None</span>
+                              )}
+                            </div>
+                          </TableCell>
+                          <TableCell>
                             <Badge variant={user.subscriptions?.status === "active" ? "default" : "secondary"}>
                               {user.subscriptions?.status || "none"}
                             </Badge>
