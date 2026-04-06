@@ -3,7 +3,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Progress } from "@/components/ui/progress";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { formatDistanceToNow, subDays, subMonths, differenceInDays, startOfMonth, endOfMonth, format } from "date-fns";
@@ -12,8 +11,8 @@ import {
   BarChart, Bar, PieChart, Pie, Cell,
 } from "recharts";
 import {
-  TrendingUp, Users, Zap, CreditCard, ArrowUpRight, ArrowDownRight,
-  Target, Loader2, RefreshCw, DollarSign, Percent, Gift, BarChart3,
+  Users, Zap, ArrowDownRight,
+  Loader2, RefreshCw, Percent, Gift,
 } from "lucide-react";
 
 
@@ -175,9 +174,6 @@ export function GrowthDashboard() {
     }
   };
 
-  // Find current MRR target
-  const currentTarget = MRR_TARGETS.find(t => metrics.currentMRR < t.target) || MRR_TARGETS[MRR_TARGETS.length - 1];
-  const mrrProgress = Math.min(100, Math.round((metrics.currentMRR / currentTarget.target) * 100));
 
   const COLORS = ["hsl(var(--primary))", "hsl(var(--chart-2))", "hsl(var(--chart-3))", "hsl(var(--chart-4))"];
 
