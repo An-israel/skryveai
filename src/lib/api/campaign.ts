@@ -58,10 +58,22 @@ export const campaignApi = {
   async analyzeWebsite(
     url: string,
     businessName: string,
-    options?: { socialOnly?: boolean; socialHandles?: { linkedin?: string; instagram?: string; facebook?: string } }
+    options?: {
+      socialOnly?: boolean;
+      socialHandles?: { linkedin?: string; instagram?: string; facebook?: string; tiktok?: string; twitter?: string };
+      expertise?: string;
+      cta?: string;
+    }
   ): Promise<AnalyzeWebsiteResult> {
     const { data, error } = await supabase.functions.invoke<AnalyzeWebsiteResult>("analyze-website", {
-      body: { url: url || undefined, businessName, socialOnly: options?.socialOnly, socialHandles: options?.socialHandles },
+      body: {
+        url: url || undefined,
+        businessName,
+        socialOnly: options?.socialOnly,
+        socialHandles: options?.socialHandles,
+        expertise: options?.expertise,
+        cta: options?.cta,
+      },
     });
 
     if (error) {
@@ -80,10 +92,12 @@ export const campaignApi = {
     businessName: string,
     website: string,
     issues: AnalysisIssue[],
-    freelancerService?: string
+    freelancerService?: string,
+    expertise?: string,
+    cta?: string
   ): Promise<GeneratePitchResult> {
     const { data, error } = await supabase.functions.invoke<GeneratePitchResult>("generate-pitch", {
-      body: { businessName, website, issues, freelancerService },
+      body: { businessName, website, issues, freelancerService, expertise, cta },
     });
 
     if (error) {

@@ -16,6 +16,8 @@ interface PitchRequest {
     description: string;
   }>;
   freelancerService?: string;
+  expertise?: string;
+  cta?: string;
   investorPitch?: {
     industry: string;
     businessName: string;
@@ -100,7 +102,7 @@ serve(async (req) => {
       throw new Error("LOVABLE_API_KEY is not configured");
     }
 
-    const { businessName, website, issues, freelancerService, investorPitch }: PitchRequest = await req.json();
+    const { businessName, website, issues, freelancerService, expertise, cta, investorPitch }: PitchRequest = await req.json();
 
     // Input validation
     if (!businessName) {
@@ -264,61 +266,82 @@ ABSOLUTELY DO NOT:
         ? `Branding Issues:\n${brandingIssues.map(i => `- ${i.title}: ${i.description}`).join("\n")}`
         : "";
 
-      const ctaInstruction = profileData.calendlyUrl 
-        ? `End with: "Would it help if I showed you exactly what I'd change? Here's my calendar if 15 minutes works: ${profileData.calendlyUrl.substring(0, 200)}"`
-        : `End with a simple question they can reply "yes" to. Example: "Would it help if I put together a quick mockup showing what I'd change? Just reply 'yes' and I'll send it over."`;
+      // Determine the freelancer's expertise for this campaign
+      const freelancerExpertise = expertise || (profileData.expertise.length > 0 ? profileData.expertise.join(", ") : profileData.serviceDescription);
 
-      systemMessage = "You write cold emails that get replies. You are direct, specific, and never sound like a template. Every email reads like it was written by a real person who spent 5 minutes researching the recipient. Always respond with valid JSON via tool calls.";
+      // Build CTA instruction based on what the user selected
+      let ctaInstruction: string;
+      const ctaLower = (cta || "").toLowerCase();
+      if (ctaLower.includes("book") || ctaLower.includes("call") || ctaLower.includes("schedule")) {
+        ctaInstruction = profileData.calendlyUrl
+          ? `End with a call-booking CTA. Include this link: ${profileData.calendlyUrl.substring(0, 200)}`
+          : `End by asking them to hop on a quick 15-minute call. Suggest they reply with their availability.`;
+      } else if (ctaLower.includes("reply") || ctaLower.includes("message") || ctaLower.includes("yes")) {
+        ctaInstruction = `End with a yes/no question they can easily reply to. Make it low-friction. Example: "Would it help if I put together a quick example showing what I'd change? Just reply 'yes' and I'll send it over."`;
+      } else if (ctaLower.includes("portfolio") || ctaLower.includes("work") || ctaLower.includes("sample")) {
+        ctaInstruction = profileData.portfolioUrl
+          ? `End by inviting them to see your portfolio: ${profileData.portfolioUrl.substring(0, 200)}`
+          : `End by inviting them to see examples of your work or ask if you can send samples.`;
+      } else if (ctaLower.includes("audit") || ctaLower.includes("mockup") || ctaLower.includes("free")) {
+        ctaInstruction = `End by offering a free audit, quick mockup, or sample relevant to your ${freelancerExpertise} work. Make it irresistible and zero-risk.`;
+      } else if (cta && cta.trim().length > 0) {
+        // Custom CTA
+        ctaInstruction = `End with this specific call-to-action: "${cta.trim()}"`;
+      } else {
+        ctaInstruction = profileData.calendlyUrl
+          ? `End with this booking link: ${profileData.calendlyUrl.substring(0, 200)}`
+          : `End with a simple yes/no question they can reply to easily.`;
+      }
 
-      pitchPrompt = `You are writing a cold outreach email that MUST get a reply. Study these real examples of high-converting cold emails and match their style:
+      systemMessage = `You write cold emails that get replies. You are a ${freelancerExpertise} writing to a potential client. You are direct, specific, and never sound like a template. Every email reads like it was written by a real expert who spent time researching the recipient. Always respond with valid JSON via tool calls.`;
 
-EXAMPLE OPENER STYLES (vary these — never start with "I noticed"):
-- "Quick question about [their company]'s [specific thing]..."  
-- "Been looking at [company]'s LinkedIn and had a thought..."
-- "[Company name] keeps coming up in my feed — and I think there's a gap in how you're..."
-- "Your website says [specific quote from their site]. Here's what visitors probably think..."
-- "3 things I'd change about [company]'s Instagram tomorrow..."
+      pitchPrompt = `You are a ${freelancerExpertise} writing a cold outreach email to a potential client. This email MUST get a reply.
 
-About You (the Freelancer):
-- Name: ${profileData.fullName.substring(0, 100)}
-- Skills: ${profileData.expertise.length > 0 ? profileData.expertise.slice(0, 5).join(", ") : profileData.serviceDescription.substring(0, 200)}
-- Experience: ${(profileData.bio || "Experienced freelancer").substring(0, 300)}
-${profileData.portfolioUrl ? `- Portfolio: ${profileData.portfolioUrl.substring(0, 200)}` : ""}
+YOUR ROLE: ${freelancerExpertise}
+Your Name: ${profileData.fullName.substring(0, 100)}
+Your Background: ${(profileData.bio || "Experienced professional").substring(0, 300)}
+${profileData.portfolioUrl ? `Your Portfolio: ${profileData.portfolioUrl.substring(0, 200)}` : ""}
 
-Target Business:
+TARGET BUSINESS:
 - Name: ${sanitizedBusinessName}
 - Website: ${sanitizedWebsite}
 
-MOST PAINFUL ISSUE (lead with this):
+PROBLEMS YOU FOUND (as a ${freelancerExpertise}):
+
+MOST URGENT ISSUE — Lead with this:
 [${topIssue.category.toUpperCase()}] ${topIssue.title}: ${topIssue.description}
 
 ${websiteIssuesSummary}
 ${socialIssuesSummary}
 ${brandingIssuesSummary}
 
-RULES FOR THE EMAIL:
-1. SUBJECT LINE: Max 6 words. Curious, specific, NOT salesy. No emojis. Example: "Quick thought about [company]'s [thing]"
-2. OPENER (first sentence): Jump straight into their #1 pain point. Be specific about THEIR business.
-3. BODY: 
-   - Pick 1-2 issues maximum (the most painful ones)
-   - Explain the COST of not fixing it (lost clients, lost revenue, looking unprofessional)
-   - Show you understand their business specifically
-   - If social media issues exist, mention ONE specific thing (e.g., "Your LinkedIn hasn't posted in 3 weeks" or "Your Instagram bio doesn't tell visitors what to do next")
-4. PROOF: One brief line connecting your expertise to their problem (not a resume dump)
-5. CTA: ${ctaInstruction}
-6. LENGTH: 100-150 words MAXIMUM. Short paragraphs. No walls of text.
-7. TONE: Like a helpful peer, not a vendor. Conversational. Zero corporate jargon.
-8. Sign off with just your first name.
+EXAMPLE OPENER STYLES (vary — never start with "I noticed"):
+- "Quick question about [company]'s [specific ${freelancerExpertise.split(" ")[0].toLowerCase()} thing]..."
+- "Been looking at [company]'s [relevant channel] and had a thought..."
+- "[Company name]'s [specific element] caught my eye — and I think there's a gap..."
+- "Your [website/Instagram/LinkedIn] says [specific thing]. Here's what [their audience] probably thinks..."
+
+RULES:
+1. SUBJECT LINE: Max 6 words. Specific to their business. No emojis. Curious, not salesy.
+2. OPENER: Lead with their #1 pain point from YOUR ${freelancerExpertise} perspective — reference something SPECIFIC you actually observed.
+3. BODY:
+   - Max 1-2 issues (the most painful for their business)
+   - Explain the cost of NOT fixing it (lost clients, lost revenue, lost credibility)
+   - ONE line showing you understand their specific situation
+   - ONE line of social proof connecting YOUR ${freelancerExpertise} expertise to their problem (not a resume dump)
+4. CTA: ${ctaInstruction}
+5. LENGTH: 100-150 words MAXIMUM. Short paragraphs.
+6. TONE: Peer-to-peer, helpful, zero corporate jargon
+7. Sign off with just your first name
 
 ABSOLUTELY DO NOT:
 - Start with "I noticed" or "I came across" or "I hope this finds you"
-- Use exclamation marks more than once
-- Promise specific numbers ("increase by 200%")  
-- List more than 2 problems
+- Promise specific percentages or guarantees
+- Mention more than 2 problems
 - Write more than 150 words
 - Sound like AI wrote it
-- Use the word "leverage" or "synergy" or "game-changer"
-- Include "Best regards" — just use your first name`;
+- Use "leverage", "synergy", or "game-changing"
+- End with "Best regards"`;
     }
 
     const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {

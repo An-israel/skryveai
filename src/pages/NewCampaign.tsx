@@ -9,7 +9,8 @@ import { AnalyzeStep } from "@/components/campaign/AnalyzeStep";
 import { PitchStep } from "@/components/campaign/PitchStep";
 import { SendStep } from "@/components/campaign/SendStep";
 import { CampaignTypeSelector, type CampaignType } from "@/components/campaign/CampaignTypeSelector";
-import { DirectClientStep } from "@/components/campaign/DirectClientStep";
+import { DirectClientStep, type SocialHandles } from "@/components/campaign/DirectClientStep";
+import { ExpertiseStep } from "@/components/campaign/ExpertiseStep";
 import { InvestorSearchStep, type InvestorPitchData } from "@/components/campaign/InvestorSearchStep";
 import { JobSearchStep } from "@/components/campaign/JobSearchStep";
 import { JobSelectStep } from "@/components/campaign/JobSelectStep";
@@ -72,6 +73,8 @@ export default function NewCampaign() {
   const [queuedCount, setQueuedCount] = useState(0);
   const [campaignId, setCampaignId] = useState<string>();
   const [searchParams, setSearchParams] = useState({ businessType: "", location: "" });
+  const [campaignExpertise, setCampaignExpertise] = useState("");
+  const [campaignCta, setCampaignCta] = useState("");
   const [teamProfiles, setTeamProfiles] = useState<TeamProfile[]>([]);
   const [selectedTeamProfile, setSelectedTeamProfile] = useState<TeamProfile | null>(null);
   const [teamInfo, setTeamInfo] = useState<TeamInfo | null>(null);
@@ -188,35 +191,41 @@ export default function NewCampaign() {
   const handleDirectClient = async (
     businessName: string,
     website: string,
-    socialOnly?: boolean,
-    socialHandles?: { linkedin?: string; instagram?: string; facebook?: string }
+    socialHandles?: SocialHandles
   ) => {
     setIsLoading(true);
-    setSearchParams({ businessType: "Direct Client", location: socialOnly ? "Social Analysis" : website });
-    
+    const hasWebsite = !!website.trim();
+    const hasSocial = !!(socialHandles && Object.values(socialHandles).some((v) => v?.trim()));
+    setSearchParams({ businessType: "Direct Client", location: hasWebsite ? website : "Social Media Analysis" });
+
     try {
       const business: Business = {
         id: crypto.randomUUID(),
         name: businessName,
-        address: socialOnly ? "Social Media Analysis" : website,
-        website: socialOnly ? undefined : (website.startsWith("http") ? website : `https://${website}`),
+        address: hasWebsite ? website : "Social Media Analysis",
+        website: hasWebsite ? (website.startsWith("http") ? website : `https://${website}`) : undefined,
         selected: true,
       };
-      
-      // Store social-only params for analysis step
-      if (socialOnly && socialHandles) {
-        sessionStorage.setItem("social_only_analysis", JSON.stringify({ socialOnly: true, socialHandles }));
+
+      // Store social handles and social-only flag for analysis step
+      if (hasSocial) {
+        sessionStorage.setItem(
+          "social_only_analysis",
+          JSON.stringify({ socialOnly: !hasWebsite, socialHandles })
+        );
       } else {
         sessionStorage.removeItem("social_only_analysis");
       }
-      
+
       setBusinesses([business]);
       setSelectedBusinesses([business]);
-      
-      setCompletedSteps(['search', 'select']);
-      setCurrentStep('analyze');
-      
-      toast({ title: "Client Added", description: `Ready to analyze ${businessName}'s ${socialOnly ? 'social media' : 'online presence'}.` });
+      setCompletedSteps(["search", "select"]);
+      setCurrentStep("analyze");
+
+      toast({
+        title: "Client Added",
+        description: `Ready to analyze ${businessName}'s online presence.`,
+      });
     } catch (error) {
       toast({ title: "Error", description: "Failed to set up client analysis.", variant: "destructive" });
     } finally {
@@ -342,9 +351,13 @@ export default function NewCampaign() {
         const analysisResult = await campaignApi.analyzeWebsite(
           business.website || "",
           business.name,
-          socialOnlyParams ? { socialOnly: true, socialHandles: socialOnlyParams.socialHandles } : undefined
+          {
+            ...(socialOnlyParams ? { socialOnly: socialOnlyParams.socialOnly, socialHandles: socialOnlyParams.socialHandles } : {}),
+            expertise: campaignExpertise,
+            cta: campaignCta,
+          }
         );
-        
+
         newAnalyses[business.id] = {
           businessId: business.id,
           issues: analysisResult.issues,
@@ -352,7 +365,7 @@ export default function NewCampaign() {
           analyzed: true,
           analyzedAt: analysisResult.analyzedAt,
         };
-        
+
         if (analysisResult.email && !business.email) {
           const updatedBusiness = { ...business, email: analysisResult.email };
           setSelectedBusinesses(prev => prev.map(b => b.id === business.id ? updatedBusiness : b));
@@ -364,7 +377,10 @@ export default function NewCampaign() {
           const pitchResult = await campaignApi.generatePitch(
             business.name,
             business.website,
-            analysisResult.issues
+            analysisResult.issues,
+            undefined,
+            campaignExpertise,
+            campaignCta
           );
           
           newPitches[business.id] = {
@@ -441,7 +457,7 @@ export default function NewCampaign() {
     
     if (business && analysis && business.website) {
       try {
-        const pitchResult = await campaignApi.generatePitch(business.name, business.website, analysis.issues);
+        const pitchResult = await campaignApi.generatePitch(business.name, business.website, analysis.issues, undefined, campaignExpertise, campaignCta);
         setPitches({ ...pitches, [businessId]: { businessId, subject: pitchResult.subject, body: pitchResult.body, edited: false, approved: false } });
         toast({ title: "Pitch regenerated" });
       } catch (error) {
@@ -817,6 +833,36 @@ export default function NewCampaign() {
     );
   }
 
+  // Expertise gate for freelancer/direct client campaigns
+  if (
+    (campaignType === "freelancer" || campaignType === "direct_client") &&
+    !campaignExpertise
+  ) {
+    return (
+      <div className="min-h-screen bg-background">
+        <Header isAuthenticated={true} onLogout={handleLogout} />
+        <main className="container mx-auto px-4 pt-24 pb-12">
+          <div className="max-w-3xl mx-auto mb-4">
+            <Button variant="ghost" size="sm" onClick={() => setCampaignType(null)}>
+              <ArrowLeft className="w-4 h-4 mr-1" />
+              Change campaign type
+            </Button>
+          </div>
+          <AnimatePresence mode="wait">
+            <ExpertiseStep
+              key="expertise"
+              onProceed={(expertise, cta) => {
+                setCampaignExpertise(expertise);
+                setCampaignCta(cta);
+              }}
+              onBack={() => setCampaignType(null)}
+            />
+          </AnimatePresence>
+        </main>
+      </div>
+    );
+  }
+
   // Campaign type selection screen
   if (!campaignType) {
     return (
@@ -876,7 +922,7 @@ export default function NewCampaign() {
         {/* Back to campaign type selector */}
         {currentStep === 'search' && (
           <div className="max-w-3xl mx-auto mb-4">
-            <Button variant="ghost" size="sm" onClick={() => setCampaignType(null)}>
+            <Button variant="ghost" size="sm" onClick={() => { setCampaignType(null); setCampaignExpertise(""); setCampaignCta(""); }}>
               <ArrowLeft className="w-4 h-4 mr-1" />
               Change campaign type
             </Button>
@@ -893,7 +939,7 @@ export default function NewCampaign() {
             )}
             
             {/* Direct Client flow: DirectClientStep → Analyze → Pitch → Send */}
-            {campaignType === "direct_client" && currentStep === 'search' && (
+            {campaignType === "direct_client" && currentStep === "search" && (
               <DirectClientStep key="direct-client" onSubmit={handleDirectClient} isLoading={isLoading} />
             )}
             

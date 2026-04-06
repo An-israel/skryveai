@@ -9,16 +9,20 @@ const corsHeaders = {
 interface AnalyzeRequest {
   url?: string;
   businessName: string;
+  expertise?: string;
+  cta?: string;
   socialOnly?: boolean;
   socialHandles?: {
     linkedin?: string;
     instagram?: string;
     facebook?: string;
+    tiktok?: string;
+    twitter?: string;
   };
 }
 
 interface AnalysisIssue {
-  category: 'website_copy' | 'linkedin' | 'instagram' | 'facebook' | 'branding' | 'cta' | 'seo' | 'design' | 'social' | 'copywriting' | 'performance';
+  category: 'website_copy' | 'linkedin' | 'instagram' | 'facebook' | 'tiktok' | 'twitter' | 'branding' | 'cta' | 'seo' | 'design' | 'social' | 'copywriting' | 'performance' | 'video';
   severity: 'low' | 'medium' | 'high';
   title: string;
   description: string;
@@ -210,6 +214,7 @@ function extractSocialLinks(links: string[]): Record<string, string | null> {
     instagram: null,
     facebook: null,
     twitter: null,
+    tiktok: null,
   };
 
   for (const link of links) {
@@ -225,6 +230,9 @@ function extractSocialLinks(links: string[]): Record<string, string | null> {
     }
     if (!social.twitter && (lower.includes('twitter.com/') || lower.includes('x.com/'))) {
       social.twitter = link;
+    }
+    if (!social.tiktok && lower.includes('tiktok.com/')) {
+      social.tiktok = link;
     }
   }
 
@@ -276,6 +284,8 @@ function formatSocialUrl(platform: string, handle: string): string {
     case 'linkedin': return `https://www.linkedin.com/company/${cleaned}`;
     case 'instagram': return `https://www.instagram.com/${cleaned}`;
     case 'facebook': return `https://www.facebook.com/${cleaned}`;
+    case 'tiktok': return `https://www.tiktok.com/@${cleaned}`;
+    case 'twitter': return `https://x.com/${cleaned}`;
     default: return cleaned;
   }
 }
@@ -351,7 +361,7 @@ serve(async (req) => {
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
 
-    const { url, businessName, socialOnly, socialHandles }: AnalyzeRequest = await req.json();
+    const { url, businessName, expertise, cta, socialOnly, socialHandles }: AnalyzeRequest = await req.json();
 
     // Validate inputs
     if (!socialOnly && !url) {
@@ -411,13 +421,14 @@ serve(async (req) => {
         linkedin: socialHandles?.linkedin ? formatSocialUrl('linkedin', socialHandles.linkedin) : null,
         instagram: socialHandles?.instagram ? formatSocialUrl('instagram', socialHandles.instagram) : null,
         facebook: socialHandles?.facebook ? formatSocialUrl('facebook', socialHandles.facebook) : null,
-        twitter: null,
+        tiktok: socialHandles?.tiktok ? formatSocialUrl('tiktok', socialHandles.tiktok) : null,
+        twitter: socialHandles?.twitter ? formatSocialUrl('twitter', socialHandles.twitter) : null,
       };
 
       // Scrape all provided social profiles
       const socialScrapePromises: Record<string, Promise<string>> = {};
       for (const [platform, socialUrl] of Object.entries(socialLinks)) {
-        if (socialUrl) {
+        if (socialUrl && platform !== 'twitter') { // X/Twitter blocks scrapers
           socialScrapePromises[platform] = scrapeSocialProfile(socialUrl, FIRECRAWL_API_KEY);
         }
       }
@@ -436,7 +447,11 @@ serve(async (req) => {
       for (const [platform, socialUrl] of Object.entries(socialLinks)) {
         if (socialUrl) {
           socialMediaContext += `\n\n--- ${platform.toUpperCase()} PROFILE (${socialUrl}) ---\n`;
-          socialMediaContext += socialResults[platform] || `[Could not scrape ${platform}]`;
+          if (platform === 'twitter') {
+            socialMediaContext += `[Link found but X/Twitter cannot be scraped — note its presence in analysis]`;
+          } else {
+            socialMediaContext += socialResults[platform] || `[Could not scrape ${platform}]`;
+          }
         }
       }
 
@@ -448,38 +463,32 @@ serve(async (req) => {
       }
 
       const sanitizedBusinessName = (businessName || "Unknown Business").replace(/[<>{}[\]\\]/g, '').substring(0, 100);
+      const campaignExpertise = expertise || userExpertise || "general digital services";
 
-      // Social-only AI analysis
-      const analysisPrompt = `You are a senior social media strategist auditing a business's social media presence. Find REAL problems costing them followers, engagement, and ultimately clients/money.
+      // Social-only AI analysis — expertise-driven
+      const analysisPrompt = `You are analyzing a business's social media presence on behalf of a ${campaignExpertise}. Your job is to find REAL problems that a ${campaignExpertise} could directly help this business fix.
 
 BUSINESS: ${sanitizedBusinessName}
 
-== FREELANCER CONTEXT ==
-Their expertise: ${userExpertise || "general digital services"}
-Their services: ${userService || "social media management and digital marketing"}
-Their background: ${(userBio || "Professional freelancer").substring(0, 300)}
-Only identify issues this freelancer can realistically help fix.
+== THE FREELANCER'S EXPERTISE ==
+Role: ${campaignExpertise}
+Profile expertise: ${userExpertise || "not specified"}
+Services: ${userService || "not specified"}
+Background: ${(userBio || "Professional freelancer").substring(0, 200)}
+
+CRITICAL INSTRUCTION: Only identify issues that a ${campaignExpertise} can realistically fix. Do NOT flag problems outside the scope of ${campaignExpertise} work. For example, if they are a Graphic Designer, focus only on visual/design problems — not copywriting or SEO.
 
 == SOCIAL MEDIA PROFILES ==
 ${socialMediaContext.substring(0, 10000)}
 
-== ANALYSIS INSTRUCTIONS ==
+== WHAT TO LOOK FOR ==
 
-CRITICAL: Focus ONLY on issues that are PRACTICALLY making this business LOSE FOLLOWERS, LOSE ENGAGEMENT, or LOSE CLIENTS through their social media.
-
-Analyze each provided platform deeply:
-
-1. **LINKEDIN (linkedin)**: Is their company/personal page optimized? Bio compelling? Posting consistently? Content engaging or generic? Could they attract more B2B leads? Are they missing keywords? Banner image professional?
-
-2. **INSTAGRAM (instagram)**: Bio optimized with clear CTA and link? Highlights organized? Posting frequency? Design quality of posts? Are their graphics amateur? Hashtag strategy? Engagement rate? Reels usage? Could better content drive more followers and sales?
-
-3. **FACEBOOK (facebook)**: Page description compelling? Cover photo professional? Posting frequency? Community engagement? Missing reviews? Could drive more local leads?
-
-For each issue found (find 4-8):
-- Be SPECIFIC — reference their actual content, bio text, post quality
-- Explain exactly HOW this costs them money/clients/followers
-- Rate severity: "high" = losing revenue/followers now, "medium" = significant missed opportunity
-- Keep descriptions action-oriented`;
+Analyze each provided platform and find 4-8 real problems a ${campaignExpertise} could solve:
+- Be SPECIFIC — reference their actual content, bio, post quality, visual style
+- Explain exactly HOW each issue costs them followers, clients, or revenue
+- Rate severity: "high" = losing revenue/clients now, "medium" = big missed opportunity
+- Keep descriptions action-oriented: what's wrong and what fixing it would achieve
+- ONLY flag issues within the ${campaignExpertise}'s skill set`;
 
       const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
         method: "POST",
@@ -506,7 +515,7 @@ For each issue found (find 4-8):
                     items: {
                       type: "object",
                       properties: {
-                        category: { type: "string", enum: ["linkedin", "instagram", "facebook", "branding", "cta"] },
+                        category: { type: "string", enum: ["linkedin", "instagram", "facebook", "tiktok", "twitter", "branding", "cta", "copywriting", "design", "video", "seo", "website_copy", "social", "performance"] },
                         severity: { type: "string", enum: ["low", "medium", "high"] },
                         title: { type: "string" },
                         description: { type: "string" }
@@ -599,13 +608,23 @@ For each issue found (find 4-8):
 
     console.log(`Scraped ${websiteContent.length} chars of website content`);
 
-    // Extract social media links and scrape them
+    // Extract social media links from site + merge manually provided handles
     const socialLinks = extractSocialLinks(links);
-    console.log("Social links found:", JSON.stringify(socialLinks));
+
+    // Merge manually provided social handles (override auto-detected)
+    if (socialHandles) {
+      if (socialHandles.linkedin) socialLinks.linkedin = formatSocialUrl('linkedin', socialHandles.linkedin);
+      if (socialHandles.instagram) socialLinks.instagram = formatSocialUrl('instagram', socialHandles.instagram);
+      if (socialHandles.facebook) socialLinks.facebook = formatSocialUrl('facebook', socialHandles.facebook);
+      if (socialHandles.tiktok) socialLinks.tiktok = formatSocialUrl('tiktok', socialHandles.tiktok);
+      if (socialHandles.twitter) socialLinks.twitter = formatSocialUrl('twitter', socialHandles.twitter);
+    }
+
+    console.log("Social links (merged):", JSON.stringify(socialLinks));
 
     const socialScrapePromises: Record<string, Promise<string>> = {};
     for (const [platform, socialUrl] of Object.entries(socialLinks)) {
-      if (socialUrl && platform !== 'twitter') {
+      if (socialUrl && platform !== 'twitter') { // X/Twitter blocks scrapers
         socialScrapePromises[platform] = scrapeSocialProfile(socialUrl, FIRECRAWL_API_KEY);
       }
     }
@@ -646,22 +665,37 @@ For each issue found (find 4-8):
     }
 
     if (socialLinks.twitter) {
-      socialMediaContext += `\n\n--- TWITTER/X: Link found (${socialLinks.twitter}) but not scraped ---`;
+      socialMediaContext += `\n\n--- TWITTER/X: Profile found (${socialLinks.twitter}) — note presence but cannot scrape ---`;
+    }
+    if (socialLinks.tiktok) {
+      socialMediaContext += `\n\n--- TIKTOK (${socialLinks.tiktok}) ---\n`;
+      socialMediaContext += socialResults.tiktok || "[Could not scrape TikTok]";
+    } else {
+      socialMediaContext += "\n\n--- TIKTOK: No TikTok profile found ---";
     }
 
     const sanitizedBusinessName = (businessName || "Unknown Business").replace(/[<>{}[\]\\]/g, '').substring(0, 100);
+    const campaignExpertise = expertise || userExpertise || "general digital services";
 
-    // AI analysis focusing on HIGH-IMPACT pain points
-    const analysisPrompt = `You are a senior digital marketing consultant auditing a business's ENTIRE online presence. Your job is to identify REAL problems that are actively costing this business money, clients, and growth.
+    // Expertise-driven full analysis prompt
+    const analysisPrompt = `You are analyzing a business's ENTIRE online presence on behalf of a ${campaignExpertise}. Your goal is to find REAL problems that a ${campaignExpertise} could directly fix for this business.
 
 BUSINESS: ${sanitizedBusinessName}
 WEBSITE: ${formattedUrl}
 
-== FREELANCER CONTEXT (the person who will pitch to fix these issues) ==
-Their expertise: ${userExpertise || "general digital services"}
-Their services: ${userService || "web development and digital marketing"}
-Their background: ${(userBio || "Professional freelancer").substring(0, 300)}
-Only identify issues that this freelancer can realistically help fix based on their skills.
+== THE FREELANCER'S EXPERTISE ==
+Role: ${campaignExpertise}
+Profile skills: ${userExpertise || "not specified"}
+Services: ${userService || "not specified"}
+Background: ${(userBio || "Professional freelancer").substring(0, 200)}
+
+CRITICAL INSTRUCTION: Only identify problems that a ${campaignExpertise} can realistically solve. Do NOT report issues outside this expertise. For example:
+- A Copywriter should flag copy, messaging, and CTA problems — not design or development issues
+- A Graphic Designer should flag visual, branding, and design problems — not copy or SEO issues
+- A Social Media Manager should flag content strategy and social presence problems — not technical development issues
+- A Web Developer should flag UX, functionality, and conversion structure problems — not copy or social strategy
+- An SEO Specialist should flag content gaps, keyword usage, and site structure — not design or social presence
+Be strict about this: ONLY issues the ${campaignExpertise} can fix.
 
 == WEBSITE CONTENT ==
 Page Title: ${(metadata.title || "Unknown").substring(0, 200)}
@@ -673,36 +707,21 @@ ${websiteContent.substring(0, 6000)}
 == SOCIAL MEDIA PROFILES ==
 ${socialMediaContext.substring(0, 8000)}
 
-== ANALYSIS INSTRUCTIONS ==
+== HOW TO ANALYZE ==
 
-CRITICAL: Focus ONLY on issues that are PRACTICALLY making this business LOSE MONEY or LOSE CLIENTS. Skip minor technical issues like metadata, alt tags, sitemaps, page speed scores. Those don't make businesses reply to cold emails.
-
-Analyze these areas and find 4-8 high-impact issues:
-
-1. **WEBSITE COPY (website_copy)**: Is the website copy compelling? Does it clearly communicate what they do, who they serve, and why someone should choose them? Is it outdated, full of jargon, or does it fail to convert visitors into leads? Does it need rewriting?
-
-2. **LINKEDIN (linkedin)**: Is their LinkedIn company page or personal profile optimized? Check their posting strategy - are they posting consistently? Is the content engaging or generic? Is their bio/about section compelling? Could better LinkedIn presence drive them more B2B leads?
-
-3. **INSTAGRAM (instagram)**: How is their Instagram page? Is it optimized (bio, highlights, link in bio)? What's their posting strategy and frequency? Are their designs professional or amateur? Could you help them get more followers, better engagement, better content? Compare their design quality to what the freelancer could deliver.
-
-4. **FACEBOOK (facebook)**: Is their Facebook page active and optimized? Is the page description compelling? Are they posting? Could their Facebook presence be driving more local leads?
-
-5. **BRANDING & DESIGN (branding)**: Overall visual identity across website and social media - is it cohesive? Are their social media graphics low quality? Could a designer significantly improve their visual presence?
-
-6. **CALLS TO ACTION (cta)**: Are there clear, compelling CTAs on the website? Can visitors easily book/buy/contact? Are they missing obvious conversion opportunities?
+Find 4-8 high-impact issues that:
+1. Are SPECIFIC to this business (reference their actual content, words, designs, post style)
+2. Are within the ${campaignExpertise}'s skill set to fix
+3. Are COSTING this business money, clients, or growth right now
+4. Would make a business owner say "I need to fix this"
 
 For each issue:
-- Make it SPECIFIC to this business (reference their actual content, their actual social media)
-- Explain HOW this is costing them money or clients
-- Rate severity: "high" = actively losing revenue/clients right now, "medium" = significant missed opportunity, "low" = nice improvement
-- Keep descriptions action-oriented: what's wrong and what the fix would achieve
+- Severity: "high" = actively losing clients/revenue now, "medium" = big missed opportunity, "low" = solid improvement
+- Reference SPECIFIC things you observed — actual copy text, post quality, missing sections, design style
+- Explain the COST of not fixing it
+- Category must match the type of issue (website_copy, linkedin, instagram, facebook, tiktok, branding, cta, design, copywriting, seo, video, social)
 
-DO NOT include:
-- Generic SEO metadata issues
-- Page speed / performance scores
-- Alt text missing
-- Sitemap issues
-- Any issue that wouldn't make a business owner say "I need to fix this NOW"`;
+DO NOT include: generic SEO metadata, page speed scores, alt text, sitemaps, or any issue unrelated to ${campaignExpertise} work`;
 
     const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
@@ -732,7 +751,7 @@ DO NOT include:
                       properties: {
                         category: { 
                           type: "string", 
-                          enum: ["website_copy", "linkedin", "instagram", "facebook", "branding", "cta"],
+                          enum: ["website_copy", "linkedin", "instagram", "facebook", "tiktok", "twitter", "branding", "cta", "copywriting", "design", "seo", "video", "social", "performance"],
                           description: "The area where the issue was found"
                         },
                         severity: { 
