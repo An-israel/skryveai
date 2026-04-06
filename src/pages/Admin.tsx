@@ -180,11 +180,43 @@ export default function Admin() {
         const { data: subsData } = await supabase
           .from("subscriptions")
           .select("*");
+
+        // Fetch tool usage per user (CV Builder, ATS Checker)
+        const { data: toolUsageData } = await (supabase as any)
+          .from("tool_usage")
+          .select("user_id, tool_name");
+
+        // Fetch campaigns per user
+        const { data: campaignData } = await supabase
+          .from("campaigns")
+          .select("user_id");
+
+        // Fetch autopilot configs per user
+        const { data: autopilotData } = await supabase
+          .from("autopilot_configs")
+          .select("user_id");
+
+        // Build product usage map
+        const productUsageMap = new Map<string, Set<string>>();
+        (toolUsageData || []).forEach((t: any) => {
+          if (!productUsageMap.has(t.user_id)) productUsageMap.set(t.user_id, new Set());
+          const label = t.tool_name === "cv_builder" ? "CV Builder" : t.tool_name === "ats_checker" ? "ATS Checker" : t.tool_name;
+          productUsageMap.get(t.user_id)!.add(label);
+        });
+        (campaignData || []).forEach((c: any) => {
+          if (!productUsageMap.has(c.user_id)) productUsageMap.set(c.user_id, new Set());
+          productUsageMap.get(c.user_id)!.add("Campaigns");
+        });
+        (autopilotData || []).forEach((a: any) => {
+          if (!productUsageMap.has(a.user_id)) productUsageMap.set(a.user_id, new Set());
+          productUsageMap.get(a.user_id)!.add("AutoPilot");
+        });
         
         const subsMap = new Map((subsData || []).map(s => [s.user_id, s]));
         const usersWithSubs = (usersData || []).map(u => ({
           ...u,
           subscriptions: subsMap.get(u.user_id) || null,
+          productsUsed: Array.from(productUsageMap.get(u.user_id) || []),
         }));
         setUsers(usersWithSubs);
       }
