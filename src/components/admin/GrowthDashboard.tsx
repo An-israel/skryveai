@@ -16,19 +16,6 @@ import {
   Target, Loader2, RefreshCw, DollarSign, Percent, Gift, BarChart3,
 } from "lucide-react";
 
-// Revenue targets from SOP
-const MRR_TARGETS = [
-  { month: 1, target: 35000, customers: 5 },
-  { month: 3, target: 210000, customers: 30 },
-  { month: 6, target: 700000, customers: 100 },
-  { month: 12, target: 2800000, customers: 400 },
-];
-
-const PLAN_PRICES: Record<string, number> = {
-  monthly: 7000, // Popular plan as default
-  yearly: 74000 / 12,
-  lifetime: 15000,
-};
 
 export function GrowthDashboard() {
   const [loading, setLoading] = useState(true);
@@ -42,7 +29,6 @@ export function GrowthDashboard() {
     paidUsers: 0,
     trialUsers: 0,
     conversionRate: 0,
-    currentMRR: 0,
     churnedThisMonth: 0,
     churnRate: 0,
     referralSignups: 0,
@@ -102,14 +88,6 @@ export function GrowthDashboard() {
       ).length;
       const conversionRate = activatedUsers > 0 ? Math.round((activatedAndPaid / activatedUsers) * 100) : 0;
 
-      // MRR calculation
-      const currentMRR = subs
-        .filter(s => s.status === "active")
-        .reduce((sum, s) => {
-          const price = PLAN_PRICES[s.plan] || 7000;
-          return sum + price;
-        }, 0);
-
       // Churn this month
       const churnedThisMonth = subs.filter(s =>
         (s.status === "expired" || s.status === "cancelled")
@@ -125,7 +103,7 @@ export function GrowthDashboard() {
       setMetrics({
         totalUsers, newToday, newThisWeek, newThisMonth,
         activatedUsers, activationRate, paidUsers, trialUsers,
-        conversionRate, currentMRR, churnedThisMonth, churnRate,
+        conversionRate, churnedThisMonth, churnRate,
         referralSignups, referralConversions,
       });
 
@@ -251,18 +229,6 @@ export function GrowthDashboard() {
             </p>
           </CardContent>
         </Card>
-        <Card className="border-primary/30">
-          <CardContent className="p-3">
-            <div className="flex items-center gap-1.5 text-primary mb-1">
-              <DollarSign className="w-3.5 h-3.5" />
-              <span className="text-xs">Current MRR</span>
-            </div>
-            <p className="text-xl font-bold">₦{metrics.currentMRR.toLocaleString()}</p>
-            <p className="text-xs text-muted-foreground mt-0.5">
-              Target: ₦{currentTarget.target.toLocaleString()}
-            </p>
-          </CardContent>
-        </Card>
         <Card>
           <CardContent className="p-3">
             <div className="flex items-center gap-1.5 text-destructive mb-1">
@@ -289,34 +255,12 @@ export function GrowthDashboard() {
         </Card>
       </div>
 
-      {/* MRR Target Progress */}
-      <Card>
-        <CardHeader className="pb-2">
-          <div className="flex items-center justify-between">
-            <div>
-              <CardTitle className="text-base flex items-center gap-2">
-                <Target className="w-4 h-4" /> MRR Target Progress
-              </CardTitle>
-              <CardDescription>
-                Month {currentTarget.month} target: ₦{currentTarget.target.toLocaleString()} ({currentTarget.customers} customers)
-              </CardDescription>
-            </div>
-            <Button variant="outline" size="sm" onClick={loadGrowthData} className="gap-1.5">
-              <RefreshCw className="w-3.5 h-3.5" /> Refresh
-            </Button>
-          </div>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-2">
-            <div className="flex justify-between text-sm">
-              <span>₦{metrics.currentMRR.toLocaleString()}</span>
-              <span className="text-muted-foreground">₦{currentTarget.target.toLocaleString()}</span>
-            </div>
-            <Progress value={mrrProgress} className="h-3" />
-            <p className="text-xs text-muted-foreground">{mrrProgress}% of target reached</p>
-          </div>
-        </CardContent>
-      </Card>
+      {/* Refresh Button */}
+      <div className="flex justify-end">
+        <Button variant="outline" size="sm" onClick={loadGrowthData} className="gap-1.5">
+          <RefreshCw className="w-3.5 h-3.5" /> Refresh
+        </Button>
+      </div>
 
       {/* Charts Row */}
       <div className="grid lg:grid-cols-2 gap-6">
