@@ -13,7 +13,7 @@ import {
   LayoutDashboard, Users, CreditCard, FileText, Image, UserCog, Activity,
   Loader2, Plus, Trash2, Edit, Search, Download, RefreshCw, BarChart3,
   Mail, Target, Send, Shield, Coins, Gift, MessageSquare, ClipboardList,
-  CheckCircle, XCircle, MailCheck, ShieldCheck, Wrench, TrendingUp,
+  CheckCircle, XCircle, MailCheck, ShieldCheck, Wrench, TrendingUp, MessageCircle,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -31,6 +31,7 @@ import { AdminEmailTracker } from "@/components/admin/AdminEmailTracker";
 import { ToolUsageTracker } from "@/components/admin/ToolUsageTracker";
 import { CustomerSuccessDashboard } from "@/components/admin/CustomerSuccessDashboard";
 import { GrowthDashboard } from "@/components/admin/GrowthDashboard";
+import { AdminChatManager } from "@/components/admin/AdminChatManager";
 
 interface AdminStats {
   totalUsers: number;
@@ -56,7 +57,7 @@ interface CMSPage {
 }
 
 // Role-based tab definitions
-type TabId = "users" | "campaigns" | "email-queue" | "pages" | "images" | "staff" | "activity" | "ip-addresses" | "credits" | "referrals" | "analytics" | "send-email" | "email-tracker" | "reports" | "page-toggle" | "tool-usage" | "cs-dashboard" | "growth";
+type TabId = "users" | "campaigns" | "email-queue" | "pages" | "images" | "staff" | "activity" | "ip-addresses" | "credits" | "referrals" | "analytics" | "send-email" | "email-tracker" | "reports" | "page-toggle" | "tool-usage" | "cs-dashboard" | "growth" | "chat";
 
 const TAB_PERMISSIONS: Record<TabId, string[]> = {
   "cs-dashboard": ["super_admin", "support_agent"],
@@ -77,6 +78,7 @@ const TAB_PERMISSIONS: Record<TabId, string[]> = {
   "page-toggle": ["super_admin"],
   "tool-usage": ["super_admin", "content_editor", "support_agent"],
   growth: ["super_admin", "staff"],
+  chat: ["super_admin", "support_agent"],
 };
 
 export default function Admin() {
@@ -585,6 +587,7 @@ export default function Admin() {
                 "tool-usage": <Wrench className="w-3.5 h-3.5 shrink-0" />,
                 "cs-dashboard": <Users className="w-3.5 h-3.5 shrink-0" />,
                 growth: <TrendingUp className="w-3.5 h-3.5 shrink-0" />,
+                chat: <MessageCircle className="w-3.5 h-3.5 shrink-0" />,
               };
               const labels: Record<TabId, string> = {
                 "cs-dashboard": "CS Dashboard",
@@ -605,6 +608,7 @@ export default function Admin() {
                 "page-toggle": "Visibility",
                 "tool-usage": "Tool Usage",
                 growth: "Growth",
+                chat: "Live Chat",
               };
               return (
                 <TabsTrigger key={tab} value={tab} className="gap-1 text-xs sm:text-sm px-2 py-1.5">
@@ -1182,6 +1186,13 @@ export default function Admin() {
           {hasTabAccess("growth") && (
             <TabsContent value="growth">
               <GrowthDashboard />
+            </TabsContent>
+          )}
+
+          {/* Live Chat Tab */}
+          {hasTabAccess("chat") && (
+            <TabsContent value="chat">
+              <AdminChatManager />
             </TabsContent>
           )}
         </Tabs>

@@ -30,6 +30,7 @@ import ATSChecker from "./pages/ATSChecker";
 import CampaignDetails from "./pages/CampaignDetails";
 import AutoPilot from "./pages/AutoPilot";
 import EmailReply from "./pages/EmailReply";
+import { ChatWidget } from "@/components/chat/ChatWidget";
 
 const queryClient = new QueryClient();
 
@@ -44,6 +45,7 @@ const App = () => (
         <Toaster />
         <Sonner />
         <BrowserRouter>
+        <ChatWidget />
         <Routes>
           <Route path="/" element={<GuardedRoute><Landing /></GuardedRoute>} />
           <Route path="/login" element={<GuardedRoute><Login /></GuardedRoute>} />
