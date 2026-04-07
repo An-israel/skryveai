@@ -17,6 +17,7 @@ export function Header({ isAuthenticated: isAuthenticatedProp, onLogout }: Heade
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
   const [authState, setAuthState] = useState<boolean>(isAuthenticatedProp ?? false);
+  const [userName, setUserName] = useState<string>("");
   const navigate = useNavigate();
   const location = useLocation();
   const isAutoPilotActive = location.pathname === "/auto-pilot";
@@ -26,6 +27,7 @@ export function Header({ isAuthenticated: isAuthenticatedProp, onLogout }: Heade
       const { data: { session } } = await supabase.auth.getSession();
       setAuthState(!!session);
       if (session) {
+        setUserName(session.user.user_metadata?.full_name || "");
         checkAdminRole(session.user.id);
       }
     };
@@ -34,7 +36,10 @@ export function Header({ isAuthenticated: isAuthenticatedProp, onLogout }: Heade
       setAuthState(isAuthenticatedProp);
       if (isAuthenticatedProp) {
         supabase.auth.getUser().then(({ data: { user } }) => {
-          if (user) checkAdminRole(user.id);
+          if (user) {
+            setUserName(user.user_metadata?.full_name || "");
+            checkAdminRole(user.id);
+          }
         });
       }
     } else {
@@ -43,8 +48,13 @@ export function Header({ isAuthenticated: isAuthenticatedProp, onLogout }: Heade
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setAuthState(!!session);
-      if (session) checkAdminRole(session.user.id);
-      else setIsAdmin(false);
+      if (session) {
+        setUserName(session.user.user_metadata?.full_name || "");
+        checkAdminRole(session.user.id);
+      } else {
+        setIsAdmin(false);
+        setUserName("");
+      }
     });
 
     return () => subscription.unsubscribe();
@@ -133,8 +143,15 @@ export function Header({ isAuthenticated: isAuthenticatedProp, onLogout }: Heade
                 </Link>
               )}
               <NotificationBell />
-              <Link to="/settings" className="p-2 text-muted-foreground hover:text-foreground transition-colors rounded-lg hover:bg-muted/50">
-                <Settings className="w-4 h-4" />
+              <Link to="/settings" className="flex items-center gap-2 px-2.5 py-1.5 text-muted-foreground hover:text-foreground transition-colors rounded-lg hover:bg-muted/50">
+                <div className="w-6 h-6 rounded-full bg-primary/10 text-primary flex items-center justify-center text-xs font-bold uppercase shrink-0">
+                  {userName ? userName.charAt(0) : "U"}
+                </div>
+                {userName && (
+                  <span className="text-sm font-medium max-w-[100px] truncate hidden lg:inline">
+                    {userName.split(" ")[0]}
+                  </span>
+                )}
               </Link>
               <ThemeToggle />
               <div className="w-px h-5 bg-border mx-1" />
