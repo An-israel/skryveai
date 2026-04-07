@@ -143,8 +143,15 @@ export function Header({ isAuthenticated: isAuthenticatedProp, onLogout }: Heade
                 </Link>
               )}
               <NotificationBell />
-              <Link to="/settings" className="p-2 text-muted-foreground hover:text-foreground transition-colors rounded-lg hover:bg-muted/50">
-                <Settings className="w-4 h-4" />
+              <Link to="/settings" className="flex items-center gap-2 px-2.5 py-1.5 text-muted-foreground hover:text-foreground transition-colors rounded-lg hover:bg-muted/50">
+                <div className="w-6 h-6 rounded-full bg-primary/10 text-primary flex items-center justify-center text-xs font-bold uppercase shrink-0">
+                  {userName ? userName.charAt(0) : "U"}
+                </div>
+                {userName && (
+                  <span className="text-sm font-medium max-w-[100px] truncate hidden lg:inline">
+                    {userName.split(" ")[0]}
+                  </span>
+                )}
               </Link>
               <ThemeToggle />
               <div className="w-px h-5 bg-border mx-1" />
