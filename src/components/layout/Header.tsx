@@ -17,6 +17,7 @@ export function Header({ isAuthenticated: isAuthenticatedProp, onLogout }: Heade
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
   const [authState, setAuthState] = useState<boolean>(isAuthenticatedProp ?? false);
+  const [userName, setUserName] = useState<string>("");
   const navigate = useNavigate();
   const location = useLocation();
   const isAutoPilotActive = location.pathname === "/auto-pilot";
