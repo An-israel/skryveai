@@ -29,7 +29,7 @@ const faqs = [
   },
   {
     q: "Is there a free trial?",
-    a: "Yes — you get a 3-day free trial with full access to all features. No credit card required to start.",
+    a: "a: "Yes — you get a 7-day free trial with full access to all features. No credit card required to start.",",
   },
   {
     q: "How does email sending work? Will my emails land in spam?",
