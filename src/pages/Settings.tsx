@@ -216,6 +216,12 @@ export default function Settings() {
       const { error } = await supabase.from("profiles").upsert(profileData, { onConflict: "user_id" });
       if (error) throw error;
 
+      // Sync name + phone into auth user metadata so the Header and other
+      // components that read user.user_metadata immediately see the change.
+      await supabase.auth.updateUser({
+        data: { full_name: fullName, phone: phone || null },
+      });
+
       // Also update user_settings with calendly_url
       await supabase.from("user_settings").upsert({
         user_id: user.id,

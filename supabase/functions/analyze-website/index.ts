@@ -207,6 +207,24 @@ async function findBestEmail(candidates: string[], websiteUrl: string): Promise<
   return null;
 }
 
+// ZeroBounce email verifier — final gate before accepting any email
+// "valid" = confirmed deliverable; "catch-all" = server accepts all (best effort)
+async function verifyEmailViaZeroBounce(
+  apiKey: string,
+  email: string,
+): Promise<{ valid: boolean }> {
+  try {
+    const url = `https://api.zerobounce.net/v2/validate?api_key=${encodeURIComponent(apiKey)}&email=${encodeURIComponent(email)}&ip_address=`;
+    const resp = await fetch(url, { signal: AbortSignal.timeout(10000) });
+    if (!resp.ok) return { valid: false };
+    const data = await resp.json();
+    const status = (data.status || "").toLowerCase();
+    return { valid: status === "valid" || status === "catch-all" };
+  } catch {
+    return { valid: false };
+  }
+}
+
 // Extract social media URLs from links
 function extractSocialLinks(links: string[]): Record<string, string | null> {
   const social: Record<string, string | null> = {
@@ -821,38 +839,39 @@ DO NOT include: generic SEO metadata, page speed scores, alt text, sitemaps, or 
       }
     }
 
-    // Extract email: Try Hunter.io first, then fall back to scraping + MX validation
+    // Extract email: scrape content already fetched by Firecrawl, then ZeroBounce verify
     let email: string | null = null;
-    const HUNTER_API_KEY = Deno.env.get("HUNTER_API_KEY");
-    
-    if (HUNTER_API_KEY && formattedUrl) {
-      try {
-        const domain = new URL(formattedUrl).hostname.replace(/^www\./, "");
-        const hunterUrl = `https://api.hunter.io/v2/domain-search?domain=${encodeURIComponent(domain)}&api_key=${HUNTER_API_KEY}&limit=3`;
-        const hunterResp = await fetch(hunterUrl, { signal: AbortSignal.timeout(6000) });
-        const hunterData = await hunterResp.json();
-        const hunterEmails = hunterData.data?.emails || [];
-        if (hunterEmails.length > 0) {
-          const DEPT = ["info", "contact", "hello", "support", "sales", "admin", "office", "team"];
-          const sorted = [...hunterEmails].sort((a: any, b: any) => {
-            const aD = DEPT.some(p => (a.value || "").split("@")[0]?.toLowerCase() === p);
-            const bD = DEPT.some(p => (b.value || "").split("@")[0]?.toLowerCase() === p);
-            return (bD ? 1000 : 0) + (b.confidence || 0) - ((aD ? 1000 : 0) + (a.confidence || 0));
-          });
-          email = sorted[0].value;
-          console.log(`[Hunter] Found email for analysis: ${email} (confidence: ${sorted[0].confidence})`);
-        }
-      } catch (e) {
-        console.error("[Hunter] Error during analysis email lookup:", e);
-      }
-    }
+    const ZEROBOUNCE_API_KEY = Deno.env.get("ZEROBOUNCE_API_KEY") || null;
 
-    // Fallback to scraped emails if Hunter didn't find anything
-    if (!email) {
-      const rawEmailMatches = (htmlContent + " " + websiteContent).match(
-        /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g
-      );
-      email = await findBestEmail(rawEmailMatches || [], formattedUrl);
+    // Pull all emails from the already-scraped HTML + markdown content
+    const rawEmailMatches = (htmlContent + " " + websiteContent).match(
+      /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g
+    );
+
+    // Also extract mailto: links specifically (highest signal)
+    const mailtoMatches = [...(htmlContent || "").matchAll(/href=["']mailto:([^"'?\s]+)/gi)]
+      .map(m => m[1].toLowerCase().trim());
+
+    // Deduplicate and score all candidates
+    const allCandidates = await findBestEmail(
+      [...mailtoMatches, ...(rawEmailMatches || [])],
+      formattedUrl,
+    );
+
+    if (allCandidates) {
+      if (ZEROBOUNCE_API_KEY) {
+        console.log(`[Email] Scraped candidate: ${allCandidates} — ZeroBounce verifying...`);
+        const { valid } = await verifyEmailViaZeroBounce(ZEROBOUNCE_API_KEY, allCandidates);
+        if (valid) {
+          email = allCandidates;
+          console.log(`[Email] ZeroBounce verified: ${email}`);
+        } else {
+          console.log(`[Email] Failed ZeroBounce: ${allCandidates} — no email returned`);
+        }
+      } else {
+        // No ZeroBounce key — use MX-verified result as-is
+        email = allCandidates;
+      }
     }
 
     console.log(`Analysis complete: ${issues.length} issues found, score: ${overallScore}, email: ${email || 'none'}, social profiles scraped: ${Object.keys(socialResults).length}`);

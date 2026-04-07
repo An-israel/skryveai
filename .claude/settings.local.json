@@ -1,0 +1,25 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git merge:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git push:*)",
+      "Bash(SUPABASE_ACCESS_TOKEN=sbp_64cc14d8940f3c150e95a0975b2346f84f52599f ./supabase.exe functions deploy autopilot-config --project-ref dgyuafltlpruhdlgwiew)",
+      "Bash(SUPABASE_ACCESS_TOKEN=sbp_64cc14d8940f3c150e95a0975b2346f84f52599f ./supabase.exe functions deploy autopilot-config --project-ref dgyuafltlpruhdlgwiew --use-api)",
+      "Bash(SUPABASE_ACCESS_TOKEN=sbp_64cc14d8940f3c150e95a0975b2346f84f52599f ./supabase.exe functions deploy search-businesses --project-ref dgyuafltlpruhdlgwiew --use-api)",
+      "Bash(git pull:*)",
+      "Bash(curl -s -H \"Authorization: Bearer sbp_1eb3ffa4fa0abbc359b60ffc049b8f985831cfa9\" https://api.supabase.com/v1/projects)",
+      "Bash(python3 -c \"import sys,json; data=json.load\\(sys.stdin\\); [print\\(p[''''id''''], p[''''name'''']\\) for p in data]\")",
+      "Bash(SUPABASE_ACCESS_TOKEN=sbp_1eb3ffa4fa0abbc359b60ffc049b8f985831cfa9 ./supabase.exe functions deploy autopilot-config --project-ref uwwmwerdfpyekgshkrft --use-api)",
+      "mcp__Claude_Preview__preview_start",
+      "Bash(npm run:*)",
+      "Bash(npm install:*)",
+      "Bash(npx supabase:*)",
+      "Bash(npx supabase@2.85.0 functions deploy chat-notify)",
+      "Bash(./supabase.exe functions:*)",
+      "Bash(./supabase.exe db:*)",
+      "Bash(./supabase.exe migration:*)"
+    ]
+  }
+}

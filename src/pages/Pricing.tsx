@@ -354,7 +354,7 @@ export default function Pricing() {
         )}
 
         <p className="text-center text-sm text-muted-foreground mt-8">
-          All plans include a 3-day free trial. Cancel anytime.
+          All plans include a 7-day free trial. Cancel anytime.
         </p>
       </div>
     </div>

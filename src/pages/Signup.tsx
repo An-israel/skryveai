@@ -81,6 +81,7 @@ export default function Signup() {
         email: formData.email,
         password: formData.password,
         options: {
+          emailRedirectTo: `${window.location.origin}/login`,
           data: {
             full_name: formData.fullName,
             phone: formData.phone || null,
@@ -195,7 +196,7 @@ export default function Signup() {
                 >
                   Let's Get Started
                 </Button>
-                <p className="text-center text-xs text-muted-foreground mt-2">3-day free trial • No credit card required</p>
+                <p className="text-center text-xs text-muted-foreground mt-2">7-day free trial • No credit card required</p>
               </div>
             </motion.div>
           </motion.div>

@@ -127,123 +127,105 @@ function scoreEmailCandidate(email: string, websiteDomain: string | null): numbe
   return score;
 }
 
-// ─── Hunter.io helpers ────────────────────────────────────────────────────────
+// ─── ZeroBounce email verification ───────────────────────────────────────────
+// ZeroBounce is an industry-leading email verifier that checks SMTP deliverability,
+// detects catch-all servers, spam traps, and disposable addresses.
+// Sign up at https://zerobounce.net — free tier: 100/month. Add ZEROBOUNCE_API_KEY
+// to your Supabase Edge Function secrets.
 
-async function findEmailViaHunter(
-  apiKey: string,
-  domain: string,
-): Promise<{ email: string | null; confidence: number }> {
-  try {
-    const url = `https://api.hunter.io/v2/domain-search?domain=${encodeURIComponent(domain)}&api_key=${apiKey}&limit=5`;
-    const resp = await fetch(url, { signal: AbortSignal.timeout(8000) });
-    const data = await resp.json();
-
-    if (data.errors) {
-      console.error("[Hunter] Error:", data.errors);
-      return { email: null, confidence: 0 };
-    }
-
-    const emails: any[] = data.data?.emails || [];
-    if (emails.length === 0) {
-      // Use generic pattern fallback if available
-      if (data.data?.pattern && data.data?.domain) {
-        return { email: `info@${data.data.domain}`, confidence: 25 };
-      }
-      return { email: null, confidence: 0 };
-    }
-
-    // Score each email
-    const scored = emails.map((e: any) => {
-      const localPart = (e.value || "").split("@")[0]?.toLowerCase() ?? "";
-      const isDept = DEPT_PREFIXES.some((p) => localPart === p || localPart.startsWith(p + "."));
-      return {
-        ...e,
-        sortScore: (isDept ? 1000 : 0) + (e.confidence || 0) + (e.sources || 0) * 5,
-      };
-    });
-    scored.sort((a: any, b: any) => b.sortScore - a.sortScore);
-    const best = scored[0];
-
-    return { email: best.value, confidence: best.confidence || 0 };
-  } catch (e) {
-    console.error("[Hunter] Exception:", e);
-    return { email: null, confidence: 0 };
-  }
-}
-
-async function verifyEmailViaHunter(
+async function verifyEmailViaZeroBounce(
   apiKey: string,
   email: string,
-): Promise<{ valid: boolean; score: number }> {
+): Promise<{ valid: boolean }> {
   try {
-    const url = `https://api.hunter.io/v2/email-verifier?email=${encodeURIComponent(email)}&api_key=${apiKey}`;
-    const resp = await fetch(url, { signal: AbortSignal.timeout(8000) });
+    const url = `https://api.zerobounce.net/v2/validate?api_key=${encodeURIComponent(apiKey)}&email=${encodeURIComponent(email)}&ip_address=`;
+    const resp = await fetch(url, { signal: AbortSignal.timeout(10000) });
+    if (!resp.ok) return { valid: false };
     const data = await resp.json();
-    if (data.errors) return { valid: false, score: 0 };
-    const result = data.data;
-    return {
-      valid: result?.result === "deliverable" || result?.result === "risky",
-      score: result?.score || 0,
-    };
+    // "valid"     → confirmed deliverable mailbox ✓
+    // "catch-all" → server accepts all addresses (can't verify further) — accept it ✓
+    // "invalid", "unknown", "spamtrap", "abuse", "do_not_mail" → reject ✗
+    const status = (data.status || "").toLowerCase();
+    return { valid: status === "valid" || status === "catch-all" };
   } catch {
-    return { valid: false, score: 0 };
+    return { valid: false };
   }
 }
 
-// ─── Try to scrape contact email directly from website ────────────────────────
+// ─── Deep website email scraper ───────────────────────────────────────────────
+// Scrapes multiple pages (homepage + common contact/about paths) and returns
+// ALL valid email candidates ranked by quality — best (dept prefix + domain match)
+// first. Caller is responsible for verification.
 
-async function scrapeEmailFromWebsite(websiteUrl: string): Promise<string | null> {
+async function fetchPageEmails(pageUrl: string): Promise<string[]> {
   try {
-    const controller = new AbortController();
-    setTimeout(() => controller.abort(), 8000);
-
-    const resp = await fetch(websiteUrl, {
-      signal: controller.signal,
-      headers: { "User-Agent": "Mozilla/5.0 (compatible; SkryveBot/1.0)" },
+    const resp = await fetch(pageUrl, {
+      signal: AbortSignal.timeout(8000),
+      headers: {
+        "User-Agent": "Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)",
+        "Accept": "text/html,application/xhtml+xml",
+      },
     });
-    if (!resp.ok) return null;
+    if (!resp.ok) return [];
 
     const html = await resp.text();
-    // Extract email addresses from HTML
-    const emailRegex = /[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}/g;
-    const found = (html.match(emailRegex) || [])
-      .map((e) => e.toLowerCase().trim())
-      .filter(isValidEmail);
 
-    if (found.length === 0) return null;
+    // Priority 1: mailto: links — highest signal
+    const mailtoMatches = [...html.matchAll(/href=["']mailto:([^"'?\s]+)/gi)]
+      .map(m => m[1].toLowerCase().trim());
 
-    const websiteDomain = (() => {
-      try { return new URL(websiteUrl).hostname.replace(/^www\./, ""); } catch { return null; }
-    })();
+    // Priority 2: plain email pattern anywhere in the HTML
+    const plainMatches = (html.match(/[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}/g) || [])
+      .map(e => e.toLowerCase().trim());
 
-    // Score and pick best
-    found.sort((a, b) => scoreEmailCandidate(b, websiteDomain) - scoreEmailCandidate(a, websiteDomain));
-    return found[0];
+    // Deduplicate preserving order (mailto first = higher score)
+    const seen = new Set<string>();
+    const all: string[] = [];
+    for (const e of [...mailtoMatches, ...plainMatches]) {
+      if (!seen.has(e) && isValidEmail(e)) { seen.add(e); all.push(e); }
+    }
+    return all;
   } catch {
-    return null;
+    return [];
   }
 }
 
-// ─── Also try /contact page ───────────────────────────────────────────────────
+async function scrapeAllEmailsFromSite(
+  website: string,
+  websiteDomain: string | null,
+): Promise<string[]> {
+  const base = website.replace(/\/$/, "");
+  const pagesToTry = [
+    website,
+    `${base}/contact`,
+    `${base}/contact-us`,
+    `${base}/about`,
+    `${base}/about-us`,
+    `${base}/get-in-touch`,
+    `${base}/reach-us`,
+  ];
 
-async function scrapeContactPage(websiteUrl: string): Promise<string | null> {
-  try {
-    const base = websiteUrl.replace(/\/$/, "");
-    const contactUrls = [`${base}/contact`, `${base}/contact-us`, `${base}/about`];
-    for (const url of contactUrls) {
-      const email = await scrapeEmailFromWebsite(url);
-      if (email) return email;
+  // Fetch all pages in parallel
+  const results = await Promise.allSettled(pagesToTry.map(fetchPageEmails));
+  const seen = new Set<string>();
+  const combined: string[] = [];
+  for (const r of results) {
+    if (r.status === "fulfilled") {
+      for (const e of r.value) {
+        if (!seen.has(e)) { seen.add(e); combined.push(e); }
+      }
     }
-    return null;
-  } catch {
-    return null;
   }
+
+  // Score and rank — dept prefix on matching domain wins
+  combined.sort((a, b) => scoreEmailCandidate(b, websiteDomain) - scoreEmailCandidate(a, websiteDomain));
+  return combined;
 }
 
 // ─── Master email finder ──────────────────────────────────────────────────────
 
 async function findBestEmailForBusiness(
-  hunterApiKey: string | null,
+  zeroBounceKey: string | null,
   bizName: string,
   website: string | null,
 ): Promise<{ email: string | null; confidence: "high" | "medium" | "low" | "none"; source: string }> {
@@ -252,87 +234,54 @@ async function findBestEmailForBusiness(
     try { return new URL(website).hostname.replace(/^www\./, ""); } catch { return null; }
   })() : null;
 
-  // ── Step 1: Hunter.io (most reliable) ──────────────────────────────────────
-  if (hunterApiKey && websiteDomain) {
-    console.log(`[Email] Trying Hunter for domain: ${websiteDomain}`);
-    const { email: hunterEmail, confidence } = await findEmailViaHunter(hunterApiKey, websiteDomain);
-
-    if (hunterEmail && isValidEmail(hunterEmail) && confidence >= 30) {
-      // Verify email deliverability
-      const mxOk = await verifyMXRecord(hunterEmail);
-      if (mxOk) {
-        // Optionally also verify with Hunter verifier for high confidence
-        let finalConfidence: "high" | "medium" | "low" = "low";
-        if (confidence >= 80) {
-          finalConfidence = "high";
-        } else if (confidence >= 50) {
-          // Run Hunter verifier for medium-confidence emails
-          const verify = await verifyEmailViaHunter(hunterApiKey, hunterEmail);
-          finalConfidence = verify.valid ? "medium" : "low";
-        }
-        console.log(`[Email] Hunter found & MX-verified: ${hunterEmail} (${finalConfidence}, confidence: ${confidence})`);
-        return { email: hunterEmail, confidence: finalConfidence, source: "hunter" };
-      } else {
-        console.log(`[Email] Hunter email rejected (no MX): ${hunterEmail}`);
-      }
-    } else if (hunterEmail) {
-      console.log(`[Email] Hunter email rejected (invalid/low confidence): ${hunterEmail} confidence=${confidence}`);
+  // Final gate: ZeroBounce verification required before returning any email.
+  // Falls back to MX check only when no ZeroBounce key is configured.
+  async function passesVerification(email: string): Promise<boolean> {
+    if (!isValidEmail(email)) return false;
+    if (zeroBounceKey) {
+      const { valid } = await verifyEmailViaZeroBounce(zeroBounceKey, email);
+      return valid;
     }
+    // No key configured — MX record check as minimal fallback
+    return verifyMXRecord(email);
   }
 
-  // ── Step 2: Scrape homepage for mailto links ───────────────────────────────
+  // ── Step 1: Deep-scrape the website (homepage + contact/about pages) ───────
   if (website) {
-    console.log(`[Email] Scraping homepage: ${website}`);
-    const scraped = await scrapeEmailFromWebsite(website);
-    if (scraped && isValidEmail(scraped)) {
-      const mxOk = await verifyMXRecord(scraped);
-      if (mxOk) {
-        console.log(`[Email] Scraped & MX-verified from homepage: ${scraped}`);
-        return { email: scraped, confidence: "medium", source: "website_homepage" };
+    console.log(`[Email] Deep-scraping site for: ${bizName}`);
+    const candidates = await scrapeAllEmailsFromSite(website, websiteDomain);
+    console.log(`[Email] Scraped ${candidates.length} candidate(s) from site`);
+    for (const candidate of candidates.slice(0, 5)) { // verify top 5 at most
+      console.log(`[Email] Candidate: ${candidate} — verifying...`);
+      const ok = await passesVerification(candidate);
+      if (ok) {
+        console.log(`[Email] Verified: ${candidate}`);
+        return { email: candidate, confidence: "high", source: "website_scraped" };
       }
-      console.log(`[Email] Scraped email rejected (no MX): ${scraped}`);
-    }
-
-    // ── Step 3: Try /contact and /about pages ────────────────────────────────
-    console.log(`[Email] Scraping contact/about pages for: ${bizName}`);
-    const contactEmail = await scrapeContactPage(website);
-    if (contactEmail && isValidEmail(contactEmail)) {
-      const mxOk = await verifyMXRecord(contactEmail);
-      if (mxOk) {
-        console.log(`[Email] Found & MX-verified from contact page: ${contactEmail}`);
-        return { email: contactEmail, confidence: "medium", source: "website_contact" };
-      }
+      console.log(`[Email] Failed verification: ${candidate}`);
     }
   }
 
-  // ── Step 4: Guess common patterns and verify ──────────────────────────────
+  // ── Step 2: Guess common patterns (info@, contact@, hello@, team@) ─────────
   if (websiteDomain) {
     const guesses = [
       `info@${websiteDomain}`,
       `contact@${websiteDomain}`,
       `hello@${websiteDomain}`,
+      `team@${websiteDomain}`,
+      `support@${websiteDomain}`,
     ];
     for (const guess of guesses) {
-      if (!isValidEmail(guess)) continue;
-      const mxOk = await verifyMXRecord(guess);
-      if (mxOk) {
-        // Verify with Hunter if available
-        if (hunterApiKey) {
-          const verify = await verifyEmailViaHunter(hunterApiKey, guess);
-          if (verify.valid) {
-            console.log(`[Email] Pattern guess verified: ${guess}`);
-            return { email: guess, confidence: "low", source: "pattern_verified" };
-          }
-        } else {
-          // No Hunter available — return MX-verified guess with low confidence
-          console.log(`[Email] Pattern guess MX-OK (unverified): ${guess}`);
-          return { email: guess, confidence: "low", source: "pattern_mx" };
-        }
+      console.log(`[Email] Pattern guess: ${guess} — verifying...`);
+      const ok = await passesVerification(guess);
+      if (ok) {
+        console.log(`[Email] Pattern guess verified: ${guess}`);
+        return { email: guess, confidence: "low", source: "pattern_verified" };
       }
     }
   }
 
-  console.log(`[Email] No valid email found for ${bizName}`);
+  console.log(`[Email] No verified email found for ${bizName}`);
   return { email: null, confidence: "none", source: "none" };
 }
 
@@ -397,7 +346,7 @@ serve(async (req) => {
     const GOOGLE_PLACES_API_KEY = Deno.env.get("GOOGLE_PLACES_API_KEY");
     if (!GOOGLE_PLACES_API_KEY) throw new Error("GOOGLE_PLACES_API_KEY is not configured");
 
-    const HUNTER_API_KEY = Deno.env.get("HUNTER_API_KEY") || null;
+    const ZEROBOUNCE_API_KEY = Deno.env.get("ZEROBOUNCE_API_KEY") || null;
 
     const { businessType, location, limit = 20 }: SearchRequest = await req.json();
 
@@ -482,7 +431,7 @@ serve(async (req) => {
       const batch = businesses.slice(i, i + BATCH_SIZE);
       await Promise.allSettled(
         batch.map(async (biz) => {
-          const result = await findBestEmailForBusiness(HUNTER_API_KEY, biz.name, biz.website);
+          const result = await findBestEmailForBusiness(ZEROBOUNCE_API_KEY, biz.name, biz.website);
           biz.email = result.email;
           biz.emailConfidence = result.confidence;
           biz.emailSource = result.source;

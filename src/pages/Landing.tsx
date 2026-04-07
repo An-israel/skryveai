@@ -28,7 +28,7 @@ const orgSchema = {
     "@type": "Offer",
     price: "0",
     priceCurrency: "USD",
-    description: "3-day free trial, no credit card required",
+    description: "7-day free trial, no credit card required",
   },
 };
 
@@ -87,7 +87,7 @@ export default function Landing() {
               </span>
               <span className="flex items-center gap-1.5">
                 <CheckCircle2 className="w-4 h-4" />
-                3-day free trial
+                7-day free trial
               </span>
             </div>
           </motion.div>

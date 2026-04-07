@@ -145,15 +145,10 @@ export function ChatWidget() {
         convId = conv.id;
         setConversationId(convId);
       } else {
-        // Increment admin unread
+        // Update last_message_at — unread_by_admin is incremented by chat-notify
         await (supabase as any)
           .from("chat_conversations")
-          .update({
-            last_message_at: new Date().toISOString(),
-            unread_by_admin: (supabase as any).rpc
-              ? undefined
-              : undefined,
-          })
+          .update({ last_message_at: new Date().toISOString() })
           .eq("id", convId);
       }
 

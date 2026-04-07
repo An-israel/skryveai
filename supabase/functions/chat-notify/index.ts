@@ -33,28 +33,20 @@ serve(async (req) => {
 
     const { conversationId, message, userName } = await req.json();
 
-    // Update unread count and last_message_at
-    await supabase
-      .from("chat_conversations" as any)
-      .update({
-        last_message_at: new Date().toISOString(),
-        unread_by_admin: 999, // will be read properly from DB
-      })
-      .eq("id", conversationId);
-
-    // Increment unread properly
+    // Atomically increment unread_by_admin and update last_message_at
     const { data: conv } = await supabase
       .from("chat_conversations" as any)
       .select("unread_by_admin")
       .eq("id", conversationId)
       .single();
 
-    if (conv) {
-      await supabase
-        .from("chat_conversations" as any)
-        .update({ unread_by_admin: ((conv as any).unread_by_admin || 0) + 1 })
-        .eq("id", conversationId);
-    }
+    await supabase
+      .from("chat_conversations" as any)
+      .update({
+        last_message_at: new Date().toISOString(),
+        unread_by_admin: ((conv as any)?.unread_by_admin || 0) + 1,
+      })
+      .eq("id", conversationId);
 
     // Send email notification if Resend is configured
     if (RESEND_API_KEY) {
