@@ -27,6 +27,7 @@ export function Header({ isAuthenticated: isAuthenticatedProp, onLogout }: Heade
       const { data: { session } } = await supabase.auth.getSession();
       setAuthState(!!session);
       if (session) {
+        setUserName(session.user.user_metadata?.full_name || "");
         checkAdminRole(session.user.id);
       }
     };
@@ -35,7 +36,10 @@ export function Header({ isAuthenticated: isAuthenticatedProp, onLogout }: Heade
       setAuthState(isAuthenticatedProp);
       if (isAuthenticatedProp) {
         supabase.auth.getUser().then(({ data: { user } }) => {
-          if (user) checkAdminRole(user.id);
+          if (user) {
+            setUserName(user.user_metadata?.full_name || "");
+            checkAdminRole(user.id);
+          }
         });
       }
     } else {
@@ -44,8 +48,13 @@ export function Header({ isAuthenticated: isAuthenticatedProp, onLogout }: Heade
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setAuthState(!!session);
-      if (session) checkAdminRole(session.user.id);
-      else setIsAdmin(false);
+      if (session) {
+        setUserName(session.user.user_metadata?.full_name || "");
+        checkAdminRole(session.user.id);
+      } else {
+        setIsAdmin(false);
+        setUserName("");
+      }
     });
 
     return () => subscription.unsubscribe();
