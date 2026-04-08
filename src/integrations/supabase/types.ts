@@ -952,6 +952,7 @@ export type Database = {
           expertise: string[] | null
           full_name: string
           id: string
+          last_active_at: string | null
           phone: string | null
           portfolio_url: string | null
           referral_code: string | null
@@ -971,6 +972,7 @@ export type Database = {
           expertise?: string[] | null
           full_name: string
           id?: string
+          last_active_at?: string | null
           phone?: string | null
           portfolio_url?: string | null
           referral_code?: string | null
@@ -990,6 +992,7 @@ export type Database = {
           expertise?: string[] | null
           full_name?: string
           id?: string
+          last_active_at?: string | null
           phone?: string | null
           portfolio_url?: string | null
           referral_code?: string | null

@@ -92,8 +92,19 @@ export function ReferralCard({ userId }: ReferralCardProps) {
             </Button>
           </div>
           <p className="text-xs text-muted-foreground mt-2">
-            Earn 20% commission when your referrals subscribe!
+            Earn <strong>40% commission</strong> on every subscription your referral makes — for <strong>6 months</strong>!
           </p>
+        </div>
+
+        {/* How it works */}
+        <div className="p-4 border rounded-lg space-y-2">
+          <p className="text-sm font-semibold">How it works</p>
+          <ul className="text-xs text-muted-foreground space-y-1.5 list-disc list-inside">
+            <li>Share your unique referral link with anyone</li>
+            <li>When they sign up and subscribe, you earn <strong className="text-foreground">40%</strong> of their subscription</li>
+            <li>You keep earning 40% on <strong className="text-foreground">every payment they make for 6 months</strong></li>
+            <li>Earnings are tracked automatically in your dashboard</li>
+          </ul>
         </div>
 
         {isLoading ? (

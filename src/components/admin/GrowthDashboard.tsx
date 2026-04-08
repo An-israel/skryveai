@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { formatDistanceToNow, subDays, subMonths, differenceInDays, startOfMonth, endOfMonth, format } from "date-fns";
+import { formatDistanceToNow, subDays, differenceInHours, format } from "date-fns";
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   BarChart, Bar, PieChart, Pie, Cell,
@@ -30,6 +30,8 @@ export function GrowthDashboard() {
     conversionRate: 0,
     churnedThisMonth: 0,
     churnRate: 0,
+    activeUsers: 0,
+    inactiveUsers: 0,
     referralSignups: 0,
     referralConversions: 0,
   });
@@ -53,11 +55,11 @@ export function GrowthDashboard() {
 
       // Fetch all data in parallel
       const [profilesRes, subsRes, campaignsRes, referralsRes, paymentsRes] = await Promise.all([
-        supabase.from("profiles").select("user_id, full_name, email, created_at"),
-        supabase.from("subscriptions").select("user_id, status, plan, credits, created_at, amount_paid, currency"),
+        (supabase as any).from("profiles").select("user_id, full_name, email, created_at, last_active_at"),
+        supabase.from("subscriptions").select("user_id, status, plan, credits, created_at"),
         supabase.from("campaigns").select("user_id, created_at"),
         supabase.from("referrals").select("referrer_id, referred_id, status, created_at"),
-        supabase.from("payment_history").select("user_id, amount, status, plan, created_at").eq("status", "success"),
+        supabase.from("payment_history").select("user_id, status, plan, created_at").eq("status", "success"),
       ]);
 
       const profiles = profilesRes.data || [];
@@ -79,7 +81,13 @@ export function GrowthDashboard() {
 
       const paidUsers = subs.filter(s => s.status === "active").length;
       const trialUsers = subs.filter(s => s.status === "trial").length;
-      const expiredUsers = subs.filter(s => s.status === "expired" || s.status === "cancelled").length;
+
+      // Active/Inactive: active = last_active_at within 48 hours
+      const activeUsers = profiles.filter((p: any) => {
+        if (!p.last_active_at) return false;
+        return differenceInHours(now, new Date(p.last_active_at)) <= 48;
+      }).length;
+      const inactiveUsers = totalUsers - activeUsers;
 
       // Conversion: activated users who became paid
       const activatedAndPaid = profiles.filter(p => 
@@ -102,7 +110,7 @@ export function GrowthDashboard() {
       setMetrics({
         totalUsers, newToday, newThisWeek, newThisMonth,
         activatedUsers, activationRate, paidUsers, trialUsers,
-        conversionRate, churnedThisMonth, churnRate,
+        conversionRate, churnedThisMonth, churnRate, activeUsers, inactiveUsers,
         referralSignups, referralConversions,
       });
 
@@ -246,6 +254,18 @@ export function GrowthDashboard() {
             <p className="text-xl font-bold">{metrics.referralSignups}</p>
             <p className="text-xs text-muted-foreground mt-0.5">
               {metrics.referralConversions} converted
+            </p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-3">
+            <div className="flex items-center gap-1.5 text-muted-foreground mb-1">
+              <Users className="w-3.5 h-3.5" />
+              <span className="text-xs">Active / Inactive</span>
+            </div>
+            <p className="text-xl font-bold">{metrics.activeUsers} <span className="text-sm font-normal text-muted-foreground">/ {metrics.inactiveUsers}</span></p>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              48h inactivity = inactive
             </p>
           </CardContent>
         </Card>
