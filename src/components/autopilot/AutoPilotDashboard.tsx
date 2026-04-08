@@ -192,20 +192,12 @@ export function AutoPilotDashboard({
   // ── Auto-trigger autopilot run when active ────────────────────────────────
   useEffect(() => {
     if (!isActive || !authSession) return;
-    
+
     const triggerRun = async () => {
       try {
-        await fetch(
-          `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/autopilot-run`,
-          {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: `Bearer ${authSession.access_token}`,
-            },
-            body: JSON.stringify({ userId: user?.id }),
-          }
-        );
+        await supabase.functions.invoke("autopilot-run", {
+          body: { userId: user?.id },
+        });
         fetchSession();
         fetchActivity();
       } catch (err) {
@@ -252,55 +244,50 @@ export function AutoPilotDashboard({
 
   // ── Manual trigger ──────────────────────────────────────────────────────────
   const handleManualTrigger = async () => {
-    if (!authSession || !user) return;
+    if (!user) return;
     setIsTriggering(true);
     try {
-      const res = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/autopilot-run`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${authSession.access_token}`,
-          },
-          body: JSON.stringify({ userId: user.id }),
-        }
-      );
-      if (res.ok) {
-        toast({ title: "Auto-Pilot triggered", description: "Processing businesses now..." });
-        fetchSession();
-        fetchActivity();
-      }
+      const { error } = await supabase.functions.invoke("autopilot-run", {
+        body: { userId: user.id },
+      });
+      if (error) throw error;
+      toast({ title: "Auto-Pilot triggered", description: "Processing businesses now..." });
+      setTimeout(() => { fetchSession(); fetchActivity(); }, 3000);
     } catch (err) {
-      toast({ title: "Failed to trigger", variant: "destructive" });
+      toast({ title: "Failed to trigger", description: err instanceof Error ? err.message : "Unknown error", variant: "destructive" });
     } finally {
       setIsTriggering(false);
     }
   };
 
-  // ── Pause / Resume ────────────────────────────────────────────────────────
+  // ── Pause / Resume — uses direct DB update as primary, edge function as bonus ─
   const handleToggleActive = async () => {
-    if (!authSession) return;
+    if (!user) return;
     setIsTogglingActive(true);
     const newActive = !isActive;
 
     try {
-      const res = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/autopilot-config`,
-        {
-          method: "PATCH",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${authSession.access_token}`,
-          },
-          body: JSON.stringify({ is_active: newActive }),
-        }
-      );
+      // Direct DB update — works even if autopilot-config function isn't deployed
+      const { error: dbError } = await (supabase as any)
+        .from("autopilot_configs")
+        .update({ is_active: newActive, updated_at: new Date().toISOString() })
+        .eq("user_id", user.id);
 
-      if (!res.ok) {
-        const err = await res.json();
-        throw new Error(err.error ?? "Failed to update status");
-      }
+      if (dbError) throw new Error(dbError.message);
+
+      // Also update today's session status in DB
+      const today = new Date().toISOString().split("T")[0];
+      await (supabase as any)
+        .from("autopilot_sessions")
+        .update({ status: newActive ? "active" : "paused", updated_at: new Date().toISOString() })
+        .eq("user_id", user.id)
+        .eq("date", today);
+
+      // Fire-and-forget edge function call for any extra side effects
+      supabase.functions.invoke("autopilot-config", {
+        method: "PATCH" as any,
+        body: { is_active: newActive },
+      }).catch(() => {/* edge function is optional */});
 
       setIsActive(newActive);
       toast({
@@ -312,7 +299,7 @@ export function AutoPilotDashboard({
     } catch (err) {
       toast({
         title: "Error",
-        description: err instanceof Error ? err.message : "Unknown error",
+        description: err instanceof Error ? err.message : "Could not update status",
         variant: "destructive",
       });
     } finally {
