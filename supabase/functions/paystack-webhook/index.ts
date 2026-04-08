@@ -8,7 +8,7 @@ const corsHeaders = {
 
 const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
 const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-const paystackSecretKey = Deno.env.get("PAYSTACK_SECRET_KEY")!;
+const paystackSecretKey = Deno.env.get("Paystack_API") || Deno.env.get("PAYSTACK_SECRET_KEY") || "";
 
 const supabase = createClient(supabaseUrl, supabaseServiceKey);
 const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");

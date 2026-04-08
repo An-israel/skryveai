@@ -95,14 +95,17 @@ export default function NewCampaign() {
         return;
       }
 
-      // Check subscription status
-      const { data: subscription } = await supabase
-        .from("subscriptions")
-        .select("status, credits, trial_ends_at, plan")
-        .eq("user_id", session.user.id)
-        .single();
+      // Check subscription status (admins bypass all restrictions)
+      const [{ data: subscription }, { data: adminRoles }] = await Promise.all([
+        supabase.from("subscriptions").select("status, credits, trial_ends_at, plan").eq("user_id", session.user.id).single(),
+        supabase.from("user_roles").select("role").eq("user_id", session.user.id),
+      ]);
 
-      if (subscription) {
+      const isStaffAdmin = (adminRoles || []).some((r: { role: string }) =>
+        ["super_admin", "content_editor", "support_agent", "staff"].includes(r.role)
+      );
+
+      if (!isStaffAdmin && subscription) {
         const isExpired = subscription.status === "expired" || subscription.status === "cancelled";
         const isTrialExpired = subscription.status === "trial" && subscription.trial_ends_at && new Date(subscription.trial_ends_at) < new Date();
         const hasNoCredits = (subscription.credits || 0) <= 0 && subscription.plan !== "lifetime";
@@ -484,12 +487,18 @@ export default function NewCampaign() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Not authenticated");
 
+      // Check if user is admin (admins bypass all credit checks)
+      const { data: adminRolesForSend } = await supabase.from("user_roles").select("role").eq("user_id", user.id);
+      const isAdminForSend = (adminRolesForSend || []).some((r: { role: string }) =>
+        ["super_admin", "content_editor", "support_agent", "staff"].includes(r.role)
+      );
+
       // Check credits before sending - use team credits if team profile selected
       const creditPerEmail = currentCampaignType === "investor" ? 0.5 : 0.2;
       const totalCreditsNeeded = approvedBusinesses.length * creditPerEmail;
       const useTeamCredits = !!selectedTeamProfile && !!teamInfo;
 
-      if (useTeamCredits) {
+      if (!isAdminForSend && useTeamCredits) {
         // Check team credits
         const { data: freshTeam } = await supabase.from("teams").select("credits").eq("id", teamInfo!.id).single();
         if (freshTeam && freshTeam.credits < totalCreditsNeeded) {
@@ -501,7 +510,7 @@ export default function NewCampaign() {
           setIsSending(false);
           return;
         }
-      } else {
+      } else if (!isAdminForSend) {
         const { data: subscription } = await supabase
           .from("subscriptions")
           .select("credits, plan")
@@ -602,18 +611,20 @@ export default function NewCampaign() {
         setSendProgress(((i + 1) / approvedBusinesses.length) * 100);
       }
 
-      // Deduct credits
-      if (useTeamCredits) {
-        const { data: freshTeam } = await supabase.from("teams").select("credits").eq("id", teamInfo!.id).single();
-        if (freshTeam) {
-          const newCredits = Math.max(0, freshTeam.credits - totalCreditsNeeded);
-          await supabase.from("teams").update({ credits: newCredits }).eq("id", teamInfo!.id);
-        }
-      } else {
-        const { data: sub } = await supabase.from("subscriptions").select("credits, plan").eq("user_id", user.id).single();
-        if (sub && sub.plan !== "lifetime") {
-          const newCredits = Math.max(0, sub.credits - totalCreditsNeeded);
-          await supabase.from("subscriptions").update({ credits: newCredits }).eq("user_id", user.id);
+      // Deduct credits (admins are never charged credits)
+      if (!isAdminForSend) {
+        if (useTeamCredits) {
+          const { data: freshTeam } = await supabase.from("teams").select("credits").eq("id", teamInfo!.id).single();
+          if (freshTeam) {
+            const newCredits = Math.max(0, freshTeam.credits - totalCreditsNeeded);
+            await supabase.from("teams").update({ credits: newCredits }).eq("id", teamInfo!.id);
+          }
+        } else {
+          const { data: sub } = await supabase.from("subscriptions").select("credits, plan").eq("user_id", user.id).single();
+          if (sub && sub.plan !== "lifetime") {
+            const newCredits = Math.max(0, sub.credits - totalCreditsNeeded);
+            await supabase.from("subscriptions").update({ credits: newCredits }).eq("user_id", user.id);
+          }
         }
       }
 

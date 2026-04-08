@@ -8,6 +8,7 @@ interface AuthState {
   user: User | null;
   session: Session | null;
   loading: boolean;
+  isStaffAdmin: boolean;
   subscription: {
     status: string;
     plan?: string;
@@ -20,6 +21,7 @@ export function useAuth(requireAuth: boolean = true) {
     user: null,
     session: null,
     loading: true,
+    isStaffAdmin: false,
     subscription: null,
   });
   const navigate = useNavigate();
@@ -36,7 +38,7 @@ export function useAuth(requireAuth: boolean = true) {
         }));
 
         if (session?.user) {
-          // Fetch subscription data
+          // Fetch subscription data and admin role
           setTimeout(async () => {
             // Update last_active_at for activity tracking
             (supabase as any)
@@ -45,14 +47,25 @@ export function useAuth(requireAuth: boolean = true) {
               .eq("user_id", session.user.id)
               .then(() => {});
 
-            const { data: sub } = await supabase
-              .from("subscriptions")
-              .select("status, plan, trial_ends_at")
-              .eq("user_id", session.user.id)
-              .single();
+            const [{ data: sub }, { data: roles }] = await Promise.all([
+              supabase
+                .from("subscriptions")
+                .select("status, plan, trial_ends_at")
+                .eq("user_id", session.user.id)
+                .single(),
+              supabase
+                .from("user_roles")
+                .select("role")
+                .eq("user_id", session.user.id),
+            ]);
+
+            const isStaffAdmin = (roles || []).some((r: { role: string }) =>
+              ["super_admin", "content_editor", "support_agent", "staff"].includes(r.role)
+            );
 
             setAuthState(prev => ({
               ...prev,
+              isStaffAdmin,
               subscription: sub ? {
                 status: sub.status,
                 plan: sub.plan,
@@ -106,6 +119,8 @@ export function useAuth(requireAuth: boolean = true) {
   };
 
   const hasActiveSubscription = () => {
+    // Admins and staff always have full access
+    if (authState.isStaffAdmin) return true;
     if (!authState.subscription) return false;
     if (authState.subscription.status === "active") return true;
     if (authState.subscription.status === "trial" && !isTrialExpired()) return true;
