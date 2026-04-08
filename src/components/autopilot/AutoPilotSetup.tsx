@@ -71,6 +71,7 @@ interface SetupData {
 
 interface AutoPilotSetupProps {
   onComplete: () => void;
+  onCancel?: () => void;
 }
 
 // ─── Constants ────────────────────────────────────────────────────────────────
@@ -166,11 +167,12 @@ function formatHour(h: number): string {
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
-export function AutoPilotSetup({ onComplete }: AutoPilotSetupProps) {
+export function AutoPilotSetup({ onComplete, onCancel }: AutoPilotSetupProps) {
   const { session } = useAuth();
   const { toast } = useToast();
   const [currentStep, setCurrentStep] = useState(1);
   const [saving, setSaving] = useState(false);
+  const [campaignName, setCampaignName] = useState("Campaign 1");
 
   const [data, setData] = useState<SetupData>({
     expertise: { industry: "", services: [], valueProp: "" },
@@ -259,25 +261,24 @@ export function AutoPilotSetup({ onComplete }: AutoPilotSetupProps) {
     }
     setSaving(true);
     try {
-      const response = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/autopilot-config`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${session.access_token}`,
-          },
-          body: JSON.stringify(data),
-        }
-      );
+      const { error } = await (supabase as any)
+        .from("autopilot_configs")
+        .insert({
+          user_id: session.user.id,
+          name: campaignName.trim() || "Campaign 1",
+          is_active: true,
+          expertise: data.expertise,
+          target_businesses: data.target_businesses,
+          locations: data.locations,
+          daily_quota: data.daily_quota,
+          email_style: data.email_style,
+          compliance: data.compliance,
+          updated_at: new Date().toISOString(),
+        });
 
-      if (!response.ok) {
-        const err = await response.json();
-        const msg = typeof err.error === "string" ? err.error : err.message || JSON.stringify(err.error) || "Failed to save config";
-        throw new Error(msg);
-      }
+      if (error) throw new Error(error.message || "Failed to save config");
 
-      toast({ title: "Auto-Pilot launched!", description: "Your agent is now active." });
+      toast({ title: "Auto-Pilot launched!", description: "Your campaign is now active." });
       onComplete();
     } catch (err) {
       console.error(err);
@@ -937,6 +938,19 @@ export function AutoPilotSetup({ onComplete }: AutoPilotSetupProps) {
                   />
                 </div>
 
+                {/* Campaign name */}
+                <div className="space-y-2">
+                  <Label htmlFor="campaign-name">Campaign Name</Label>
+                  <Input
+                    id="campaign-name"
+                    placeholder="e.g. Skincare Brands UK"
+                    value={campaignName}
+                    onChange={(e) => setCampaignName(e.target.value)}
+                    maxLength={60}
+                  />
+                  <p className="text-xs text-muted-foreground">Give this campaign a name so you can identify it in the list.</p>
+                </div>
+
                 <div className="bg-primary/5 border border-primary/20 rounded-lg p-4 text-sm text-muted-foreground space-y-1">
                   <p className="font-medium text-foreground">Before you launch:</p>
                   <ul className="list-disc list-inside space-y-0.5">
@@ -968,14 +982,21 @@ export function AutoPilotSetup({ onComplete }: AutoPilotSetupProps) {
 
       {/* Navigation */}
       <div className="flex items-center justify-between">
-        <Button
-          variant="outline"
-          onClick={() => setCurrentStep((s) => s - 1)}
-          disabled={currentStep === 1}
-        >
-          <ChevronLeft className="w-4 h-4 mr-1" />
-          Back
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            onClick={() => setCurrentStep((s) => s - 1)}
+            disabled={currentStep === 1}
+          >
+            <ChevronLeft className="w-4 h-4 mr-1" />
+            Back
+          </Button>
+          {onCancel && currentStep === 1 && (
+            <Button variant="ghost" size="sm" onClick={onCancel} className="text-muted-foreground">
+              Cancel
+            </Button>
+          )}
+        </div>
 
         <span className="text-sm text-muted-foreground">
           Step {currentStep} of {STEPS.length}

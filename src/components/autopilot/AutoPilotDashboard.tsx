@@ -24,6 +24,7 @@ import {
   Loader2,
   RefreshCw,
   Eye,
+  Square,
 } from "lucide-react";
 import {
   Dialog,
@@ -67,6 +68,8 @@ interface AutoPilotDashboardProps {
   config: AutoPilotConfig;
   onSettingsClick: () => void;
   onViewActivityLog: () => void;
+  onDeleted?: () => void;
+  onConfigUpdate?: (updated: AutoPilotConfig) => void;
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -137,6 +140,8 @@ export function AutoPilotDashboard({
   config,
   onSettingsClick,
   onViewActivityLog,
+  onDeleted,
+  onConfigUpdate,
 }: AutoPilotDashboardProps) {
   const { user, session: authSession } = useAuth();
   const { toast } = useToast();
@@ -147,6 +152,7 @@ export function AutoPilotDashboard({
   const [isActive, setIsActive] = useState(config.is_active);
   const [previewItem, setPreviewItem] = useState<ActivityItem | null>(null);
   const [isTriggering, setIsTriggering] = useState(false);
+  const [isStopping, setIsStopping] = useState(false);
 
   const dailyLimit = config.daily_quota?.emailsPerDay ?? 500;
   const today = new Date().toISOString().split("T")[0];
@@ -307,6 +313,27 @@ export function AutoPilotDashboard({
     }
   };
 
+  // ── Stop & Delete campaign completely ────────────────────────────────────────
+  const handleStopAndDelete = async () => {
+    if (!user) return;
+    if (!confirm(`Stop "${config.name}" completely and delete it? This cannot be undone.`)) return;
+    setIsStopping(true);
+    try {
+      const { error } = await (supabase as any)
+        .from("autopilot_configs")
+        .delete()
+        .eq("id", config.id)
+        .eq("user_id", user.id);
+      if (error) throw error;
+      toast({ title: `"${config.name}" stopped and deleted` });
+      onDeleted?.();
+    } catch (err) {
+      toast({ title: "Failed to stop campaign", description: err instanceof Error ? err.message : "Unknown error", variant: "destructive" });
+    } finally {
+      setIsStopping(false);
+    }
+  };
+
   const emailsSent = todaySession?.emails_sent ?? 0;
   const emailsSkipped = todaySession?.emails_skipped ?? 0;
   const emailsFailed = todaySession?.emails_failed ?? 0;
@@ -442,6 +469,16 @@ export function AutoPilotDashboard({
                     Run Now
                   </Button>
                 )}
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleStopAndDelete}
+                  disabled={isStopping}
+                  className="text-destructive border-destructive/40 hover:bg-destructive/10"
+                >
+                  {isStopping ? <Loader2 className="w-4 h-4 mr-1.5 animate-spin" /> : <Square className="w-4 h-4 mr-1.5" />}
+                  Stop & Delete
+                </Button>
               </div>
             </div>
           </div>

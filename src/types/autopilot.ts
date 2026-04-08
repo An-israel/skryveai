@@ -1,6 +1,7 @@
 export interface AutoPilotConfig {
   id: string;
   user_id: string;
+  name: string;
   is_active: boolean;
   expertise: {
     industry: string;
