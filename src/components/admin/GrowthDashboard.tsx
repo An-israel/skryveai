@@ -55,11 +55,11 @@ export function GrowthDashboard() {
 
       // Fetch all data in parallel
       const [profilesRes, subsRes, campaignsRes, referralsRes, paymentsRes] = await Promise.all([
-        supabase.from("profiles").select("user_id, full_name, email, created_at"),
-        supabase.from("subscriptions").select("user_id, status, plan, credits, created_at, amount_paid, currency"),
+        (supabase as any).from("profiles").select("user_id, full_name, email, created_at, last_active_at"),
+        supabase.from("subscriptions").select("user_id, status, plan, credits, created_at"),
         supabase.from("campaigns").select("user_id, created_at"),
         supabase.from("referrals").select("referrer_id, referred_id, status, created_at"),
-        supabase.from("payment_history").select("user_id, amount, status, plan, created_at").eq("status", "success"),
+        supabase.from("payment_history").select("user_id, status, plan, created_at").eq("status", "success"),
       ]);
 
       const profiles = profilesRes.data || [];
@@ -81,7 +81,13 @@ export function GrowthDashboard() {
 
       const paidUsers = subs.filter(s => s.status === "active").length;
       const trialUsers = subs.filter(s => s.status === "trial").length;
-      const expiredUsers = subs.filter(s => s.status === "expired" || s.status === "cancelled").length;
+
+      // Active/Inactive: active = last_active_at within 48 hours
+      const activeUsers = profiles.filter((p: any) => {
+        if (!p.last_active_at) return false;
+        return differenceInHours(now, new Date(p.last_active_at)) <= 48;
+      }).length;
+      const inactiveUsers = totalUsers - activeUsers;
 
       // Conversion: activated users who became paid
       const activatedAndPaid = profiles.filter(p => 
