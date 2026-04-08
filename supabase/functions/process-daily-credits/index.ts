@@ -20,11 +20,11 @@ serve(async (req) => {
     console.log("Processing daily credits...");
 
     // Add 5 credits to all users who haven't received daily credits in 24 hours
-    // Exclude lifetime users who have unlimited credits
+    // Only give credits to users on active trial (not expired) or active paid subscription
     const { data: subscriptions, error: fetchError } = await supabase
       .from("subscriptions")
-      .select("id, user_id, credits, plan, last_daily_credit")
-      .neq("plan", "lifetime");
+      .select("id, user_id, credits, plan, status, last_daily_credit, trial_ends_at")
+      .in("status", ["trial", "active"]);
 
     if (fetchError) {
       throw fetchError;
@@ -37,8 +37,21 @@ serve(async (req) => {
     for (const sub of subscriptions || []) {
       const lastCredit = sub.last_daily_credit ? new Date(sub.last_daily_credit) : null;
       
-      // If never received daily credits or last credit was more than 24 hours ago
-      if (!lastCredit || lastCredit < oneDayAgo) {
+      // Skip if trial has expired
+      if (sub.status === "trial" && sub.trial_ends_at) {
+        const trialEnd = new Date(sub.trial_ends_at);
+        if (trialEnd < now) {
+          // Trial expired - don't give credits, mark as expired
+          await supabase
+            .from("subscriptions")
+            .update({ status: "expired" })
+            .eq("id", sub.id);
+          continue;
+        }
+      }
+
+      // Only give credits if never received or last credit was more than 24 hours ago
+      if ((!lastCredit || lastCredit < oneDayAgo)) {
         const { error: updateError } = await supabase
           .from("subscriptions")
           .update({

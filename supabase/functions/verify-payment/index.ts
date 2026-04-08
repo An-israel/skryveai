@@ -84,7 +84,8 @@ serve(async (req) => {
 
     // Payment is confirmed by Paystack - process it
     const paymentData = verifyData.data;
-    const plan = existingPayment?.plan || paymentData.metadata?.plan;
+    const planKey = paymentData.metadata?.plan_key || paymentData.metadata?.plan || existingPayment?.plan;
+    const plan = existingPayment?.plan || (planKey?.includes("yearly") ? "yearly" : "monthly");
     const paymentUserId = existingPayment?.user_id || user.id;
 
     if (!plan) {
@@ -100,18 +101,18 @@ serve(async (req) => {
     // Update subscription
     const now = new Date();
     let periodEnd: Date;
-    if (plan === "monthly") {
-      periodEnd = new Date(now.getTime());
-      periodEnd.setMonth(periodEnd.getMonth() + 1);
-    } else if (plan === "yearly") {
+    if (planKey?.includes("yearly") || plan === "yearly") {
       periodEnd = new Date(now.getTime());
       periodEnd.setFullYear(periodEnd.getFullYear() + 1);
     } else {
-      periodEnd = new Date("2099-12-31");
+      periodEnd = new Date(now.getTime());
+      periodEnd.setMonth(periodEnd.getMonth() + 1);
     }
 
-    const creditsToAdd = PLAN_CREDITS[plan] || 0;
-    const isUnlimited = plan === "lifetime";
+    // Determine if unlimited plan
+    const isUnlimited = planKey === "unlimited" || planKey === "team_pro" || planKey === "team_pro_yearly";
+
+    const creditsToAdd = PLAN_CREDITS[planKey || plan] || PLAN_CREDITS[plan] || 100;
 
     const { data: currentSub } = await supabase
       .from("subscriptions")
@@ -119,13 +120,13 @@ serve(async (req) => {
       .eq("user_id", paymentUserId)
       .single();
 
-    const newCredits = isUnlimited ? 999999 : (currentSub?.credits || 0) + creditsToAdd;
+    const newCredits = isUnlimited || creditsToAdd === -1 ? 999999 : (currentSub?.credits || 0) + creditsToAdd;
 
     await supabase
       .from("subscriptions")
       .update({
         status: "active",
-        plan: plan,
+        plan: plan as any,
         current_period_start: new Date().toISOString(),
         current_period_end: periodEnd.toISOString(),
         paystack_customer_code: paymentData.customer?.customer_code,
@@ -138,7 +139,7 @@ serve(async (req) => {
       })
       .eq("user_id", paymentUserId);
 
-    // Handle referral commission
+    // Handle referral commission (40% for 6 months)
     const { data: profile } = await supabase
       .from("profiles")
       .select("referred_by")
@@ -148,37 +149,46 @@ serve(async (req) => {
     if (profile?.referred_by) {
       const { data: referral } = await supabase
         .from("referrals")
-        .select("id, commission_rate, status")
+        .select("id, commission_rate, status, created_at")
         .eq("referred_id", paymentUserId)
         .single();
 
-      if (referral && referral.status === "pending") {
-        const commissionRate = referral.commission_rate || 0.20;
-        const commissionAmount = Math.floor(paymentData.amount * commissionRate);
+      if (referral) {
+        // Check if within 6 months of referral creation
+        const referralDate = new Date(referral.created_at);
+        const sixMonthsLater = new Date(referralDate.getTime());
+        sixMonthsLater.setMonth(sixMonthsLater.getMonth() + 6);
+        const withinWindow = new Date() <= sixMonthsLater;
 
-        await supabase
-          .from("referrals")
-          .update({
-            status: "completed",
-            commission_amount: commissionAmount,
-            commission_currency: paymentData.currency,
-            completed_at: new Date().toISOString(),
-          })
-          .eq("id", referral.id);
+        if (withinWindow) {
+          const commissionRate = referral.commission_rate || 0.40;
+          const commissionAmount = Math.floor(paymentData.amount * commissionRate);
 
-        const bonusCredits = Math.floor(creditsToAdd * 0.1);
-        if (bonusCredits > 0) {
-          const { data: referrerSub } = await supabase
-            .from("subscriptions")
-            .select("credits")
-            .eq("user_id", profile.referred_by)
-            .single();
+          await supabase
+            .from("referrals")
+            .update({
+              status: "completed",
+              commission_amount: (referral.status === "completed" ? 0 : 0) + commissionAmount,
+              commission_currency: paymentData.currency,
+              completed_at: new Date().toISOString(),
+            })
+            .eq("id", referral.id);
 
-          if (referrerSub) {
-            await supabase
+          // Give referrer bonus credits
+          const bonusCredits = Math.floor((creditsToAdd === -1 ? 100 : creditsToAdd) * 0.1);
+          if (bonusCredits > 0) {
+            const { data: referrerSub } = await supabase
               .from("subscriptions")
-              .update({ credits: (referrerSub.credits || 0) + bonusCredits })
-              .eq("user_id", profile.referred_by);
+              .select("credits")
+              .eq("user_id", profile.referred_by)
+              .single();
+
+            if (referrerSub) {
+              await supabase
+                .from("subscriptions")
+                .update({ credits: (referrerSub.credits || 0) + bonusCredits })
+                .eq("user_id", profile.referred_by);
+            }
           }
         }
       }

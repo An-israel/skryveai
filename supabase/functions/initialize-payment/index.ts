@@ -106,7 +106,14 @@ serve(async (req) => {
     const reference = `outreach_${plan}_${user.id}_${Date.now()}`;
 
     // Map plan key to the subscription_plan enum value
-    const enumPlan = plan.replace("_yearly", "").replace("yearly", "monthly");
+    // The subscription_plan enum only has: monthly, yearly, lifetime
+    // Map all plan keys to the correct enum value
+    let enumPlan: string;
+    if (plan.includes("yearly")) {
+      enumPlan = "yearly";
+    } else {
+      enumPlan = "monthly";
+    }
 
     await supabase.from("payment_history").insert({
       user_id: user.id,
@@ -132,6 +139,7 @@ serve(async (req) => {
         metadata: {
           user_id: user.id,
           plan: plan,
+          plan_key: plan,
           custom_fields: [{ display_name: "Plan", variable_name: "plan", value: plan }],
         },
       }),
