@@ -23,7 +23,14 @@ import {
   Mail,
   Loader2,
   RefreshCw,
+  Eye,
 } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -137,6 +144,8 @@ export function AutoPilotDashboard({
   const [activity, setActivity] = useState<ActivityItem[]>([]);
   const [isTogglingActive, setIsTogglingActive] = useState(false);
   const [isActive, setIsActive] = useState(config.is_active);
+  const [previewItem, setPreviewItem] = useState<ActivityItem | null>(null);
+  const [isTriggering, setIsTriggering] = useState(false);
 
   const dailyLimit = config.daily_quota?.emailsPerDay ?? 500;
   const today = new Date().toISOString().split("T")[0];
@@ -159,7 +168,7 @@ export function AutoPilotDashboard({
     const { data } = await (supabase as any)
       .from("autopilot_activity")
       .select(
-        "id, business_name, business_location, contact_email, email_subject, status, opened, clicked, replied, created_at"
+        "id, business_name, business_location, contact_email, email_subject, email_body, status, opened, clicked, replied, created_at"
       )
       .eq("user_id", user.id)
       .order("created_at", { ascending: false })
@@ -178,6 +187,36 @@ export function AutoPilotDashboard({
 
     return () => clearInterval(interval);
   }, [fetchSession, fetchActivity]);
+
+  // ── Auto-trigger autopilot run when active ────────────────────────────────
+  useEffect(() => {
+    if (!isActive || !authSession) return;
+    
+    const triggerRun = async () => {
+      try {
+        await fetch(
+          `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/autopilot-run`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${authSession.access_token}`,
+            },
+            body: JSON.stringify({ userId: user?.id }),
+          }
+        );
+        fetchSession();
+        fetchActivity();
+      } catch (err) {
+        console.error("Auto-trigger failed:", err);
+      }
+    };
+
+    // Trigger immediately, then every 5 minutes
+    triggerRun();
+    const interval = setInterval(triggerRun, 5 * 60 * 1000);
+    return () => clearInterval(interval);
+  }, [isActive, authSession, user?.id]);
 
   // ── Real-time subscription on autopilot_activity ───────────────────────────
   useEffect(() => {
@@ -209,6 +248,34 @@ export function AutoPilotDashboard({
       supabase.removeChannel(channel);
     };
   }, [user, fetchSession]);
+
+  // ── Manual trigger ──────────────────────────────────────────────────────────
+  const handleManualTrigger = async () => {
+    if (!authSession || !user) return;
+    setIsTriggering(true);
+    try {
+      const res = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/autopilot-run`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${authSession.access_token}`,
+          },
+          body: JSON.stringify({ userId: user.id }),
+        }
+      );
+      if (res.ok) {
+        toast({ title: "Auto-Pilot triggered", description: "Processing businesses now..." });
+        fetchSession();
+        fetchActivity();
+      }
+    } catch (err) {
+      toast({ title: "Failed to trigger", variant: "destructive" });
+    } finally {
+      setIsTriggering(false);
+    }
+  };
 
   // ── Pause / Resume ────────────────────────────────────────────────────────
   const handleToggleActive = async () => {
@@ -381,6 +448,12 @@ export function AutoPilotDashboard({
                   <BarChart2 className="w-4 h-4 mr-1.5" />
                   Full Log
                 </Button>
+                {isActive && (
+                  <Button variant="outline" size="sm" onClick={handleManualTrigger} disabled={isTriggering}>
+                    {isTriggering ? <Loader2 className="w-4 h-4 mr-1.5 animate-spin" /> : <Zap className="w-4 h-4 mr-1.5" />}
+                    Run Now
+                  </Button>
+                )}
               </div>
             </div>
           </div>
@@ -473,8 +546,19 @@ export function AutoPilotDashboard({
                           {item.status}
                         </Badge>
                         <span className="text-xs text-muted-foreground">
-                          {formatTime(item.created_at)}
+                        {formatTime(item.created_at)}
                         </span>
+                        {item.email_subject && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-5 px-1.5 text-xs"
+                            onClick={() => setPreviewItem(item)}
+                          >
+                            <Eye className="w-3 h-3 mr-0.5" />
+                            Preview
+                          </Button>
+                        )}
                       </div>
                     </motion.div>
                   ))}
@@ -484,6 +568,46 @@ export function AutoPilotDashboard({
           </ScrollArea>
         </CardContent>
       </Card>
+
+      {/* ── Email Preview Dialog ──────────────────────────────────────── */}
+      <Dialog open={!!previewItem} onOpenChange={(open) => !open && setPreviewItem(null)}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="text-base">Email Preview</DialogTitle>
+          </DialogHeader>
+          {previewItem && (
+            <div className="space-y-3">
+              <div className="text-sm">
+                <span className="text-muted-foreground">To:</span>{" "}
+                <span className="font-medium">{previewItem.contact_email || "N/A"}</span>
+              </div>
+              <div className="text-sm">
+                <span className="text-muted-foreground">Business:</span>{" "}
+                <span className="font-medium">{previewItem.business_name}</span>
+                {previewItem.business_location && (
+                  <span className="text-muted-foreground"> — {previewItem.business_location}</span>
+                )}
+              </div>
+              <div className="text-sm">
+                <span className="text-muted-foreground">Subject:</span>{" "}
+                <span className="font-medium">{previewItem.email_subject}</span>
+              </div>
+              <div className="border rounded-lg p-4 bg-muted/30 max-h-64 overflow-y-auto">
+                <p className="text-sm whitespace-pre-wrap">
+                  {(previewItem as any).email_body || "Email body not available for preview."}
+                </p>
+              </div>
+              <div className="flex gap-2 text-xs text-muted-foreground">
+                <Badge variant={previewItem.status === "sent" ? "default" : previewItem.status === "failed" ? "destructive" : "secondary"} className="text-xs">
+                  {previewItem.status}
+                </Badge>
+                {previewItem.opened && <Badge variant="outline" className="text-xs">Opened</Badge>}
+                {previewItem.replied && <Badge variant="outline" className="text-xs">Replied</Badge>}
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
