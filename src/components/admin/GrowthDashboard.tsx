@@ -30,6 +30,8 @@ export function GrowthDashboard() {
     conversionRate: 0,
     churnedThisMonth: 0,
     churnRate: 0,
+    activeUsers: 0,
+    inactiveUsers: 0,
     referralSignups: 0,
     referralConversions: 0,
   });
@@ -102,7 +104,7 @@ export function GrowthDashboard() {
       setMetrics({
         totalUsers, newToday, newThisWeek, newThisMonth,
         activatedUsers, activationRate, paidUsers, trialUsers,
-        conversionRate, churnedThisMonth, churnRate,
+        conversionRate, churnedThisMonth, churnRate, activeUsers, inactiveUsers,
         referralSignups, referralConversions,
       });
 
