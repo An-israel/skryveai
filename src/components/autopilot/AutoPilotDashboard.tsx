@@ -55,6 +55,7 @@ interface ActivityItem {
   business_location: string | null;
   contact_email: string | null;
   email_subject: string | null;
+  email_body: string | null;
   status: string;
   opened: boolean;
   clicked: boolean;
