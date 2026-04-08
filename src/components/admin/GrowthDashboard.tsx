@@ -257,6 +257,18 @@ export function GrowthDashboard() {
             </p>
           </CardContent>
         </Card>
+        <Card>
+          <CardContent className="p-3">
+            <div className="flex items-center gap-1.5 text-muted-foreground mb-1">
+              <Users className="w-3.5 h-3.5" />
+              <span className="text-xs">Active / Inactive</span>
+            </div>
+            <p className="text-xl font-bold">{metrics.activeUsers} <span className="text-sm font-normal text-muted-foreground">/ {metrics.inactiveUsers}</span></p>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              48h inactivity = inactive
+            </p>
+          </CardContent>
+        </Card>
       </div>
 
       {/* Refresh Button */}
