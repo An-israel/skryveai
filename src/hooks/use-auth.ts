@@ -38,6 +38,13 @@ export function useAuth(requireAuth: boolean = true) {
         if (session?.user) {
           // Fetch subscription data
           setTimeout(async () => {
+            // Update last_active_at for activity tracking
+            (supabase as any)
+              .from("profiles")
+              .update({ last_active_at: new Date().toISOString() })
+              .eq("user_id", session.user.id)
+              .then(() => {});
+
             const { data: sub } = await supabase
               .from("subscriptions")
               .select("status, plan, trial_ends_at")
