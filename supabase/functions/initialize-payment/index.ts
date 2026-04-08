@@ -93,7 +93,10 @@ serve(async (req) => {
     if (!profile) throw new Error("Profile not found");
 
     // Determine if African pricing
-    const isAfrican = AFRICAN_COUNTRIES.includes((profile.country || "").toUpperCase().slice(0, 2));
+    // If paying in NGN, always use African pricing (NGN = Nigerian currency)
+    // Only use non-African pricing for NGN if user is explicitly from a non-African country
+    const profileCountry = (profile.country || "").toUpperCase().trim();
+    const isAfrican = !profileCountry || AFRICAN_COUNTRIES.includes(profileCountry.slice(0, 2));
 
     let amount: number;
     if (currency === "NGN") {

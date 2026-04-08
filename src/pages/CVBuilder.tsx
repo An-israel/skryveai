@@ -13,7 +13,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   FileText, Upload, Sparkles, ArrowLeft, ArrowRight, Plus, Trash2,
-  CheckCircle2, Download, Loader2, Target, BookOpen, Award, Briefcase, FileDown
+  CheckCircle2, Download, Loader2, Target, BookOpen, Award, Briefcase, FileDown, X
 } from "lucide-react";
 import { downloadCvAsPdf, downloadCvAsDocx, downloadGuideAsPdf, downloadGuideAsDocx } from "@/lib/cv-download";
 import { supabase } from "@/integrations/supabase/client";
@@ -74,6 +74,103 @@ export default function CVBuilder() {
   // Mode A state
   const [existingCv, setExistingCv] = useState("");
   const [jobDescription, setJobDescription] = useState("");
+  const [uploadedFileName, setUploadedFileName] = useState("");
+  const [isParsingFile, setIsParsingFile] = useState(false);
+
+  const handleCvFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const maxSize = 5 * 1024 * 1024; // 5MB
+    if (file.size > maxSize) {
+      toast({ title: "File too large", description: "Please upload a file under 5MB", variant: "destructive" });
+      return;
+    }
+
+    setIsParsingFile(true);
+    setUploadedFileName(file.name);
+
+    try {
+      if (file.type === "text/plain" || file.name.endsWith(".txt")) {
+        const text = await file.text();
+        setExistingCv(text);
+        toast({ title: "CV loaded", description: `${file.name} — ${text.length} characters extracted` });
+      } else if (file.type === "application/pdf" || file.name.endsWith(".pdf")) {
+        // Extract readable text from PDF binary
+        const arrayBuffer = await file.arrayBuffer();
+        const bytes = new Uint8Array(arrayBuffer);
+        const raw = new TextDecoder("latin1").decode(bytes);
+
+        // Pull text from PDF text stream objects
+        const chunks: string[] = [];
+        // Method 1: between BT/ET markers
+        const btEtReg = /BT\s([\s\S]*?)ET/g;
+        let m: RegExpExecArray | null;
+        while ((m = btEtReg.exec(raw)) !== null) {
+          const block = m[1];
+          const tjReg = /\(([^)]{1,300})\)\s*(?:Tj|TJ)/g;
+          let tj: RegExpExecArray | null;
+          while ((tj = tjReg.exec(block)) !== null) {
+            const decoded = tj[1]
+              .replace(/\\n/g, "\n").replace(/\\r/g, "").replace(/\\t/g, " ")
+              .replace(/\\\(/g, "(").replace(/\\\)/g, ")")
+              .replace(/\\([0-9]{3})/g, (_, oct) => String.fromCharCode(parseInt(oct, 8)));
+            if (decoded.trim()) chunks.push(decoded.trim());
+          }
+        }
+        // Method 2: fallback — scan for readable ASCII strings
+        if (chunks.length === 0) {
+          const printable = raw.match(/[\x20-\x7E]{4,}/g) || [];
+          chunks.push(...printable.filter(s => !s.startsWith("/") && !s.startsWith("<<") && s.split(" ").length > 1));
+        }
+
+        const extracted = chunks.join(" ").replace(/\s{3,}/g, " ").trim();
+        if (extracted.length > 100) {
+          setExistingCv(extracted);
+          toast({ title: "CV loaded from PDF", description: `${extracted.length} characters extracted` });
+        } else {
+          toast({
+            title: "PDF text could not be extracted",
+            description: "Please paste your CV text directly in the box below",
+            variant: "destructive",
+          });
+          setUploadedFileName("");
+        }
+      } else if (file.name.endsWith(".docx")) {
+        // DOCX is a zip — extract document.xml text content
+        const arrayBuffer = await file.arrayBuffer();
+        const bytes = new Uint8Array(arrayBuffer);
+        const raw = new TextDecoder("utf-8", { fatal: false }).decode(bytes);
+        // Pull text nodes from word/document.xml XML
+        const textMatches = raw.match(/<w:t[^>]*>([^<]+)<\/w:t>/g) || [];
+        const extracted = textMatches
+          .map(t => t.replace(/<[^>]+>/g, ""))
+          .join(" ")
+          .replace(/\s{2,}/g, " ")
+          .trim();
+        if (extracted.length > 100) {
+          setExistingCv(extracted);
+          toast({ title: "CV loaded from Word doc", description: `${extracted.length} characters extracted` });
+        } else {
+          toast({
+            title: "Could not read this Word file",
+            description: "Please save as PDF or TXT and re-upload",
+            variant: "destructive",
+          });
+          setUploadedFileName("");
+        }
+      } else {
+        toast({ title: "Unsupported format", description: "Please upload PDF, Word (.docx), or TXT", variant: "destructive" });
+        setUploadedFileName("");
+      }
+    } catch {
+      toast({ title: "Failed to read file", description: "Please paste your CV text directly", variant: "destructive" });
+      setUploadedFileName("");
+    } finally {
+      setIsParsingFile(false);
+      e.target.value = "";
+    }
+  };
 
   // Mode B state
   const [formData, setFormData] = useState({
@@ -564,14 +661,58 @@ export default function CVBuilder() {
                 </div>
               </CardHeader>
               <CardContent className="space-y-6">
-                <div className="space-y-2">
-                  <Label>Your Existing CV (paste the text content)</Label>
-                  <Textarea
-                    value={existingCv}
-                    onChange={e => setExistingCv(e.target.value)}
-                    placeholder="Paste your entire CV content here..."
-                    className="min-h-[200px]"
-                  />
+                <div className="space-y-3">
+                  <Label>Your Existing CV</Label>
+
+                  {/* File upload area */}
+                  <div
+                    className="border-2 border-dashed border-border rounded-xl p-6 text-center cursor-pointer hover:border-primary/50 hover:bg-primary/5 transition-colors relative"
+                    onClick={() => document.getElementById("cv-file-input")?.click()}
+                  >
+                    <input
+                      id="cv-file-input"
+                      type="file"
+                      accept=".pdf,.txt,.docx,.doc"
+                      className="hidden"
+                      onChange={handleCvFileUpload}
+                    />
+                    {isParsingFile ? (
+                      <div className="flex flex-col items-center gap-2">
+                        <Loader2 className="w-8 h-8 text-primary animate-spin" />
+                        <p className="text-sm text-muted-foreground">Reading your CV...</p>
+                      </div>
+                    ) : uploadedFileName ? (
+                      <div className="flex items-center justify-center gap-2">
+                        <FileText className="w-5 h-5 text-green-500" />
+                        <span className="text-sm font-medium text-green-600">{uploadedFileName}</span>
+                        <button
+                          onClick={e => { e.stopPropagation(); setUploadedFileName(""); setExistingCv(""); }}
+                          className="ml-1 p-0.5 rounded-full hover:bg-red-100"
+                        >
+                          <X className="w-4 h-4 text-red-500" />
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="flex flex-col items-center gap-2">
+                        <Upload className="w-8 h-8 text-muted-foreground" />
+                        <p className="text-sm font-medium">Click to upload your CV</p>
+                        <p className="text-xs text-muted-foreground">PDF, Word (.docx) or TXT — max 5MB</p>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Editable extracted text (or manual paste fallback) */}
+                  <div className="space-y-1">
+                    <Label className="text-xs text-muted-foreground">
+                      {uploadedFileName ? "Extracted text (you can edit if needed)" : "Or paste CV text directly"}
+                    </Label>
+                    <Textarea
+                      value={existingCv}
+                      onChange={e => setExistingCv(e.target.value)}
+                      placeholder="CV text will appear here after upload, or paste it directly..."
+                      className="min-h-[140px] text-sm"
+                    />
+                  </div>
                 </div>
 
                 <div className="space-y-2">
