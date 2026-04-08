@@ -85,6 +85,7 @@ export default function Pricing() {
           plan,
           currency: pricing?.currency || "NGN",
           callbackUrl: `${window.location.origin}/payment/callback`,
+          country: userCountry || "NG",
         },
       });
       if (error) throw error;

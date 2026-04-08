@@ -68,6 +68,7 @@ interface InitPaymentRequest {
   plan: string;
   currency?: string;
   callbackUrl: string;
+  country?: string; // optional — detected by frontend
 }
 
 serve(async (req) => {
@@ -82,7 +83,7 @@ serve(async (req) => {
     const { data: { user }, error: authError } = await supabase.auth.getUser(authHeader);
     if (authError || !user) throw new Error("Unauthorized");
 
-    const { plan, currency = "NGN", callbackUrl }: InitPaymentRequest = await req.json();
+    const { plan, currency = "NGN", callbackUrl, country: requestCountry }: InitPaymentRequest = await req.json();
 
     const { data: profile } = await supabase
       .from("profiles")
@@ -93,10 +94,9 @@ serve(async (req) => {
     if (!profile) throw new Error("Profile not found");
 
     // Determine if African pricing
-    // If paying in NGN, always use African pricing (NGN = Nigerian currency)
-    // Only use non-African pricing for NGN if user is explicitly from a non-African country
-    const profileCountry = (profile.country || "").toUpperCase().trim();
-    const isAfrican = !profileCountry || AFRICAN_COUNTRIES.includes(profileCountry.slice(0, 2));
+    // Priority: 1) country from frontend (IP-detected), 2) profile country, 3) default to African for NGN
+    const countryCode = (requestCountry || profile.country || "").toUpperCase().trim().slice(0, 2);
+    const isAfrican = !countryCode || AFRICAN_COUNTRIES.includes(countryCode) || currency === "NGN";
 
     let amount: number;
     if (currency === "NGN") {
