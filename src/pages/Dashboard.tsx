@@ -34,7 +34,8 @@ import {
   Gift,
   FileText,
   Target,
-  Briefcase
+  Briefcase,
+  Linkedin
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -316,9 +317,9 @@ export default function Dashboard() {
           className="mb-8"
         >
           <h2 className="font-display text-lg font-bold mb-3 tracking-tight">Career Tools</h2>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
             {/* CV Builder - prominent */}
-            <Card className="border-primary/30 bg-primary/5 card-hover cursor-pointer group sm:col-span-1" onClick={() => navigate("/cv-builder")}>
+            <Card className="border-primary/30 bg-primary/5 card-hover cursor-pointer group" onClick={() => navigate("/cv-builder")}>
               <CardContent className="p-5 text-center">
                 <div className="w-12 h-12 mx-auto mb-3 rounded-xl bg-primary flex items-center justify-center">
                   <FileText className="w-6 h-6 text-primary-foreground" />
@@ -338,6 +339,16 @@ export default function Dashboard() {
                 </div>
                 <p className="font-display font-bold text-sm">ATS Checker</p>
                 <p className="text-xs text-muted-foreground">Instant score</p>
+              </CardContent>
+            </Card>
+            {/* LinkedIn Analyzer */}
+            <Card className="border-border-subtle card-hover cursor-pointer group" onClick={() => navigate("/linkedin-analyzer")}>
+              <CardContent className="p-4 text-center">
+                <div className="w-10 h-10 mx-auto mb-2 rounded-xl bg-[#0A66C2]/10 flex items-center justify-center group-hover:bg-[#0A66C2] transition-colors duration-300">
+                  <Linkedin className="w-5 h-5 text-[#0A66C2] group-hover:text-white" />
+                </div>
+                <p className="font-display font-bold text-sm">LinkedIn Analyzer</p>
+                <p className="text-xs text-muted-foreground">Score & improve</p>
               </CardContent>
             </Card>
             {/* Outreach */}

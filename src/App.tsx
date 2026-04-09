@@ -27,6 +27,7 @@ import Referrals from "./pages/Referrals";
 import Careers from "./pages/Careers";
 import CVBuilder from "./pages/CVBuilder";
 import ATSChecker from "./pages/ATSChecker";
+import LinkedInAnalyzer from "./pages/LinkedInAnalyzer";
 import CampaignDetails from "./pages/CampaignDetails";
 import AutoPilot from "./pages/AutoPilot";
 import EmailReply from "./pages/EmailReply";
@@ -68,6 +69,7 @@ const App = () => (
           <Route path="/careers" element={<GuardedRoute><Careers /></GuardedRoute>} />
           <Route path="/cv-builder" element={<GuardedRoute><CVBuilder /></GuardedRoute>} />
           <Route path="/ats-checker" element={<GuardedRoute><ATSChecker /></GuardedRoute>} />
+          <Route path="/linkedin-analyzer" element={<GuardedRoute><LinkedInAnalyzer /></GuardedRoute>} />
           <Route path="/campaigns/:id" element={<GuardedRoute><CampaignDetails /></GuardedRoute>} />
           <Route path="/auto-pilot" element={<GuardedRoute><AutoPilot /></GuardedRoute>} />
           <Route path="/reply" element={<EmailReply />} />

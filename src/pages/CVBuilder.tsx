@@ -703,15 +703,28 @@ export default function CVBuilder() {
 
                   {/* Editable extracted text (or manual paste fallback) */}
                   <div className="space-y-1">
-                    <Label className="text-xs text-muted-foreground">
-                      {uploadedFileName ? "Extracted text (you can edit if needed)" : "Or paste CV text directly"}
-                    </Label>
+                    <div className="flex items-center justify-between">
+                      <Label className="text-xs text-muted-foreground">
+                        {uploadedFileName ? "Extracted text — review and edit below" : "Or paste CV text directly"}
+                      </Label>
+                      {existingCv.trim().length > 0 && (
+                        <span className="text-xs text-muted-foreground">
+                          {existingCv.trim().split(/\s+/).length} words · {existingCv.length} chars
+                        </span>
+                      )}
+                    </div>
                     <Textarea
                       value={existingCv}
                       onChange={e => setExistingCv(e.target.value)}
                       placeholder="CV text will appear here after upload, or paste it directly..."
-                      className="min-h-[140px] text-sm"
+                      className="text-sm font-mono resize-y"
+                      style={{ minHeight: existingCv.trim().length > 200 ? "420px" : "140px" }}
                     />
+                    {uploadedFileName && existingCv.trim().length > 0 && (
+                      <p className="text-xs text-green-600 flex items-center gap-1">
+                        <span>✓</span> Content loaded — scroll through to review, or edit directly before optimizing
+                      </p>
+                    )}
                   </div>
                 </div>
 
