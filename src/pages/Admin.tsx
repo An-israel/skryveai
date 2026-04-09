@@ -106,6 +106,13 @@ export default function Admin() {
   const [userAuthStatuses, setUserAuthStatuses] = useState<Record<string, any>>({});
   const [loadingAuthStatus, setLoadingAuthStatus] = useState<Record<string, boolean>>({});
   
+  // Edit user dialog state
+  const [showEditUserDialog, setShowEditUserDialog] = useState(false);
+  const [editingUser, setEditingUser] = useState<any | null>(null);
+  const [editUserName, setEditUserName] = useState("");
+  const [editUserEmail, setEditUserEmail] = useState("");
+  const [savingUser, setSavingUser] = useState(false);
+
   // CMS state
   const [showPageEditor, setShowPageEditor] = useState(false);
   const [editingPage, setEditingPage] = useState<CMSPage | null>(null);
@@ -322,6 +329,49 @@ export default function Admin() {
       loadData();
     } catch {
       toast({ title: "Failed to delete user", variant: "destructive" });
+    }
+  };
+
+  const openEditUser = (user: any) => {
+    setEditingUser(user);
+    setEditUserName(user.full_name || "");
+    setEditUserEmail(user.email || "");
+    setShowEditUserDialog(true);
+  };
+
+  const handleSaveUser = async () => {
+    if (!editingUser) return;
+    setSavingUser(true);
+    try {
+      const { error } = await supabase
+        .from("profiles")
+        .update({ full_name: editUserName.trim(), email: editUserEmail.trim() })
+        .eq("user_id", editingUser.user_id);
+      if (error) throw error;
+      toast({ title: "User updated" });
+      setShowEditUserDialog(false);
+      loadData();
+    } catch {
+      toast({ title: "Failed to update user", variant: "destructive" });
+    } finally {
+      setSavingUser(false);
+    }
+  };
+
+  const handleDeactivateUser = async () => {
+    if (!editingUser) return;
+    if (!confirm(`Deactivate account for ${editingUser.email}? They will be unable to use the app.`)) return;
+    setSavingUser(true);
+    try {
+      // Remove the profile row — user auth still exists but app is inaccessible without a profile
+      await supabase.from("profiles").delete().eq("user_id", editingUser.user_id);
+      toast({ title: "Account deactivated", description: "Profile removed. The auth account still exists but the user cannot access the app." });
+      setShowEditUserDialog(false);
+      loadData();
+    } catch {
+      toast({ title: "Failed to deactivate account", variant: "destructive" });
+    } finally {
+      setSavingUser(false);
     }
   };
 
@@ -671,8 +721,6 @@ export default function Admin() {
                          <TableHead>Subscription</TableHead>
                          <TableHead>Joined</TableHead>
                          <TableHead>Actions</TableHead>
-                        <TableHead>Joined</TableHead>
-                        <TableHead>Actions</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -760,8 +808,10 @@ export default function Admin() {
                               </Button>
                               {isSuperAdmin && (
                                 <>
-                                  <Button variant="ghost" size="icon"><Edit className="w-4 h-4" /></Button>
-                                  <Button variant="ghost" size="icon" onClick={() => handleDeleteUser(user.user_id)}>
+                                  <Button variant="ghost" size="icon" title="Edit user" onClick={() => openEditUser(user)}>
+                                    <Edit className="w-4 h-4" />
+                                  </Button>
+                                  <Button variant="ghost" size="icon" title="Delete user" onClick={() => handleDeleteUser(user.user_id)}>
                                     <Trash2 className="w-4 h-4 text-destructive" />
                                   </Button>
                                 </>
@@ -1212,6 +1262,50 @@ export default function Admin() {
         userId={emailTarget.userId}
         userName={emailTarget.name}
       />
+
+      {/* Edit User Dialog */}
+      <Dialog open={showEditUserDialog} onOpenChange={setShowEditUserDialog}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Edit User</DialogTitle>
+            <DialogDescription>Update this user's profile details.</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div className="space-y-1.5">
+              <Label>Full Name</Label>
+              <Input value={editUserName} onChange={(e) => setEditUserName(e.target.value)} placeholder="Full name" />
+            </div>
+            <div className="space-y-1.5">
+              <Label>Email</Label>
+              <Input value={editUserEmail} onChange={(e) => setEditUserEmail(e.target.value)} placeholder="Email address" type="email" />
+            </div>
+            {editingUser && (
+              <div className="text-xs text-muted-foreground border rounded p-2 space-y-0.5">
+                <p><span className="font-medium">User ID:</span> {editingUser.user_id}</p>
+                <p><span className="font-medium">Joined:</span> {editingUser.created_at ? new Date(editingUser.created_at).toLocaleDateString() : "—"}</p>
+                <p><span className="font-medium">Subscription:</span> {editingUser.subscriptions?.status || "none"}</p>
+              </div>
+            )}
+          </div>
+          <DialogFooter className="flex-col gap-2 sm:flex-row sm:justify-between">
+            <Button
+              variant="destructive"
+              onClick={handleDeactivateUser}
+              disabled={savingUser}
+              className="w-full sm:w-auto"
+            >
+              Deactivate Account
+            </Button>
+            <div className="flex gap-2">
+              <Button variant="outline" onClick={() => setShowEditUserDialog(false)} disabled={savingUser}>Cancel</Button>
+              <Button onClick={handleSaveUser} disabled={savingUser}>
+                {savingUser ? <Loader2 className="w-4 h-4 animate-spin mr-1" /> : null}
+                Save Changes
+              </Button>
+            </div>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
