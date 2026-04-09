@@ -109,10 +109,9 @@ export default function AutoPilot() {
             <Button variant="ghost" size="sm" onClick={handleBackToList} className="mb-4">
               ← Back to Campaigns
             </Button>
-            {view === "activity-log" ? (
+            {false ? (
               <AutoPilotActivityLog
                 userId={user!.id}
-                configId={activeConfig.id}
                 onBack={() => setView("dashboard")}
               />
             ) : (
