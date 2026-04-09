@@ -37,7 +37,120 @@ serve(async (req) => {
       });
     }
 
-    const { cvContent, jobDescription } = await req.json();
+    const body = await req.json();
+    const mode = body.mode ?? "ats"; // "ats" | "linkedin"
+
+    // ── LINKEDIN ANALYSIS MODE ────────────────────────────────────────────────
+    if (mode === "linkedin") {
+      const { profileContent, targetRole } = body;
+
+      if (!profileContent || profileContent.trim().length < 50) {
+        return new Response(
+          JSON.stringify({ error: "Please provide your LinkedIn profile content (at least 50 characters)" }),
+          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      console.log(`LinkedIn analysis for user ${user.id}, content: ${profileContent.length} chars`);
+
+      const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
+        body: JSON.stringify({
+          model: "google/gemini-2.5-flash-lite",
+          messages: [
+            {
+              role: "system",
+              content: `You are a LinkedIn profile optimization expert. You know exactly how LinkedIn's algorithm ranks profiles, what recruiters and clients look for, and how professionals get discovered and hired through LinkedIn.
+
+Analyze the profile content provided and give honest, specific, actionable feedback. Reference actual content from the profile — never give generic advice.
+
+Scoring scale: 90-100 Outstanding | 70-89 Good minor gaps | 50-69 Average needs work | 30-49 Weak significant gaps | 0-29 Missing or very poor${targetRole ? `\n\nTarget role: "${targetRole}"` : ""}`,
+            },
+            {
+              role: "user",
+              content: `Analyze this LinkedIn profile:\n\n${profileContent}`,
+            },
+          ],
+          tools: [{
+            type: "function",
+            function: {
+              name: "linkedin_analysis",
+              description: "Return detailed LinkedIn profile analysis",
+              parameters: {
+                type: "object",
+                properties: {
+                  overallScore: { type: "number" },
+                  grade: { type: "string", description: "A+, A, B+, B, C+, C, D, F" },
+                  profileStrength: { type: "string", description: "All-Star, Expert, Advanced, Intermediate, or Beginner" },
+                  breakdown: {
+                    type: "object",
+                    properties: {
+                      headline: { type: "number" },
+                      about: { type: "number" },
+                      experience: { type: "number" },
+                      skills: { type: "number" },
+                      education: { type: "number" },
+                      profileCompleteness: { type: "number" },
+                      keywordsVisibility: { type: "number" },
+                      socialProof: { type: "number" },
+                    },
+                    required: ["headline","about","experience","skills","education","profileCompleteness","keywordsVisibility","socialProof"],
+                    additionalProperties: false,
+                  },
+                  sectionFeedback: {
+                    type: "object",
+                    properties: {
+                      headline: { type: "string" },
+                      about: { type: "string" },
+                      experience: { type: "string" },
+                      skills: { type: "string" },
+                      education: { type: "string" },
+                      profileCompleteness: { type: "string" },
+                      keywordsVisibility: { type: "string" },
+                      socialProof: { type: "string" },
+                    },
+                    required: ["headline","about","experience","skills","education","profileCompleteness","keywordsVisibility","socialProof"],
+                    additionalProperties: false,
+                  },
+                  quickWins: { type: "array", items: { type: "string" }, description: "3-5 improvements under 10 minutes each" },
+                  biggerImprovements: { type: "array", items: { type: "string" }, description: "3-5 high-impact improvements requiring more effort" },
+                  missingElements: { type: "array", items: { type: "string" }, description: "Key elements completely absent from the profile" },
+                  headlineSuggestion: { type: "string", description: "Rewritten headline based on actual profile content" },
+                  aboutSuggestion: { type: "string", description: "Improved opening 2-3 sentences for the About section" },
+                },
+                required: ["overallScore","grade","profileStrength","breakdown","sectionFeedback","quickWins","biggerImprovements","missingElements","headlineSuggestion","aboutSuggestion"],
+                additionalProperties: false,
+              },
+            },
+          }],
+          tool_choice: { type: "function", function: { name: "linkedin_analysis" } },
+        }),
+      });
+
+      if (!aiResponse.ok) {
+        if (aiResponse.status === 429) {
+          return new Response(JSON.stringify({ error: "Rate limit reached. Try again shortly." }), {
+            status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+        throw new Error("Failed to analyze LinkedIn profile");
+      }
+
+      const aiData = await aiResponse.json();
+      const toolCall = aiData.choices?.[0]?.message?.tool_calls?.[0];
+      if (!toolCall?.function?.arguments) throw new Error("No analysis returned from AI");
+
+      const result = JSON.parse(toolCall.function.arguments);
+      console.log(`LinkedIn analysis done: score=${result.overallScore} grade=${result.grade}`);
+
+      return new Response(JSON.stringify(result), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // ── ATS MODE (original) ───────────────────────────────────────────────────
+    const { cvContent, jobDescription } = body;
 
     if (!cvContent || cvContent.trim().length < 50) {
       return new Response(JSON.stringify({ error: "Please provide CV content (at least 50 characters)" }), {
@@ -49,10 +162,7 @@ serve(async (req) => {
 
     const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
-      headers: {
-        Authorization: `Bearer ${LOVABLE_API_KEY}`,
-        "Content-Type": "application/json",
-      },
+      headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
       body: JSON.stringify({
         model: "google/gemini-2.5-flash-lite",
         messages: [
@@ -128,7 +238,7 @@ Provide specific, actionable improvement suggestions.`,
 
     const aiData = await aiResponse.json();
     const toolCall = aiData.choices?.[0]?.message?.tool_calls?.[0];
-    let result = { overallScore: 0, breakdown: {}, strengths: [], improvements: [], grade: "C" };
+    let result: Record<string, unknown> = { overallScore: 0, breakdown: {}, strengths: [], improvements: [], grade: "C" };
 
     if (toolCall?.function?.arguments) {
       try { result = JSON.parse(toolCall.function.arguments); } catch {
@@ -138,14 +248,12 @@ Provide specific, actionable improvement suggestions.`,
 
     console.log(`ATS Score: ${result.overallScore} (${result.grade})`);
 
-    return new Response(
-      JSON.stringify(result),
-      { headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    );
+    return new Response(JSON.stringify(result), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+
   } catch (error) {
     console.error("Error in check-ats-score:", error);
     return new Response(
-      JSON.stringify({ error: error instanceof Error ? error.message : "Failed to check ATS score" }),
+      JSON.stringify({ error: error instanceof Error ? error.message : "Failed to process request" }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }

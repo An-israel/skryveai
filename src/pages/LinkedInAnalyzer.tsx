@@ -194,8 +194,8 @@ export default function LinkedInAnalyzer() {
     setIsAnalyzing(true);
     setResult(null);
     try {
-      const { data, error } = await supabase.functions.invoke("analyze-linkedin", {
-        body: { profileContent, targetRole: targetRole.trim() || undefined },
+      const { data, error } = await supabase.functions.invoke("check-ats-score", {
+        body: { mode: "linkedin", profileContent, targetRole: targetRole.trim() || undefined },
       });
       if (error) throw new Error(error.message || "Analysis failed");
       if (data?.error) throw new Error(data.error);
