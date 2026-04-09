@@ -88,7 +88,7 @@ function extractDomain(url: string): string {
 // ─── Core per-user processor ──────────────────────────────────────────────────
 
 async function processUser(
-  supabase: ReturnType<typeof createClient>,
+  supabase: any,
   config: AutoPilotConfig,
   supabaseUrl: string,
   serviceKey: string
