@@ -7,79 +7,16 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-// ── Format Proxycurl response into readable profile text ────────────────────
-function formatProfileText(p: Record<string, any>): string {
-  const lines: string[] = [];
-
-  if (p.full_name) lines.push(`NAME: ${p.full_name}`);
-  if (p.headline) lines.push(`HEADLINE: ${p.headline}`);
-  if (p.country_full_name || p.city) lines.push(`LOCATION: ${[p.city, p.country_full_name].filter(Boolean).join(", ")}`);
-  if (p.connections) lines.push(`CONNECTIONS: ${p.connections}`);
-  if (p.follower_count) lines.push(`FOLLOWERS: ${p.follower_count}`);
-
-  if (p.summary) {
-    lines.push("\nABOUT:");
-    lines.push(p.summary);
-  }
-
-  if (Array.isArray(p.experiences) && p.experiences.length > 0) {
-    lines.push("\nEXPERIENCE:");
-    for (const exp of p.experiences.slice(0, 6)) {
-      const title = [exp.title, exp.company].filter(Boolean).join(" at ");
-      const dates = [exp.starts_at?.year, exp.ends_at?.year ?? "Present"].join(" – ");
-      lines.push(`• ${title} (${dates})`);
-      if (exp.description) lines.push(`  ${exp.description.slice(0, 300)}`);
-    }
-  }
-
-  if (Array.isArray(p.education) && p.education.length > 0) {
-    lines.push("\nEDUCATION:");
-    for (const edu of p.education.slice(0, 4)) {
-      const degree = [edu.degree_name, edu.field_of_study].filter(Boolean).join(", ");
-      const school = edu.school ?? "";
-      lines.push(`• ${school}${degree ? ` — ${degree}` : ""}`);
-    }
-  }
-
-  if (Array.isArray(p.skills) && p.skills.length > 0) {
-    lines.push("\nSKILLS:");
-    lines.push(p.skills.map((s: any) => s.name ?? s).slice(0, 30).join(", "));
-  }
-
-  if (Array.isArray(p.certifications) && p.certifications.length > 0) {
-    lines.push("\nCERTIFICATIONS:");
-    for (const cert of p.certifications.slice(0, 5)) {
-      lines.push(`• ${cert.name}${cert.authority ? ` — ${cert.authority}` : ""}`);
-    }
-  }
-
-  if (Array.isArray(p.recommendations) && p.recommendations.length > 0) {
-    lines.push(`\nRECOMMENDATIONS: ${p.recommendations.length} received`);
-  }
-
-  if (p.profile_pic_url) lines.push("\nPROFILE PHOTO: Present");
-  else lines.push("\nPROFILE PHOTO: Missing");
-
-  if (p.background_cover_image_url) lines.push("BANNER IMAGE: Present");
-  else lines.push("BANNER IMAGE: Missing");
-
-  if (p.public_identifier) lines.push(`CUSTOM URL: linkedin.com/in/${p.public_identifier}`);
-
-  return lines.join("\n");
-}
-
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    // ── Auth ──────────────────────────────────────────────────────────────────
     const authHeader = req.headers.get("authorization");
     if (!authHeader?.startsWith("Bearer ")) {
       return new Response(JSON.stringify({ error: "Unauthorized" }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
@@ -90,75 +27,28 @@ serve(async (req) => {
     const { data: { user }, error: authError } = await serviceClient.auth.getUser(token);
     if (authError || !user) {
       return new Response(JSON.stringify({ error: "Unauthorized" }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    // ── Keys ──────────────────────────────────────────────────────────────────
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) {
       return new Response(JSON.stringify({ error: "AI service not configured" }), {
-        status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    const PROXYCURL_API_KEY = Deno.env.get("PROXYCURL_API_KEY");
-    if (!PROXYCURL_API_KEY) {
-      return new Response(
-        JSON.stringify({ error: "LinkedIn data service not configured. Please add PROXYCURL_API_KEY to Supabase secrets." }),
-        { status: 503, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
+    const { profileContent, targetRole } = await req.json();
 
-    // ── Parse request ─────────────────────────────────────────────────────────
-    const { linkedinUrl, targetRole } = await req.json();
-
-    if (!linkedinUrl || !linkedinUrl.includes("linkedin.com/in/")) {
+    if (!profileContent || profileContent.trim().length < 50) {
       return new Response(
-        JSON.stringify({ error: "Please provide a valid LinkedIn profile URL (e.g. https://linkedin.com/in/yourname)" }),
+        JSON.stringify({ error: "Please provide your LinkedIn profile content (at least 50 characters)" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    console.log(`LinkedIn analysis for user ${user.id}, profile: ${linkedinUrl}`);
+    console.log(`LinkedIn analysis for user ${user.id}, content length: ${profileContent.length}`);
 
-    // ── Step 1: Fetch profile data via Proxycurl ──────────────────────────────
-    const proxycurlRes = await fetch(
-      `https://nubela.co/proxycurl/api/v2/linkedin?url=${encodeURIComponent(linkedinUrl)}&skills=include&recommendations=include&certifications=include`,
-      {
-        headers: {
-          Authorization: `Bearer ${PROXYCURL_API_KEY}`,
-          "Content-Type": "application/json",
-        },
-      }
-    );
-
-    if (!proxycurlRes.ok) {
-      if (proxycurlRes.status === 404) {
-        return new Response(
-          JSON.stringify({ error: "LinkedIn profile not found. Make sure the profile is public and the URL is correct." }),
-          { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
-      }
-      if (proxycurlRes.status === 429) {
-        return new Response(
-          JSON.stringify({ error: "LinkedIn data service rate limit reached. Try again shortly." }),
-          { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
-      }
-      const errText = await proxycurlRes.text();
-      console.error("Proxycurl error:", proxycurlRes.status, errText);
-      throw new Error("Failed to fetch LinkedIn profile data");
-    }
-
-    const profileData = await proxycurlRes.json();
-    const profileText = formatProfileText(profileData);
-
-    console.log(`Profile fetched: ${profileData.full_name}, ${profileText.length} chars`);
-
-    // ── Step 2: AI analysis ───────────────────────────────────────────────────
     const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: {
@@ -172,20 +62,20 @@ serve(async (req) => {
             role: "system",
             content: `You are a LinkedIn profile optimization expert. You know exactly how LinkedIn's algorithm ranks profiles, what recruiters and clients look for, and how professionals get discovered and hired through LinkedIn.
 
-Analyze the profile data provided and give honest, specific, actionable feedback. Reference actual content from the profile — not generic advice.
+Analyze the profile content provided and give honest, specific, actionable feedback. Reference actual content from the profile — never give generic advice.
 
 Scoring scale:
-- 90-100: Outstanding
+- 90-100: Outstanding, nothing to improve
 - 70-89: Good, minor gaps
 - 50-69: Average, needs work
 - 30-49: Weak, significant gaps
 - 0-29: Missing or very poor
 
-If the profile is missing a photo, banner, summary/about section, or has very few connections, that should significantly impact the relevant scores.`,
+If information about photo, banner, connections or recommendations is not present in the content, note that as missing and score accordingly.${targetRole ? `\n\nThe user is targeting: "${targetRole}" roles — tailor the analysis to this.` : ""}`,
           },
           {
             role: "user",
-            content: `Analyze this LinkedIn profile${targetRole ? ` for someone targeting "${targetRole}" roles` : ""}:\n\n${profileText}`,
+            content: `Analyze this LinkedIn profile:\n\n${profileContent}`,
           },
         ],
         tools: [
@@ -220,6 +110,7 @@ If the profile is missing a photo, banner, summary/about section, or has very fe
                   },
                   sectionFeedback: {
                     type: "object",
+                    description: "Specific feedback per section referencing actual profile content",
                     properties: {
                       headline: { type: "string" },
                       about: { type: "string" },
@@ -236,21 +127,21 @@ If the profile is missing a photo, banner, summary/about section, or has very fe
                   quickWins: {
                     type: "array",
                     items: { type: "string" },
-                    description: "3-5 improvements that take under 10 minutes",
+                    description: "3-5 improvements that take under 10 minutes each",
                   },
                   biggerImprovements: {
                     type: "array",
                     items: { type: "string" },
-                    description: "3-5 deeper improvements with high impact",
+                    description: "3-5 deeper improvements with high impact on visibility and leads",
                   },
                   missingElements: {
                     type: "array",
                     items: { type: "string" },
-                    description: "Key elements completely missing from the profile",
+                    description: "Key profile elements that are completely absent",
                   },
                   headlineSuggestion: {
                     type: "string",
-                    description: "A specific rewritten headline based on actual profile content",
+                    description: "A specific rewritten headline based on the actual profile content",
                   },
                   aboutSuggestion: {
                     type: "string",
@@ -273,8 +164,7 @@ If the profile is missing a photo, banner, summary/about section, or has very fe
     if (!aiResponse.ok) {
       if (aiResponse.status === 429) {
         return new Response(JSON.stringify({ error: "Rate limit reached. Try again shortly." }), {
-          status: 429,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
+          status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
       throw new Error("Failed to analyze profile");
@@ -285,12 +175,7 @@ If the profile is missing a photo, banner, summary/about section, or has very fe
     if (!toolCall?.function?.arguments) throw new Error("No analysis returned");
 
     const result = JSON.parse(toolCall.function.arguments);
-    // Attach the fetched name so the frontend can display it
-    result.profileName = profileData.full_name ?? null;
-    result.profileHeadline = profileData.headline ?? null;
-    result.profilePicUrl = profileData.profile_pic_url ?? null;
-
-    console.log(`Analysis done: ${result.profileName} — ${result.overallScore}/100 (${result.grade})`);
+    console.log(`Analysis done: score=${result.overallScore} grade=${result.grade}`);
 
     return new Response(JSON.stringify(result), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
