@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
+import { extractTextFromPdf } from "@/lib/extract-pdf-text";
 import {
   Linkedin,
   Upload,
@@ -127,54 +128,28 @@ export default function LinkedInAnalyzer() {
     setIsParsingFile(true);
     setUploadedFileName(file.name);
     try {
+      let extracted = "";
+
       if (file.type === "text/plain" || file.name.endsWith(".txt")) {
-        const text = await file.text();
-        setProfileContent(text);
-        toast({ title: "Profile loaded", description: `${text.length} characters extracted` });
+        extracted = await file.text();
       } else if (file.type === "application/pdf" || file.name.endsWith(".pdf")) {
-        const arrayBuffer = await file.arrayBuffer();
-        const raw = new TextDecoder("latin1").decode(new Uint8Array(arrayBuffer));
-        const chunks: string[] = [];
-        const btEtReg = /BT\s([\s\S]*?)ET/g;
-        let m: RegExpExecArray | null;
-        while ((m = btEtReg.exec(raw)) !== null) {
-          const tjReg = /\(([^)]{1,300})\)\s*(?:Tj|TJ)/g;
-          let tj: RegExpExecArray | null;
-          while ((tj = tjReg.exec(m[1])) !== null) {
-            const decoded = tj[1]
-              .replace(/\\n/g, "\n").replace(/\\r/g, "").replace(/\\t/g, " ")
-              .replace(/\\\(/g, "(").replace(/\\\)/g, ")")
-              .replace(/\\([0-9]{3})/g, (_, oct) => String.fromCharCode(parseInt(oct, 8)));
-            if (decoded.trim()) chunks.push(decoded.trim());
-          }
-        }
-        if (chunks.length === 0) {
-          const printable = raw.match(/[\x20-\x7E]{4,}/g) || [];
-          chunks.push(...printable.filter(s => !s.startsWith("/") && !s.startsWith("<<") && s.split(" ").length > 1));
-        }
-        const extracted = chunks.join(" ").replace(/\s{3,}/g, " ").trim();
-        if (extracted.length > 100) {
-          setProfileContent(extracted);
-          toast({ title: "LinkedIn PDF loaded", description: `${extracted.length} characters extracted` });
-        } else {
-          toast({ title: "Could not extract text from PDF", description: "Please paste your profile content below instead", variant: "destructive" });
-          setUploadedFileName("");
-        }
-      } else if (file.name.endsWith(".docx")) {
-        const arrayBuffer = await file.arrayBuffer();
-        const raw = new TextDecoder("utf-8", { fatal: false }).decode(new Uint8Array(arrayBuffer));
-        const textMatches = raw.match(/<w:t[^>]*>([^<]+)<\/w:t>/g) || [];
-        const extracted = textMatches.map(t => t.replace(/<[^>]+>/g, "")).join(" ").replace(/\s{2,}/g, " ").trim();
-        if (extracted.length > 100) {
-          setProfileContent(extracted);
-          toast({ title: "Profile loaded", description: `${extracted.length} characters extracted` });
-        } else {
-          toast({ title: "Could not read document", description: "Please paste your profile text below", variant: "destructive" });
-          setUploadedFileName("");
-        }
+        extracted = await extractTextFromPdf(file);
+      } else if (file.name.endsWith(".docx") || file.name.endsWith(".doc")) {
+        const raw = new TextDecoder("utf-8", { fatal: false }).decode(new Uint8Array(await file.arrayBuffer()));
+        const matches = raw.match(/<w:t[^>]*>([^<]+)<\/w:t>/g) || [];
+        extracted = matches.map(t => t.replace(/<[^>]+>/g, "")).join(" ").replace(/\s{2,}/g, " ").trim();
       }
-    } catch {
-      toast({ title: "Upload failed", description: "Please paste your profile text below", variant: "destructive" });
+
+      if (extracted.trim().length > 100) {
+        setProfileContent(extracted);
+        toast({ title: "Profile loaded", description: `${extracted.trim().split(/\s+/).length} words extracted` });
+      } else {
+        toast({ title: "Could not extract text", description: "Please paste your profile content in the box below", variant: "destructive" });
+        setUploadedFileName("");
+      }
+    } catch (err) {
+      console.error("PDF extraction error:", err);
+      toast({ title: "Upload failed", description: "Please paste your profile text in the box below", variant: "destructive" });
       setUploadedFileName("");
     } finally {
       setIsParsingFile(false);

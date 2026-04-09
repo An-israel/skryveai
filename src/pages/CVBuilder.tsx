@@ -18,6 +18,7 @@ import {
 import { downloadCvAsPdf, downloadCvAsDocx, downloadGuideAsPdf, downloadGuideAsDocx } from "@/lib/cv-download";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { extractTextFromPdf } from "@/lib/extract-pdf-text";
 import { useAuth } from "@/hooks/use-auth";
 
 interface ExperienceEntry {
@@ -91,79 +92,31 @@ export default function CVBuilder() {
     setUploadedFileName(file.name);
 
     try {
+      let extracted = "";
+
       if (file.type === "text/plain" || file.name.endsWith(".txt")) {
-        const text = await file.text();
-        setExistingCv(text);
-        toast({ title: "CV loaded", description: `${file.name} — ${text.length} characters extracted` });
+        extracted = await file.text();
       } else if (file.type === "application/pdf" || file.name.endsWith(".pdf")) {
-        // Extract readable text from PDF binary
-        const arrayBuffer = await file.arrayBuffer();
-        const bytes = new Uint8Array(arrayBuffer);
-        const raw = new TextDecoder("latin1").decode(bytes);
-
-        // Pull text from PDF text stream objects
-        const chunks: string[] = [];
-        // Method 1: between BT/ET markers
-        const btEtReg = /BT\s([\s\S]*?)ET/g;
-        let m: RegExpExecArray | null;
-        while ((m = btEtReg.exec(raw)) !== null) {
-          const block = m[1];
-          const tjReg = /\(([^)]{1,300})\)\s*(?:Tj|TJ)/g;
-          let tj: RegExpExecArray | null;
-          while ((tj = tjReg.exec(block)) !== null) {
-            const decoded = tj[1]
-              .replace(/\\n/g, "\n").replace(/\\r/g, "").replace(/\\t/g, " ")
-              .replace(/\\\(/g, "(").replace(/\\\)/g, ")")
-              .replace(/\\([0-9]{3})/g, (_, oct) => String.fromCharCode(parseInt(oct, 8)));
-            if (decoded.trim()) chunks.push(decoded.trim());
-          }
-        }
-        // Method 2: fallback — scan for readable ASCII strings
-        if (chunks.length === 0) {
-          const printable = raw.match(/[\x20-\x7E]{4,}/g) || [];
-          chunks.push(...printable.filter(s => !s.startsWith("/") && !s.startsWith("<<") && s.split(" ").length > 1));
-        }
-
-        const extracted = chunks.join(" ").replace(/\s{3,}/g, " ").trim();
-        if (extracted.length > 100) {
-          setExistingCv(extracted);
-          toast({ title: "CV loaded from PDF", description: `${extracted.length} characters extracted` });
-        } else {
-          toast({
-            title: "PDF text could not be extracted",
-            description: "Please paste your CV text directly in the box below",
-            variant: "destructive",
-          });
-          setUploadedFileName("");
-        }
-      } else if (file.name.endsWith(".docx")) {
-        // DOCX is a zip — extract document.xml text content
-        const arrayBuffer = await file.arrayBuffer();
-        const bytes = new Uint8Array(arrayBuffer);
-        const raw = new TextDecoder("utf-8", { fatal: false }).decode(bytes);
-        // Pull text nodes from word/document.xml XML
-        const textMatches = raw.match(/<w:t[^>]*>([^<]+)<\/w:t>/g) || [];
-        const extracted = textMatches
-          .map(t => t.replace(/<[^>]+>/g, ""))
-          .join(" ")
-          .replace(/\s{2,}/g, " ")
-          .trim();
-        if (extracted.length > 100) {
-          setExistingCv(extracted);
-          toast({ title: "CV loaded from Word doc", description: `${extracted.length} characters extracted` });
-        } else {
-          toast({
-            title: "Could not read this Word file",
-            description: "Please save as PDF or TXT and re-upload",
-            variant: "destructive",
-          });
-          setUploadedFileName("");
-        }
+        extracted = await extractTextFromPdf(file);
+      } else if (file.name.endsWith(".docx") || file.name.endsWith(".doc")) {
+        const raw = new TextDecoder("utf-8", { fatal: false }).decode(new Uint8Array(await file.arrayBuffer()));
+        const matches = raw.match(/<w:t[^>]*>([^<]+)<\/w:t>/g) || [];
+        extracted = matches.map(t => t.replace(/<[^>]+>/g, "")).join(" ").replace(/\s{2,}/g, " ").trim();
       } else {
         toast({ title: "Unsupported format", description: "Please upload PDF, Word (.docx), or TXT", variant: "destructive" });
         setUploadedFileName("");
+        return;
       }
-    } catch {
+
+      if (extracted.trim().length > 100) {
+        setExistingCv(extracted);
+        toast({ title: "CV loaded", description: `${extracted.trim().split(/\s+/).length} words extracted from ${file.name}` });
+      } else {
+        toast({ title: "Could not extract text", description: "Please paste your CV text directly in the box below", variant: "destructive" });
+        setUploadedFileName("");
+      }
+    } catch (err) {
+      console.error("File extraction error:", err);
       toast({ title: "Failed to read file", description: "Please paste your CV text directly", variant: "destructive" });
       setUploadedFileName("");
     } finally {
