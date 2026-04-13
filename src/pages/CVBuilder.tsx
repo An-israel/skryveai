@@ -78,6 +78,7 @@ export default function CVBuilder() {
   const [jobDescription, setJobDescription] = useState("");
   const [uploadedFileName, setUploadedFileName] = useState("");
   const [isParsingFile, setIsParsingFile] = useState(false);
+  const [cvPreviewMode, setCvPreviewMode] = useState<"preview" | "edit">("preview");
 
   const handleCvFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -111,6 +112,7 @@ export default function CVBuilder() {
 
       if (extracted.trim().length > 100) {
         setExistingCv(extracted);
+        setCvPreviewMode("preview");
         toast({ title: "CV loaded", description: `${extracted.trim().split(/\s+/).length} words extracted from ${file.name}` });
       } else {
         toast({ title: "Could not extract text", description: "Please paste your CV text directly in the box below", variant: "destructive" });
@@ -662,28 +664,57 @@ export default function CVBuilder() {
                     )}
                   </div>
 
-                  {/* Editable extracted text (or manual paste fallback) */}
-                  <div className="space-y-1">
+                  {/* CV content: preview panel or editable textarea */}
+                  <div className="space-y-2">
                     <div className="flex items-center justify-between">
                       <Label className="text-xs text-muted-foreground">
-                        {uploadedFileName ? "Extracted text — review and edit below" : "Or paste CV text directly"}
+                        {uploadedFileName ? "CV Content" : "Or paste CV text directly"}
                       </Label>
-                      {existingCv.trim().length > 0 && (
-                        <span className="text-xs text-muted-foreground">
-                          {existingCv.trim().split(/\s+/).length} words · {existingCv.length} chars
-                        </span>
-                      )}
+                      <div className="flex items-center gap-3">
+                        {existingCv.trim().length > 0 && (
+                          <span className="text-xs text-muted-foreground">
+                            {existingCv.trim().split(/\s+/).length} words
+                          </span>
+                        )}
+                        {uploadedFileName && existingCv.trim().length > 0 && (
+                          <div className="flex rounded-lg border overflow-hidden text-xs">
+                            <button
+                              type="button"
+                              onClick={() => setCvPreviewMode("preview")}
+                              className={`px-3 py-1 font-medium transition-colors ${cvPreviewMode === "preview" ? "bg-primary text-primary-foreground" : "bg-background text-muted-foreground hover:bg-muted"}`}
+                            >
+                              Preview
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setCvPreviewMode("edit")}
+                              className={`px-3 py-1 font-medium transition-colors ${cvPreviewMode === "edit" ? "bg-primary text-primary-foreground" : "bg-background text-muted-foreground hover:bg-muted"}`}
+                            >
+                              Edit
+                            </button>
+                          </div>
+                        )}
+                      </div>
                     </div>
-                    <Textarea
-                      value={existingCv}
-                      onChange={e => setExistingCv(e.target.value)}
-                      placeholder="CV text will appear here after upload, or paste it directly..."
-                      className="text-sm font-mono resize-y"
-                      style={{ minHeight: existingCv.trim().length > 200 ? "420px" : "140px" }}
-                    />
+
+                    {uploadedFileName && existingCv.trim().length > 0 && cvPreviewMode === "preview" ? (
+                      <div className="border rounded-xl bg-card p-5 max-h-[420px] overflow-y-auto text-sm leading-7 whitespace-pre-wrap text-foreground shadow-inner">
+                        {existingCv}
+                      </div>
+                    ) : (
+                      <Textarea
+                        value={existingCv}
+                        onChange={e => setExistingCv(e.target.value)}
+                        placeholder="CV text will appear here after upload, or paste it directly..."
+                        className="text-sm resize-y"
+                        style={{ minHeight: "200px" }}
+                      />
+                    )}
+
                     {uploadedFileName && existingCv.trim().length > 0 && (
                       <p className="text-xs text-green-600 flex items-center gap-1">
-                        <span>✓</span> Content loaded — scroll through to review, or edit directly before optimizing
+                        <CheckCircle2 className="w-3 h-3" />
+                        Content loaded — click Edit to modify before optimizing
                       </p>
                     )}
                   </div>

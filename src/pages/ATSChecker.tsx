@@ -8,11 +8,12 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { ArrowLeft, Target, Loader2, CheckCircle2, AlertTriangle, ArrowRight, Sparkles } from "lucide-react";
+import { ArrowLeft, Target, Loader2, CheckCircle2, AlertTriangle, ArrowRight, Sparkles, Upload, FileText, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/use-auth";
 import { useCredits } from "@/hooks/use-credits";
+import { extractTextFromPdf } from "@/lib/extract-pdf-text";
 import { Link } from "react-router-dom";
 
 interface ATSResult {
@@ -29,6 +30,8 @@ export default function ATSChecker() {
   const [jobDescription, setJobDescription] = useState("");
   const [isChecking, setIsChecking] = useState(false);
   const [result, setResult] = useState<ATSResult | null>(null);
+  const [uploadedFileName, setUploadedFileName] = useState("");
+  const [isParsingFile, setIsParsingFile] = useState(false);
 
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -73,6 +76,46 @@ export default function ATSChecker() {
     }
   };
 
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 5 * 1024 * 1024) {
+      toast({ title: "File too large", description: "Please upload a file under 5MB", variant: "destructive" });
+      return;
+    }
+    setIsParsingFile(true);
+    setUploadedFileName(file.name);
+    try {
+      let extracted = "";
+      if (file.type === "text/plain" || file.name.endsWith(".txt")) {
+        extracted = await file.text();
+      } else if (file.type === "application/pdf" || file.name.endsWith(".pdf")) {
+        extracted = await extractTextFromPdf(file);
+      } else if (file.name.endsWith(".docx") || file.name.endsWith(".doc")) {
+        const raw = new TextDecoder("utf-8", { fatal: false }).decode(new Uint8Array(await file.arrayBuffer()));
+        const matches = raw.match(/<w:t[^>]*>([^<]+)<\/w:t>/g) || [];
+        extracted = matches.map(t => t.replace(/<[^>]+>/g, "")).join(" ").replace(/\s{2,}/g, " ").trim();
+      } else {
+        toast({ title: "Unsupported format", description: "Please upload PDF, Word (.docx), or TXT", variant: "destructive" });
+        setUploadedFileName("");
+        return;
+      }
+      if (extracted.trim().length > 50) {
+        setCvContent(extracted);
+        toast({ title: "CV loaded", description: `${extracted.trim().split(/\s+/).length} words extracted` });
+      } else {
+        toast({ title: "Could not extract text", description: "Please paste your CV text directly", variant: "destructive" });
+        setUploadedFileName("");
+      }
+    } catch {
+      toast({ title: "Failed to read file", description: "Please paste your CV text directly", variant: "destructive" });
+      setUploadedFileName("");
+    } finally {
+      setIsParsingFile(false);
+      e.target.value = "";
+    }
+  };
+
   const handleLogout = async () => {
     await signOut();
     navigate("/");
@@ -113,15 +156,61 @@ export default function ATSChecker() {
           {!result ? (
             <Card>
               <CardContent className="p-6 space-y-6">
-                <div className="space-y-2">
-                  <Label>Paste Your CV Content *</Label>
+                <div className="space-y-3">
+                  <Label>Your CV / Resume *</Label>
+
+                  {/* File upload */}
+                  <div
+                    className="border-2 border-dashed border-border rounded-xl p-5 text-center cursor-pointer hover:border-primary/50 hover:bg-primary/5 transition-colors"
+                    onClick={() => document.getElementById("ats-file-input")?.click()}
+                  >
+                    <input
+                      id="ats-file-input"
+                      type="file"
+                      accept=".pdf,.txt,.docx,.doc"
+                      className="hidden"
+                      onChange={handleFileUpload}
+                    />
+                    {isParsingFile ? (
+                      <div className="flex flex-col items-center gap-2">
+                        <Loader2 className="w-7 h-7 text-primary animate-spin" />
+                        <p className="text-sm text-muted-foreground">Reading your CV...</p>
+                      </div>
+                    ) : uploadedFileName ? (
+                      <div className="flex items-center justify-center gap-2">
+                        <FileText className="w-5 h-5 text-green-500" />
+                        <span className="text-sm font-medium text-green-600">{uploadedFileName}</span>
+                        <button
+                          onClick={e => { e.stopPropagation(); setUploadedFileName(""); setCvContent(""); }}
+                          className="ml-1 p-0.5 rounded-full hover:bg-red-100"
+                        >
+                          <X className="w-4 h-4 text-red-500" />
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="flex flex-col items-center gap-1.5">
+                        <Upload className="w-7 h-7 text-muted-foreground" />
+                        <p className="text-sm font-medium">Click to upload your CV</p>
+                        <p className="text-xs text-muted-foreground">PDF, Word (.docx) or TXT — max 5MB</p>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                    <div className="flex-1 border-t" />
+                    <span>or paste text directly</span>
+                    <div className="flex-1 border-t" />
+                  </div>
+
                   <Textarea
                     value={cvContent}
                     onChange={e => setCvContent(e.target.value)}
                     placeholder="Paste your entire CV/resume text here..."
-                    className="min-h-[200px]"
+                    className="min-h-[180px]"
                   />
-                  <p className="text-xs text-muted-foreground">{cvContent.length} characters</p>
+                  {cvContent.length > 0 && (
+                    <p className="text-xs text-muted-foreground">{cvContent.trim().split(/\s+/).length} words · {cvContent.length} characters</p>
+                  )}
                 </div>
 
                 <div className="space-y-2">

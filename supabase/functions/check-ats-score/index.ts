@@ -65,7 +65,12 @@ serve(async (req) => {
 
 Analyze the profile content provided and give honest, specific, actionable feedback. Reference actual content from the profile — never give generic advice.
 
-Scoring scale: 90-100 Outstanding | 70-89 Good minor gaps | 50-69 Average needs work | 30-49 Weak significant gaps | 0-29 Missing or very poor${targetRole ? `\n\nTarget role: "${targetRole}"` : ""}`,
+Scoring scale: 90-100 Outstanding | 70-89 Good minor gaps | 50-69 Average needs work | 30-49 Weak significant gaps | 0-29 Missing or very poor${targetRole ? `\n\nTarget role: "${targetRole}"` : ""}
+
+IMPORTANT PARSING RULES for LinkedIn PDF exports:
+- The "About" section may appear labeled as "About", "Summary", "Professional Summary", "Profile", or as introductory text at the top of the document with no heading at all. If ANY introductory paragraph or career overview text is present, treat it as the About section — do NOT add "About section" or "Summary" to missingElements.
+- Section headers in LinkedIn PDFs may be missing or inconsistently formatted. Judge sections based on whether that type of content EXISTS in the document, not whether the exact header label appears.
+- Only add an element to missingElements if there is genuinely zero content of that type anywhere in the profile text.`,
             },
             {
               role: "user",
