@@ -102,6 +102,23 @@ export function Footer() {
             </ul>
           </div>
 
+          {/* Tools Links */}
+          <div>
+            <h3 className="font-semibold text-sm mb-4">Free AI Tools</h3>
+            <ul className="space-y-3">
+              {footerLinks.tools.map((link) => (
+                <li key={link.label}>
+                  <Link
+                    to={link.href}
+                    className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+                  >
+                    {link.label}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </div>
+
           {/* Company Links */}
           <div>
             <h3 className="font-semibold text-sm mb-4">Company</h3>
