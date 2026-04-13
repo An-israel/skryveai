@@ -20,7 +20,7 @@ function formatTime(iso: string) {
 }
 
 export function ChatWidget() {
-  const { user } = useAuth();
+  const { user } = useAuth(false);
   const [open, setOpen] = useState(false);
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
