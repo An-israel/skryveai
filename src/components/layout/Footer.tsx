@@ -20,6 +20,12 @@ const footerLinks = {
     { label: "Pricing", href: "/pricing" },
     { label: "How It Works", href: "/#how-it-works" },
   ],
+  tools: [
+    { label: "AI CV Builder", href: "/cv-builder" },
+    { label: "ATS Score Checker", href: "/ats-checker" },
+    { label: "LinkedIn Profile Analyzer", href: "/linkedin-analyzer" },
+    { label: "AutoPilot Outreach", href: "/auto-pilot" },
+  ],
   company: [
     { label: "About", href: "/about" },
     { label: "Careers", href: "/careers" },
@@ -50,7 +56,7 @@ export function Footer() {
               <span className="font-bold text-2xl" style={{ color: '#0B162B' }}>SkryveAI</span>
             </Link>
             <p className="mt-4 text-sm text-muted-foreground max-w-xs">
-              AI-powered cold outreach that helps freelancers find and pitch their ideal clients.
+              The all-in-one AI platform for cold email outreach, ATS-optimized CV building, resume ATS scoring, and LinkedIn profile analysis. Built for freelancers & startups worldwide.
             </p>
             <a
               href="mailto:skryveai@gmail.com"

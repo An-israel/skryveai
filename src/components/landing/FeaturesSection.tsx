@@ -64,9 +64,9 @@ export function FeaturesSection() {
           className="text-center mb-16"
         >
           <p className="text-xs font-semibold text-primary uppercase tracking-[0.2em] mb-3">Platform</p>
-          <h2 className="font-display text-3xl md:text-4xl lg:text-5xl font-extrabold mb-5 tracking-tight">Everything You Need to Win</h2>
+          <h2 className="font-display text-3xl md:text-4xl lg:text-5xl font-extrabold mb-5 tracking-tight">AI Tools for Cold Outreach, CV Building & LinkedIn Optimization</h2>
           <p className="text-muted-foreground max-w-2xl mx-auto leading-relaxed">
-            From finding your next client to landing your next job — SkryveAI gives freelancers and startups every tool they need to grow faster.
+            From finding your next client to building an ATS-optimized resume and analyzing your LinkedIn profile — SkryveAI gives freelancers and startups every AI tool they need to grow faster.
           </p>
         </motion.div>
 
