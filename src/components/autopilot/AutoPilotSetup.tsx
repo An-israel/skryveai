@@ -279,6 +279,7 @@ export function AutoPilotSetup({ onComplete, onCancel }: AutoPilotSetupProps) {
       if (error) throw new Error(error.message || "Failed to save config");
 
       toast({ title: "Auto-Pilot launched!", description: "Your campaign is now active." });
+      supabase.from("tool_usage").insert({ user_id: session.user.id, tool_name: "autopilot", metadata: { name: campaignName.trim() || "Campaign 1", daily_quota: data.daily_quota, email_style: data.email_style } } as any).then(() => {});
       onComplete();
     } catch (err) {
       console.error(err);

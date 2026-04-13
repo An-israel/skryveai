@@ -185,6 +185,10 @@ export default function LinkedInAnalyzer() {
       await deductCredits(0.3);
       setResult(data as AnalysisResult);
       window.scrollTo({ top: 0, behavior: "smooth" });
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        supabase.from("tool_usage").insert({ user_id: user.id, tool_name: "linkedin_analyzer", metadata: { score: data.overallScore, grade: data.grade, profile_strength: data.profileStrength } } as any).then(() => {});
+      }
     } catch (err) {
       toast({
         title: "Analysis failed",

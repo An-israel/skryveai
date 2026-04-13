@@ -638,6 +638,7 @@ export default function NewCampaign() {
       });
 
       supabase.functions.invoke("process-email-queue").catch(console.error);
+      supabase.from("tool_usage").insert({ user_id: user.id, tool_name: "campaign_email", metadata: { emails_queued: approvedBusinesses.length, campaign_type: currentCampaignType } } as any).then(() => {});
     } catch (error) {
       console.error("Send error:", error);
       setIsSending(false);

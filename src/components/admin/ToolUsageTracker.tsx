@@ -4,7 +4,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Wrench, RefreshCw, FileText, Target, TrendingUp } from "lucide-react";
+import { Wrench, RefreshCw, FileText, Target, TrendingUp, Linkedin, Bot, Send, Users } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 
@@ -20,29 +20,70 @@ interface UsageRecord {
 
 const TOOL_LABELS: Record<string, string> = {
   cv_builder: "CV Builder",
-  ats_checker: "ATS Score Checker",
+  ats_checker: "ATS Checker",
+  linkedin_analyzer: "LinkedIn Analyzer",
+  autopilot: "AutoPilot",
+  campaign_email: "Campaign Emails",
 };
 
 const TOOL_ICONS: Record<string, React.ReactNode> = {
   cv_builder: <FileText className="w-4 h-4" />,
   ats_checker: <Target className="w-4 h-4" />,
+  linkedin_analyzer: <Linkedin className="w-4 h-4" />,
+  autopilot: <Bot className="w-4 h-4" />,
+  campaign_email: <Send className="w-4 h-4" />,
 };
+
+const TOOL_COLORS: Record<string, string> = {
+  cv_builder: "bg-blue-500/10 text-blue-600",
+  ats_checker: "bg-green-500/10 text-green-600",
+  linkedin_analyzer: "bg-sky-500/10 text-sky-600",
+  autopilot: "bg-purple-500/10 text-purple-600",
+  campaign_email: "bg-orange-500/10 text-orange-600",
+};
+
+function getToolDetail(r: UsageRecord): string {
+  switch (r.tool_name) {
+    case "ats_checker":
+      return r.metadata?.score ? `Score: ${r.metadata.score}% (${r.metadata.grade})` : "—";
+    case "cv_builder":
+      return r.metadata?.mode
+        ? `Mode: ${r.metadata.mode}${r.metadata.ats_score ? `, ATS: ${r.metadata.ats_score}%` : ""}`
+        : "—";
+    case "linkedin_analyzer":
+      return r.metadata?.score
+        ? `Score: ${r.metadata.score}% (${r.metadata.grade}) · ${r.metadata.profile_strength || ""}`
+        : "—";
+    case "autopilot":
+      return r.metadata?.name
+        ? `"${r.metadata.name}" · ${r.metadata.daily_quota ?? "?"} emails/day`
+        : "—";
+    case "campaign_email":
+      return r.metadata?.emails_queued
+        ? `${r.metadata.emails_queued} emails · ${r.metadata.campaign_type || "freelancer"}`
+        : "—";
+    default:
+      return JSON.stringify(r.metadata || {}).slice(0, 60);
+  }
+}
 
 export function ToolUsageTracker() {
   const [records, setRecords] = useState<UsageRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<string>("all");
   const [stats, setStats] = useState<{ tool_name: string; count: number }[]>([]);
+  const [totals, setTotals] = useState<Record<string, number>>({});
 
   const fetchData = async () => {
     setLoading(true);
     try {
+      // Filtered records for table
       let query = (supabase as any).from("tool_usage").select("*").order("created_at", { ascending: false }).limit(200);
       if (filter !== "all") query = query.eq("tool_name", filter);
       const { data, error } = await query;
       if (error) throw error;
 
-      // Fetch user profiles for display
+      // Fetch user profiles
       const userIds = [...new Set((data || []).map((r: any) => r.user_id))] as string[];
       const { data: profiles } = await supabase
         .from("profiles")
@@ -50,34 +91,34 @@ export function ToolUsageTracker() {
         .in("user_id", userIds);
 
       const profileMap = new Map((profiles || []).map(p => [p.user_id, p]));
-
       const enriched = (data || []).map((r: any) => {
         const profile = profileMap.get(r.user_id);
-        return {
-          ...r,
-          user_email: profile?.email || "Unknown",
-          user_name: profile?.full_name || "Unknown",
-        };
+        return { ...r, user_email: profile?.email || "Unknown", user_name: profile?.full_name || "Unknown" };
       });
-
       setRecords(enriched);
 
-      // Calculate stats
+      // Chart: counts from filtered data
       const counts: Record<string, number> = {};
-      (data || []).forEach((r: any) => {
-        counts[r.tool_name] = (counts[r.tool_name] || 0) + 1;
-      });
-
-      // Also get all-time counts
-      const { data: allCv } = await (supabase as any).from("tool_usage").select("id", { count: "exact", head: true }).eq("tool_name", "cv_builder");
-      const { data: allAts } = await (supabase as any).from("tool_usage").select("id", { count: "exact", head: true }).eq("tool_name", "ats_checker");
-
-      // Use the filtered data counts for chart, but show totals in cards
+      (data || []).forEach((r: any) => { counts[r.tool_name] = (counts[r.tool_name] || 0) + 1; });
       const chartData = Object.entries(counts).map(([tool_name, count]) => ({
         tool_name: TOOL_LABELS[tool_name] || tool_name,
         count,
       }));
       setStats(chartData);
+
+      // All-time totals per tool (for summary cards)
+      const allToolNames = Object.keys(TOOL_LABELS);
+      const allTimeCounts: Record<string, number> = {};
+      await Promise.all(
+        allToolNames.map(async (tool) => {
+          const { count } = await (supabase as any)
+            .from("tool_usage")
+            .select("id", { count: "exact", head: true })
+            .eq("tool_name", tool);
+          allTimeCounts[tool] = count ?? 0;
+        })
+      );
+      setTotals(allTimeCounts);
     } catch (err) {
       console.error("Failed to fetch tool usage:", err);
     } finally {
@@ -85,11 +126,9 @@ export function ToolUsageTracker() {
     }
   };
 
-  useEffect(() => {
-    fetchData();
-  }, [filter]);
+  useEffect(() => { fetchData(); }, [filter]);
 
-  const totalUsage = records.length;
+  const totalUsage = Object.values(totals).reduce((a, b) => a + b, 0);
   const uniqueUsers = new Set(records.map(r => r.user_id)).size;
 
   return (
@@ -101,17 +140,18 @@ export function ToolUsageTracker() {
               <CardTitle className="flex items-center gap-2">
                 <Wrench className="w-5 h-5" /> Tool Usage Analytics
               </CardTitle>
-              <CardDescription>Track how many users have used CV Builder, ATS Score Checker, and other tools.</CardDescription>
+              <CardDescription>Track usage across all product features — CV Builder, ATS Checker, LinkedIn Analyzer, AutoPilot, and Campaign Emails.</CardDescription>
             </div>
             <div className="flex gap-2">
               <Select value={filter} onValueChange={setFilter}>
-                <SelectTrigger className="w-40">
+                <SelectTrigger className="w-44">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Tools</SelectItem>
-                  <SelectItem value="cv_builder">CV Builder</SelectItem>
-                  <SelectItem value="ats_checker">ATS Checker</SelectItem>
+                  {Object.entries(TOOL_LABELS).map(([key, label]) => (
+                    <SelectItem key={key} value={key}>{label}</SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
               <Button variant="outline" size="icon" onClick={fetchData}>
@@ -121,9 +161,10 @@ export function ToolUsageTracker() {
           </div>
         </CardHeader>
         <CardContent>
-          {/* Summary Cards */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
-            <Card>
+          {/* Summary cards — all tools */}
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 mb-6">
+            {/* Total */}
+            <Card className="col-span-2 sm:col-span-1">
               <CardContent className="pt-4 pb-3 px-4">
                 <div className="flex items-center gap-3">
                   <div className="p-2 rounded-lg bg-primary/10">
@@ -136,32 +177,38 @@ export function ToolUsageTracker() {
                 </div>
               </CardContent>
             </Card>
+
+            {/* Unique users */}
             <Card>
               <CardContent className="pt-4 pb-3 px-4">
                 <div className="flex items-center gap-3">
                   <div className="p-2 rounded-lg bg-primary/10">
-                    <FileText className="w-5 h-5 text-primary" />
+                    <Users className="w-5 h-5 text-primary" />
                   </div>
                   <div>
-                    <p className="text-2xl font-bold">{records.filter(r => r.tool_name === "cv_builder").length}</p>
-                    <p className="text-xs text-muted-foreground">CV Builds</p>
+                    <p className="text-2xl font-bold">{uniqueUsers}</p>
+                    <p className="text-xs text-muted-foreground">Unique Users</p>
                   </div>
                 </div>
               </CardContent>
             </Card>
-            <Card>
-              <CardContent className="pt-4 pb-3 px-4">
-                <div className="flex items-center gap-3">
-                  <div className="p-2 rounded-lg bg-primary/10">
-                    <Target className="w-5 h-5 text-primary" />
+
+            {/* Per-tool cards */}
+            {Object.entries(TOOL_LABELS).map(([key, label]) => (
+              <Card key={key}>
+                <CardContent className="pt-4 pb-3 px-4">
+                  <div className="flex items-center gap-3">
+                    <div className={`p-2 rounded-lg ${TOOL_COLORS[key] || "bg-primary/10"}`}>
+                      {TOOL_ICONS[key]}
+                    </div>
+                    <div>
+                      <p className="text-2xl font-bold">{totals[key] ?? 0}</p>
+                      <p className="text-xs text-muted-foreground">{label}</p>
+                    </div>
                   </div>
-                  <div>
-                    <p className="text-2xl font-bold">{records.filter(r => r.tool_name === "ats_checker").length}</p>
-                    <p className="text-xs text-muted-foreground">ATS Checks</p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+                </CardContent>
+              </Card>
+            ))}
           </div>
 
           {/* Chart */}
@@ -170,7 +217,7 @@ export function ToolUsageTracker() {
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={stats}>
                   <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
-                  <XAxis dataKey="tool_name" className="text-xs" />
+                  <XAxis dataKey="tool_name" className="text-xs" tick={{ fontSize: 11 }} />
                   <YAxis className="text-xs" />
                   <Tooltip />
                   <Bar dataKey="count" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
@@ -205,17 +252,13 @@ export function ToolUsageTracker() {
                         </div>
                       </TableCell>
                       <TableCell>
-                        <Badge variant="outline" className="gap-1">
+                        <Badge variant="outline" className={`gap-1 ${TOOL_COLORS[r.tool_name] || ""}`}>
                           {TOOL_ICONS[r.tool_name]}
                           {TOOL_LABELS[r.tool_name] || r.tool_name}
                         </Badge>
                       </TableCell>
-                      <TableCell className="text-xs text-muted-foreground max-w-48 truncate">
-                        {r.tool_name === "ats_checker" && r.metadata?.score
-                          ? `Score: ${r.metadata.score}% (${r.metadata.grade})`
-                          : r.tool_name === "cv_builder" && r.metadata?.mode
-                          ? `Mode: ${r.metadata.mode}${r.metadata.ats_score ? `, ATS: ${r.metadata.ats_score}%` : ""}`
-                          : "—"}
+                      <TableCell className="text-xs text-muted-foreground max-w-52 truncate">
+                        {getToolDetail(r)}
                       </TableCell>
                       <TableCell className="text-xs text-muted-foreground whitespace-nowrap">
                         {new Date(r.created_at).toLocaleDateString()} {new Date(r.created_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
@@ -228,7 +271,7 @@ export function ToolUsageTracker() {
           )}
 
           <p className="text-xs text-muted-foreground mt-3">
-            Showing {records.length} records • {uniqueUsers} unique user{uniqueUsers !== 1 ? "s" : ""}
+            Showing {records.length} records · {uniqueUsers} unique user{uniqueUsers !== 1 ? "s" : ""}
           </p>
         </CardContent>
       </Card>
