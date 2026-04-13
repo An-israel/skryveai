@@ -113,6 +113,12 @@ export default function Pricing() {
 
   return (
     <div className="min-h-screen bg-gradient-subtle py-8 sm:py-12 px-4">
+      <SEOHead
+        title="SkryveAI Pricing — Affordable AI Outreach, CV Builder & LinkedIn Tools"
+        description="Simple, transparent pricing for SkryveAI. Start with a free 7-day trial. AI cold outreach, CV builder, ATS checker, and LinkedIn analyzer — all in one affordable plan."
+        canonical="https://skryveai.com/pricing"
+        keywords="SkryveAI pricing, AI outreach pricing, cold email tool pricing, CV builder pricing, ATS checker free trial"
+      />
       <div className="max-w-6xl mx-auto">
         <Link to="/" className="flex items-center justify-center gap-2 mb-8 sm:mb-12">
           <img src="/logo.png" alt="SkryveAI logo" className="w-8 h-8 object-contain" />
