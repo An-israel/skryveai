@@ -29,11 +29,27 @@ const faqs = [
   },
   {
     q: "Is there a free trial?",
-    a: "Yes — you get a 7-day free trial with full access to all features. No credit card required to start.",
+    a: "Yes — you get a 7-day free trial with full access to all features including the AI CV Builder, ATS Score Checker, LinkedIn Profile Analyzer, and cold email outreach. No credit card required to start.",
   },
   {
     q: "How does email sending work? Will my emails land in spam?",
     a: "SkryveAI includes smart scheduling and email warmup features that gradually build your sender reputation. Emails are sent from your own account, so deliverability stays high.",
+  },
+  {
+    q: "How does the AI CV Builder work?",
+    a: "Upload your existing CV or build one from scratch. Our AI rewrites it into a polished, ATS-optimized resume with proper formatting, keyword optimization, and a tailored LinkedIn profile guide — all in seconds.",
+  },
+  {
+    q: "What is an ATS score and why does it matter?",
+    a: "ATS (Applicant Tracking System) is software companies use to filter resumes before a human sees them. Our ATS Score Checker analyzes your resume against any job description, identifies missing keywords, and tells you exactly what to fix to pass the filter.",
+  },
+  {
+    q: "How does the LinkedIn Profile Analyzer work?",
+    a: "Upload your LinkedIn profile PDF or paste your profile text. The AI scores your headline, about section, experience, skills, education, and more — section by section. You get actionable tips, quick wins, and even rewrite suggestions for your headline and about section.",
+  },
+  {
+    q: "What makes SkryveAI different from other outreach tools?",
+    a: "Most cold email tools just send templates. SkryveAI researches each prospect's website, social media, and online presence, then generates genuinely personalized emails referencing real problems. Plus, we offer CV building, ATS checking, and LinkedIn analysis — all in one platform.",
   },
 ];
 
