@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { SEOHead } from "@/components/SEOHead";
 import { motion, AnimatePresence } from "framer-motion";
 import { Header } from "@/components/layout/Header";
 import { Button } from "@/components/ui/button";

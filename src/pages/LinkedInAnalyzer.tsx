@@ -1,4 +1,5 @@
 import { useState, useRef } from "react";
+import { SEOHead } from "@/components/SEOHead";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
