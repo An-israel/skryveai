@@ -12,6 +12,7 @@ import { ArrowLeft, Target, Loader2, CheckCircle2, AlertTriangle, ArrowRight, Sp
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/use-auth";
+import { useCredits } from "@/hooks/use-credits";
 import { Link } from "react-router-dom";
 
 interface ATSResult {
@@ -32,12 +33,17 @@ export default function ATSChecker() {
   const navigate = useNavigate();
   const { toast } = useToast();
   const { user, signOut } = useAuth();
+  const { checkCredits, deductCredits } = useCredits();
 
   const handleCheck = async () => {
     if (cvContent.trim().length < 50) {
       toast({ title: "Too Short", description: "Please paste at least 50 characters of CV content.", variant: "destructive" });
       return;
     }
+
+    // Check credits before running (costs 0.3 credits)
+    const creditCheck = await checkCredits(0.3);
+    if (!creditCheck.ok) return;
 
     setIsChecking(true);
     setResult(null);
@@ -49,6 +55,8 @@ export default function ATSChecker() {
 
       if (error) throw new Error(error.message);
       setResult(data);
+      // Deduct 0.3 credits after success
+      await deductCredits(0.3);
       toast({ title: "Score Ready!", description: `Your ATS score: ${data.overallScore}% (${data.grade})` });
       // Track usage
       if (user) {

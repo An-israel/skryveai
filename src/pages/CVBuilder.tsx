@@ -20,6 +20,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { extractTextFromPdf } from "@/lib/extract-pdf-text";
 import { useAuth } from "@/hooks/use-auth";
+import { useCredits } from "@/hooks/use-credits";
 
 interface ExperienceEntry {
   jobTitle: string;
@@ -141,6 +142,7 @@ export default function CVBuilder() {
   const navigate = useNavigate();
   const { toast } = useToast();
   const { user, signOut } = useAuth();
+  const { checkCredits, deductCredits } = useCredits();
 
   const addExperience = () => {
     setFormData(prev => ({
@@ -170,6 +172,10 @@ export default function CVBuilder() {
   };
 
   const handleGenerate = async () => {
+    // Check credits before generating (costs 0.5 credits)
+    const creditCheck = await checkCredits(0.5);
+    if (!creditCheck.ok) return;
+
     setIsGenerating(true);
     setCvResult(null);
     setAtsScore(null);
@@ -189,6 +195,8 @@ export default function CVBuilder() {
 
       setCvResult(data.cv);
       setAtsScore(data.atsScore);
+      // Deduct 0.5 credits for CV generation
+      await deductCredits(0.5);
       // Track usage
       if (user) {
         supabase.from("tool_usage").insert({ user_id: user.id, tool_name: "cv_builder", metadata: { mode, ats_score: data.atsScore } } as any).then(() => {});

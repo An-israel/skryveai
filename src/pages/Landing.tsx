@@ -23,12 +23,27 @@ const orgSchema = {
   name: "SkryveAI",
   applicationCategory: "BusinessApplication",
   operatingSystem: "Web",
-  description: "AI-powered cold outreach platform that finds clients, audits their online presence, and sends personalized pitches for freelancers and startups.",
+  url: "https://skryveai.com",
+  description: "All-in-one AI platform for freelancers and startups: find clients, send hyper-personalized cold emails, build ATS-optimized CVs, check ATS scores, analyze LinkedIn profiles, and run autopilot outreach campaigns.",
+  featureList: [
+    "AI-powered business discovery and lead generation",
+    "Full online presence audit (website, LinkedIn, Instagram, Facebook)",
+    "Hyper-personalized cold email generation",
+    "Automated email outreach campaigns",
+    "AutoPilot 24/7 outreach with daily quota",
+    "AI CV Builder with ATS optimization",
+    "ATS Score Checker with keyword gap analysis",
+    "LinkedIn Profile Analyzer with section-by-section scoring",
+  ],
   offers: {
     "@type": "Offer",
     price: "0",
     priceCurrency: "USD",
     description: "7-day free trial, no credit card required",
+  },
+  audience: {
+    "@type": "Audience",
+    audienceType: "Freelancers, Startups, Job Seekers, Small Businesses",
   },
 };
 
