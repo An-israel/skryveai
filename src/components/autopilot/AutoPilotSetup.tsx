@@ -261,20 +261,31 @@ export function AutoPilotSetup({ onComplete, onCancel }: AutoPilotSetupProps) {
     }
     setSaving(true);
     try {
-      const { error } = await (supabase as any)
+      const basePayload = {
+        user_id: session.user.id,
+        is_active: true,
+        expertise: data.expertise,
+        target_businesses: data.target_businesses,
+        locations: data.locations,
+        daily_quota: data.daily_quota,
+        email_style: data.email_style,
+        compliance: data.compliance,
+        updated_at: new Date().toISOString(),
+      };
+
+      // Try inserting with name column first; fall back without it if the column
+      // doesn't exist yet in the live DB (migration pending)
+      let { error } = await (supabase as any)
         .from("autopilot_configs")
-        .insert({
-          user_id: session.user.id,
-          name: campaignName.trim() || "Campaign 1",
-          is_active: true,
-          expertise: data.expertise,
-          target_businesses: data.target_businesses,
-          locations: data.locations,
-          daily_quota: data.daily_quota,
-          email_style: data.email_style,
-          compliance: data.compliance,
-          updated_at: new Date().toISOString(),
-        });
+        .insert({ ...basePayload, name: campaignName.trim() || "Campaign 1" });
+
+      if (error?.message?.toLowerCase().includes("name")) {
+        // name column not yet in DB — insert without it
+        const { error: error2 } = await (supabase as any)
+          .from("autopilot_configs")
+          .insert(basePayload);
+        error = error2 ?? null;
+      }
 
       if (error) throw new Error(error.message || "Failed to save config");
 
