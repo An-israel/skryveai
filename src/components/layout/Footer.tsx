@@ -20,6 +20,12 @@ const footerLinks = {
     { label: "Pricing", href: "/pricing" },
     { label: "How It Works", href: "/#how-it-works" },
   ],
+  tools: [
+    { label: "AI CV Builder", href: "/cv-builder" },
+    { label: "ATS Score Checker", href: "/ats-checker" },
+    { label: "LinkedIn Profile Analyzer", href: "/linkedin-analyzer" },
+    { label: "AutoPilot Outreach", href: "/auto-pilot" },
+  ],
   company: [
     { label: "About", href: "/about" },
     { label: "Careers", href: "/careers" },
@@ -42,7 +48,7 @@ export function Footer() {
   return (
     <footer className="border-t bg-muted/30">
       <div className="container mx-auto px-4 py-12">
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-8 lg:gap-12">
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-8 lg:gap-12">
           {/* Brand Column */}
           <div className="col-span-2 md:col-span-1">
             <Link to="/" className="inline-flex items-center gap-2">
@@ -50,7 +56,7 @@ export function Footer() {
               <span className="font-bold text-2xl" style={{ color: '#0B162B' }}>SkryveAI</span>
             </Link>
             <p className="mt-4 text-sm text-muted-foreground max-w-xs">
-              AI-powered cold outreach that helps freelancers find and pitch their ideal clients.
+              The all-in-one AI platform for cold email outreach, ATS-optimized CV building, resume ATS scoring, and LinkedIn profile analysis. Built for freelancers & startups worldwide.
             </p>
             <a
               href="mailto:skryveai@gmail.com"
@@ -84,6 +90,23 @@ export function Footer() {
             <h3 className="font-semibold text-sm mb-4">Product</h3>
             <ul className="space-y-3">
               {footerLinks.product.map((link) => (
+                <li key={link.label}>
+                  <Link
+                    to={link.href}
+                    className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+                  >
+                    {link.label}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          {/* Tools Links */}
+          <div>
+            <h3 className="font-semibold text-sm mb-4">Free AI Tools</h3>
+            <ul className="space-y-3">
+              {footerLinks.tools.map((link) => (
                 <li key={link.label}>
                   <Link
                     to={link.href}

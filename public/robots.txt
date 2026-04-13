@@ -1,14 +1,37 @@
 User-agent: Googlebot
 Allow: /
+Disallow: /dashboard
+Disallow: /settings
+Disallow: /admin
+Disallow: /analytics
+Disallow: /campaigns/
+Disallow: /team
+Disallow: /referrals
+Disallow: /payment/
+Disallow: /reply
 
 User-agent: Bingbot
 Allow: /
-
-User-agent: Twitterbot
-Allow: /
-
-User-agent: facebookexternalhit
-Allow: /
+Disallow: /dashboard
+Disallow: /settings
+Disallow: /admin
+Disallow: /analytics
+Disallow: /campaigns/
+Disallow: /team
+Disallow: /referrals
+Disallow: /payment/
+Disallow: /reply
 
 User-agent: *
 Allow: /
+Disallow: /dashboard
+Disallow: /settings
+Disallow: /admin
+Disallow: /analytics
+Disallow: /campaigns/
+Disallow: /team
+Disallow: /referrals
+Disallow: /payment/
+Disallow: /reply
+
+Sitemap: https://skryveai.com/sitemap.xml

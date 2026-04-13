@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { SEOHead } from "@/components/SEOHead";
 import { motion, AnimatePresence } from "framer-motion";
 import { Header } from "@/components/layout/Header";
 import { Button } from "@/components/ui/button";
@@ -294,6 +295,21 @@ export default function CVBuilder() {
   if (mode === "select") {
     return (
       <div className="min-h-screen bg-background">
+        <SEOHead
+          title="AI CV Builder — Build ATS-Optimized Resumes in Seconds | SkryveAI"
+          description="Build or optimize your CV with AI. SkryveAI's CV Builder creates ATS-optimized resumes, scores them against job descriptions, and generates a LinkedIn profile guide. Free to try."
+          canonical="https://skryveai.com/cv-builder"
+          keywords="AI CV builder, AI resume builder, ATS optimized resume, build CV online, resume builder free, AI resume writer, CV maker AI, ATS friendly resume, professional resume builder, AI that writes CV, best AI resume builder 2026, create resume with AI"
+          jsonLd={{
+            "@context": "https://schema.org",
+            "@type": "WebApplication",
+            name: "SkryveAI CV Builder",
+            url: "https://skryveai.com/cv-builder",
+            applicationCategory: "BusinessApplication",
+            description: "AI-powered CV builder that creates ATS-optimized resumes and provides LinkedIn profile optimization guides.",
+            offers: { "@type": "Offer", price: "0", priceCurrency: "USD", description: "Free trial available" }
+          }}
+        />
         <Header isAuthenticated={!!user} onLogout={handleLogout} />
         <main className="container mx-auto px-4 pt-24 pb-12 max-w-3xl">
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>

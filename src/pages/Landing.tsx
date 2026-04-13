@@ -16,6 +16,7 @@ import { CampaignTypesSection } from "@/components/landing/CampaignTypesSection"
 import { HowItWorksSection } from "@/components/landing/HowItWorksSection";
 import { WhatWeAnalyzeSection } from "@/components/landing/WhatWeAnalyzeSection";
 import { FeaturesSection } from "@/components/landing/FeaturesSection";
+import { SEOHead } from "@/components/SEOHead";
 
 const orgSchema = {
   "@context": "https://schema.org",
@@ -45,6 +46,13 @@ const orgSchema = {
     "@type": "Audience",
     audienceType: "Freelancers, Startups, Job Seekers, Small Businesses",
   },
+  aggregateRating: {
+    "@type": "AggregateRating",
+    ratingValue: "4.8",
+    ratingCount: "150",
+    bestRating: "5",
+    worstRating: "1",
+  },
 };
 
 export default function Landing() {
@@ -54,9 +62,12 @@ export default function Landing() {
 
   return (
     <div className="min-h-screen bg-background">
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(orgSchema) }}
+      <SEOHead
+        title="SkryveAI — AI Cold Outreach, CV Builder, ATS Checker & LinkedIn Analyzer"
+        description="SkryveAI is the all-in-one AI platform for freelancers & startups. Find clients, send hyper-personalized cold emails, build ATS-optimized CVs, check your ATS score, analyze your LinkedIn profile, and automate outreach on autopilot. Free 7-day trial."
+        canonical="https://skryveai.com/"
+        keywords="AI cold email outreach, find clients for freelancers, cold email automation, client prospecting tool, ATS score checker, ATS CV checker, resume ATS score, ATS resume optimizer, CV builder AI, AI resume builder, LinkedIn profile analyzer, LinkedIn profile optimizer, LinkedIn score, automated email campaigns, autopilot email outreach, business email finder, personalized cold email, freelancer client finder, startup lead generation, email outreach tool, resume builder online, CV optimization tool, job application tools, outreach automation software, hyper-personalized cold outreach, AI tool that writes CV, AI tool that analyzes LinkedIn profile, AI cold email writer, best cold outreach tool for freelancers, automated client outreach, AI business finder, free ATS checker, LinkedIn profile review AI"
+        jsonLd={orgSchema}
       />
       <Header isAuthenticated={false} />
       

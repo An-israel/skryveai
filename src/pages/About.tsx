@@ -2,6 +2,7 @@ import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
 import { motion } from "framer-motion";
 import { Globe, Sparkles, Zap, Heart, Users, Shield } from "lucide-react";
+import { SEOHead } from "@/components/SEOHead";
 
 const values = [
   {
@@ -34,6 +35,12 @@ const values = [
 export default function About() {
   return (
     <div className="min-h-screen">
+      <SEOHead
+        title="About SkryveAI — AI-Powered Outreach for Freelancers & Startups"
+        description="Learn how SkryveAI was built to democratize cold outreach. Our AI platform helps freelancers and startups worldwide find clients, send personalized emails, build CVs, and grow their business."
+        canonical="https://skryveai.com/about"
+        keywords="about SkryveAI, AI outreach platform, freelancer tools, startup growth, cold email tool for freelancers, AI business tools"
+      />
       <Header />
 
       <section className="relative pt-32 pb-20 bg-gradient-subtle overflow-hidden">

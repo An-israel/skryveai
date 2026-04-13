@@ -1,5 +1,6 @@
 import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
+import { SEOHead } from "@/components/SEOHead";
 import { motion } from "framer-motion";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -99,6 +100,12 @@ const roles: { title: string; type: string; location: string; icon: typeof Trend
 export default function Careers() {
   return (
     <div className="min-h-screen">
+      <SEOHead
+        title="Careers at SkryveAI — Join Our Remote Team"
+        description="Join SkryveAI and help empower freelancers and startups worldwide. We're hiring for remote roles in marketing, customer success, and more."
+        canonical="https://skryveai.com/careers"
+        keywords="SkryveAI careers, SkryveAI jobs, remote jobs AI startup"
+      />
       <Header />
 
       {/* Hero */}

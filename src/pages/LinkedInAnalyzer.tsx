@@ -1,4 +1,5 @@
 import { useState, useRef } from "react";
+import { SEOHead } from "@/components/SEOHead";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -209,6 +210,21 @@ export default function LinkedInAnalyzer() {
 
   return (
     <div className="min-h-screen bg-background py-8 px-4">
+      <SEOHead
+        title="AI LinkedIn Profile Analyzer — Analyze & Optimize Your LinkedIn in Seconds | SkryveAI"
+        description="Get your LinkedIn profile analyzed by AI in seconds. SkryveAI scores your headline, about section, experience, skills, and gives you actionable feedback to attract more opportunities."
+        canonical="https://skryveai.com/linkedin-analyzer"
+        keywords="LinkedIn profile analyzer, LinkedIn profile optimizer, LinkedIn score checker, analyze LinkedIn profile AI, LinkedIn profile review, LinkedIn headline optimizer, LinkedIn about section generator, LinkedIn profile tips, AI LinkedIn analyzer, best LinkedIn optimizer 2026, improve LinkedIn profile"
+        jsonLd={{
+          "@context": "https://schema.org",
+          "@type": "WebApplication",
+          name: "SkryveAI LinkedIn Profile Analyzer",
+          url: "https://skryveai.com/linkedin-analyzer",
+          applicationCategory: "BusinessApplication",
+          description: "AI-powered LinkedIn profile analyzer that scores your profile section by section and provides actionable optimization tips.",
+          offers: { "@type": "Offer", price: "0", priceCurrency: "USD", description: "Free trial available" }
+        }}
+      />
       <div className="max-w-2xl mx-auto space-y-8">
 
         {/* Header */}

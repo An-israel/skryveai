@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { SEOHead } from "@/components/SEOHead";
 import { motion } from "framer-motion";
 import { Header } from "@/components/layout/Header";
 import { Button } from "@/components/ui/button";
@@ -137,6 +138,21 @@ export default function ATSChecker() {
 
   return (
     <div className="min-h-screen bg-background">
+      <SEOHead
+        title="Free ATS Score Checker — Check Your Resume ATS Score Instantly | SkryveAI"
+        description="Check your resume's ATS score instantly. SkryveAI's ATS Checker scores your CV against any job description, identifies keyword gaps, and tells you exactly what to fix to pass ATS filters."
+        canonical="https://skryveai.com/ats-checker"
+        keywords="ATS score checker, ATS resume checker, check ATS score, resume ATS score free, ATS compatibility checker, resume keyword checker, ATS friendly resume checker, resume scanner, CV ATS check, free ATS checker online, best ATS checker 2026"
+        jsonLd={{
+          "@context": "https://schema.org",
+          "@type": "WebApplication",
+          name: "SkryveAI ATS Score Checker",
+          url: "https://skryveai.com/ats-checker",
+          applicationCategory: "BusinessApplication",
+          description: "Free AI-powered ATS score checker that analyzes your resume against job descriptions and identifies keyword gaps.",
+          offers: { "@type": "Offer", price: "0", priceCurrency: "USD", description: "Free trial available" }
+        }}
+      />
       <Header isAuthenticated={!!user} onLogout={handleLogout} />
       <main className="container mx-auto px-4 pt-24 pb-12 max-w-3xl">
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
