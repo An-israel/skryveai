@@ -91,7 +91,8 @@ async function processUser(
   supabase: any,
   config: AutoPilotConfig,
   supabaseUrl: string,
-  serviceKey: string
+  serviceKey: string,
+  force = false
 ): Promise<{ sent: number; skipped: number; failed: number }> {
   const today = getTodayDate();
   const nowHour = getCurrentHour();
@@ -147,10 +148,10 @@ async function processUser(
     return { sent: 0, skipped: 1, failed: 0 };
   }
 
-  // 3. Check sending hours
+  // 3. Check sending hours (skip check if force=true, e.g. on immediate launch)
   const startHour = config.daily_quota?.sendingSchedule?.startHour ?? 8;
   const endHour = config.daily_quota?.sendingSchedule?.endHour ?? 20;
-  if (nowHour < startHour || nowHour > endHour) {
+  if (!force && (nowHour < startHour || nowHour > endHour)) {
     console.log(`[${config.user_id}] Outside sending hours (current: ${nowHour}, window: ${startHour}-${endHour})`);
     return { sent: 0, skipped: 1, failed: 0 };
   }
@@ -477,9 +478,11 @@ serve(async (req) => {
   const supabase = createClient(SUPABASE_URL, SERVICE_KEY);
 
   let targetUserId: string | null = null;
+  let force = false;
   try {
     const body = await req.json().catch(() => ({}));
     targetUserId = body?.userId ?? null;
+    force = body?.force === true; // bypass sending-hours check for immediate first run
   } catch {
     // No body — process all users
   }
@@ -505,7 +508,7 @@ serve(async (req) => {
 
     for (const config of configs as AutoPilotConfig[]) {
       try {
-        const result = await processUser(supabase, config, SUPABASE_URL, SERVICE_KEY);
+        const result = await processUser(supabase, config, SUPABASE_URL, SERVICE_KEY, force);
         results.push({ userId: config.user_id, ...result });
       } catch (err) {
         console.error(`Failed to process user ${config.user_id}:`, err);

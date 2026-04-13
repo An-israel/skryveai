@@ -278,8 +278,11 @@ export function AutoPilotSetup({ onComplete, onCancel }: AutoPilotSetupProps) {
 
       if (error) throw new Error(error.message || "Failed to save config");
 
-      toast({ title: "Auto-Pilot launched!", description: "Your campaign is now active." });
+      toast({ title: "Auto-Pilot launched!", description: "Finding businesses and sending emails now..." });
       supabase.from("tool_usage").insert({ user_id: session.user.id, tool_name: "autopilot", metadata: { name: campaignName.trim() || "Campaign 1", daily_quota: data.daily_quota, email_style: data.email_style } } as any).then(() => {});
+      // Fire an immediate first run so the agent starts working right away
+      // force=true bypasses the sending-hours gate for this initial trigger
+      supabase.functions.invoke("autopilot-run", { body: { userId: session.user.id, force: true } }).catch(console.error);
       onComplete();
     } catch (err) {
       console.error(err);
