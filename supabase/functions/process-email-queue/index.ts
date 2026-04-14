@@ -451,7 +451,7 @@ async function sendSingleEmail(
   userId: string | undefined,
   smtpCredentialsMap: Map<string, SMTPCredentials>,
   gmailConnectedUsers: Set<string>,
-  supabase: ReturnType<typeof createClient>,
+  supabase: any,
   SUPABASE_URL: string,
   SUPABASE_SERVICE_ROLE_KEY: string
 ): Promise<"sent" | "failed" | "skipped"> {
