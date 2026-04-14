@@ -54,46 +54,54 @@ serve(async (req) => {
 
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
-    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
-    
-    if (authError || !user) {
-      return new Response(
-        JSON.stringify({ error: "Unauthorized - invalid token" }),
-        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
+    // Allow service-role calls (from autopilot-run) to bypass user auth & credits
+    const isServiceRole = token === SUPABASE_SERVICE_ROLE_KEY;
+    let userId: string | null = null;
 
-    const userId = user.id;
-
-    // Credit check - 1 credit per pitch
-    const { data: subscription, error: subError } = await supabase
-      .from("subscriptions")
-      .select("credits, plan, status")
-      .eq("user_id", userId)
-      .single();
-
-    if (subError || !subscription) {
-      return new Response(
-        JSON.stringify({ error: "No active subscription found" }),
-        { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-
-    if (subscription.plan !== "lifetime") {
-      if (subscription.credits < 1) {
+    if (isServiceRole) {
+      userId = null;
+    } else {
+      const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+      
+      if (authError || !user) {
         return new Response(
-          JSON.stringify({ error: "Insufficient credits. Please upgrade your plan." }),
+          JSON.stringify({ error: "Unauthorized - invalid token" }),
+          { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      userId = user.id;
+
+      // Credit check - 1 credit per pitch
+      const { data: subscription, error: subError } = await supabase
+        .from("subscriptions")
+        .select("credits, plan, status")
+        .eq("user_id", userId)
+        .single();
+
+      if (subError || !subscription) {
+        return new Response(
+          JSON.stringify({ error: "No active subscription found" }),
           { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
 
-      const { error: deductError } = await supabase
-        .from("subscriptions")
-        .update({ credits: subscription.credits - 1 })
-        .eq("user_id", userId);
+      if (subscription.plan !== "lifetime") {
+        if (subscription.credits < 1) {
+          return new Response(
+            JSON.stringify({ error: "Insufficient credits. Please upgrade your plan." }),
+            { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
+        }
 
-      if (deductError) {
-        console.error("Failed to deduct credits:", deductError);
+        const { error: deductError } = await supabase
+          .from("subscriptions")
+          .update({ credits: subscription.credits - 1 })
+          .eq("user_id", userId);
+
+        if (deductError) {
+          console.error("Failed to deduct credits:", deductError);
+        }
       }
     }
 
@@ -112,13 +120,10 @@ serve(async (req) => {
       );
     }
 
-    // For non-investor pitches, issues are required
-    if (!investorPitch && (!issues || issues.length === 0)) {
-      return new Response(
-        JSON.stringify({ error: "issues are required for non-investor pitches" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
+    // For non-investor pitches, if no issues provided, use a generic set
+    const effectiveIssues = (!issues || issues.length === 0)
+      ? [{ category: "general", description: "General business improvement opportunity", severity: "medium" }]
+      : issues;
 
     if (businessName.length > 200) {
       return new Response(
@@ -134,7 +139,7 @@ serve(async (req) => {
       );
     }
 
-    if (issues.length > 20) {
+    if (effectiveIssues.length > 20) {
       return new Response(
         JSON.stringify({ error: "Too many issues provided" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -239,7 +244,7 @@ ABSOLUTELY DO NOT:
       // ─── Freelancer / Direct client pitch mode ───
       const sanitizedWebsite = (website || "No website found").replace(/[<>{}[\]\\]/g, '').substring(0, 200);
 
-      const sanitizedIssues = issues.slice(0, 8).map(issue => ({
+      const sanitizedIssues = effectiveIssues.slice(0, 8).map(issue => ({
         ...issue,
         title: (issue.title || "").replace(/[<>{}[\]\\]/g, '').substring(0, 100),
         description: (issue.description || "").replace(/[<>{}[\]\\]/g, '').substring(0, 200),

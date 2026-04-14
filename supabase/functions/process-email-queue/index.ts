@@ -451,7 +451,7 @@ async function sendSingleEmail(
   userId: string | undefined,
   smtpCredentialsMap: Map<string, SMTPCredentials>,
   gmailConnectedUsers: Set<string>,
-  supabase: ReturnType<typeof createClient>,
+  supabase: any,
   SUPABASE_URL: string,
   SUPABASE_SERVICE_ROLE_KEY: string
 ): Promise<"sent" | "failed" | "skipped"> {
@@ -599,7 +599,7 @@ serve(async (req) => {
     const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
     if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) throw new Error("Supabase env vars not configured");
 
-    const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+    const supabase: any = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
     // Reset stuck "processing" emails older than 2 minutes
     const twoMinAgo = new Date(Date.now() - 2 * 60 * 1000).toISOString();
