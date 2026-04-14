@@ -307,40 +307,52 @@ serve(async (req) => {
 
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
     const token = authHeader.replace("Bearer ", "");
-    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
 
-    if (authError || !user) {
-      return new Response(
-        JSON.stringify({ error: "Invalid or expired session. Please log in again." }),
-        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
+    // Allow service-role calls (e.g. from autopilot-run) to bypass user auth
+    const isServiceRole = token === SUPABASE_SERVICE_ROLE_KEY;
+    let user: { id: string } | null = null;
 
-    // Credit check
-    const { data: subscription } = await supabase
-      .from("subscriptions")
-      .select("credits, plan, status")
-      .eq("user_id", user.id)
-      .single();
-
-    if (!subscription) {
-      return new Response(
-        JSON.stringify({ error: "No active subscription found" }),
-        { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-
-    if (subscription.plan !== "lifetime") {
-      if (subscription.credits < 1) {
+    if (isServiceRole) {
+      // Service-role call — skip user auth & credit check
+      user = null;
+    } else {
+      const { data: { user: authUser }, error: authError } = await supabase.auth.getUser(token);
+      if (authError || !authUser) {
         return new Response(
-          JSON.stringify({ error: "Insufficient credits. Please upgrade your plan." }),
+          JSON.stringify({ error: "Invalid or expired session. Please log in again." }),
+          { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+      user = authUser;
+    }
+
+    // Credit check — skip for service-role calls
+    if (user) {
+      const { data: subscription } = await supabase
+        .from("subscriptions")
+        .select("credits, plan, status")
+        .eq("user_id", user.id)
+        .single();
+
+      if (!subscription) {
+        return new Response(
+          JSON.stringify({ error: "No active subscription found" }),
           { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
-      await supabase
-        .from("subscriptions")
-        .update({ credits: subscription.credits - 1 })
-        .eq("user_id", user.id);
+
+      if (subscription.plan !== "lifetime") {
+        if (subscription.credits < 1) {
+          return new Response(
+            JSON.stringify({ error: "Insufficient credits. Please upgrade your plan." }),
+            { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
+        }
+        await supabase
+          .from("subscriptions")
+          .update({ credits: subscription.credits - 1 })
+          .eq("user_id", user.id);
+      }
     }
 
     const GOOGLE_PLACES_API_KEY = Deno.env.get("GOOGLE_PLACES_API_KEY");
