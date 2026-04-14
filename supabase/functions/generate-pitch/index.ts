@@ -95,12 +95,13 @@ serve(async (req) => {
         }
 
         const { error: deductError } = await supabase
-        .from("subscriptions")
-        .update({ credits: subscription.credits - 1 })
-        .eq("user_id", userId);
+          .from("subscriptions")
+          .update({ credits: subscription.credits - 1 })
+          .eq("user_id", userId);
 
-      if (deductError) {
-        console.error("Failed to deduct credits:", deductError);
+        if (deductError) {
+          console.error("Failed to deduct credits:", deductError);
+        }
       }
     }
 
