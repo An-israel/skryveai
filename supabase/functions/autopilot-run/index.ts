@@ -328,7 +328,7 @@ async function processUser(
         emailBody = `Hi ${business.name} team,\n\nI came across your business and noticed some opportunities to help you grow.\n\n${config.expertise?.valueProp ?? ""}\n\nWould love to connect — ${config.email_style?.ctaType ?? "book a quick call"}?\n\nBest regards`;
       }
 
-      // 8c. Send email
+      // 8c. Send email directly via Resend (bypasses send-email UUID validation)
       const contactEmail = business.email;
       let emailStatus: "sent" | "failed" | "skipped" = "skipped";
 
@@ -337,20 +337,20 @@ async function processUser(
         emailStatus = "skipped";
       } else {
         try {
-          const sendRes = await fetch(`${functionsBase}/send-email`, {
+          const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
+          if (!RESEND_API_KEY) throw new Error("RESEND_API_KEY not configured");
+
+          const sendRes = await fetch("https://api.resend.com/emails", {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
-              Authorization: `Bearer ${serviceKey}`,
-              apikey: serviceKey,
+              Authorization: `Bearer ${RESEND_API_KEY}`,
             },
             body: JSON.stringify({
-              toEmail: contactEmail,
+              from: "SkryveAI AutoPilot <outreach@skryveai.com>",
+              to: [contactEmail],
               subject: emailSubject,
-              body: emailBody,
-              campaignId: `autopilot-${session.id}`,
-              businessId: domain ?? business.name,
-              pitchId: `autopilot-${Date.now()}`,
+              html: emailBody.replace(/\n/g, "<br>"),
             }),
           });
 
@@ -359,12 +359,12 @@ async function processUser(
             sent++;
           } else {
             const errText = await sendRes.text();
-            console.warn(`[${config.user_id}] send-email non-OK (${sendRes.status}): ${errText}`);
+            console.warn(`[${config.user_id}] Resend non-OK (${sendRes.status}): ${errText}`);
             emailStatus = "failed";
             failed++;
           }
         } catch (err) {
-          console.error(`[${config.user_id}] send-email error for ${business.name}:`, err);
+          console.error(`[${config.user_id}] send error for ${business.name}:`, err);
           emailStatus = "failed";
           failed++;
         }
