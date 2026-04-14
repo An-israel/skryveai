@@ -331,45 +331,56 @@ serve(async (req) => {
     }
 
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
-    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
-    if (authError || !user) {
-      return new Response(
-        JSON.stringify({ error: "Unauthorized - invalid token" }),
-        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
 
-    console.log("User authenticated:", user.id);
+    // Allow service-role calls (from autopilot-run) to bypass user auth & credits
+    const isServiceRole = token === SUPABASE_SERVICE_ROLE_KEY;
+    let userId: string | null = null;
 
-    // Credit check - 2 credits per analysis
-    const { data: subscription, error: subError } = await supabase
-      .from("subscriptions")
-      .select("credits, plan, status")
-      .eq("user_id", user.id)
-      .single();
-
-    if (subError || !subscription) {
-      return new Response(
-        JSON.stringify({ error: "No active subscription found" }),
-        { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-
-    if (subscription.plan !== "lifetime") {
-      if (subscription.credits < 2) {
+    if (isServiceRole) {
+      userId = null;
+      console.log("Service-role call — skipping user auth & credits");
+    } else {
+      const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+      if (authError || !user) {
         return new Response(
-          JSON.stringify({ error: "Insufficient credits. Website analysis requires 2 credits." }),
+          JSON.stringify({ error: "Unauthorized - invalid token" }),
+          { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      userId = user.id;
+      console.log("User authenticated:", userId);
+
+      // Credit check - 2 credits per analysis
+      const { data: subscription, error: subError } = await supabase
+        .from("subscriptions")
+        .select("credits, plan, status")
+        .eq("user_id", userId)
+        .single();
+
+      if (subError || !subscription) {
+        return new Response(
+          JSON.stringify({ error: "No active subscription found" }),
           { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
 
-      const { error: deductError } = await supabase
-        .from("subscriptions")
-        .update({ credits: subscription.credits - 2 })
-        .eq("user_id", user.id);
+      if (subscription.plan !== "lifetime") {
+        if (subscription.credits < 2) {
+          return new Response(
+            JSON.stringify({ error: "Insufficient credits. Website analysis requires 2 credits." }),
+            { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
+        }
 
-      if (deductError) {
-        console.error("Failed to deduct credits:", deductError);
+        const { error: deductError } = await supabase
+          .from("subscriptions")
+          .update({ credits: subscription.credits - 2 })
+          .eq("user_id", userId);
+
+        if (deductError) {
+          console.error("Failed to deduct credits:", deductError);
+        }
       }
     }
 
