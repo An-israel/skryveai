@@ -139,7 +139,7 @@ serve(async (req) => {
       );
     }
 
-    if (issues.length > 20) {
+    if (effectiveIssues.length > 20) {
       return new Response(
         JSON.stringify({ error: "Too many issues provided" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -244,7 +244,7 @@ ABSOLUTELY DO NOT:
       // ─── Freelancer / Direct client pitch mode ───
       const sanitizedWebsite = (website || "No website found").replace(/[<>{}[\]\\]/g, '').substring(0, 200);
 
-      const sanitizedIssues = issues.slice(0, 8).map(issue => ({
+      const sanitizedIssues = effectiveIssues.slice(0, 8).map(issue => ({
         ...issue,
         title: (issue.title || "").replace(/[<>{}[\]\\]/g, '').substring(0, 100),
         description: (issue.description || "").replace(/[<>{}[\]\\]/g, '').substring(0, 200),
