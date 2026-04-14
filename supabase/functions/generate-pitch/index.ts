@@ -54,40 +54,47 @@ serve(async (req) => {
 
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
-    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
-    
-    if (authError || !user) {
-      return new Response(
-        JSON.stringify({ error: "Unauthorized - invalid token" }),
-        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
+    // Allow service-role calls (from autopilot-run) to bypass user auth & credits
+    const isServiceRole = token === SUPABASE_SERVICE_ROLE_KEY;
+    let userId: string | null = null;
 
-    const userId = user.id;
-
-    // Credit check - 1 credit per pitch
-    const { data: subscription, error: subError } = await supabase
-      .from("subscriptions")
-      .select("credits, plan, status")
-      .eq("user_id", userId)
-      .single();
-
-    if (subError || !subscription) {
-      return new Response(
-        JSON.stringify({ error: "No active subscription found" }),
-        { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-
-    if (subscription.plan !== "lifetime") {
-      if (subscription.credits < 1) {
+    if (isServiceRole) {
+      userId = null;
+    } else {
+      const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+      
+      if (authError || !user) {
         return new Response(
-          JSON.stringify({ error: "Insufficient credits. Please upgrade your plan." }),
+          JSON.stringify({ error: "Unauthorized - invalid token" }),
+          { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      userId = user.id;
+
+      // Credit check - 1 credit per pitch
+      const { data: subscription, error: subError } = await supabase
+        .from("subscriptions")
+        .select("credits, plan, status")
+        .eq("user_id", userId)
+        .single();
+
+      if (subError || !subscription) {
+        return new Response(
+          JSON.stringify({ error: "No active subscription found" }),
           { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
 
-      const { error: deductError } = await supabase
+      if (subscription.plan !== "lifetime") {
+        if (subscription.credits < 1) {
+          return new Response(
+            JSON.stringify({ error: "Insufficient credits. Please upgrade your plan." }),
+            { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
+        }
+
+        const { error: deductError } = await supabase
         .from("subscriptions")
         .update({ credits: subscription.credits - 1 })
         .eq("user_id", userId);
