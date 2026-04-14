@@ -120,13 +120,10 @@ serve(async (req) => {
       );
     }
 
-    // For non-investor pitches, issues are required
-    if (!investorPitch && (!issues || issues.length === 0)) {
-      return new Response(
-        JSON.stringify({ error: "issues are required for non-investor pitches" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
+    // For non-investor pitches, if no issues provided, use a generic set
+    const effectiveIssues = (!issues || issues.length === 0)
+      ? [{ category: "general", description: "General business improvement opportunity", severity: "medium" }]
+      : issues;
 
     if (businessName.length > 200) {
       return new Response(
