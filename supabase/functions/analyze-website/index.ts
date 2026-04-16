@@ -440,9 +440,9 @@ serve(async (req) => {
       userServiceRaw = settingsResult.data?.service_description || "";
     }
 
-    const userExpertise = profileResult.data?.expertise?.join(", ") || "";
-    const userBio = profileResult.data?.bio || "";
-    const userService = settingsResult.data?.service_description || "";
+    const userExpertise = userExpertiseRaw.join(", ");
+    const userBio = userBioRaw;
+    const userService = userServiceRaw;
 
     let websiteContent = "";
     let htmlContent = "";
