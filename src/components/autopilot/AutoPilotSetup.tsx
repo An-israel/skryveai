@@ -259,6 +259,22 @@ export function AutoPilotSetup({ onComplete, onCancel }: AutoPilotSetupProps) {
       toast({ title: "Not authenticated", variant: "destructive" });
       return;
     }
+
+    // Check if user has a connected email (SMTP or Gmail)
+    const [{ data: smtpCreds }, { data: gmailTokens }] = await Promise.all([
+      supabase.from("smtp_credentials").select("id").eq("user_id", session.user.id).eq("is_verified", true).maybeSingle(),
+      supabase.from("gmail_tokens").select("id").eq("user_id", session.user.id).maybeSingle(),
+    ]);
+
+    if (!smtpCreds && !gmailTokens) {
+      toast({
+        title: "No email connected",
+        description: "Please connect your Gmail or SMTP email in Settings before launching AutoPilot. Emails will be sent from your connected mailbox.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setSaving(true);
     try {
       const basePayload = {
