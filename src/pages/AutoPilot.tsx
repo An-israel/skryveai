@@ -11,6 +11,8 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Plus, Zap, Play, Pause, Trash2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { FeatureGuide } from "@/components/onboarding/FeatureGuide";
+import { autoPilotGuide } from "@/components/onboarding/guideConfigs";
 import type { AutoPilotConfig } from "@/types/autopilot";
 
 export type { AutoPilotConfig };
@@ -93,6 +95,7 @@ export default function AutoPilot() {
   return (
     <div className="min-h-screen bg-background">
       <Header />
+      <FeatureGuide featureKey="autopilot" steps={autoPilotGuide} />
       <main className="container mx-auto px-4 py-8 max-w-6xl">
 
         {/* ── Setup view ── */}

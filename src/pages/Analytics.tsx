@@ -28,6 +28,8 @@ import {
   Calendar,
   Filter
 } from "lucide-react";
+import { FeatureGuide } from "@/components/onboarding/FeatureGuide";
+import { analyticsGuide } from "@/components/onboarding/guideConfigs";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
@@ -244,6 +246,7 @@ export default function Analytics() {
   return (
     <div className="min-h-screen bg-background">
       <Header />
+      <FeatureGuide featureKey="analytics" steps={analyticsGuide} />
       
       <main className="container mx-auto px-4 pt-24 pb-12">
         <motion.div

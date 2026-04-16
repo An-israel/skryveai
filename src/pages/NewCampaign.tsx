@@ -23,6 +23,8 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { AlertTriangle, FileText, Briefcase, User, Mail, ArrowLeft, Users } from "lucide-react";
+import { FeatureGuide } from "@/components/onboarding/FeatureGuide";
+import { newCampaignGuide } from "@/components/onboarding/guideConfigs";
 
 interface ProfileStatus {
   hasBio: boolean;
@@ -929,6 +931,7 @@ export default function NewCampaign() {
   return (
     <div className="min-h-screen bg-background">
       <Header isAuthenticated={true} onLogout={handleLogout} />
+      <FeatureGuide featureKey="new-campaign" steps={newCampaignGuide} />
       
       <main className="container mx-auto px-4 pt-24 pb-12">
         {/* Back to campaign type selector */}

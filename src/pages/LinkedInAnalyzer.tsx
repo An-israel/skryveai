@@ -12,6 +12,8 @@ import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
 import { extractTextFromPdf } from "@/lib/extract-pdf-text";
 import { useCredits } from "@/hooks/use-credits";
+import { FeatureGuide } from "@/components/onboarding/FeatureGuide";
+import { linkedInGuide } from "@/components/onboarding/guideConfigs";
 import {
   Linkedin,
   Upload,
@@ -214,6 +216,7 @@ export default function LinkedInAnalyzer() {
 
   return (
     <div className="min-h-screen bg-background py-8 px-4">
+      <FeatureGuide featureKey="linkedin-analyzer" steps={linkedInGuide} />
       <SEOHead
         title="AI LinkedIn Profile Analyzer — Analyze & Optimize Your LinkedIn in Seconds | SkryveAI"
         description="Get your LinkedIn profile analyzed by AI in seconds. SkryveAI scores your headline, about section, experience, skills, and gives you actionable feedback to attract more opportunities."
