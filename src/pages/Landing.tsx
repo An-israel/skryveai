@@ -97,8 +97,8 @@ export default function Landing() {
             <h2 className="font-display text-3xl md:text-4xl lg:text-5xl font-extrabold text-white mb-5 tracking-tight">
               Ready to Land More Clients?
             </h2>
-            <p className="text-white/60 mb-10 leading-relaxed text-lg">
-              Join freelancers and startups using AI to find clients, pitch investors, and grow their business.
+             <p className="text-white/60 mb-10 leading-relaxed text-lg">
+              Join freelancers and startup founders using AI-powered outreach to get more clients — without the manual grind.
             </p>
             <Button size="xl" className="bg-gradient-accent text-white font-bold text-base px-10 py-6 rounded-full shadow-glow hover:shadow-glow-lg transition-all duration-300 hover:scale-[1.02]" asChild>
               <Link to="/signup">
