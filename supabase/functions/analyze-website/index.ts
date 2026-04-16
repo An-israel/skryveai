@@ -427,10 +427,18 @@ serve(async (req) => {
     }
 
     // Fetch user profile to understand their services
-    const [profileResult, settingsResult] = await Promise.all([
-      supabase.from("profiles").select("expertise, bio").eq("user_id", user.id).single(),
-      supabase.from("user_settings").select("service_description").eq("user_id", user.id).single(),
-    ]);
+    let userExpertiseRaw: string[] = [];
+    let userBioRaw = "";
+    let userServiceRaw = "";
+    if (userId) {
+      const [profileResult, settingsResult] = await Promise.all([
+        supabase.from("profiles").select("expertise, bio").eq("user_id", userId).single(),
+        supabase.from("user_settings").select("service_description").eq("user_id", userId).single(),
+      ]);
+      userExpertiseRaw = profileResult.data?.expertise || [];
+      userBioRaw = profileResult.data?.bio || "";
+      userServiceRaw = settingsResult.data?.service_description || "";
+    }
 
     const userExpertise = profileResult.data?.expertise?.join(", ") || "";
     const userBio = profileResult.data?.bio || "";
