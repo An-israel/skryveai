@@ -18,6 +18,8 @@ import { MotivationalPopup } from "@/components/notifications/MotivationalPopup"
 import { OnboardingTour } from "@/components/onboarding/OnboardingTour";
 import { OnboardingWizard } from "@/components/onboarding/OnboardingWizard";
 import { useOnboarding } from "@/hooks/use-onboarding";
+import { FeatureGuide } from "@/components/onboarding/FeatureGuide";
+import { dashboardGuide } from "@/components/onboarding/guideConfigs";
 import { 
   Plus, 
   Mail, 
@@ -258,6 +260,7 @@ export default function Dashboard() {
         />
       )}
       {showTour && !showWizard && <OnboardingTour onComplete={markOnboardingComplete} />}
+      <FeatureGuide featureKey="dashboard" steps={dashboardGuide} />
       <main className="container mx-auto px-4 pt-24 pb-12">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
