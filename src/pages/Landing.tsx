@@ -25,7 +25,7 @@ const orgSchema = {
   applicationCategory: "BusinessApplication",
   operatingSystem: "Web",
   url: "https://skryveai.com",
-  description: "All-in-one AI platform for freelancers and startups: find clients, send hyper-personalized cold emails, build ATS-optimized CVs, check ATS scores, analyze LinkedIn profiles, and run autopilot outreach campaigns.",
+  description: "SkryveAI is an AI-powered outreach tool built for freelancers and startup founders who want to get more clients without spending hours on cold emails and manual prospecting. It simplifies research, client audits, and personalized messaging that actually feels human and gets responses.",
   featureList: [
     "AI-powered business discovery and lead generation",
     "Full online presence audit (website, LinkedIn, Instagram, Facebook)",
@@ -63,10 +63,10 @@ export default function Landing() {
   return (
     <div className="min-h-screen bg-background">
       <SEOHead
-        title="SkryveAI — AI Cold Outreach, CV Builder, ATS Checker & LinkedIn Analyzer"
-        description="SkryveAI is the all-in-one AI platform for freelancers & startups. Find clients, send hyper-personalized cold emails, build ATS-optimized CVs, check your ATS score, analyze your LinkedIn profile, and automate outreach on autopilot. Free 7-day trial."
+        title="SkryveAI — AI Cold Outreach Tool for Freelancers & Startups | Get More Clients"
+        description="SkryveAI is an AI-powered outreach tool built for freelancers and startup founders. Find clients, send hyper-personalized cold emails, build ATS-optimized CVs, check ATS scores, and analyze LinkedIn profiles. Stop sending generic templates — craft tailored pitches that stand out and get responses. Free 7-day trial."
         canonical="https://skryveai.com/"
-        keywords="AI cold email outreach, find clients for freelancers, cold email automation, client prospecting tool, ATS score checker, ATS CV checker, resume ATS score, ATS resume optimizer, CV builder AI, AI resume builder, LinkedIn profile analyzer, LinkedIn profile optimizer, LinkedIn score, automated email campaigns, autopilot email outreach, business email finder, personalized cold email, freelancer client finder, startup lead generation, email outreach tool, resume builder online, CV optimization tool, job application tools, outreach automation software, hyper-personalized cold outreach, AI tool that writes CV, AI tool that analyzes LinkedIn profile, AI cold email writer, best cold outreach tool for freelancers, automated client outreach, AI business finder, free ATS checker, LinkedIn profile review AI"
+        keywords="AI cold email outreach, find clients for freelancers, cold email automation, client prospecting tool, AI outreach tool for freelancers, personalized cold email, freelancer client finder, startup lead generation, cold outreach software, hyper-personalized outreach, AI tool that writes cold emails, best cold outreach tool for freelancers, automated client outreach, AI business finder, ATS score checker, CV builder AI, LinkedIn profile analyzer, smart outreach tools, get more clients as a freelancer, cold email tool for startups"
         jsonLd={orgSchema}
       />
       <Header isAuthenticated={false} />
@@ -97,8 +97,8 @@ export default function Landing() {
             <h2 className="font-display text-3xl md:text-4xl lg:text-5xl font-extrabold text-white mb-5 tracking-tight">
               Ready to Land More Clients?
             </h2>
-            <p className="text-white/60 mb-10 leading-relaxed text-lg">
-              Join freelancers and startups using AI to find clients, pitch investors, and grow their business.
+             <p className="text-white/60 mb-10 leading-relaxed text-lg">
+              Join freelancers and startup founders using AI-powered outreach to get more clients — without the manual grind.
             </p>
             <Button size="xl" className="bg-gradient-accent text-white font-bold text-base px-10 py-6 rounded-full shadow-glow hover:shadow-glow-lg transition-all duration-300 hover:scale-[1.02]" asChild>
               <Link to="/signup">

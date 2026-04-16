@@ -11,7 +11,7 @@ const problems = [
   {
     icon: Ban,
     title: "Generic Templates Get Ignored",
-    description: "Copy-paste outreach lands in spam. Prospects can tell when you haven't done your homework.",
+    description: "Instead of sending the same generic emails over and over, you need tailored pitches that stand out and connect better with potential clients.",
     accent: "hsl(var(--warning))",
   },
   {
@@ -40,10 +40,10 @@ export function ProblemSection() {
         >
           <p className="text-xs font-semibold text-destructive uppercase tracking-[0.2em] mb-3">The Problem</p>
           <h2 className="font-display text-3xl md:text-4xl lg:text-5xl font-extrabold mb-5 tracking-tight">
-            Talented Freelancers Deserve Better Outreach
+            Stop Sending Generic Emails That Get Ignored
           </h2>
           <p className="text-muted-foreground max-w-xl mx-auto leading-relaxed">
-            Whether you're in New York, Lagos, Lahore, or Manila — skilled freelancers everywhere deserve tools that match their talent. Most outreach tools weren't built with you in mind. SkryveAI is.
+            Whether you're a web developer in Lagos or a founder in Manila, SkryveAI gives you access to the same smart outreach tools that bigger agencies use — helping you compete and grow on a more equal footing.
           </p>
         </motion.div>
 

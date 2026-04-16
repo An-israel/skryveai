@@ -39,12 +39,12 @@ export function HeroSection() {
             transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
           >
             <h1 className="font-display text-5xl md:text-7xl lg:text-[5.2rem] font-extrabold text-foreground mb-8 leading-[1.05] tracking-tight">
-              AI-Powered Cold Outreach,{" "}
-              <span className="text-gradient-rich">CV Builder & LinkedIn Analyzer</span>
+              AI-Powered Cold Outreach{" "}
+              <span className="text-gradient-rich">That Gets Clients</span>
             </h1>
 
             <p className="text-lg md:text-xl text-muted-foreground mb-10 max-w-2xl leading-relaxed">
-              The all-in-one AI tool that finds clients, writes hyper-personalized cold emails, builds ATS-optimized CVs, checks your ATS score, and analyzes your LinkedIn profile — in seconds. Built for freelancers & startups.
+              SkryveAI is an AI-powered outreach tool built for freelancers and startup founders who want to get more clients — without spending hours on cold emails and manual prospecting. Research, audit, and send hyper-personalized pitches that actually feel human and get responses.
             </p>
 
             <div className="flex flex-col sm:flex-row gap-4 mb-6">
