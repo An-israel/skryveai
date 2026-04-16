@@ -22,6 +22,8 @@ import { useToast } from "@/hooks/use-toast";
 import { extractTextFromPdf } from "@/lib/extract-pdf-text";
 import { useAuth } from "@/hooks/use-auth";
 import { useCredits } from "@/hooks/use-credits";
+import { FeatureGuide } from "@/components/onboarding/FeatureGuide";
+import { cvBuilderGuide } from "@/components/onboarding/guideConfigs";
 
 interface ExperienceEntry {
   jobTitle: string;
@@ -766,6 +768,7 @@ export default function CVBuilder() {
   // Mode B: Build from scratch
   return (
     <div className="min-h-screen bg-background">
+      <FeatureGuide featureKey="cv-builder" steps={cvBuilderGuide} />
       <Header isAuthenticated={!!user} onLogout={handleLogout} />
       <main className="container mx-auto px-4 pt-24 pb-12 max-w-3xl">
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>

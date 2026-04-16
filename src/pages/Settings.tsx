@@ -25,6 +25,8 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/use-auth";
+import { FeatureGuide } from "@/components/onboarding/FeatureGuide";
+import { settingsGuide } from "@/components/onboarding/guideConfigs";
 import { Header } from "@/components/layout/Header";
 import { EmailVerificationStatus } from "@/components/settings/EmailVerificationStatus";
 import { SMTPConnection } from "@/components/settings/SMTPConnection";
@@ -249,6 +251,7 @@ export default function Settings() {
   return (
     <div className="min-h-screen bg-background">
       <Header />
+      <FeatureGuide featureKey="settings" steps={settingsGuide} />
       
       <main className="container py-8 max-w-4xl">
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>

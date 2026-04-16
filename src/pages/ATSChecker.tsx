@@ -14,6 +14,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/use-auth";
 import { useCredits } from "@/hooks/use-credits";
+import { FeatureGuide } from "@/components/onboarding/FeatureGuide";
+import { atsCheckerGuide } from "@/components/onboarding/guideConfigs";
 import { extractTextFromPdf } from "@/lib/extract-pdf-text";
 import { Link } from "react-router-dom";
 
@@ -138,6 +140,7 @@ export default function ATSChecker() {
 
   return (
     <div className="min-h-screen bg-background">
+      <FeatureGuide featureKey="ats-checker" steps={atsCheckerGuide} />
       <SEOHead
         title="Free ATS Score Checker — Check Your Resume ATS Score Instantly | SkryveAI"
         description="Check your resume's ATS score instantly. SkryveAI's ATS Checker scores your CV against any job description, identifies keyword gaps, and tells you exactly what to fix to pass ATS filters."

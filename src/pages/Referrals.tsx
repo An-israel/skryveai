@@ -5,6 +5,8 @@ import { Header } from "@/components/layout/Header";
 import { ReferralCard } from "@/components/dashboard/ReferralCard";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft } from "lucide-react";
+import { FeatureGuide } from "@/components/onboarding/FeatureGuide";
+import { referralsGuide } from "@/components/onboarding/guideConfigs";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
@@ -42,6 +44,7 @@ export default function Referrals() {
   return (
     <div className="min-h-screen bg-background">
       <Header isAuthenticated={true} onLogout={handleLogout} />
+      <FeatureGuide featureKey="referrals" steps={referralsGuide} />
       <main className="container mx-auto px-4 pt-24 pb-12 max-w-2xl">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
