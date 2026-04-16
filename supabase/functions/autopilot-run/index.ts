@@ -328,7 +328,7 @@ async function processUser(
         emailBody = `Hi ${business.name} team,\n\nI came across your business and noticed some opportunities to help you grow.\n\n${config.expertise?.valueProp ?? ""}\n\nWould love to connect — ${config.email_style?.ctaType ?? "book a quick call"}?\n\nBest regards`;
       }
 
-      // 8c. Send email directly via Resend (bypasses send-email UUID validation)
+      // 8c. Send email via user's connected mailbox (SMTP or Gmail), fallback to Resend
       const contactEmail = business.email;
       let emailStatus: "sent" | "failed" | "skipped" = "skipped";
 
@@ -337,29 +337,105 @@ async function processUser(
         emailStatus = "skipped";
       } else {
         try {
-          const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
-          if (!RESEND_API_KEY) throw new Error("RESEND_API_KEY not configured");
+          let sendSuccess = false;
 
-          const sendRes = await fetch("https://api.resend.com/emails", {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: `Bearer ${RESEND_API_KEY}`,
-            },
-            body: JSON.stringify({
-              from: "SkryveAI AutoPilot <outreach@skryveai.com>",
-              to: [contactEmail],
-              subject: emailSubject,
-              html: emailBody.replace(/\n/g, "<br>"),
-            }),
-          });
+          // Try SMTP first
+          const { data: smtpCreds } = await supabase
+            .from("smtp_credentials")
+            .select("id")
+            .eq("user_id", config.user_id)
+            .eq("is_verified", true)
+            .maybeSingle();
 
-          if (sendRes.ok) {
+          if (smtpCreds) {
+            const smtpRes = await fetch(`${functionsBase}/send-smtp`, {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${serviceKey}`,
+                apikey: serviceKey,
+              },
+              body: JSON.stringify({
+                to: contactEmail,
+                subject: emailSubject,
+                body: emailBody.replace(/\n/g, "<br>"),
+                userId: config.user_id,
+              }),
+            });
+            if (smtpRes.ok) {
+              sendSuccess = true;
+              console.log(`[${config.user_id}] Sent via SMTP to ${contactEmail}`);
+            } else {
+              const errText = await smtpRes.text();
+              console.warn(`[${config.user_id}] SMTP failed (${smtpRes.status}): ${errText}`);
+            }
+          }
+
+          // Try Gmail if SMTP not available or failed
+          if (!sendSuccess) {
+            const { data: gmailTokens } = await supabase
+              .from("gmail_tokens")
+              .select("id")
+              .eq("user_id", config.user_id)
+              .maybeSingle();
+
+            if (gmailTokens) {
+              const gmailRes = await fetch(`${functionsBase}/send-gmail`, {
+                method: "POST",
+                headers: {
+                  "Content-Type": "application/json",
+                  Authorization: `Bearer ${serviceKey}`,
+                  apikey: serviceKey,
+                },
+                body: JSON.stringify({
+                  to: contactEmail,
+                  subject: emailSubject,
+                  body: emailBody.replace(/\n/g, "<br>"),
+                  userId: config.user_id,
+                }),
+              });
+              if (gmailRes.ok) {
+                sendSuccess = true;
+                console.log(`[${config.user_id}] Sent via Gmail to ${contactEmail}`);
+              } else {
+                const errText = await gmailRes.text();
+                console.warn(`[${config.user_id}] Gmail failed (${gmailRes.status}): ${errText}`);
+              }
+            }
+          }
+
+          // Fallback to Resend
+          if (!sendSuccess) {
+            const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
+            if (!RESEND_API_KEY) throw new Error("No email method available");
+
+            const sendRes = await fetch("https://api.resend.com/emails", {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${RESEND_API_KEY}`,
+              },
+              body: JSON.stringify({
+                from: "SkryveAI AutoPilot <outreach@skryveai.com>",
+                to: [contactEmail],
+                subject: emailSubject,
+                html: emailBody.replace(/\n/g, "<br>"),
+              }),
+            });
+
+            if (sendRes.ok) {
+              sendSuccess = true;
+              console.log(`[${config.user_id}] Sent via Resend to ${contactEmail}`);
+            } else {
+              const errText = await sendRes.text();
+              console.warn(`[${config.user_id}] Resend non-OK (${sendRes.status}): ${errText}`);
+            }
+          }
+
+          if (sendSuccess) {
             emailStatus = "sent";
             sent++;
           } else {
-            const errText = await sendRes.text();
-            console.warn(`[${config.user_id}] Resend non-OK (${sendRes.status}): ${errText}`);
             emailStatus = "failed";
             failed++;
           }
