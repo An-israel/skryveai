@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { ThemeProvider } from "next-themes";
 import { PageGuard } from "@/components/PageGuard";
+import { PublicThemeWrapper } from "@/components/PublicThemeWrapper";
 import Landing from "./pages/Landing";
 import Login from "./pages/Login";
 import Signup from "./pages/Signup";
@@ -43,6 +44,13 @@ const GuardedRoute = ({ children }: { children: React.ReactNode }) => (
   <PageGuard>{children}</PageGuard>
 );
 
+// Public routes are forced to light mode regardless of the user's app theme
+const PublicRoute = ({ children }: { children: React.ReactNode }) => (
+  <PublicThemeWrapper>
+    <PageGuard>{children}</PageGuard>
+  </PublicThemeWrapper>
+);
+
 const App = () => (
   <ThemeProvider attribute="class" defaultTheme="dark" enableSystem={false} storageKey="skryveai-theme">
     <QueryClientProvider client={queryClient}>
@@ -52,35 +60,38 @@ const App = () => (
         <BrowserRouter>
         <ChatWidget />
         <Routes>
-          <Route path="/" element={<GuardedRoute><Landing /></GuardedRoute>} />
-          <Route path="/login" element={<GuardedRoute><Login /></GuardedRoute>} />
-          <Route path="/signup" element={<GuardedRoute><Signup /></GuardedRoute>} />
+          {/* Public / marketing / auth — always light */}
+          <Route path="/" element={<PublicRoute><Landing /></PublicRoute>} />
+          <Route path="/login" element={<PublicRoute><Login /></PublicRoute>} />
+          <Route path="/signup" element={<PublicRoute><Signup /></PublicRoute>} />
+          <Route path="/pricing" element={<PublicRoute><Pricing /></PublicRoute>} />
+          <Route path="/forgot-password" element={<PublicRoute><ForgotPassword /></PublicRoute>} />
+          <Route path="/reset-password" element={<PublicRoute><ResetPassword /></PublicRoute>} />
+          <Route path="/privacy-policy" element={<PublicRoute><PrivacyPolicy /></PublicRoute>} />
+          <Route path="/terms" element={<PublicRoute><TermsOfService /></PublicRoute>} />
+          <Route path="/about" element={<PublicRoute><About /></PublicRoute>} />
+          <Route path="/contact" element={<PublicRoute><Contact /></PublicRoute>} />
+          <Route path="/careers" element={<PublicRoute><Careers /></PublicRoute>} />
+          <Route path="/blog" element={<PublicRoute><Blog /></PublicRoute>} />
+          <Route path="/blog/:slug" element={<PublicRoute><BlogPost /></PublicRoute>} />
+          <Route path="/tools/email-finder" element={<PublicThemeWrapper><EmailFinderLanding /></PublicThemeWrapper>} />
+
+          {/* Authenticated app — respects user theme preference */}
           <Route path="/dashboard" element={<GuardedRoute><Dashboard /></GuardedRoute>} />
           <Route path="/campaigns/new" element={<GuardedRoute><NewCampaign /></GuardedRoute>} />
-          <Route path="/pricing" element={<GuardedRoute><Pricing /></GuardedRoute>} />
           <Route path="/payment/callback" element={<PaymentCallback />} />
           <Route path="/admin" element={<Admin />} />
-          <Route path="/forgot-password" element={<GuardedRoute><ForgotPassword /></GuardedRoute>} />
-          <Route path="/reset-password" element={<GuardedRoute><ResetPassword /></GuardedRoute>} />
           <Route path="/settings" element={<GuardedRoute><Settings /></GuardedRoute>} />
           <Route path="/analytics" element={<GuardedRoute><Analytics /></GuardedRoute>} />
-          <Route path="/privacy-policy" element={<GuardedRoute><PrivacyPolicy /></GuardedRoute>} />
-          <Route path="/terms" element={<GuardedRoute><TermsOfService /></GuardedRoute>} />
-          <Route path="/about" element={<GuardedRoute><About /></GuardedRoute>} />
-          <Route path="/contact" element={<GuardedRoute><Contact /></GuardedRoute>} />
           <Route path="/team" element={<GuardedRoute><TeamManagement /></GuardedRoute>} />
           <Route path="/referrals" element={<GuardedRoute><Referrals /></GuardedRoute>} />
-          <Route path="/careers" element={<GuardedRoute><Careers /></GuardedRoute>} />
           <Route path="/cv-builder" element={<GuardedRoute><CVBuilder /></GuardedRoute>} />
           <Route path="/ats-checker" element={<GuardedRoute><ATSChecker /></GuardedRoute>} />
           <Route path="/linkedin-analyzer" element={<GuardedRoute><LinkedInAnalyzer /></GuardedRoute>} />
           <Route path="/campaigns/:id" element={<GuardedRoute><CampaignDetails /></GuardedRoute>} />
           <Route path="/auto-pilot" element={<GuardedRoute><AutoPilot /></GuardedRoute>} />
           <Route path="/reply" element={<EmailReply />} />
-          <Route path="/blog" element={<GuardedRoute><Blog /></GuardedRoute>} />
-          <Route path="/blog/:slug" element={<GuardedRoute><BlogPost /></GuardedRoute>} />
           <Route path="/email-finder" element={<GuardedRoute><EmailFinder /></GuardedRoute>} />
-          <Route path="/tools/email-finder" element={<EmailFinderLanding />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>
