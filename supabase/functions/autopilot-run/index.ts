@@ -386,7 +386,37 @@ async function processUser(
       }
 
       // 8c. Send email via user's connected mailbox (SMTP or Gmail), fallback to Resend
-      const contactEmail = business.email;
+      let contactEmail = business.email;
+
+      // If we don't have an email, try the native email finder against the business website
+      if (!contactEmail && business.website) {
+        try {
+          const finderRes = await fetch(`${functionsBase}/email-finder-search`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${serviceKey}`,
+              apikey: serviceKey,
+              "x-autopilot-user-id": config.user_id,
+            },
+            body: JSON.stringify({
+              company: business.name,
+              website: business.website,
+              skipCreditCheck: true,
+            }),
+          });
+          if (finderRes.ok) {
+            const finderData = await finderRes.json();
+            if (finderData?.email && finderData.confidence >= 50) {
+              contactEmail = finderData.email;
+              console.log(`[${config.user_id}] Email finder found ${contactEmail} for ${business.name} (conf ${finderData.confidence})`);
+            }
+          }
+        } catch (err) {
+          console.warn(`[${config.user_id}] email-finder-search error for ${business.name}:`, err);
+        }
+      }
+
       let emailStatus: "sent" | "failed" | "skipped" = "skipped";
 
       if (!contactEmail) {
