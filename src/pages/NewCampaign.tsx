@@ -223,11 +223,11 @@ export default function NewCampaign() {
     }
   };
 
-  const triggerEmailEnrichment = useCallback(async (campaignId: string | null) => {
-    if (!campaignId) return;
+  const triggerEmailEnrichment = useCallback(async (cId: string | null | undefined) => {
+    if (!cId) return;
     try {
-      // Fire-and-forget background enrichment for all selected businesses in this campaign
-      supabase.functions.invoke("enrich-campaign-emails", { body: { campaignId } })
+      // Fire-and-forget background enrichment for all businesses in this campaign
+      supabase.functions.invoke("enrich-campaign-emails", { body: { campaignId: cId } })
         .then(({ error }) => {
           if (error) console.warn("[enrich] invoke error:", error.message);
         });
@@ -238,11 +238,6 @@ export default function NewCampaign() {
 
   const handleSelect = async (selected: Business[]) => {
     setSelectedBusinesses(selected);
-
-    // Kick off background email enrichment for selected businesses (non-blocking)
-    if (campaignType !== "job_application" && campaignType !== "investor") {
-      triggerEmailEnrichment(currentCampaignId);
-    }
 
     if (campaignType === "job_application") return;
 
