@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { Search, UserPlus, TrendingUp, Briefcase, ArrowRight } from "lucide-react";
+import { Target, UserPlus, TrendingUp, Briefcase, ArrowRight, Sparkles } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -13,12 +13,12 @@ interface CampaignTypeSelectorProps {
 const campaignTypes = [
   {
     id: "freelancer" as CampaignType,
-    icon: Search,
-    title: "Find Clients",
-    subtitle: "For Freelancers",
-    description: "Search for businesses by type and location, analyze their online presence, and send personalized cold pitches.",
-    features: ["Search by industry & location", "AI website + social audit", "Auto-generated pitches", "Up to 15 emails per campaign"],
-    isNew: false,
+    icon: Target,
+    title: "Smart Find",
+    subtitle: "AI-Qualified Leads",
+    description: "Don't just search — find businesses that ACTUALLY need your service. AI scans each website for pain signals, then ranks them by need score.",
+    features: ["AI signal-based discovery", "Need score 0–100 per lead", "Only contact businesses that need you", "10–15× higher reply rates"],
+    isNew: true,
   },
   {
     id: "direct_client" as CampaignType,
