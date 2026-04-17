@@ -3,7 +3,6 @@ import { motion } from "framer-motion";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
@@ -11,17 +10,18 @@ import { Loader2, Sparkles, Target, MapPin, ArrowLeft, ArrowRight, Wand2 } from 
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { SIGNAL_LABELS, ALL_SIGNALS, type ServiceDefinition } from "@/types/smartFind";
+import { LocationsInput } from "@/components/ui/locations-input";
 
 interface ServiceDefinitionStepProps {
   expertise: string;
-  onProceed: (definition: ServiceDefinition, location: string) => void;
+  onProceed: (definition: ServiceDefinition, locations: string[]) => void;
   onBack: () => void;
 }
 
 export function ServiceDefinitionStep({ expertise, onProceed, onBack }: ServiceDefinitionStepProps) {
   const { toast } = useToast();
   const [rawDescription, setRawDescription] = useState("");
-  const [location, setLocation] = useState("");
+  const [locations, setLocations] = useState<string[]>([]);
   const [definition, setDefinition] = useState<ServiceDefinition | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
 
@@ -69,15 +69,15 @@ export function ServiceDefinitionStep({ expertise, onProceed, onBack }: ServiceD
 
   const handleSubmit = () => {
     if (!definition) return;
-    if (!location.trim()) {
-      toast({ title: "Add a location", description: "Where should we look for businesses?", variant: "destructive" });
+    if (locations.length === 0) {
+      toast({ title: "Add at least one location", description: "Where should we look for businesses?", variant: "destructive" });
       return;
     }
     if (definition.signalsToDetect.length === 0) {
       toast({ title: "Pick at least one signal", description: "We need criteria to score need.", variant: "destructive" });
       return;
     }
-    onProceed(definition, location.trim());
+    onProceed(definition, locations);
   };
 
   return (
@@ -140,15 +140,14 @@ export function ServiceDefinitionStep({ expertise, onProceed, onBack }: ServiceD
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="location" className="flex items-center gap-2 font-semibold">
+                <Label htmlFor="locations" className="flex items-center gap-2 font-semibold">
                   <MapPin className="w-4 h-4 text-primary" /> Where to look
                 </Label>
-                <Input
-                  id="location"
-                  value={location}
-                  onChange={(e) => setLocation(e.target.value)}
-                  placeholder="e.g., Lagos, Nigeria  /  San Francisco, CA  /  United Kingdom"
-                  className="h-12 text-base"
+                <LocationsInput
+                  id="locations"
+                  values={locations}
+                  onChange={setLocations}
+                  placeholder="e.g., Lagos, Nigeria"
                 />
               </div>
 
@@ -186,7 +185,7 @@ export function ServiceDefinitionStep({ expertise, onProceed, onBack }: ServiceD
                 <Button variant="outline" size="lg" onClick={onBack}>
                   <ArrowLeft className="w-4 h-4" /> Back
                 </Button>
-                <Button onClick={handleSubmit} size="lg" className="flex-1" disabled={!location.trim() || definition.signalsToDetect.length === 0}>
+                <Button onClick={handleSubmit} size="lg" className="flex-1" disabled={locations.length === 0 || definition.signalsToDetect.length === 0}>
                   <Sparkles className="w-5 h-5" /> Find Qualified Leads
                   <ArrowRight className="w-4 h-4" />
                 </Button>
