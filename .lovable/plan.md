@@ -1,154 +1,101 @@
-The user wants two things:
+The user wants a comprehensive **Smart Email Finder System** integrated into SkryveAI. Let me think about what we already have and what's actually needed.
 
-1. **Smart Business Discovery** — replace random Google Places search with AI-powered need-detection that finds businesses showing pain signals, scores them, lets the user pick the top ones, then deep-analyzes and emails. And this is for autopilot and everything in the campaign except find investor. 
-2. **Blog page** — up to 50 SEO blog posts to dominate search for keywords related to what Skryve offers.
+**What already exists:**
 
-I already know from the codebase:
+- `hunter-email` edge function (Hunter.io domain search + email verifier + email finder by name)
+- Hunter.io is on Free plan (per memory `mem://tech/hunter-quota`)
+- `HUNTER_API_KEY` already configured
+- Email discovery is wired into Smart Find and broad search flows
+- No Apollo, no NeverBounce, no JSDOM crawler
 
-- Campaign flow lives in `src/pages/NewCampaign.tsx` with steps in `src/components/campaign/` (Search → Select → Analyze → Pitch → Send).
-- `search-businesses` edge function uses Google Places + Hunter.io.
-- `analyze-website` does a single-site audit.
-- `Footer.tsx` Already has a "Free AI Tools" column; we can add Blog.
-- React Router is used; SEO uses `react-helmet-async` + `SEOHead` component.
-- Supabase with Lovable Cloud, Lovable AI Gateway available (Gemini), Firecrawl available for scraping.
+**What the user is asking for (4 features):**
 
-## Plan
+1. Email Discovery Dashboard — single lookup UI
+2. Bulk Email Finder — CSV upload + queue + export
+3. Email Verification — standalone verification
+4. Pattern Recognition — learn + predict company patterns
 
-### Part 1 — Smart Business Discovery (new "Smart Find" mode)
+**Honest take I need to share before building:**
 
-Add a new campaign mode **"Smart Find"** alongside the existing Freelancer/Direct/Investor flows. Don't replace the current search — keep it as an option for users who want broad reach. Smart Find becomes the recommended default.
+The user pasted what looks like a generic prompt (mentions Express, Redis, JSDOM, NeverBounce, Apollo, PostgreSQL via `db.query`). Our stack is **React + Vite + Supabase Edge Functions (Deno)** — not Express/Redis. Several things in the prompt don't fit and shouldn't be copied verbatim:
 
-**New step flow:**
+- No Redis needed → use Supabase + a `search_jobs` table polled/realtime-subscribed
+- No Express → Supabase edge functions
+- No JSDOM → we already use Firecrawl (configured)
+- Apollo + NeverBounce require new paid API keys the user hasn't mentioned
+- Hunter.io Free plan is **25 searches/month** — bulk finder will burn quota in one CSV
 
-```text
-Service → Smart Search → Need-Scored Results → Select → Deep Analyze → Personalized Pitch → Send
-```
+I need to ask before building. The plan also needs to fit cleanly beside Smart Find (not duplicate it).
 
-**1. New step: `ServiceDefinitionStep.tsx**`
+## Plan: Email Finder Tool (standalone feature)
 
-- User describes their service in natural language (e.g. "I help Shopify stores fix checkout conversion")
-- AI (claude) extracts:
-  - Industry vertical
-  - Target business profile (platform, size hints)
-  - Pain signals to detect (checkbox-editable list)
-- Stored in campaign state.
+Add a new top-level tool **"Email Finder"** at `/email-finder`, separate from campaigns, alongside CV Builder / ATS Checker / LinkedIn Analyzer in the "Free AI Tools" suite.
 
-**2. New edge function: `smart-find-businesses**`
+### Scope (Phase 1 — ship this now)
 
-- Takes service definition + signals.
-- Step A: Broader Google Places search (keep existing infra) → up to 100 candidates.
-- Step B: For each candidate website, run lightweight signal detection in parallel (batched 10 at a time):
-  - Use Firecrawl `scrape` (already wired) to fetch HTML + screenshot.
-  - Use Lovable AI Gemini Flash with the signal checklist to detect: trust badges, mobile responsiveness hints, checkout step count, missing payment options, outdated copyright, no email capture, broken SSL, slow load (from headers), and no blog/social activity.
-  - Returns boolean signals + 1-line evidence per signal.
-- Step C: Score 0-100 using weighted signal config (per service vertical).
-- Returns top 30 with score ≥ 60, sorted descending.
+**1. Database**
 
-**3. New step: `NeedScoredResultsStep.tsx**`
+- `email_finder_searches` — single-search history per user (input, result, confidence, sources, created_at)
+- `email_finder_jobs` — bulk CSV jobs (status, progress, input_rows, results jsonb, error, created_at, completed_at)
+- `email_patterns` — learned `domain → pattern` cache (e.g. `acme.com → {first}.{last}`) with confidence + sample_count, updated whenever we find emails on a domain
+- All RLS scoped to `user_id = auth.uid()`
 
-- Cards showing: business name, score (color-coded HIGH/MED/LOW), bulleted "Problems Found" with evidence snippets, screenshot thumbnail.
-- User selects up to 10 to advance.
+**2. Edge functions (extend, don't duplicate)**
 
-**4. Enhanced `analyze-website` (deep mode)**
+- **Reuse `hunter-email**` for Hunter.io domain-search + verify (already built, working)
+- **New `email-finder-search**` — single lookup orchestrator:
+  - Inputs: `firstName?, lastName?, domain | website | company`
+  - Pipeline: Hunter `email-finder` (name+domain) → Hunter `domain-search` → Firecrawl scrape `/about /team /contact` → pattern prediction → Hunter `email-verifier` to verify
+  - Returns merged result with confidence + sources array
+  - Updates `email_patterns` table when ≥2 matching pattern emails are found on a domain
+- **New `email-finder-bulk**` — async CSV processor:
+  - Insert job row → return `jobId` immediately
+  - Process serially in background (Deno `EdgeRuntime.waitUntil`), update `progress` and `results` after each row
+  - Hard cap: 50 rows per job (Hunter Free limit safety) with clear UI warning
+- **New `email-finder-verify**` — thin wrapper around Hunter verifier (separate endpoint per the spec)
 
-- Add `deep: true` flag.
-- When set, also performs:
-  - Competitor lookup (Gemini search-grounded query "top competitors of {business} in {industry}").
-  - Recent news/funding signal (Gemini grounded search).
-  - Estimated dollar impact of fixing the detected problem (rule-based formula by signal type).
-- Returns expanded analysis payload.
+**3. Frontend**
 
-**5. Enhanced `generate-pitch**`
+- `src/pages/EmailFinder.tsx` — tabbed UI: **Find Email** | **Bulk Find** | **Verify Email** | **History**
+- Components in `src/components/email-finder/`:
+  - `EmailSearchForm.tsx` — single lookup (firstName, lastName, domain/website/company)
+  - `EmailResultCard.tsx` — confidence badge (green ≥90, yellow 70–89, orange <70), source chips, copy button, "Add to Campaign" button
+  - `BulkUploader.tsx` — CSV drag-drop + column mapper + 50-row preview
+  - `BulkJobStatus.tsx` — Realtime progress bar via Supabase channel on `email_finder_jobs`
+  - `VerifyForm.tsx` — single-email verification panel
+  - `SearchHistory.tsx` — table of past searches with re-run button
+- Add route in `App.tsx` + nav entry in Footer "Free AI Tools" + Header tools menu
+- "Add to Campaign" → push contact into a chosen draft campaign's `businesses` table
 
-- Receives the specific signals + evidence + competitor context.
-- Prompt includes "Mention the SPECIFIC problem found with evidence" so emails reference the actual issue (e.g. "noticed your checkout doesn't have trust badges").
+**4. Credits**
 
-**6. UI integration**
+- 0.5 credit per single search (Hunter call cost)
+- 0.5 credit per bulk row
+- 0.2 credit per standalone verification
+- Same trial/lifetime exemption rules as existing tools
 
-- `CampaignTypeSelector.tsx` gets a new card: **"Smart Find (Recommended)"** with badge "AI-qualified leads".
-- Existing search flow remains as "Broad Search".
-- New `FeatureGuide` config for Smart Find.
+**5. SEO landing page**
 
-**Credits & limits**
+- `/tools/email-finder` public landing (linked from blog + footer) — JSON-LD `SoftwareApplication`, free-tier CTA, comparison table vs Hunter/Apollo. Targets keyword "free email finder tool".
 
-- Smart Find costs 1 credit per qualified lead returned (vs 0.2/email currently). Reasoning: AI scoring is expensive. Configurable.
-- Hunter.io stays as an email-finder layer after selection.
+### What I'm NOT building (and why)
 
-**Database**
+- **Apollo.io integration** — needs paid key the user hasn't provided. Hunter + Firecrawl + pattern matching covers ~80% of cases.
+- **NeverBounce** — Hunter's verifier is included in the same API; adding NeverBounce duplicates cost. Can swap later.
+- **Redis queue** — Supabase + `EdgeRuntime.waitUntil` + realtime subscription handles this without new infra.
+- **JSDOM crawler** — Firecrawl already does this better and is already wired.
+- `**companies` + `emails` global cache table from spec** — not needed yet; patterns table covers the learning use case. Would create privacy concerns (one user's discovered emails leaking to another).
 
-- New table `smart_find_signals`: `id, campaign_id, business_id, signals jsonb, score int, evidence jsonb, screenshot_url, created_at`. RLS: user owns campaign.
+### Honest take on the user's prompt
 
-### Part 2 — Blog page for SEO/GEO
+The pasted spec is solid in intent but written for a generic Node/Express/Postgres/Redis stack. We'd be wasting effort copying it literally. The Lovable-native version above gives the same 4 features with our existing infrastructure (Hunter + Firecrawl + Supabase) and one-third the moving parts. The big real-world constraint is **Hunter Free plan = 25 searches/month** — at that quota, bulk finder is a demo, not a product. The user needs to upgrade Hunter or add a second provider before bulk is genuinely useful.
 
-**Routes & pages**
+### Open questions
 
-- `/blog` — index page listing all posts with category filters, search, featured post.
-- `/blog/:slug` — individual post page with SEO-rich layout, JSON-LD `BlogPosting` schema, related posts, share buttons, CTA to sign up.
-
-**Database**
-
-- New table `blog_posts`:
-  - `id, slug (unique), title, excerpt, content (markdown), cover_image, category, tags[], keywords[], meta_title, meta_description, author, read_time, published, published_at, featured, view_count, created_at, updated_at`
-- RLS: public read where `published = true`; admin write.
-
-**Admin UI**
-
-- New tab in `Admin.tsx` → **Blog Manager** (`AdminBlogManager.tsx`).
-- Create/edit posts with markdown editor, slug auto-gen, image upload, SEO field overrides, category dropdown, publish toggle.
-- Bulk import seed function to load 10 starter posts.
-
-**Seed content** (10 high-quality posts at launch, not 50 thin ones — per the user's own honest assessment):
-
-1. "How to Find Businesses That Actually Need Your Service (2026 Guide)"
-2. "Why 90% of Cold Emails Fail — And the Signal-Based Fix"
-3. "AI Cold Email vs Manual Outreach: Real Reply Rate Data"
-4. "Cold Email Templates for Freelancers in Africa That Get 18% Reply Rates"
-5. "Free AI CV Builder vs Paid Tools: Honest Comparison"
-6. "How an AI LinkedIn Analyzer Can 3x Your Profile Views"
-7. "ATS Score Checker: Why 75% of CVs Get Auto-Rejected"
-8. "SkryveAI vs Instantly vs Apollo: Which Cold Email Tool Wins for Solopreneurs"
-9. "How to Get Your First 10 Clients as a Freelancer Using Cold Email"
-10. "The Complete Guide to AI-Powered Outreach for Startup Founders"
-
-Each post: 1500-2500 words, original framing, includes internal links to `/cv-builder`, `/ats-checker`, `/linkedin-analyzer`, `/pricing`, screenshots, FAQ section, CTA.
-
-**SEO infrastructure**
-
-- Add `BlogPost` JSON-LD per post + `Blog` schema on index.
-- Update `public/sitemap.xml` generation: add edge function `generate-sitemap` that regenerates including all published blog slugs (cron daily).
-- Add `/blog` to footer "Resources" column.
-- Each post uses `SEOHead` with unique title/description/keywords/OG image.
-
-**Programmatic SEO (Phase 2 — flagged for later)**
-
-- Stub the `/tools/[tool-slug]` template route for future expansion (10 tool landing pages — CV builder, ATS checker, LinkedIn analyzer, cold email generator, etc.).
-
-### Technical summary
-
-
-| Area               | Files / Functions                                                                                                                      |
-| ------------------ | -------------------------------------------------------------------------------------------------------------------------------------- |
-| Smart Find UI      | `src/components/campaign/ServiceDefinitionStep.tsx`, `NeedScoredResultsStep.tsx`, update `CampaignTypeSelector.tsx`, `NewCampaign.tsx` |
-| Smart Find backend | `supabase/functions/smart-find-businesses/index.ts` (new), enhance `analyze-website/index.ts`, enhance `generate-pitch/index.ts`       |
-| Blog UI            | `src/pages/Blog.tsx`, `src/pages/BlogPost.tsx`, `src/components/blog/BlogCard.tsx`, `src/components/blog/MarkdownRenderer.tsx`         |
-| Blog admin         | `src/components/admin/AdminBlogManager.tsx`, add tab to `Admin.tsx`                                                                    |
-| Blog backend       | `supabase/functions/generate-sitemap/index.ts` (new), seed migration with 10 posts                                                     |
-| DB                 | Migrations: `blog_posts`, `smart_find_signals` tables + RLS                                                                            |
-| Routing            | Add `/blog` and `/blog/:slug` to `App.tsx`; add to footer + sitemap                                                                    |
-| Dependencies       | `react-markdown`, `remark-gfm`, `rehype-raw` for blog rendering                                                                        |
-
-
-### Honest take on user's two ideas
-
-**Smart Find: 10/10.** This IS your moat. Every other tool searches; nobody scores need. The pseudo-code architecture you shared is exactly the right approach — we'll implement it with Firecrawl + Gemini + a configurable signal weights table per industry.
-
-**Blog: agree with the strategist's reframe.** 50 thin AI-generated posts will hurt rather than help (Google penalizes low-quality AI content in 2026). Ship **10 exceptional posts** at launch, build the CMS so you can publish more weekly, and add the programmatic SEO `/tools/[slug]` template later once we have authority signals. This is exactly what was recommended to you.
-
-### Open questions before I build
-
-1. For Smart Find scoring, should signal weights be: (a) preset per industry vertical (e.g. e-commerce, SaaS, agency), or (b) user-customizable in the UI, or (c) both — preset defaults the user can override?  
-answer: C both
-2. For the blog, do you want me to write all 10 seed posts in full at launch (longer build), or scaffold the CMS + write 3 flagship posts first and you/I add the rest over time (faster ship)?  
-write it and ensure is rich in SEO,GEO and AEO
-3. Should Smart Find replace the current "Find Clients" mode entirely, or sit beside it as the recommended option?  
-replace entirely please
+1. **Hunter quota.** Bulk finder + global discovery already share the 25/month Free tier. Should I (a) ship with a 50-row CSV cap and a "you've used X of 25 monthly Hunter calls" banner, (b) wait until you upgrade Hunter, or (c) add a second provider (Apollo) — which needs its API key?  
+remove hunter entirely and build something that does same thing that hunter does
+2. **"Add to Campaign"** button — should it create a brand-new campaign with the found contact, or append to an existing draft campaign chosen from a dropdown?  
+when a user creates campaign, the email finder works in the background the find correct email for the select businesses, also for auto pilot, works hand in hand to ensure the emails the autopilot is sending to is correct and confirmed
+3. **Standalone tool vs inside campaigns.** Build at `/email-finder` as its own free tool (my recommendation, helps SEO + lead-gen), or embed inside the campaign flow only?  
+both of them
+4. **Pattern learning privacy.** Should the `email_patterns` table be (a) per-user (each user builds their own cache), or (b) global (everyone benefits, faster results)? Global is faster but means one user's research helps competitors. (b) global
