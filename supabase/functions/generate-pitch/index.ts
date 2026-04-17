@@ -18,6 +18,10 @@ interface PitchRequest {
   freelancerService?: string;
   expertise?: string;
   cta?: string;
+  // Smart Find context — when present, the pitch should reference the SPECIFIC signal/evidence
+  detectedSignals?: Record<string, boolean>;
+  evidence?: Record<string, string>;
+  needScore?: number;
   investorPitch?: {
     industry: string;
     businessName: string;
@@ -27,6 +31,29 @@ interface PitchRequest {
     useOfFunds: string;
   };
 }
+
+const SIGNAL_HUMAN_LABELS: Record<string, string> = {
+  no_trust_badges: "no trust badges (SSL/payment logos/guarantees) on the site",
+  slow_load: "slow page load time",
+  not_mobile_responsive: "not mobile-responsive",
+  outdated_design: "outdated visual design",
+  no_clear_cta: "no clear call-to-action above the fold",
+  no_email_capture: "no email capture or lead form",
+  weak_copy: "weak/generic homepage copy",
+  no_blog_or_content: "no blog or content marketing",
+  no_social_links: "missing social media links",
+  broken_links: "broken or dead links",
+  thin_content: "thin homepage content",
+  no_seo_meta: "missing SEO meta tags",
+  no_https: "site not using HTTPS",
+  weak_brand: "weak brand identity",
+  generic_design: "generic template-style design",
+  no_video_content: "no video content",
+  poor_navigation: "confusing navigation",
+  no_testimonials: "no testimonials or social proof",
+  outdated_copyright: "outdated copyright year",
+  no_about_page: "no About page",
+};
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -110,7 +137,7 @@ serve(async (req) => {
       throw new Error("LOVABLE_API_KEY is not configured");
     }
 
-    const { businessName, website, issues, freelancerService, expertise, cta, investorPitch }: PitchRequest = await req.json();
+    const { businessName, website, issues, freelancerService, expertise, cta, investorPitch, detectedSignals, evidence, needScore }: PitchRequest = await req.json();
 
     // Input validation
     if (!businessName) {
