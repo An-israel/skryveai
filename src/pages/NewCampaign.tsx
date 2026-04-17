@@ -223,8 +223,26 @@ export default function NewCampaign() {
     }
   };
 
+  const triggerEmailEnrichment = useCallback(async (campaignId: string | null) => {
+    if (!campaignId) return;
+    try {
+      // Fire-and-forget background enrichment for all selected businesses in this campaign
+      supabase.functions.invoke("enrich-campaign-emails", { body: { campaignId } })
+        .then(({ error }) => {
+          if (error) console.warn("[enrich] invoke error:", error.message);
+        });
+    } catch (e) {
+      console.warn("[enrich] failed to trigger:", e);
+    }
+  }, []);
+
   const handleSelect = async (selected: Business[]) => {
     setSelectedBusinesses(selected);
+
+    // Kick off background email enrichment for selected businesses (non-blocking)
+    if (campaignType !== "job_application" && campaignType !== "investor") {
+      triggerEmailEnrichment(currentCampaignId);
+    }
 
     if (campaignType === "job_application") return;
 
