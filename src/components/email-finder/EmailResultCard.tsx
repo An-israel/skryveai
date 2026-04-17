@@ -1,10 +1,11 @@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Copy, CheckCircle2, AlertTriangle, XCircle, ExternalLink, Sparkles } from "lucide-react";
+import { Copy, CheckCircle2, AlertTriangle, XCircle, ExternalLink, Sparkles, Plus } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { AddToCampaignDialog } from "./AddToCampaignDialog";
 
 export interface EmailFinderResult {
   email: string | null;
