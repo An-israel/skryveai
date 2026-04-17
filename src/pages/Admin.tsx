@@ -32,6 +32,7 @@ import { ToolUsageTracker } from "@/components/admin/ToolUsageTracker";
 import { CustomerSuccessDashboard } from "@/components/admin/CustomerSuccessDashboard";
 import { GrowthDashboard } from "@/components/admin/GrowthDashboard";
 import { AdminChatManager } from "@/components/admin/AdminChatManager";
+import { AdminBlogManager } from "@/components/admin/AdminBlogManager";
 
 interface AdminStats {
   totalUsers: number;
@@ -57,7 +58,7 @@ interface CMSPage {
 }
 
 // Role-based tab definitions
-type TabId = "users" | "campaigns" | "email-queue" | "pages" | "images" | "staff" | "activity" | "ip-addresses" | "credits" | "referrals" | "analytics" | "send-email" | "email-tracker" | "reports" | "page-toggle" | "tool-usage" | "cs-dashboard" | "growth" | "chat";
+type TabId = "users" | "campaigns" | "email-queue" | "pages" | "images" | "staff" | "activity" | "ip-addresses" | "credits" | "referrals" | "analytics" | "send-email" | "email-tracker" | "reports" | "page-toggle" | "tool-usage" | "cs-dashboard" | "growth" | "chat" | "blog";
 
 const TAB_PERMISSIONS: Record<TabId, string[]> = {
   "cs-dashboard": ["super_admin", "support_agent"],
@@ -79,6 +80,7 @@ const TAB_PERMISSIONS: Record<TabId, string[]> = {
   "tool-usage": ["super_admin", "content_editor", "support_agent"],
   growth: ["super_admin", "staff"],
   chat: ["super_admin", "support_agent"],
+  blog: ["super_admin", "content_editor"],
 };
 
 export default function Admin() {
@@ -639,6 +641,7 @@ export default function Admin() {
                 "cs-dashboard": <Users className="w-3.5 h-3.5 shrink-0" />,
                 growth: <TrendingUp className="w-3.5 h-3.5 shrink-0" />,
                 chat: <MessageCircle className="w-3.5 h-3.5 shrink-0" />,
+                blog: <FileText className="w-3.5 h-3.5 shrink-0" />,
               };
               const labels: Record<TabId, string> = {
                 "cs-dashboard": "CS Dashboard",
@@ -660,6 +663,7 @@ export default function Admin() {
                 "tool-usage": "Tool Usage",
                 growth: "Growth",
                 chat: "Live Chat",
+                blog: "Blog",
               };
               return (
                 <TabsTrigger key={tab} value={tab} className="gap-1 text-xs sm:text-sm px-2 py-1.5">
@@ -1241,6 +1245,12 @@ export default function Admin() {
           )}
 
           {/* Live Chat Tab */}
+          {hasTabAccess("chat") && (
+            <TabsContent value="blog">
+              <AdminBlogManager />
+            </TabsContent>
+          )}
+
           {hasTabAccess("chat") && (
             <TabsContent value="chat">
               <AdminChatManager />
