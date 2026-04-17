@@ -311,7 +311,10 @@ async function processUser(
         })
         .eq("id", session.id);
 
-      // 8a. Analyze website
+      // Smart Find context for this business (signals + evidence)
+      const sfCtx = smartFindMap.get(business.name);
+
+      // 8a. Analyze website (deep mode — folds Smart Find signals into the analysis)
       let analysisIssues: unknown[] = [];
       if (business.website) {
         try {
@@ -325,6 +328,9 @@ async function processUser(
             body: JSON.stringify({
               url: business.website,
               businessName: business.name,
+              deep: true,
+              detectedSignals: sfCtx?.signals,
+              evidence: sfCtx?.evidence,
             }),
           });
           if (analyzeRes.ok) {
@@ -336,7 +342,7 @@ async function processUser(
         }
       }
 
-      // 8b. Generate pitch
+      // 8b. Generate pitch (with Smart Find evidence so emails reference SPECIFIC problems)
       let emailSubject = `Helping ${business.name} grow with ${config.expertise?.services?.[0] ?? config.expertise?.industry ?? "our services"}`;
       let emailBody = "";
 
@@ -353,6 +359,9 @@ async function processUser(
             website: business.website ?? "",
             issues: analysisIssues,
             freelancerService: `${config.expertise?.services?.join(", ") ?? ""} — ${config.expertise?.valueProp ?? ""}`.trim(),
+            detectedSignals: sfCtx?.signals,
+            evidence: sfCtx?.evidence,
+            needScore: sfCtx?.needScore,
             tone: config.email_style?.tone ?? "professional",
             length: config.email_style?.length ?? "medium",
             ctaType: config.email_style?.ctaType ?? "Book a Call",
