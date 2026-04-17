@@ -885,6 +885,26 @@ DO NOT include: generic SEO metadata, page speed scores, alt text, sitemaps, or 
       }
     }
 
+    // ─── Smart Find: fold detected signals into the issues list as concrete, evidenced findings ───
+    if (detectedSignals && Object.keys(detectedSignals).length > 0) {
+      const signalIssues: AnalysisIssue[] = [];
+      for (const [signal, present] of Object.entries(detectedSignals)) {
+        if (!present) continue;
+        const meta = SIGNAL_TO_ISSUE[signal];
+        if (!meta) continue;
+        const ev = evidence?.[signal] ? ` Evidence from their site: "${String(evidence[signal]).substring(0, 200)}"` : "";
+        signalIssues.push({
+          category: meta.category as AnalysisIssue["category"],
+          severity: meta.severity,
+          title: meta.title,
+          description: `Detected during AI scan of ${businessName}'s site.${ev} Costing them conversions and credibility right now.`,
+        });
+      }
+      // Prepend signal-derived issues so they take priority in the pitch
+      issues = [...signalIssues, ...issues];
+      console.log(`[deep:${!!deep}] Folded ${signalIssues.length} Smart Find signals into ${issues.length} total issues`);
+    }
+
     // Extract email: scrape content already fetched by Firecrawl, then ZeroBounce verify
     let email: string | null = null;
     const ZEROBOUNCE_API_KEY = Deno.env.get("ZEROBOUNCE_API_KEY") || null;
