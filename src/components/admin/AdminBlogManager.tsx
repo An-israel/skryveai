@@ -97,8 +97,8 @@ export function AdminBlogManager() {
     };
 
     const { error } = editing.id
-      ? await supabase.from("blog_posts").update(payload).eq("id", editing.id)
-      : await supabase.from("blog_posts").insert(payload);
+      ? await supabase.from("blog_posts").update(payload as never).eq("id", editing.id)
+      : await supabase.from("blog_posts").insert(payload as never);
 
     setSaving(false);
     if (error) {
@@ -160,7 +160,7 @@ export function AdminBlogManager() {
                 <TableRow key={p.id}>
                   <TableCell className="font-medium max-w-md">
                     <div className="flex items-center gap-2">
-                      {p.featured && <Star className="w-3 h-3 fill-yellow-500 text-yellow-500" />}
+                      {p.featured && <Star className="w-3 h-3 fill-primary text-primary" />}
                       <span className="truncate">{p.title}</span>
                     </div>
                     <div className="text-xs text-muted-foreground">/{p.slug}</div>
