@@ -264,6 +264,75 @@ export type Database = {
         }
         Relationships: []
       }
+      blog_posts: {
+        Row: {
+          author: string
+          category: string
+          content: string
+          cover_image: string | null
+          created_at: string
+          created_by: string | null
+          excerpt: string | null
+          featured: boolean
+          id: string
+          keywords: string[] | null
+          meta_description: string | null
+          meta_title: string | null
+          published: boolean
+          published_at: string | null
+          read_time: number
+          slug: string
+          tags: string[] | null
+          title: string
+          updated_at: string
+          view_count: number
+        }
+        Insert: {
+          author?: string
+          category?: string
+          content: string
+          cover_image?: string | null
+          created_at?: string
+          created_by?: string | null
+          excerpt?: string | null
+          featured?: boolean
+          id?: string
+          keywords?: string[] | null
+          meta_description?: string | null
+          meta_title?: string | null
+          published?: boolean
+          published_at?: string | null
+          read_time?: number
+          slug: string
+          tags?: string[] | null
+          title: string
+          updated_at?: string
+          view_count?: number
+        }
+        Update: {
+          author?: string
+          category?: string
+          content?: string
+          cover_image?: string | null
+          created_at?: string
+          created_by?: string | null
+          excerpt?: string | null
+          featured?: boolean
+          id?: string
+          keywords?: string[] | null
+          meta_description?: string | null
+          meta_title?: string | null
+          published?: boolean
+          published_at?: string | null
+          read_time?: number
+          slug?: string
+          tags?: string[] | null
+          title?: string
+          updated_at?: string
+          view_count?: number
+        }
+        Relationships: []
+      }
       businesses: {
         Row: {
           address: string
@@ -1144,6 +1213,42 @@ export type Database = {
         }
         Relationships: []
       }
+      smart_find_signals: {
+        Row: {
+          business_id: string
+          campaign_id: string
+          created_at: string
+          evidence: Json | null
+          id: string
+          score: number
+          screenshot_url: string | null
+          service_definition: Json | null
+          signals: Json | null
+        }
+        Insert: {
+          business_id: string
+          campaign_id: string
+          created_at?: string
+          evidence?: Json | null
+          id?: string
+          score?: number
+          screenshot_url?: string | null
+          service_definition?: Json | null
+          signals?: Json | null
+        }
+        Update: {
+          business_id?: string
+          campaign_id?: string
+          created_at?: string
+          evidence?: Json | null
+          id?: string
+          score?: number
+          screenshot_url?: string | null
+          service_definition?: Json | null
+          signals?: Json | null
+        }
+        Relationships: []
+      }
       smtp_credentials: {
         Row: {
           app_password: string
@@ -1601,6 +1706,10 @@ export type Database = {
           _user_id: string
         }
         Returns: boolean
+      }
+      increment_blog_view_count: {
+        Args: { post_slug: string }
+        Returns: undefined
       }
       increment_campaign_emails_opened: {
         Args: { campaign_id: string }
