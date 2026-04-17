@@ -417,7 +417,7 @@ serve(async (req) => {
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
 
-    const { url, businessName, expertise, cta, socialOnly, socialHandles }: AnalyzeRequest = await req.json();
+    const { url, businessName, expertise, cta, socialOnly, socialHandles, deep, detectedSignals, evidence }: AnalyzeRequest = await req.json();
 
     // Validate inputs
     if (!socialOnly && !url) {
