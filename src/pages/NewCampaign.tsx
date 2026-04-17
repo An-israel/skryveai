@@ -466,6 +466,9 @@ export default function NewCampaign() {
         .from("businesses").insert(businessInserts).select();
       if (businessError) throw businessError;
 
+      // Kick off background email enrichment now that businesses are persisted
+      triggerEmailEnrichment(campaign.id);
+
       for (let i = 0; i < approvedBusinesses.length; i++) {
         const business = approvedBusinesses[i];
         const pitch = pitches[business.id];
