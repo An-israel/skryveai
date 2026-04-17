@@ -223,6 +223,19 @@ export default function NewCampaign() {
     }
   };
 
+  const triggerEmailEnrichment = useCallback(async (cId: string | null | undefined) => {
+    if (!cId) return;
+    try {
+      // Fire-and-forget background enrichment for all businesses in this campaign
+      supabase.functions.invoke("enrich-campaign-emails", { body: { campaignId: cId } })
+        .then(({ error }) => {
+          if (error) console.warn("[enrich] invoke error:", error.message);
+        });
+    } catch (e) {
+      console.warn("[enrich] failed to trigger:", e);
+    }
+  }, []);
+
   const handleSelect = async (selected: Business[]) => {
     setSelectedBusinesses(selected);
 
@@ -452,6 +465,9 @@ export default function NewCampaign() {
       const { data: insertedBusinesses, error: businessError } = await supabase
         .from("businesses").insert(businessInserts).select();
       if (businessError) throw businessError;
+
+      // Kick off background email enrichment now that businesses are persisted
+      triggerEmailEnrichment(campaign.id);
 
       for (let i = 0; i < approvedBusinesses.length; i++) {
         const business = approvedBusinesses[i];
