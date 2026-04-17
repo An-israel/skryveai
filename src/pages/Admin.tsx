@@ -1244,12 +1244,14 @@ export default function Admin() {
             </TabsContent>
           )}
 
-          {/* Live Chat Tab */}
-          {hasTabAccess("chat") && (
+          {/* Blog Manager Tab */}
+          {hasTabAccess("blog") && (
             <TabsContent value="blog">
               <AdminBlogManager />
             </TabsContent>
           )}
+
+          {/* Live Chat Tab */}
 
           {hasTabAccess("chat") && (
             <TabsContent value="chat">
