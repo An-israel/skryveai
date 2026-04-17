@@ -5,9 +5,10 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Briefcase, MapPin, Sparkles, Zap, Target, Clock } from "lucide-react";
+import { LocationsInput } from "@/components/ui/locations-input";
 
 interface JobSearchStepProps {
-  onSearch: (expertise: string, location: string) => void;
+  onSearch: (expertise: string, locations: string[]) => void;
   isLoading?: boolean;
 }
 
@@ -24,12 +25,12 @@ const popularSkills = [
 
 export function JobSearchStep({ onSearch, isLoading }: JobSearchStepProps) {
   const [expertise, setExpertise] = useState("");
-  const [location, setLocation] = useState("");
+  const [locations, setLocations] = useState<string[]>([]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (expertise.trim()) {
-      onSearch(expertise.trim(), location.trim());
+      onSearch(expertise.trim(), locations);
     }
   };
 
@@ -79,16 +80,16 @@ export function JobSearchStep({ onSearch, isLoading }: JobSearchStepProps) {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="location" className="flex items-center gap-2">
+              <Label htmlFor="locations" className="flex items-center gap-2">
                 <MapPin className="w-4 h-4 text-muted-foreground" />
-                Location <span className="text-muted-foreground text-xs">(optional — leave empty for remote)</span>
+                Locations <span className="text-muted-foreground text-xs">(optional — leave empty for remote)</span>
               </Label>
-              <Input
-                id="location"
-                placeholder="e.g., Remote, New York, London, Lagos"
-                value={location}
-                onChange={(e) => setLocation(e.target.value)}
-                className="h-12 text-base"
+              <LocationsInput
+                id="locations"
+                values={locations}
+                onChange={setLocations}
+                placeholder="e.g., Remote, New York, London"
+                maxLocations={5}
               />
             </div>
 
