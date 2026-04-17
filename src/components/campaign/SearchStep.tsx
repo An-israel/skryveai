@@ -5,9 +5,10 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Search, MapPin, Building2, Sparkles } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { LocationsInput } from "@/components/ui/locations-input";
 
 interface SearchStepProps {
-  onSearch: (businessType: string, location: string) => void;
+  onSearch: (businessType: string, locations: string[]) => void;
   isLoading?: boolean;
 }
 
@@ -22,12 +23,12 @@ const popularCategories = [
 
 export function SearchStep({ onSearch, isLoading }: SearchStepProps) {
   const [businessType, setBusinessType] = useState("");
-  const [location, setLocation] = useState("");
+  const [locations, setLocations] = useState<string[]>([]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (businessType.trim() && location.trim()) {
-      onSearch(businessType.trim(), location.trim());
+    if (businessType.trim() && locations.length > 0) {
+      onSearch(businessType.trim(), locations);
     }
   };
 
@@ -45,7 +46,7 @@ export function SearchStep({ onSearch, isLoading }: SearchStepProps) {
           </div>
           <CardTitle className="text-2xl">Find Your Ideal Clients</CardTitle>
           <CardDescription className="text-base">
-            Search for businesses by type and location. We'll find potential clients that could benefit from your services.
+            Search for businesses by type across multiple locations. We'll find potential clients that could benefit from your services.
           </CardDescription>
         </CardHeader>
         <CardContent className="pt-6">
@@ -77,16 +78,15 @@ export function SearchStep({ onSearch, isLoading }: SearchStepProps) {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="location" className="flex items-center gap-2">
+              <Label htmlFor="locations" className="flex items-center gap-2">
                 <MapPin className="w-4 h-4 text-muted-foreground" />
-                Location
+                Locations
               </Label>
-              <Input
-                id="location"
-                placeholder="e.g., San Francisco, CA or New York City"
-                value={location}
-                onChange={(e) => setLocation(e.target.value)}
-                className="h-12 text-base"
+              <LocationsInput
+                id="locations"
+                values={locations}
+                onChange={setLocations}
+                placeholder="e.g., San Francisco, CA"
               />
             </div>
 
@@ -94,12 +94,12 @@ export function SearchStep({ onSearch, isLoading }: SearchStepProps) {
               type="submit"
               size="xl"
               className="w-full"
-              disabled={!businessType.trim() || !location.trim() || isLoading}
+              disabled={!businessType.trim() || locations.length === 0 || isLoading}
             >
               {isLoading ? (
                 <>
                   <div className="w-5 h-5 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin" />
-                  Searching...
+                  Searching {locations.length} location{locations.length !== 1 ? "s" : ""}...
                 </>
               ) : (
                 <>
@@ -115,7 +115,7 @@ export function SearchStep({ onSearch, isLoading }: SearchStepProps) {
       <div className="mt-8 grid grid-cols-3 gap-4 text-center">
         <div className="p-4">
           <div className="text-3xl font-bold text-primary">50+</div>
-          <div className="text-sm text-muted-foreground">Businesses per search</div>
+          <div className="text-sm text-muted-foreground">Businesses per location</div>
         </div>
         <div className="p-4">
           <div className="text-3xl font-bold text-primary">AI</div>
