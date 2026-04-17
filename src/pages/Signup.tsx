@@ -92,6 +92,13 @@ export default function Signup() {
 
       if (error) throw error;
 
+      // Fire-and-forget welcome email (won't block signup if it fails)
+      supabase.functions
+        .invoke("send-welcome-email", {
+          body: { email: formData.email, fullName: formData.fullName },
+        })
+        .catch((err) => console.warn("[welcome-email] dispatch failed:", err));
+
       setShowEmailConfirm(true);
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : "Something went wrong";
