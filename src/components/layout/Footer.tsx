@@ -26,6 +26,9 @@ const footerLinks = {
     { label: "LinkedIn Profile Analyzer", href: "/linkedin-analyzer" },
     { label: "AutoPilot Outreach", href: "/auto-pilot" },
   ],
+  resources: [
+    { label: "Blog", href: "/blog" },
+  ],
   company: [
     { label: "About", href: "/about" },
     { label: "Careers", href: "/careers" },

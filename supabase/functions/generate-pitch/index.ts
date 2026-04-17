@@ -18,6 +18,10 @@ interface PitchRequest {
   freelancerService?: string;
   expertise?: string;
   cta?: string;
+  // Smart Find context — when present, the pitch should reference the SPECIFIC signal/evidence
+  detectedSignals?: Record<string, boolean>;
+  evidence?: Record<string, string>;
+  needScore?: number;
   investorPitch?: {
     industry: string;
     businessName: string;
@@ -27,6 +31,29 @@ interface PitchRequest {
     useOfFunds: string;
   };
 }
+
+const SIGNAL_HUMAN_LABELS: Record<string, string> = {
+  no_trust_badges: "no trust badges (SSL/payment logos/guarantees) on the site",
+  slow_load: "slow page load time",
+  not_mobile_responsive: "not mobile-responsive",
+  outdated_design: "outdated visual design",
+  no_clear_cta: "no clear call-to-action above the fold",
+  no_email_capture: "no email capture or lead form",
+  weak_copy: "weak/generic homepage copy",
+  no_blog_or_content: "no blog or content marketing",
+  no_social_links: "missing social media links",
+  broken_links: "broken or dead links",
+  thin_content: "thin homepage content",
+  no_seo_meta: "missing SEO meta tags",
+  no_https: "site not using HTTPS",
+  weak_brand: "weak brand identity",
+  generic_design: "generic template-style design",
+  no_video_content: "no video content",
+  poor_navigation: "confusing navigation",
+  no_testimonials: "no testimonials or social proof",
+  outdated_copyright: "outdated copyright year",
+  no_about_page: "no About page",
+};
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -110,7 +137,7 @@ serve(async (req) => {
       throw new Error("LOVABLE_API_KEY is not configured");
     }
 
-    const { businessName, website, issues, freelancerService, expertise, cta, investorPitch }: PitchRequest = await req.json();
+    const { businessName, website, issues, freelancerService, expertise, cta, investorPitch, detectedSignals, evidence, needScore }: PitchRequest = await req.json();
 
     // Input validation
     if (!businessName) {
@@ -300,6 +327,22 @@ ABSOLUTELY DO NOT:
 
       systemMessage = `You write cold emails that get replies. You are a ${freelancerExpertise} writing to a potential client. You are direct, specific, and never sound like a template. Every email reads like it was written by a real expert who spent time researching the recipient. Always respond with valid JSON via tool calls.`;
 
+      // ─── Smart Find context: include detected signals + evidence so the AI references the SPECIFIC problem ───
+      let smartFindContext = "";
+      if (detectedSignals && Object.keys(detectedSignals).length > 0) {
+        const triggered = Object.entries(detectedSignals)
+          .filter(([, v]) => v === true)
+          .map(([k]) => k);
+        if (triggered.length > 0) {
+          const lines = triggered.slice(0, 5).map((sig) => {
+            const human = SIGNAL_HUMAN_LABELS[sig] || sig.replace(/_/g, " ");
+            const ev = evidence?.[sig] ? ` — Evidence: "${String(evidence[sig]).substring(0, 150)}"` : "";
+            return `• ${human}${ev}`;
+          });
+          smartFindContext = `\n\n== AI-DETECTED PAIN SIGNALS (Need Score: ${needScore ?? "N/A"}/100) ==\nThese are SPECIFIC, concrete problems we found by scanning ${sanitizedBusinessName}'s site. Reference at least ONE of these by name in the opener — quote the evidence if useful.\n${lines.join("\n")}`;
+        }
+      }
+
       pitchPrompt = `You are a ${freelancerExpertise} writing a cold outreach email to a potential client. This email MUST get a reply.
 
 YOUR ROLE: ${freelancerExpertise}
@@ -318,7 +361,7 @@ MOST URGENT ISSUE — Lead with this:
 
 ${websiteIssuesSummary}
 ${socialIssuesSummary}
-${brandingIssuesSummary}
+${brandingIssuesSummary}${smartFindContext}
 
 EXAMPLE OPENER STYLES (vary — never start with "I noticed"):
 - "Quick question about [company]'s [specific ${freelancerExpertise.split(" ")[0].toLowerCase()} thing]..."
@@ -328,7 +371,7 @@ EXAMPLE OPENER STYLES (vary — never start with "I noticed"):
 
 RULES:
 1. SUBJECT LINE: Max 6 words. Specific to their business. No emojis. Curious, not salesy.
-2. OPENER: Lead with their #1 pain point from YOUR ${freelancerExpertise} perspective — reference something SPECIFIC you actually observed.
+2. OPENER: Lead with their #1 pain point — if AI-detected signals are provided above, reference ONE of them BY NAME with the evidence. This proves you actually looked at their site.
 3. BODY:
    - Max 1-2 issues (the most painful for their business)
    - Explain the cost of NOT fixing it (lost clients, lost revenue, lost credibility)

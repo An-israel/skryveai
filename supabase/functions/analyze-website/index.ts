@@ -19,7 +19,34 @@ interface AnalyzeRequest {
     tiktok?: string;
     twitter?: string;
   };
+  // Smart Find context — when present, signals get folded into the analysis as concrete evidence
+  deep?: boolean;
+  detectedSignals?: Record<string, boolean>;
+  evidence?: Record<string, string>;
 }
+
+const SIGNAL_TO_ISSUE: Record<string, { title: string; category: string; severity: "high" | "medium" | "low" }> = {
+  no_trust_badges: { title: "No trust badges on the site", category: "design", severity: "high" },
+  slow_load: { title: "Slow page load time", category: "performance", severity: "high" },
+  not_mobile_responsive: { title: "Site is not mobile-responsive", category: "design", severity: "high" },
+  outdated_design: { title: "Outdated visual design", category: "design", severity: "medium" },
+  no_clear_cta: { title: "No clear call-to-action above the fold", category: "cta", severity: "high" },
+  no_email_capture: { title: "No email capture or lead form", category: "cta", severity: "high" },
+  weak_copy: { title: "Weak or generic homepage copy", category: "copywriting", severity: "high" },
+  no_blog_or_content: { title: "No blog or content marketing", category: "seo", severity: "medium" },
+  no_social_links: { title: "Missing social media links", category: "social", severity: "low" },
+  broken_links: { title: "Broken or dead links", category: "performance", severity: "medium" },
+  thin_content: { title: "Thin homepage content", category: "copywriting", severity: "medium" },
+  no_seo_meta: { title: "Missing SEO meta tags", category: "seo", severity: "medium" },
+  no_https: { title: "Site not using HTTPS", category: "performance", severity: "high" },
+  weak_brand: { title: "Weak brand identity", category: "branding", severity: "medium" },
+  generic_design: { title: "Generic template-style design", category: "design", severity: "medium" },
+  no_video_content: { title: "No video content", category: "video", severity: "low" },
+  poor_navigation: { title: "Confusing navigation", category: "design", severity: "medium" },
+  no_testimonials: { title: "No testimonials or social proof", category: "copywriting", severity: "high" },
+  outdated_copyright: { title: "Outdated copyright year (looks abandoned)", category: "design", severity: "medium" },
+  no_about_page: { title: "No About page", category: "copywriting", severity: "low" },
+};
 
 interface AnalysisIssue {
   category: 'website_copy' | 'linkedin' | 'instagram' | 'facebook' | 'tiktok' | 'twitter' | 'branding' | 'cta' | 'seo' | 'design' | 'social' | 'copywriting' | 'performance' | 'video';
@@ -390,7 +417,7 @@ serve(async (req) => {
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
 
-    const { url, businessName, expertise, cta, socialOnly, socialHandles }: AnalyzeRequest = await req.json();
+    const { url, businessName, expertise, cta, socialOnly, socialHandles, deep, detectedSignals, evidence }: AnalyzeRequest = await req.json();
 
     // Validate inputs
     if (!socialOnly && !url) {
@@ -856,6 +883,26 @@ DO NOT include: generic SEO metadata, page speed scores, alt text, sitemaps, or 
       } catch (e) {
         console.error("Error parsing AI response:", e);
       }
+    }
+
+    // ─── Smart Find: fold detected signals into the issues list as concrete, evidenced findings ───
+    if (detectedSignals && Object.keys(detectedSignals).length > 0) {
+      const signalIssues: AnalysisIssue[] = [];
+      for (const [signal, present] of Object.entries(detectedSignals)) {
+        if (!present) continue;
+        const meta = SIGNAL_TO_ISSUE[signal];
+        if (!meta) continue;
+        const ev = evidence?.[signal] ? ` Evidence from their site: "${String(evidence[signal]).substring(0, 200)}"` : "";
+        signalIssues.push({
+          category: meta.category as AnalysisIssue["category"],
+          severity: meta.severity,
+          title: meta.title,
+          description: `Detected during AI scan of ${businessName}'s site.${ev} Costing them conversions and credibility right now.`,
+        });
+      }
+      // Prepend signal-derived issues so they take priority in the pitch
+      issues = [...signalIssues, ...issues];
+      console.log(`[deep:${!!deep}] Folded ${signalIssues.length} Smart Find signals into ${issues.length} total issues`);
     }
 
     // Extract email: scrape content already fetched by Firecrawl, then ZeroBounce verify

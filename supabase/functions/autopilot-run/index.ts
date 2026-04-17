@@ -171,12 +171,49 @@ async function processUser(
   const businessTypes = config.target_businesses?.types ?? ["small business"];
   const businessType = businessTypes[session.emails_sent % businessTypes.length];
 
-  // 6. Search for businesses via the search-businesses function
+  // 6. SMART FIND DISCOVERY — find businesses with actual NEED for this user's service
   const functionsBase = `${supabaseUrl}/functions/v1`;
   let businesses: Business[] = [];
+  let smartFindMap = new Map<string, { signals: Record<string, boolean>; evidence: Record<string, string>; needScore: number }>();
+
+  // Build a service definition from autopilot config
+  const expertiseStr = `${config.expertise?.industry ?? ""} — ${config.expertise?.services?.join(", ") ?? ""} — ${config.expertise?.valueProp ?? ""}`.trim();
+  const locationLabel = currentLocation.cities?.[0]
+    ? `${currentLocation.cities[0]}, ${currentLocation.country}`
+    : currentLocation.country;
 
   try {
-    const searchRes = await fetch(`${functionsBase}/search-businesses`, {
+    // Step 1: AI-build a service definition (industry + signals to detect)
+    let serviceDefinition: any = null;
+    try {
+      const sdRes = await fetch(`${functionsBase}/build-service-definition`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${serviceKey}`,
+          apikey: serviceKey,
+        },
+        body: JSON.stringify({ description: expertiseStr || businessType }),
+      });
+      if (sdRes.ok) {
+        serviceDefinition = await sdRes.json();
+      }
+    } catch (err) {
+      console.warn(`[${config.user_id}] build-service-definition error:`, err);
+    }
+
+    // Fallback service definition if AI failed
+    if (!serviceDefinition) {
+      serviceDefinition = {
+        rawDescription: expertiseStr,
+        industryVertical: businessType,
+        targetProfile: businessType,
+        signalsToDetect: ["no_clear_cta", "weak_copy", "no_email_capture", "outdated_design", "no_testimonials"],
+      };
+    }
+
+    // Step 2: Smart find scored businesses
+    const sfRes = await fetch(`${functionsBase}/smart-find-businesses`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -184,27 +221,38 @@ async function processUser(
         apikey: serviceKey,
       },
       body: JSON.stringify({
-        businessType,
-        location: currentLocation.cities?.[0]
-          ? `${currentLocation.cities[0]}, ${currentLocation.country}`
-          : currentLocation.country,
-        limit: 10,
+        serviceDefinition,
+        location: locationLabel,
+        limit: 15,
       }),
     });
 
-    if (searchRes.ok) {
-      const searchData = await searchRes.json();
-      businesses = Array.isArray(searchData.businesses)
-        ? searchData.businesses
-        : Array.isArray(searchData)
-        ? searchData
-        : [];
+    if (sfRes.ok) {
+      const sfData = await sfRes.json();
+      const scored = Array.isArray(sfData.businesses) ? sfData.businesses : [];
+      businesses = scored.map((b: any) => ({
+        name: b.name,
+        website: b.website,
+        email: b.email,
+        location: b.address,
+      }));
+      // Index signals by business name so we can pass them downstream
+      for (const b of scored) {
+        if (b.name) {
+          smartFindMap.set(b.name, {
+            signals: b.signals || {},
+            evidence: b.evidence || {},
+            needScore: b.needScore || 0,
+          });
+        }
+      }
+      console.log(`[${config.user_id}] Smart Find returned ${businesses.length} qualified leads (need-scored)`);
     } else {
-      const errText = await searchRes.text();
-      console.warn(`[${config.user_id}] search-businesses non-OK (${searchRes.status}): ${errText}`);
+      const errText = await sfRes.text();
+      console.warn(`[${config.user_id}] smart-find-businesses non-OK (${sfRes.status}): ${errText}`);
     }
   } catch (err) {
-    console.error(`[${config.user_id}] search-businesses fetch error:`, err);
+    console.error(`[${config.user_id}] smart-find-businesses fetch error:`, err);
   }
 
   if (businesses.length === 0) {
@@ -263,7 +311,10 @@ async function processUser(
         })
         .eq("id", session.id);
 
-      // 8a. Analyze website
+      // Smart Find context for this business (signals + evidence)
+      const sfCtx = smartFindMap.get(business.name);
+
+      // 8a. Analyze website (deep mode — folds Smart Find signals into the analysis)
       let analysisIssues: unknown[] = [];
       if (business.website) {
         try {
@@ -277,6 +328,9 @@ async function processUser(
             body: JSON.stringify({
               url: business.website,
               businessName: business.name,
+              deep: true,
+              detectedSignals: sfCtx?.signals,
+              evidence: sfCtx?.evidence,
             }),
           });
           if (analyzeRes.ok) {
@@ -288,7 +342,7 @@ async function processUser(
         }
       }
 
-      // 8b. Generate pitch
+      // 8b. Generate pitch (with Smart Find evidence so emails reference SPECIFIC problems)
       let emailSubject = `Helping ${business.name} grow with ${config.expertise?.services?.[0] ?? config.expertise?.industry ?? "our services"}`;
       let emailBody = "";
 
@@ -305,6 +359,9 @@ async function processUser(
             website: business.website ?? "",
             issues: analysisIssues,
             freelancerService: `${config.expertise?.services?.join(", ") ?? ""} — ${config.expertise?.valueProp ?? ""}`.trim(),
+            detectedSignals: sfCtx?.signals,
+            evidence: sfCtx?.evidence,
+            needScore: sfCtx?.needScore,
             tone: config.email_style?.tone ?? "professional",
             length: config.email_style?.length ?? "medium",
             ctaType: config.email_style?.ctaType ?? "Book a Call",

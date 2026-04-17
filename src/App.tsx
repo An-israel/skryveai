@@ -31,6 +31,8 @@ import LinkedInAnalyzer from "./pages/LinkedInAnalyzer";
 import CampaignDetails from "./pages/CampaignDetails";
 import AutoPilot from "./pages/AutoPilot";
 import EmailReply from "./pages/EmailReply";
+import Blog from "./pages/Blog";
+import BlogPost from "./pages/BlogPost";
 import { ChatWidget } from "@/components/chat/ChatWidget";
 
 const queryClient = new QueryClient();
@@ -73,6 +75,8 @@ const App = () => (
           <Route path="/campaigns/:id" element={<GuardedRoute><CampaignDetails /></GuardedRoute>} />
           <Route path="/auto-pilot" element={<GuardedRoute><AutoPilot /></GuardedRoute>} />
           <Route path="/reply" element={<EmailReply />} />
+          <Route path="/blog" element={<GuardedRoute><Blog /></GuardedRoute>} />
+          <Route path="/blog/:slug" element={<GuardedRoute><BlogPost /></GuardedRoute>} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>
