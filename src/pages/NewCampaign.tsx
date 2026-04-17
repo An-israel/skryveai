@@ -144,13 +144,14 @@ export default function NewCampaign() {
   }, [navigate, toast]);
 
   // ─── Smart Find handler (replaces broad search for freelancer flow) ───
-  const handleSmartFind = useCallback(async (def: ServiceDefinition, location: string) => {
+  const handleSmartFind = useCallback(async (def: ServiceDefinition, locations: string[]) => {
     setIsLoading(true);
     setServiceDefinition(def);
-    setSmartLocation(location);
-    setSearchParams({ businessType: def.industryVertical, location });
+    const locationLabel = locations.join(", ");
+    setSmartLocation(locationLabel);
+    setSearchParams({ businessType: def.industryVertical, location: locationLabel });
     try {
-      const result = await smartFindApi.findBusinesses(def, location);
+      const result = await smartFindApi.findBusinesses(def, locations);
       // Convert to Business[] for downstream flow + keep SmartScoredBusiness for the results card
       setSmartBusinesses(result.businesses);
       const asBusinesses: Business[] = result.businesses.map((b) => ({
@@ -163,7 +164,7 @@ export default function NewCampaign() {
       setCurrentStep('select');
       toast({
         title: `Found ${result.total} qualified leads`,
-        description: `Scanned ${result.analyzedTotal} businesses — only the ones showing real pain signals are shown.`,
+        description: `Scanned ${result.analyzedTotal} businesses across ${locations.length} location${locations.length !== 1 ? "s" : ""} — only the ones showing real pain signals are shown.`,
       });
     } catch (err) {
       toast({ title: "Smart Find failed", description: err instanceof Error ? err.message : "Try a broader location.", variant: "destructive" });
@@ -526,17 +527,38 @@ export default function NewCampaign() {
   };
 
   // ─── Job Application flow handlers ───
-  const handleJobSearch = async (expertise: string, location: string) => {
+  const handleJobSearch = async (expertise: string, locations: string[]) => {
     setIsLoading(true);
-    setSearchParams({ businessType: expertise, location: location || "Remote" });
+    const locationLabel = locations.length > 0 ? locations.join(", ") : "Remote";
+    setSearchParams({ businessType: expertise, location: locationLabel });
     try {
-      const { data, error } = await supabase.functions.invoke("search-jobs", { body: { expertise, location, limit: 50 } });
-      if (error) throw new Error(error.message || "Failed to search jobs");
-      if (!data?.jobs) throw new Error("No results returned");
-      setJobListings(data.jobs);
+      // Search each location in parallel and merge job results
+      const queries = locations.length > 0 ? locations : [""];
+      const settled = await Promise.allSettled(
+        queries.map((location) =>
+          supabase.functions.invoke("search-jobs", { body: { expertise, location, limit: Math.max(15, Math.floor(50 / queries.length)) } })
+        )
+      );
+      const seen = new Set<string>();
+      const merged: JobListing[] = [];
+      let total = 0;
+      for (const res of settled) {
+        if (res.status !== "fulfilled") continue;
+        const { data, error } = res.value;
+        if (error || !data?.jobs) continue;
+        total += data.total || 0;
+        for (const job of data.jobs as JobListing[]) {
+          const key = job.url || `${job.jobTitle}|${job.company}`.toLowerCase();
+          if (seen.has(key)) continue;
+          seen.add(key);
+          merged.push(job);
+        }
+      }
+      if (merged.length === 0) throw new Error("No jobs found across the chosen locations");
+      setJobListings(merged);
       setCompletedSteps([...completedSteps, "search"]);
       setCurrentStep("select");
-      toast({ title: "Jobs Found!", description: `Found ${data.total} job postings.` });
+      toast({ title: "Jobs Found!", description: `Found ${merged.length} unique postings across ${queries.length} location${queries.length !== 1 ? "s" : ""}.` });
     } catch (error) {
       toast({ title: "Search Failed", description: error instanceof Error ? error.message : "Failed", variant: "destructive" });
     } finally {
