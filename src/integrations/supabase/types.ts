@@ -333,6 +333,54 @@ export type Database = {
         }
         Relationships: []
       }
+      business_email_enrichment: {
+        Row: {
+          attempted_at: string | null
+          business_id: string
+          campaign_id: string
+          confidence: number | null
+          created_at: string
+          enriched_email: string | null
+          id: string
+          original_email: string | null
+          sources: Json | null
+          status: string
+          updated_at: string
+          user_id: string
+          verification: Json | null
+        }
+        Insert: {
+          attempted_at?: string | null
+          business_id: string
+          campaign_id: string
+          confidence?: number | null
+          created_at?: string
+          enriched_email?: string | null
+          id?: string
+          original_email?: string | null
+          sources?: Json | null
+          status?: string
+          updated_at?: string
+          user_id: string
+          verification?: Json | null
+        }
+        Update: {
+          attempted_at?: string | null
+          business_id?: string
+          campaign_id?: string
+          confidence?: number | null
+          created_at?: string
+          enriched_email?: string | null
+          id?: string
+          original_email?: string | null
+          sources?: Json | null
+          status?: string
+          updated_at?: string
+          user_id?: string
+          verification?: Json | null
+        }
+        Relationships: []
+      }
       businesses: {
         Row: {
           address: string
@@ -616,6 +664,102 @@ export type Database = {
         }
         Relationships: []
       }
+      email_finder_jobs: {
+        Row: {
+          completed_at: string | null
+          created_at: string
+          error_message: string | null
+          found_count: number
+          id: string
+          input_rows: Json
+          processed_rows: number
+          progress: number
+          results: Json
+          status: string
+          total_rows: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string
+          error_message?: string | null
+          found_count?: number
+          id?: string
+          input_rows?: Json
+          processed_rows?: number
+          progress?: number
+          results?: Json
+          status?: string
+          total_rows?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string
+          error_message?: string | null
+          found_count?: number
+          id?: string
+          input_rows?: Json
+          processed_rows?: number
+          progress?: number
+          results?: Json
+          status?: string
+          total_rows?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      email_finder_searches: {
+        Row: {
+          company: string | null
+          confidence: number | null
+          created_at: string
+          domain: string | null
+          first_name: string | null
+          found_email: string | null
+          id: string
+          job_title: string | null
+          last_name: string | null
+          sources: Json | null
+          status: string | null
+          user_id: string
+          verification: Json | null
+        }
+        Insert: {
+          company?: string | null
+          confidence?: number | null
+          created_at?: string
+          domain?: string | null
+          first_name?: string | null
+          found_email?: string | null
+          id?: string
+          job_title?: string | null
+          last_name?: string | null
+          sources?: Json | null
+          status?: string | null
+          user_id: string
+          verification?: Json | null
+        }
+        Update: {
+          company?: string | null
+          confidence?: number | null
+          created_at?: string
+          domain?: string | null
+          first_name?: string | null
+          found_email?: string | null
+          id?: string
+          job_title?: string | null
+          last_name?: string | null
+          sources?: Json | null
+          status?: string | null
+          user_id?: string
+          verification?: Json | null
+        }
+        Relationships: []
+      }
       email_followups: {
         Row: {
           body: string
@@ -682,6 +826,39 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      email_patterns: {
+        Row: {
+          confidence: number
+          created_at: string
+          domain: string
+          id: string
+          pattern: string
+          sample_count: number
+          samples: Json
+          updated_at: string
+        }
+        Insert: {
+          confidence?: number
+          created_at?: string
+          domain: string
+          id?: string
+          pattern: string
+          sample_count?: number
+          samples?: Json
+          updated_at?: string
+        }
+        Update: {
+          confidence?: number
+          created_at?: string
+          domain?: string
+          id?: string
+          pattern?: string
+          sample_count?: number
+          samples?: Json
+          updated_at?: string
+        }
+        Relationships: []
       }
       email_queue: {
         Row: {

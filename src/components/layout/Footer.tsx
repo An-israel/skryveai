@@ -24,6 +24,7 @@ const footerLinks = {
     { label: "AI CV Builder", href: "/cv-builder" },
     { label: "ATS Score Checker", href: "/ats-checker" },
     { label: "LinkedIn Profile Analyzer", href: "/linkedin-analyzer" },
+    { label: "Email Finder", href: "/email-finder" },
     { label: "AutoPilot Outreach", href: "/auto-pilot" },
   ],
   resources: [
