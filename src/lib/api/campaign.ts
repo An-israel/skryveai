@@ -63,6 +63,9 @@ export const campaignApi = {
       socialHandles?: { linkedin?: string; instagram?: string; facebook?: string; tiktok?: string; twitter?: string };
       expertise?: string;
       cta?: string;
+      deep?: boolean;
+      detectedSignals?: Record<string, boolean>;
+      evidence?: Record<string, string>;
     }
   ): Promise<AnalyzeWebsiteResult> {
     const { data, error } = await supabase.functions.invoke<AnalyzeWebsiteResult>("analyze-website", {
@@ -73,6 +76,9 @@ export const campaignApi = {
         socialHandles: options?.socialHandles,
         expertise: options?.expertise,
         cta: options?.cta,
+        deep: options?.deep,
+        detectedSignals: options?.detectedSignals,
+        evidence: options?.evidence,
       },
     });
 
