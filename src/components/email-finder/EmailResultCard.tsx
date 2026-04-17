@@ -29,11 +29,13 @@ const sourceLabel: Record<string, string> = {
 
 interface Props {
   result: EmailFinderResult;
+  companyName?: string;
   onAddToCampaign?: (email: string) => void;
 }
 
-export function EmailResultCard({ result, onAddToCampaign }: Props) {
+export function EmailResultCard({ result, companyName, onAddToCampaign }: Props) {
   const [copied, setCopied] = useState(false);
+  const [addOpen, setAddOpen] = useState(false);
 
   if (!result.email) {
     return (
@@ -139,13 +141,19 @@ export function EmailResultCard({ result, onAddToCampaign }: Props) {
             <Copy className="h-4 w-4 mr-2" />
             {copied ? "Copied!" : "Copy Email"}
           </Button>
-          {onAddToCampaign && (
-            <Button onClick={() => onAddToCampaign(result.email!)} variant="outline" className="flex-1">
-              Add to Campaign
-            </Button>
-          )}
+          <Button onClick={() => setAddOpen(true)} variant="outline" className="flex-1">
+            <Plus className="h-4 w-4 mr-2" />
+            Add to Campaign
+          </Button>
         </div>
       </CardContent>
+      <AddToCampaignDialog
+        open={addOpen}
+        onOpenChange={setAddOpen}
+        email={result.email!}
+        companyName={companyName}
+        domain={result.employerDomain}
+      />
     </Card>
   );
 }
