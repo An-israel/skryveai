@@ -1,7 +1,10 @@
 // Welcome onboarding email — fires immediately after signup.
 // Plain Resend send (separate from the queued cold-outreach pipeline).
+// Logs every send (success or failure) to public.welcome_email_log so
+// Customer Success can troubleshoot delivery issues per user.
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { Resend } from "https://esm.sh/resend@2.0.0";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -12,17 +15,85 @@ const corsHeaders = {
 interface Body {
   email: string;
   fullName?: string;
+  userId?: string;
+  // Personalization context — drives CTA copy/URL.
+  plan?: string;          // e.g. "trial", "popular", "lifetime"
+  firstAction?: string;   // e.g. "campaign", "email-finder", "autopilot", "cv-builder"
+  source?: string;        // e.g. "signup", "referral"
 }
 
 const APP_URL = "https://skryveai.com";
 const FROM = "SkryveAI <welcome@skryveai.com>";
 const SUPPORT_EMAIL = "skryveai@gmail.com";
-// Guide link — points to dashboard for now; swap to a video URL when ready.
-const GUIDE_URL = `${APP_URL}/dashboard`;
 const CS_NAME = "Aniekan";
 const CS_TITLE = "Customer Success Manager";
 
-function htmlTemplate(name: string) {
+// Map a user's first action (or plan) to a contextual CTA.
+// Each entry returns the CTA path and label users will see in the email.
+function buildCta(opts: { plan?: string; firstAction?: string }): {
+  url: string;
+  label: string;
+  subhint: string;
+} {
+  const action = (opts.firstAction || "").toLowerCase();
+  const plan = (opts.plan || "").toLowerCase();
+
+  // First-action takes priority — it's the strongest signal of intent.
+  switch (action) {
+    case "campaign":
+    case "new-campaign":
+      return {
+        url: `${APP_URL}/campaigns/new`,
+        label: "▶ Finish Building Your First Campaign",
+        subhint: "Pick up where you left off and launch your first outreach.",
+      };
+    case "email-finder":
+      return {
+        url: `${APP_URL}/email-finder`,
+        label: "▶ Find Your First Verified Email",
+        subhint: "A 2-minute walkthrough of the Email Finder.",
+      };
+    case "autopilot":
+      return {
+        url: `${APP_URL}/auto-pilot`,
+        label: "▶ Set Up AutoPilot in 3 Minutes",
+        subhint: "Let SkryveAI find and pitch clients for you daily.",
+      };
+    case "cv-builder":
+    case "ats":
+    case "linkedin":
+      return {
+        url: `${APP_URL}/dashboard`,
+        label: "▶ Continue with Your Career Tools",
+        subhint: "Jump back into the CV / ATS / LinkedIn tools.",
+      };
+  }
+
+  // Fall back to plan-based personalization.
+  if (plan === "lifetime") {
+    return {
+      url: `${APP_URL}/dashboard`,
+      label: "▶ Unlock Your Lifetime Dashboard",
+      subhint: "A short walkthrough of every premium feature you now own.",
+    };
+  }
+  if (plan === "popular" || plan === "unlimited") {
+    return {
+      url: `${APP_URL}/dashboard`,
+      label: "▶ Watch the Pro Quick Start Guide",
+      subhint: `A short walkthrough tailored for ${plan} users.`,
+    };
+  }
+
+  // Default — generic onboarding.
+  return {
+    url: `${APP_URL}/dashboard`,
+    label: "▶ Watch the Quick Start Guide",
+    subhint: "A short walkthrough to help you navigate the platform.",
+  };
+}
+
+function htmlTemplate(name: string, cta: ReturnType<typeof buildCta>) {
   const safeName = name?.trim() || "there";
   return `<!doctype html>
 <html><head><meta charset="utf-8"><title>Welcome to SkryveAI</title></head>
@@ -55,12 +126,12 @@ function htmlTemplate(name: string) {
     Over the next few days, we'll guide you on how to get the best out of the platform — from finding qualified leads to sending smarter, more effective outreach.
   </p>
 
-  <!-- Guide CTA -->
+  <!-- Personalized CTA -->
   <div style="text-align:center;margin:0 0 28px;">
-    <a href="${GUIDE_URL}" style="display:inline-block;background:#1E6BFF;color:#ffffff;text-decoration:none;font-weight:700;font-size:15px;padding:14px 28px;border-radius:999px;">
-      ▶ Watch the Quick Start Guide
+    <a href="${cta.url}" style="display:inline-block;background:#1E6BFF;color:#ffffff;text-decoration:none;font-weight:700;font-size:15px;padding:14px 28px;border-radius:999px;">
+      ${cta.label}
     </a>
-    <div style="font-size:12px;color:#94A3B8;margin-top:8px;">A short walkthrough to help you navigate the platform.</div>
+    <div style="font-size:12px;color:#94A3B8;margin-top:8px;">${cta.subhint}</div>
   </div>
 
   <p style="font-size:15px;line-height:1.7;color:#475569;margin:0 0 16px;">
@@ -105,6 +176,36 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  // Service-role client so we can write to welcome_email_log even when called
+  // unauthenticated (the signup flow fires this before the JWT exists).
+  const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
+  const SERVICE_ROLE = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+  const admin =
+    SUPABASE_URL && SERVICE_ROLE
+      ? createClient(SUPABASE_URL, SERVICE_ROLE, { auth: { persistSession: false } })
+      : null;
+
+  let logId: string | null = null;
+  let emailForLog = "";
+
+  const recordLog = async (fields: Record<string, unknown>) => {
+    if (!admin) return;
+    try {
+      if (logId) {
+        await admin.from("welcome_email_log").update(fields).eq("id", logId);
+      } else {
+        const { data } = await admin
+          .from("welcome_email_log")
+          .insert(fields)
+          .select("id")
+          .single();
+        logId = (data as { id?: string } | null)?.id ?? null;
+      }
+    } catch (e) {
+      console.warn("[send-welcome-email] log write failed:", e);
+    }
+  };
+
   try {
     const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
     if (!RESEND_API_KEY) {
@@ -115,7 +216,9 @@ serve(async (req) => {
       });
     }
 
-    const { email, fullName }: Body = await req.json();
+    const body: Body = await req.json();
+    const { email, fullName, userId, plan, firstAction, source } = body;
+
     if (!email || typeof email !== "string") {
       return new Response(JSON.stringify({ error: "email is required" }), {
         status: 400,
@@ -128,7 +231,19 @@ serve(async (req) => {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
+    emailForLog = email;
 
+    // Insert pending log row up front so admins can see the attempt even if
+    // the Resend call hangs or crashes mid-flight.
+    await recordLog({
+      user_id: userId || null,
+      email,
+      full_name: fullName || null,
+      status: "pending",
+      context: { plan: plan || null, firstAction: firstAction || null, source: source || "signup" },
+    });
+
+    const cta = buildCta({ plan, firstAction });
     const resend = new Resend(RESEND_API_KEY);
     const firstName = (fullName || "").split(" ")[0] || "";
 
@@ -136,17 +251,27 @@ serve(async (req) => {
       from: FROM,
       to: [email],
       subject: `Welcome to SkryveAI${firstName ? `, ${firstName}` : ""} 👋`,
-      html: htmlTemplate(firstName),
+      html: htmlTemplate(firstName, cta),
       reply_to: SUPPORT_EMAIL,
     });
 
     if (error) {
       console.error("[send-welcome-email] Resend error:", error);
+      await recordLog({
+        status: "failed",
+        error_message: error.message || "Send failed",
+      });
       return new Response(JSON.stringify({ error: error.message || "Send failed" }), {
         status: 502,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
+
+    await recordLog({
+      status: "sent",
+      resend_id: data?.id || null,
+      error_message: null,
+    });
 
     console.log(`[send-welcome-email] Sent to ${email} (id=${data?.id})`);
     return new Response(JSON.stringify({ success: true, id: data?.id }), {
@@ -155,6 +280,12 @@ serve(async (req) => {
     });
   } catch (e) {
     console.error("[send-welcome-email] crash:", e);
+    if (emailForLog) {
+      await recordLog({
+        status: "failed",
+        error_message: e instanceof Error ? e.message : "Unknown error",
+      });
+    }
     return new Response(
       JSON.stringify({ error: e instanceof Error ? e.message : "Unknown error" }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },
