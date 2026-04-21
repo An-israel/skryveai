@@ -19,6 +19,7 @@ interface UserHealth {
   user_id: string;
   full_name: string;
   email: string;
+  phone: string | null;
   created_at: string;
   subscription_status: string;
   subscription_plan: string;
@@ -82,7 +83,7 @@ export function CustomerSuccessDashboard() {
     // Get profiles with subscriptions
     const { data: profiles } = await supabase
       .from("profiles")
-      .select("user_id, full_name, email, created_at")
+      .select("user_id, full_name, email, phone, created_at")
       .order("created_at", { ascending: false });
 
     const { data: subscriptions } = await supabase
@@ -123,6 +124,7 @@ export function CustomerSuccessDashboard() {
         user_id: p.user_id,
         full_name: p.full_name,
         email: p.email,
+        phone: (p as { phone?: string | null }).phone ?? null,
         created_at: p.created_at,
         subscription_status: sub?.status || "none",
         subscription_plan: sub?.plan || "none",
@@ -407,6 +409,7 @@ export function CustomerSuccessDashboard() {
                 <TableHeader>
                   <TableRow>
                     <TableHead>User</TableHead>
+                    <TableHead>Contact</TableHead>
                     <TableHead>Status</TableHead>
                     <TableHead>Plan</TableHead>
                     <TableHead>Campaigns</TableHead>
@@ -423,6 +426,29 @@ export function CustomerSuccessDashboard() {
                           <p className="font-medium text-sm">{user.full_name}</p>
                           <p className="text-xs text-muted-foreground">{user.email}</p>
                         </div>
+                      </TableCell>
+                      <TableCell>
+                        {user.phone ? (
+                          <div className="flex flex-col gap-1 text-xs">
+                            <a
+                              href={`https://wa.me/${user.phone.replace(/[^\d]/g, "")}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-green-600 hover:underline font-medium"
+                              title="Open in WhatsApp"
+                            >
+                              💬 {user.phone}
+                            </a>
+                            <a
+                              href={`mailto:${user.email}`}
+                              className="text-primary hover:underline truncate max-w-[180px]"
+                            >
+                              ✉ Email
+                            </a>
+                          </div>
+                        ) : (
+                          <span className="text-xs text-muted-foreground italic">No phone</span>
+                        )}
                       </TableCell>
                       <TableCell>
                         <Badge variant={user.subscription_status === "active" ? "default" : "secondary"}>
