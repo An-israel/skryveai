@@ -25,6 +25,7 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/use-auth";
+import { isValidPhone } from "@/lib/whatsapp";
 import { FeatureGuide } from "@/components/onboarding/FeatureGuide";
 import { settingsGuide } from "@/components/onboarding/guideConfigs";
 import { Header } from "@/components/layout/Header";
@@ -199,6 +200,18 @@ export default function Settings() {
 
   const handleSave = async () => {
     if (!user) return;
+
+    // Phone is required (matches signup validation rules) so Customer Success
+    // can always reach the user on WhatsApp.
+    if (!phone || !isValidPhone(phone)) {
+      toast({
+        title: "Phone number required",
+        description: "Please enter a valid phone number with country code (e.g. +234...).",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setSaving(true);
 
     try {
@@ -313,8 +326,18 @@ export default function Settings() {
                   </div>
                   <div className="grid md:grid-cols-2 gap-4">
                     <div className="space-y-2">
-                      <Label htmlFor="phone">Phone</Label>
-                      <Input id="phone" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="+1 234 567 8900" />
+                      <Label htmlFor="phone">Phone *</Label>
+                      <Input
+                        id="phone"
+                        type="tel"
+                        value={phone}
+                        onChange={(e) => setPhone(e.target.value)}
+                        placeholder="+234 800 000 0000"
+                        required
+                      />
+                      <p className="text-xs text-muted-foreground">
+                        Include country code. Customer Success uses this to reach you on WhatsApp.
+                      </p>
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="country">Country</Label>

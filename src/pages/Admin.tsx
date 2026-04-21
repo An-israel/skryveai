@@ -30,6 +30,7 @@ import { PageToggleManager } from "@/components/admin/PageToggleManager";
 import { AdminEmailTracker } from "@/components/admin/AdminEmailTracker";
 import { ToolUsageTracker } from "@/components/admin/ToolUsageTracker";
 import { CustomerSuccessDashboard } from "@/components/admin/CustomerSuccessDashboard";
+import { WelcomeEmailMonitor } from "@/components/admin/WelcomeEmailMonitor";
 import { GrowthDashboard } from "@/components/admin/GrowthDashboard";
 import { AdminChatManager } from "@/components/admin/AdminChatManager";
 import { AdminBlogManager } from "@/components/admin/AdminBlogManager";
@@ -58,10 +59,11 @@ interface CMSPage {
 }
 
 // Role-based tab definitions
-type TabId = "users" | "campaigns" | "email-queue" | "pages" | "images" | "staff" | "activity" | "ip-addresses" | "credits" | "referrals" | "analytics" | "send-email" | "email-tracker" | "reports" | "page-toggle" | "tool-usage" | "cs-dashboard" | "growth" | "chat" | "blog";
+type TabId = "users" | "campaigns" | "email-queue" | "pages" | "images" | "staff" | "activity" | "ip-addresses" | "credits" | "referrals" | "analytics" | "send-email" | "email-tracker" | "welcome-email" | "reports" | "page-toggle" | "tool-usage" | "cs-dashboard" | "growth" | "chat" | "blog";
 
 const TAB_PERMISSIONS: Record<TabId, string[]> = {
   "cs-dashboard": ["super_admin", "support_agent"],
+  "welcome-email": ["super_admin", "support_agent"],
   users: ["super_admin", "support_agent"],
   campaigns: ["super_admin"],
   "email-queue": ["super_admin"],
@@ -639,12 +641,14 @@ export default function Admin() {
                 "page-toggle": <Shield className="w-3.5 h-3.5 shrink-0" />,
                 "tool-usage": <Wrench className="w-3.5 h-3.5 shrink-0" />,
                 "cs-dashboard": <Users className="w-3.5 h-3.5 shrink-0" />,
+                "welcome-email": <Mail className="w-3.5 h-3.5 shrink-0" />,
                 growth: <TrendingUp className="w-3.5 h-3.5 shrink-0" />,
                 chat: <MessageCircle className="w-3.5 h-3.5 shrink-0" />,
                 blog: <FileText className="w-3.5 h-3.5 shrink-0" />,
               };
               const labels: Record<TabId, string> = {
                 "cs-dashboard": "CS Dashboard",
+                "welcome-email": "Welcome Emails",
                 users: "Users",
                 campaigns: "Campaigns",
                 "email-queue": "Queue",
@@ -1234,6 +1238,13 @@ export default function Admin() {
           {hasTabAccess("cs-dashboard") && (
             <TabsContent value="cs-dashboard">
               <CustomerSuccessDashboard />
+            </TabsContent>
+          )}
+
+          {/* Welcome Email Monitor Tab */}
+          {hasTabAccess("welcome-email") && (
+            <TabsContent value="welcome-email">
+              <WelcomeEmailMonitor />
             </TabsContent>
           )}
 
