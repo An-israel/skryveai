@@ -16,6 +16,11 @@ interface Body {
 
 const APP_URL = "https://skryveai.com";
 const FROM = "SkryveAI <welcome@skryveai.com>";
+const SUPPORT_EMAIL = "skryveai@gmail.com";
+// Guide link — points to dashboard for now; swap to a video URL when ready.
+const GUIDE_URL = `${APP_URL}/dashboard`;
+const CS_NAME = "Aniekan";
+const CS_TITLE = "Customer Success Manager";
 
 function htmlTemplate(name: string) {
   const safeName = name?.trim() || "there";
@@ -23,67 +28,72 @@ function htmlTemplate(name: string) {
 <html><head><meta charset="utf-8"><title>Welcome to SkryveAI</title></head>
 <body style="margin:0;padding:0;background:#ffffff;font-family:'Inter',Arial,sans-serif;color:#0B162B;">
 <div style="max-width:560px;margin:0 auto;padding:32px 24px;">
-  <div style="display:flex;align-items:center;gap:10px;margin-bottom:28px;">
-    <img src="${APP_URL}/logo.png" alt="SkryveAI" width="32" height="32" style="display:block;border-radius:6px;">
-    <span style="font-weight:800;font-size:22px;color:#0B162B;letter-spacing:-0.01em;">SkryveAI</span>
+
+  <!-- Logo at the top -->
+  <div style="text-align:center;margin-bottom:32px;">
+    <img src="${APP_URL}/logo.png" alt="SkryveAI" width="56" height="56" style="display:inline-block;border-radius:10px;">
+    <div style="font-weight:800;font-size:20px;color:#0B162B;letter-spacing:-0.01em;margin-top:8px;">SkryveAI</div>
   </div>
 
-  <h1 style="font-size:26px;line-height:1.25;font-weight:800;margin:0 0 12px;color:#0B162B;">
-    Welcome to SkryveAI, ${safeName} 👋
-  </h1>
-  <p style="font-size:15px;line-height:1.6;color:#475569;margin:0 0 24px;">
-    You're in. Your account is ready and your <strong>7-day free trial</strong> just started — with <strong>5 free credits</strong> loaded so you can test everything end-to-end.
+  <p style="font-size:16px;line-height:1.6;color:#0B162B;margin:0 0 18px;">
+    Hi ${safeName},
   </p>
 
-  <a href="${APP_URL}/dashboard" style="display:inline-block;background:#1E6BFF;color:#ffffff;text-decoration:none;font-weight:700;font-size:15px;padding:14px 26px;border-radius:999px;margin-bottom:32px;">
-    Open Your Dashboard →
-  </a>
+  <h1 style="font-size:22px;line-height:1.3;font-weight:800;margin:0 0 16px;color:#0B162B;">
+    Welcome to SkryveAI — we're excited to have you here!
+  </h1>
 
-  <h2 style="font-size:18px;font-weight:700;margin:0 0 16px;color:#0B162B;">Here's what you can try first</h2>
+  <p style="font-size:15px;line-height:1.7;color:#475569;margin:0 0 16px;">
+    We built <strong>SkryveAI</strong> with one clear mission: to help freelancers and founders find businesses that actually need their services, without wasting hours on cold emails that go nowhere.
+  </p>
 
-  <table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="border-collapse:collapse;margin-bottom:8px;">
-    <tr><td style="padding:14px 16px;border:1px solid #E5E9F2;border-radius:12px;background:#F8FAFC;">
-      <div style="font-weight:700;font-size:14px;color:#0B162B;margin-bottom:4px;">🎯 Smart Campaigns</div>
-      <div style="font-size:13px;color:#475569;line-height:1.5;">Find businesses by type and location, get an AI website audit, and send hyper-personalized cold emails — all in one flow.</div>
-    </td></tr>
-  </table>
-  <div style="height:10px;"></div>
-  <table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="border-collapse:collapse;margin-bottom:8px;">
-    <tr><td style="padding:14px 16px;border:1px solid #E5E9F2;border-radius:12px;background:#F8FAFC;">
-      <div style="font-weight:700;font-size:14px;color:#0B162B;margin-bottom:4px;">⚡ AutoPilot</div>
-      <div style="font-size:13px;color:#475569;line-height:1.5;">Set your service + locations once. AutoPilot finds qualified leads and sends pitches every day, on its own. Hands-off outreach.</div>
-    </td></tr>
-  </table>
-  <div style="height:10px;"></div>
-  <table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="border-collapse:collapse;margin-bottom:8px;">
-    <tr><td style="padding:14px 16px;border:1px solid #E5E9F2;border-radius:12px;background:#F8FAFC;">
-      <div style="font-weight:700;font-size:14px;color:#0B162B;margin-bottom:4px;">📧 Email Finder</div>
-      <div style="font-size:13px;color:#475569;line-height:1.5;">Look up verified business emails by name + domain. Bulk CSV upload supported. Built-in confidence scores.</div>
-    </td></tr>
-  </table>
-  <div style="height:10px;"></div>
-  <table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="border-collapse:collapse;margin-bottom:32px;">
-    <tr><td style="padding:14px 16px;border:1px solid #E5E9F2;border-radius:12px;background:#F8FAFC;">
-      <div style="font-weight:700;font-size:14px;color:#0B162B;margin-bottom:4px;">📄 Career Tools</div>
-      <div style="font-size:13px;color:#475569;line-height:1.5;">CV Builder, ATS Score Checker, and LinkedIn Profile Analyzer — free for everyone.</div>
-    </td></tr>
-  </table>
+  <p style="font-size:15px;line-height:1.7;color:#475569;margin:0 0 16px;">
+    After seeing how frustrating it is to send dozens of emails with little to no response, we decided to do things differently. <strong>SkryveAI</strong> is designed to help you identify the right prospects, understand their needs, and reach out with messages that feel personal and get replies.
+  </p>
 
-  <div style="padding:18px;background:#EEF4FF;border:1px solid #D7E4FF;border-radius:12px;margin-bottom:24px;">
-    <div style="font-weight:700;font-size:14px;color:#0B162B;margin-bottom:6px;">💡 Pro tip</div>
-    <div style="font-size:13px;color:#475569;line-height:1.5;">
-      Connect your Gmail or SMTP under <a href="${APP_URL}/settings" style="color:#1E6BFF;text-decoration:none;font-weight:600;">Settings</a> first. Sending from your own address gets <strong>3-5×</strong> better open rates than generic addresses.
+  <p style="font-size:15px;line-height:1.7;color:#475569;margin:0 0 24px;">
+    Over the next few days, we'll guide you on how to get the best out of the platform — from finding qualified leads to sending smarter, more effective outreach.
+  </p>
+
+  <!-- Guide CTA -->
+  <div style="text-align:center;margin:0 0 28px;">
+    <a href="${GUIDE_URL}" style="display:inline-block;background:#1E6BFF;color:#ffffff;text-decoration:none;font-weight:700;font-size:15px;padding:14px 28px;border-radius:999px;">
+      ▶ Watch the Quick Start Guide
+    </a>
+    <div style="font-size:12px;color:#94A3B8;margin-top:8px;">A short walkthrough to help you navigate the platform.</div>
+  </div>
+
+  <p style="font-size:15px;line-height:1.7;color:#475569;margin:0 0 16px;">
+    If you have any questions or need help getting started, feel free to reply to this email — we're here for you.
+  </p>
+
+  <p style="font-size:15px;line-height:1.7;color:#475569;margin:0 0 28px;">
+    Thank you for choosing <strong>SkryveAI</strong>. We're excited to be part of your journey to landing more clients.
+  </p>
+
+  <p style="font-size:15px;line-height:1.6;color:#0B162B;margin:0 0 4px;">
+    Warm regards,
+  </p>
+  <p style="font-size:15px;line-height:1.4;color:#0B162B;font-weight:700;margin:0 0 2px;">
+    ${CS_NAME}
+  </p>
+  <p style="font-size:13px;line-height:1.4;color:#475569;margin:0 0 32px;">
+    ${CS_TITLE}, SkryveAI
+  </p>
+
+  <!-- Support footer -->
+  <div style="padding:16px;background:#F8FAFC;border:1px solid #E5E9F2;border-radius:12px;margin-bottom:24px;text-align:center;">
+    <div style="font-size:13px;color:#475569;line-height:1.6;">
+      Need assistance? Email us at
+      <a href="mailto:${SUPPORT_EMAIL}" style="color:#1E6BFF;text-decoration:none;font-weight:600;">${SUPPORT_EMAIL}</a>
+      or
+      <a href="${APP_URL}/contact" style="color:#1E6BFF;text-decoration:none;font-weight:600;">schedule a meeting with us</a>.
     </div>
   </div>
 
-  <p style="font-size:14px;color:#475569;line-height:1.6;margin:0 0 8px;">
-    Reply to this email any time — a real person reads every response.
-  </p>
-  <p style="font-size:14px;color:#0B162B;font-weight:600;margin:0 0 32px;">— The SkryveAI team</p>
-
   <hr style="border:none;border-top:1px solid #E5E9F2;margin:0 0 16px;">
   <p style="font-size:11px;color:#94A3B8;line-height:1.5;margin:0;text-align:center;">
-    You're getting this because you just created a SkryveAI account.<br>
+    This email was sent to you from SkryveAI.<br>
     <a href="${APP_URL}" style="color:#94A3B8;">skryveai.com</a> · <a href="${APP_URL}/contact" style="color:#94A3B8;">Contact</a> · <a href="${APP_URL}/privacy-policy" style="color:#94A3B8;">Privacy</a>
   </p>
 </div>
@@ -125,9 +135,9 @@ serve(async (req) => {
     const { data, error } = await resend.emails.send({
       from: FROM,
       to: [email],
-      subject: `Welcome to SkryveAI${firstName ? `, ${firstName}` : ""} — your trial just started 🚀`,
+      subject: `Welcome to SkryveAI${firstName ? `, ${firstName}` : ""} 👋`,
       html: htmlTemplate(firstName),
-      reply_to: "skryveai@gmail.com",
+      reply_to: SUPPORT_EMAIL,
     });
 
     if (error) {

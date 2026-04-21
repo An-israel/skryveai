@@ -6,7 +6,6 @@ import { SEOHead } from "@/components/SEOHead";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { CheckCircle2, XCircle, Mail, Search, ShieldCheck, Upload, Sparkles, Zap, Globe, ArrowRight } from "lucide-react";
-import { Helmet } from "react-helmet-async";
 
 const jsonLd = {
   "@context": "https://schema.org",

@@ -64,10 +64,21 @@ export default function Signup() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!formData.fullName || !formData.email || !formData.password) {
+    if (!formData.fullName || !formData.email || !formData.password || !formData.phone) {
       toast({
         title: "Missing fields",
-        description: "Please fill in all required fields",
+        description: "Please fill in all required fields, including your phone number",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Basic phone validation: allow +, digits, spaces, dashes, parens; require 7+ digits
+    const digitCount = (formData.phone.match(/\d/g) || []).length;
+    if (digitCount < 7 || !/^[+\d\s\-()]+$/.test(formData.phone)) {
+      toast({
+        title: "Invalid phone number",
+        description: "Please enter a valid phone number (include country code, e.g. +234...)",
         variant: "destructive",
       });
       return;
@@ -267,7 +278,7 @@ export default function Signup() {
                 </div>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="phone">Phone Number</Label>
+                <Label htmlFor="phone">Phone Number *</Label>
                 <div className="relative">
                   <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                   <Input
@@ -277,8 +288,12 @@ export default function Signup() {
                     value={formData.phone}
                     onChange={(e) => setFormData(prev => ({ ...prev, phone: e.target.value }))}
                     className="pl-10"
+                    required
                   />
                 </div>
+                <p className="text-xs text-muted-foreground">
+                  Include country code. We'll use this so our Customer Success team can reach you on WhatsApp if you need help.
+                </p>
               </div>
               <div className="space-y-2">
                 <Label htmlFor="password">Password *</Label>
