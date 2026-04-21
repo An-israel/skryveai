@@ -103,10 +103,17 @@ export default function Signup() {
 
       if (error) throw error;
 
-      // Fire-and-forget welcome email (won't block signup if it fails)
+      // Fire-and-forget welcome email (won't block signup if it fails).
+      // Pass context so the email CTA can be personalized to the user.
       supabase.functions
         .invoke("send-welcome-email", {
-          body: { email: formData.email, fullName: formData.fullName },
+          body: {
+            email: formData.email,
+            fullName: formData.fullName,
+            userId: data?.user?.id,
+            plan: "trial",
+            source: referralCode ? "referral" : "signup",
+          },
         })
         .catch((err) => console.warn("[welcome-email] dispatch failed:", err));
 

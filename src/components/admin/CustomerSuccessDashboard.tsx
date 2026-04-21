@@ -14,6 +14,7 @@ import {
   Users, AlertTriangle, Zap, TrendingUp, MessageSquare, Send,
   Loader2, RefreshCw, Star, UserX, Clock, CheckCircle, ArrowRight,
 } from "lucide-react";
+import { whatsappUrl, formatPhoneDisplay } from "@/lib/whatsapp";
 
 interface UserHealth {
   user_id: string;
@@ -430,15 +431,22 @@ export function CustomerSuccessDashboard() {
                       <TableCell>
                         {user.phone ? (
                           <div className="flex flex-col gap-1 text-xs">
-                            <a
-                              href={`https://wa.me/${user.phone.replace(/[^\d]/g, "")}`}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="text-green-600 hover:underline font-medium"
-                              title="Open in WhatsApp"
-                            >
-                              💬 {user.phone}
-                            </a>
+                            {(() => {
+                              const wa = whatsappUrl(user.phone);
+                              return wa ? (
+                                <a
+                                  href={wa}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="text-green-600 hover:underline font-medium"
+                                  title="Open in WhatsApp"
+                                >
+                                  💬 {formatPhoneDisplay(user.phone)}
+                                </a>
+                              ) : (
+                                <span className="text-muted-foreground italic">{user.phone}</span>
+                              );
+                            })()}
                             <a
                               href={`mailto:${user.email}`}
                               className="text-primary hover:underline truncate max-w-[180px]"
