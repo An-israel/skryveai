@@ -180,11 +180,21 @@ export default function LearnAssignment() {
     try {
       const filePath = tab === "file" && file ? await uploadFileIfAny() : submission?.file_path || null;
 
+      // Append learner notes (intent / context for the reviewer) to whatever was submitted.
+      const notesBlock = notesValue.trim()
+        ? `\n\n---\n📝 Notes for the reviewer (from the learner):\n${notesValue.trim()}`
+        : "";
+
       const payload = {
         user_id: user.id,
         assignment_id: assignment.id,
         user_learning_id: userLearningId || null,
-        submission_data: tab === "text" ? textValue : null,
+        submission_data:
+          tab === "text"
+            ? `${textValue}${notesBlock}`
+            : notesValue.trim()
+            ? notesBlock.trim()
+            : null,
         submission_url: tab === "url" ? urlValue : null,
         file_path: tab === "file" ? filePath : null,
         status: "pending",
