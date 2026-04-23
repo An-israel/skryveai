@@ -119,6 +119,24 @@ export default function LearnPath() {
   // URL validation cache: url -> "checking" | "ok" | "broken"
   const [urlStatuses, setUrlStatuses] = useState<Record<string, UrlStatus>>({});
 
+  // Confirmation modal for marking a module complete
+  const [confirmModuleId, setConfirmModuleId] = useState<string | null>(null);
+
+  // ARIA live announcements (module readiness, etc.)
+  const [liveAnnounce, setLiveAnnounce] = useState("");
+  const lastAnnouncedKeyRef = useRef<string>("");
+
+  // Auto-detect lesson completion from chat signals (quiz/checklist/upload/done)
+  const [autoDetect, setAutoDetect] = useState<boolean>(() => {
+    try {
+      const v = localStorage.getItem("skryve.learn.autoDetect");
+      return v === null ? true : v === "1";
+    } catch { return true; }
+  });
+  useEffect(() => {
+    try { localStorage.setItem("skryve.learn.autoDetect", autoDetect ? "1" : "0"); } catch {}
+  }, [autoDetect]);
+
   useEffect(() => {
     if (!user || !userLearningId) return;
     // Hydrate "already taught in chat" memory so we don't re-stage the prompt
