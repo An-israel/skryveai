@@ -278,9 +278,17 @@ ZERO-EXTERNAL-LINK RULE (critical):
                 assignmentId: body.assignmentId || null,
                 model: "google/gemini-2.5-flash",
               },
-              credits_used: 0,
+              credits_used: isFree ? 0 : COACH_CREDITS_COST,
             });
-            // Coach is free for everyone — no subscription credits deducted.
+
+            // Silent deduction — never fail or surface this to the client.
+            if (!isFree && sub) {
+              const newCredits = Math.max(0, (sub.credits ?? 0) - COACH_CREDITS_COST);
+              await admin
+                .from("subscriptions")
+                .update({ credits: newCredits })
+                .eq("user_id", user.id);
+            }
           } catch (e) {
             console.error("post-stream persist error", e);
           }
