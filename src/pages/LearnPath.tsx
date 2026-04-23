@@ -515,42 +515,71 @@ export default function LearnPath() {
               </h3>
               <Tabs defaultValue={modules[0]?.id} className="w-full">
                 <TabsList className="w-full flex-wrap h-auto justify-start">
-                  {modules.map((m) => (
-                    <TabsTrigger key={m.id} value={m.id} className="text-xs">
-                      M{m.module_number}: {m.title}
-                    </TabsTrigger>
-                  ))}
+                  {modules.map((m) => {
+                    const ml = lessonsByModule[m.id] || [];
+                    const mDone = ml.filter((l) => completedSet.has(l.id)).length;
+                    const allDone = ml.length > 0 && mDone === ml.length;
+                    return (
+                      <TabsTrigger key={m.id} value={m.id} className="text-xs gap-1.5">
+                        {allDone && <CheckCircle2 className="h-3 w-3 text-primary" />}
+                        M{m.module_number}: {m.title}
+                        <span className="text-[10px] text-muted-foreground">
+                          ({mDone}/{ml.length})
+                        </span>
+                      </TabsTrigger>
+                    );
+                  })}
                 </TabsList>
-                {modules.map((m) => (
-                  <TabsContent key={m.id} value={m.id} className="mt-4">
-                    <p className="text-xs text-muted-foreground mb-3">{m.description}</p>
-                    <ul className="space-y-1">
-                      {(lessonsByModule[m.id] || []).map((l) => {
-                        const done = completedSet.has(l.id);
-                        return (
-                          <li key={l.id}>
-                            <button
-                              onClick={() => setActiveLessonId(l.id)}
-                              className={`w-full text-left flex items-center gap-2 px-3 py-2 rounded-md text-sm hover:bg-muted transition-colors ${
-                                activeLessonId === l.id ? "bg-muted" : ""
-                              }`}
-                            >
-                              {done ? (
-                                <CheckCircle2 className="h-4 w-4 text-primary shrink-0" />
-                              ) : (
-                                <span className="h-4 w-4 rounded-full border border-muted-foreground/30 shrink-0" />
-                              )}
-                              <span className="flex-1">{l.title}</span>
-                              <span className="text-[10px] uppercase text-muted-foreground">
-                                {l.content_type}
-                              </span>
-                            </button>
-                          </li>
-                        );
-                      })}
-                    </ul>
-                  </TabsContent>
-                ))}
+                {modules.map((m) => {
+                  const ml = lessonsByModule[m.id] || [];
+                  const mDone = ml.filter((l) => completedSet.has(l.id)).length;
+                  const mPct = ml.length ? Math.round((mDone / ml.length) * 100) : 0;
+                  const allDone = ml.length > 0 && mDone === ml.length;
+                  return (
+                    <TabsContent key={m.id} value={m.id} className="mt-4">
+                      <div className="mb-3 space-y-2">
+                        <div className="flex items-center justify-between gap-2">
+                          <p className="text-xs text-muted-foreground">{m.description}</p>
+                          {allDone ? (
+                            <Badge className="shrink-0 bg-primary/10 text-primary border-primary/20" variant="outline">
+                              <CheckCircle2 className="h-3 w-3 mr-1" /> Module complete
+                            </Badge>
+                          ) : (
+                            <Badge variant="outline" className="shrink-0 text-[10px]">
+                              {mDone}/{ml.length} done
+                            </Badge>
+                          )}
+                        </div>
+                        <Progress value={mPct} className="h-1.5" />
+                      </div>
+                      <ul className="space-y-1">
+                        {ml.map((l) => {
+                          const done = completedSet.has(l.id);
+                          return (
+                            <li key={l.id}>
+                              <button
+                                onClick={() => setActiveLessonId(l.id)}
+                                className={`w-full text-left flex items-center gap-2 px-3 py-2 rounded-md text-sm hover:bg-muted transition-colors ${
+                                  activeLessonId === l.id ? "bg-muted" : ""
+                                }`}
+                              >
+                                {done ? (
+                                  <CheckCircle2 className="h-4 w-4 text-primary shrink-0" />
+                                ) : (
+                                  <span className="h-4 w-4 rounded-full border border-muted-foreground/30 shrink-0" />
+                                )}
+                                <span className="flex-1">{l.title}</span>
+                                <span className="text-[10px] uppercase text-muted-foreground">
+                                  {l.content_type}
+                                </span>
+                              </button>
+                            </li>
+                          );
+                        })}
+                      </ul>
+                    </TabsContent>
+                  );
+                })}
               </Tabs>
             </Card>
           </div>
