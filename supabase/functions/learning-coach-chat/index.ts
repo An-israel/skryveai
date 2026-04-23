@@ -19,12 +19,27 @@ const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY")!;
 const STAFF_ROLES = ["super_admin", "content_editor", "support_agent", "staff"];
 const COACH_CREDITS_COST = 0.1;
 
+interface ProgressSnapshot {
+  completedLessons?: number;
+  totalLessons?: number;
+  streakDays?: number;
+  currentModuleNumber?: number | null;
+  currentModuleTitle?: string | null;
+  moduleDoneCount?: number;
+  moduleTotal?: number;
+  moduleAllDone?: boolean;
+  completedLessonTitles?: string[];
+  remainingInModule?: string[];
+  nextLessonTitle?: string | null;
+}
+
 interface ChatBody {
   userLearningId: string;
   message: string;
   lessonId?: string | null;
   assignmentId?: string | null;
   history?: { role: "user" | "assistant"; content: string }[];
+  progress?: ProgressSnapshot;
 }
 
 Deno.serve(async (req) => {
