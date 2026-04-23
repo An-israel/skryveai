@@ -194,6 +194,22 @@ export default function LearnPath() {
     setUl({ ...ul, completed_lesson_ids: Array.from(completed), completed_lessons: newCount });
     toast({ title: "Lesson complete 🎉", description: lesson.title });
 
+    // Evaluate achievements (fire-and-forget)
+    void evaluateAchievements({
+      id: ul.id,
+      user_id: ul.user_id,
+      completed_lessons: newCount,
+      total_lessons: ul.total_lessons,
+      streak_days: ul.streak_days,
+      current_module: ul.current_module,
+      current_level: ul.current_level,
+      learning_paths: ul.learning_paths,
+    }).then((earned) => {
+      earned.forEach((name) =>
+        toast({ title: "🏆 Achievement unlocked", description: name })
+      );
+    });
+
     // Auto-advance
     const idx = lessons.findIndex((l) => l.id === lesson.id);
     const next = lessons[idx + 1];
