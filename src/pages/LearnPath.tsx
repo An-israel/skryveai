@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useParams, Link } from "react-router-dom";
 import ReactMarkdown from "react-markdown";
+import { evaluateAchievements } from "@/lib/learning/achievements";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
 import { Header } from "@/components/layout/Header";
