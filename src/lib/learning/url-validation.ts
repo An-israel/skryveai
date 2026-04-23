@@ -56,6 +56,11 @@ export function isTrusted(u: string | null | undefined): boolean {
 
 const cache = new Map<string, UrlStatus>();
 
+/** Seed the cache with verdicts already validated server-side. */
+export function seedUrlStatuses(entries: { url: string; status: UrlStatus }[]) {
+  for (const { url, status } of entries) cache.set(url, status);
+}
+
 export async function validateUrl(u: string): Promise<UrlStatus> {
   const parsed = parseUrl(u);
   if (!parsed) return "broken";
