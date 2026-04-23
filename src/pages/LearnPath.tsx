@@ -17,7 +17,7 @@ import { useToast } from "@/hooks/use-toast";
 import { ReminderSettingsButton } from "@/components/learning/ReminderSettingsButton";
 import { NextBadgeCard } from "@/components/learning/NextBadgeCard";
 import { LessonContentEmbed } from "@/components/learning/LessonContentEmbed";
-import { validateUrl, parseUrl, type UrlStatus } from "@/lib/learning/url-validation";
+import { validateUrl, parseUrl, seedUrlStatuses, type UrlStatus } from "@/lib/learning/url-validation";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import {
   AlertDialog,
@@ -243,6 +243,8 @@ export default function LearnPath() {
   }, [lessons]);
 
   // Validate all known content URLs in the background; broken ones get hidden.
+  // Server-validated verdicts (lesson_video_status) take precedence over the
+  // client-side reachability heuristic, because YouTube blocks cross-origin checks.
   useEffect(() => {
     const urls = new Set<string>();
     lessons.forEach((l) => {
@@ -251,13 +253,38 @@ export default function LearnPath() {
     modules.forEach((m) => {
       if (m.content_url && parseUrl(m.content_url)) urls.add(m.content_url);
     });
-    urls.forEach((u) => {
-      if (urlStatuses[u]) return;
-      setUrlStatuses((s) => ({ ...s, [u]: "checking" }));
-      void validateUrl(u).then((status) => {
-        setUrlStatuses((s) => ({ ...s, [u]: status }));
+    if (urls.size === 0) return;
+    const urlList = Array.from(urls);
+
+    void (async () => {
+      const { data: serverStatuses } = await (supabase as any)
+        .from("lesson_video_status")
+        .select("url, status")
+        .in("url", urlList);
+      const serverMap = new Map<string, UrlStatus>(
+        ((serverStatuses as { url: string; status: string }[]) || [])
+          .filter((s) => s.status === "ok" || s.status === "broken")
+          .map((s) => [s.url, s.status as UrlStatus]),
+      );
+      // Apply server verdicts immediately so broken videos are skipped on first paint.
+      if (serverMap.size > 0) {
+        seedUrlStatuses(Array.from(serverMap, ([url, status]) => ({ url, status })));
+        setUrlStatuses((s) => {
+          const next = { ...s };
+          serverMap.forEach((status, url) => { next[url] = status; });
+          return next;
+        });
+      }
+      // Fall back to the client-side check only for URLs the server hasn't classified.
+      urlList.forEach((u) => {
+        if (serverMap.has(u)) return;
+        if (urlStatuses[u]) return;
+        setUrlStatuses((s) => ({ ...s, [u]: "checking" }));
+        void validateUrl(u).then((status) => {
+          setUrlStatuses((s) => ({ ...s, [u]: status }));
+        });
       });
-    });
+    })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [lessons, modules]);
 

@@ -1463,6 +1463,30 @@ export type Database = {
           },
         ]
       }
+      lesson_video_status: {
+        Row: {
+          checked_at: string
+          provider: string | null
+          reason: string | null
+          status: string
+          url: string
+        }
+        Insert: {
+          checked_at?: string
+          provider?: string | null
+          reason?: string | null
+          status: string
+          url: string
+        }
+        Update: {
+          checked_at?: string
+          provider?: string | null
+          reason?: string | null
+          status?: string
+          url?: string
+        }
+        Relationships: []
+      }
       notifications: {
         Row: {
           created_at: string
