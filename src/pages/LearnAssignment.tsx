@@ -151,7 +151,7 @@ export default function LearnAssignment() {
     try {
       const filePath = tab === "file" && file ? await uploadFileIfAny() : submission?.file_path || null;
 
-      const payload: Record<string, unknown> = {
+      const payload = {
         user_id: user.id,
         assignment_id: assignment.id,
         user_learning_id: userLearningId || null,
@@ -159,6 +159,12 @@ export default function LearnAssignment() {
         submission_url: tab === "url" ? urlValue : null,
         file_path: tab === "file" ? filePath : null,
         status: "pending",
+        ai_feedback: null,
+        score: null,
+        strengths: [],
+        improvements: [],
+        reviewed_at: null,
+        passed_at: null,
       };
 
       let row: Submission | null = null;
