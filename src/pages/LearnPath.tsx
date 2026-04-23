@@ -15,8 +15,11 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { ReminderSettingsButton } from "@/components/learning/ReminderSettingsButton";
+import { NextBadgeCard } from "@/components/learning/NextBadgeCard";
+import { validateUrl, parseUrl, type UrlStatus } from "@/lib/learning/url-validation";
 import {
   ArrowLeft,
+  AlertTriangle,
   BookOpen,
   CheckCircle2,
   Clock,
