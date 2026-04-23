@@ -90,15 +90,35 @@ export default function LearnPath() {
   const [input, setInput] = useState("");
   const [streaming, setStreaming] = useState(false);
   const [curriculumOpen, setCurriculumOpen] = useState(false);
+  const [completingModuleId, setCompletingModuleId] = useState<string | null>(null);
+  const [justCompletedModuleId, setJustCompletedModuleId] = useState<string | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLTextAreaElement>(null);
+  const taughtLessonsRef = useRef<Set<string>>(new Set());
+  const pendingFocusRef = useRef(false);
 
   // URL validation cache: url -> "checking" | "ok" | "broken"
   const [urlStatuses, setUrlStatuses] = useState<Record<string, UrlStatus>>({});
 
   useEffect(() => {
     if (!user || !userLearningId) return;
+    // Hydrate "already taught in chat" memory so we don't re-stage the prompt
+    // when the user revisits the same lesson on mobile or desktop.
+    try {
+      const key = `skryve.taughtLessons.${userLearningId}`;
+      const raw = localStorage.getItem(key);
+      if (raw) taughtLessonsRef.current = new Set(JSON.parse(raw));
+    } catch { /* ignore */ }
     void loadAll();
   }, [user, userLearningId]);
+
+  function rememberTaught(lessonId: string) {
+    taughtLessonsRef.current.add(lessonId);
+    try {
+      const key = `skryve.taughtLessons.${userLearningId}`;
+      localStorage.setItem(key, JSON.stringify(Array.from(taughtLessonsRef.current)));
+    } catch { /* ignore */ }
+  }
 
   async function loadAll() {
     setLoadingData(true);
@@ -257,17 +277,18 @@ export default function LearnPath() {
     const ml = lessonsByModule[moduleId] || [];
     if (ml.length === 0) return;
     const completed = new Set(ul.completed_lesson_ids || []);
-    let added = 0;
+    const newlyCompleted: Lesson[] = [];
     ml.forEach((l) => {
       if (!completed.has(l.id)) {
         completed.add(l.id);
-        added++;
+        newlyCompleted.push(l);
       }
     });
-    if (added === 0) {
+    if (newlyCompleted.length === 0) {
       toast({ title: "Module already complete ✅" });
       return;
     }
+    setCompletingModuleId(moduleId);
     const newCount = completed.size;
     const { error } = await supabase
       .from("user_learning")
@@ -278,14 +299,16 @@ export default function LearnPath() {
       })
       .eq("id", ul.id);
     if (error) {
+      setCompletingModuleId(null);
       toast({ title: "Could not save progress", variant: "destructive" });
       return;
     }
+    // Instantly refresh UI indicators in the curriculum drawer
     setUl({ ...ul, completed_lesson_ids: Array.from(completed), completed_lessons: newCount });
     const mod = modules.find((m) => m.id === moduleId);
     toast({
       title: "Module complete 🎉",
-      description: `${mod?.title || "Module"} marked complete (${added} lesson${added === 1 ? "" : "s"}).`,
+      description: `${mod?.title || "Module"} marked complete (${newlyCompleted.length} lesson${newlyCompleted.length === 1 ? "" : "s"}).`,
     });
 
     void evaluateAchievements({
@@ -306,9 +329,26 @@ export default function LearnPath() {
     // Move to first lesson of next module if exists
     const idx = modules.findIndex((m) => m.id === moduleId);
     const nextMod = modules[idx + 1];
-    if (nextMod) {
-      const first = (lessonsByModule[nextMod.id] || [])[0];
-      if (first) setActiveLessonId(first.id);
+    const nextFirstLesson = nextMod ? (lessonsByModule[nextMod.id] || [])[0] : null;
+
+    // Post a chat confirmation summarising what was completed and what's next
+    const titlesList = newlyCompleted
+      .map((l) => `- ${l.title}`)
+      .join("\n");
+    const confirmation = nextFirstLesson
+      ? `✅ **${mod?.title || "Module"} complete!** Marked these as done:\n${titlesList}\n\n👉 Up next: **${nextFirstLesson.title}** (Module ${nextMod!.module_number}). I'll start teaching it now.`
+      : `✅ **${mod?.title || "Module"} complete!** Marked these as done:\n${titlesList}\n\n🎓 You've reached the end of the curriculum — incredible work!`;
+    setMessages((m) => [...m, { role: "assistant", content: confirmation }]);
+
+    setJustCompletedModuleId(moduleId);
+    setTimeout(() => setJustCompletedModuleId((cur) => (cur === moduleId ? null : cur)), 2500);
+    setCompletingModuleId(null);
+
+    if (nextFirstLesson) {
+      // Trigger auto-focus + auto-stage on next lesson load
+      pendingFocusRef.current = true;
+      setActiveLessonId(nextFirstLesson.id);
+      setCurriculumOpen(false);
     }
   }
 
@@ -455,18 +495,46 @@ export default function LearnPath() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeLesson, modules, urlStatuses]);
 
-  function askCoachToTeachLesson(lesson: Lesson) {
+  function askCoachToTeachLesson(lesson: Lesson, opts?: { autoSend?: boolean }) {
     const prompt = `Teach me "${lesson.title}" right here in the chat. Give me:\n1. The 3 most important concepts in plain language\n2. A concrete example from the real world\n3. A 5-minute exercise I can do right now\n\nDo not link me anywhere — explain it all here.`;
-    setInput(prompt);
+    rememberTaught(lesson.id);
+    if (opts?.autoSend) {
+      // Set input then trigger send on the next tick
+      setInput(prompt);
+      setTimeout(() => void sendMessage(), 0);
+    } else {
+      setInput(prompt);
+    }
   }
 
   // When the active lesson changes and there's NO embeddable video, auto-stage the
-  // teach-in-chat prompt so the user just hits send. Only stage if the input is empty.
+  // teach-in-chat prompt so the user just hits send.
+  // - Skip if we've already auto-staged for this lesson before (mobile/desktop revisit).
+  // - If the user just marked a module complete, auto-send the prompt and focus the chat.
   useEffect(() => {
     if (!activeLesson) return;
     if (activeVideoUrl) return;
     if (input.trim()) return;
-    askCoachToTeachLesson(activeLesson);
+
+    const shouldAutoSend = pendingFocusRef.current;
+    const alreadyTaught = taughtLessonsRef.current.has(activeLesson.id);
+
+    if (shouldAutoSend) {
+      pendingFocusRef.current = false;
+      // Focus chat input and (optionally) auto-send the lesson kick-off prompt
+      setTimeout(() => inputRef.current?.focus(), 50);
+      if (!alreadyTaught) {
+        askCoachToTeachLesson(activeLesson, { autoSend: true });
+      } else {
+        // Already taught — just focus and let the user ask anything new
+        inputRef.current?.focus();
+      }
+      return;
+    }
+
+    if (!alreadyTaught) {
+      askCoachToTeachLesson(activeLesson);
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeLessonId, activeVideoUrl]);
 
@@ -489,7 +557,6 @@ export default function LearnPath() {
         <div className="flex items-center gap-2">
           <Sparkles className="h-4 w-4 text-primary" />
           <h3 className="font-semibold text-sm sm:text-base">AI Coach</h3>
-          <Badge variant="outline" className="ml-auto text-[10px]">0.1 cr/msg</Badge>
         </div>
         {activeLesson && (
           <p className="text-xs text-muted-foreground mt-1 truncate">
@@ -525,6 +592,7 @@ export default function LearnPath() {
       <div className="p-3 border-t shrink-0">
         <div className="flex gap-2">
           <Textarea
+            ref={inputRef}
             value={input}
             onChange={(e) => setInput(e.target.value)}
             placeholder="Ask the coach anything…"
@@ -637,18 +705,36 @@ export default function LearnPath() {
                                 </span>
                               </div>
                               {allDone ? (
-                                <Badge className="bg-primary/10 text-primary border-primary/20" variant="outline">
-                                  <CheckCircle2 className="h-3 w-3 mr-1" /> Module complete
+                                <Badge
+                                  className={`border-primary/20 transition-colors ${
+                                    justCompletedModuleId === m.id
+                                      ? "bg-primary text-primary-foreground"
+                                      : "bg-primary/10 text-primary"
+                                  }`}
+                                  variant="outline"
+                                >
+                                  <CheckCircle2 className="h-3 w-3 mr-1" />
+                                  {justCompletedModuleId === m.id ? "Marked complete!" : "Module complete"}
                                 </Badge>
                               ) : (
                                 <Button
                                   size="sm"
                                   variant="outline"
                                   className="w-full"
+                                  disabled={completingModuleId === m.id}
                                   onClick={() => void markModuleComplete(m.id)}
                                 >
-                                  <CheckCircle2 className="h-3.5 w-3.5 mr-1" />
-                                  Mark module complete
+                                  {completingModuleId === m.id ? (
+                                    <>
+                                      <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" />
+                                      Marking complete…
+                                    </>
+                                  ) : (
+                                    <>
+                                      <CheckCircle2 className="h-3.5 w-3.5 mr-1" />
+                                      Mark module complete
+                                    </>
+                                  )}
                                 </Button>
                               )}
                             </div>

@@ -17,7 +17,8 @@ const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY")!;
 const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY")!;
 
 const STAFF_ROLES = ["super_admin", "content_editor", "support_agent", "staff"];
-const COACH_CREDITS_COST = 0.1;
+// Coach is now FREE for all learners — no credit cost, no deduction, no balance check.
+const COACH_CREDITS_COST = 0;
 
 interface ProgressSnapshot {
   completedLessons?: number;
@@ -81,7 +82,8 @@ Deno.serve(async (req) => {
       return json({ error: "Learning path not found" }, 404);
     }
 
-    // Credit check (skip staff/lifetime)
+    // Coach is FREE for everyone — no credit check, no deduction.
+    // We still load roles/sub for analytics/debugging but never block on credits.
     const [{ data: roles }, { data: sub }] = await Promise.all([
       admin.from("user_roles").select("role").eq("user_id", user.id),
       admin
@@ -94,19 +96,9 @@ Deno.serve(async (req) => {
       STAFF_ROLES.includes(r.role)
     );
     const isLifetime = sub?.plan === "lifetime";
-    const isFree = isStaff || isLifetime;
-
-    if (!isFree) {
-      if (!sub || (sub.credits ?? 0) < COACH_CREDITS_COST) {
-        return json(
-          {
-            error:
-              "Not enough credits to chat with the coach. Upgrade your plan to continue.",
-          },
-          402
-        );
-      }
-    }
+    // Kept for downstream metadata; coach is free for everyone.
+    const isFree = true;
+    void isStaff; void isLifetime;
 
     // Optional lesson + assignment context
     let lessonCtx: any = null;
@@ -288,16 +280,9 @@ ZERO-EXTERNAL-LINK RULE (critical):
                 assignmentId: body.assignmentId || null,
                 model: "google/gemini-2.5-flash",
               },
-              credits_used: isFree ? 0 : COACH_CREDITS_COST,
+              credits_used: 0,
             });
-
-            if (!isFree && sub) {
-              const newCredits = Math.max(0, (sub.credits ?? 0) - COACH_CREDITS_COST);
-              await admin
-                .from("subscriptions")
-                .update({ credits: newCredits })
-                .eq("user_id", user.id);
-            }
+            // Coach is free for everyone — no subscription credits deducted.
           } catch (e) {
             console.error("post-stream persist error", e);
           }
