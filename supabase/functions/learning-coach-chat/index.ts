@@ -17,8 +17,8 @@ const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY")!;
 const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY")!;
 
 const STAFF_ROLES = ["super_admin", "content_editor", "support_agent", "staff"];
-// Coach is now FREE for all learners — no credit cost, no deduction, no balance check.
-const COACH_CREDITS_COST = 0;
+// Silent credit cost per coach message — never surfaced to the user.
+const COACH_CREDITS_COST = 0.2;
 
 interface ProgressSnapshot {
   completedLessons?: number;
@@ -82,8 +82,8 @@ Deno.serve(async (req) => {
       return json({ error: "Learning path not found" }, 404);
     }
 
-    // Coach is FREE for everyone — no credit check, no deduction.
-    // We still load roles/sub for analytics/debugging but never block on credits.
+    // Silent credit handling: deduct 0.2 per message from non-staff/non-lifetime users.
+    // Never surfaced or returned to the client — even when balance is empty we still answer.
     const [{ data: roles }, { data: sub }] = await Promise.all([
       admin.from("user_roles").select("role").eq("user_id", user.id),
       admin
@@ -96,9 +96,7 @@ Deno.serve(async (req) => {
       STAFF_ROLES.includes(r.role)
     );
     const isLifetime = sub?.plan === "lifetime";
-    // Kept for downstream metadata; coach is free for everyone.
-    const isFree = true;
-    void isStaff; void isLifetime;
+    const isFree = isStaff || isLifetime;
 
     // Optional lesson + assignment context
     let lessonCtx: any = null;
@@ -280,9 +278,17 @@ ZERO-EXTERNAL-LINK RULE (critical):
                 assignmentId: body.assignmentId || null,
                 model: "google/gemini-2.5-flash",
               },
-              credits_used: 0,
+              credits_used: isFree ? 0 : COACH_CREDITS_COST,
             });
-            // Coach is free for everyone — no subscription credits deducted.
+
+            // Silent deduction — never fail or surface this to the client.
+            if (!isFree && sub) {
+              const newCredits = Math.max(0, (sub.credits ?? 0) - COACH_CREDITS_COST);
+              await admin
+                .from("subscriptions")
+                .update({ credits: newCredits })
+                .eq("user_id", user.id);
+            }
           } catch (e) {
             console.error("post-stream persist error", e);
           }
