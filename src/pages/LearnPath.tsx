@@ -27,8 +27,10 @@ import {
   Clock,
   Flame,
   Loader2,
+  PartyPopper,
   Send,
   Sparkles,
+  Trophy,
 } from "lucide-react";
 
 type ChatMsg = { role: "user" | "assistant"; content: string };
@@ -855,6 +857,124 @@ export default function LearnPath() {
             )}
           </Card>
         )}
+
+        {/* Module wrap-up banner — tells the user when they've finished a module
+            and what to do next. Always visible above the chat so it can't be missed. */}
+        {activeLesson && (() => {
+          const currentModule = modules.find((m) => m.id === activeLesson.module_id);
+          if (!currentModule) return null;
+          const ml = lessonsByModule[currentModule.id] || [];
+          if (ml.length === 0) return null;
+          const mDone = ml.filter((l) => completedSet.has(l.id)).length;
+          const allDone = mDone === ml.length;
+          const onLastLesson = ml[ml.length - 1]?.id === activeLesson.id;
+          const lessonDone = completedSet.has(activeLesson.id);
+          const modIdx = modules.findIndex((m) => m.id === currentModule.id);
+          const nextMod = modules[modIdx + 1];
+          const isLoading = completingModuleId === currentModule.id;
+
+          // Case 1: every lesson done → push to mark module complete
+          if (allDone) {
+            return (
+              <Card className="p-3 sm:p-4 mb-3 border-primary/30 bg-primary/5">
+                <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+                  <div className="flex items-start gap-3 flex-1 min-w-0">
+                    <div className="h-9 w-9 rounded-full bg-primary/15 flex items-center justify-center shrink-0">
+                      <PartyPopper className="h-4 w-4 text-primary" />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-sm font-semibold">
+                        You've finished every lesson in {currentModule.title}!
+                      </p>
+                      <p className="text-xs text-muted-foreground mt-0.5">
+                        {nextMod
+                          ? `Mark the module complete to unlock ${nextMod.title}.`
+                          : "Mark the module complete to wrap up the curriculum."}
+                      </p>
+                    </div>
+                  </div>
+                  <Button
+                    size="sm"
+                    onClick={() => void markModuleComplete(currentModule.id)}
+                    disabled={isLoading}
+                    className="shrink-0 w-full sm:w-auto"
+                  >
+                    {isLoading ? (
+                      <>
+                        <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" />
+                        Saving…
+                      </>
+                    ) : (
+                      <>
+                        <Trophy className="h-3.5 w-3.5 mr-1" />
+                        {nextMod ? "Complete & start next module" : "Mark module complete"}
+                      </>
+                    )}
+                  </Button>
+                </div>
+              </Card>
+            );
+          }
+
+          // Case 2: on the last lesson and it's done → encourage wrap-up
+          if (onLastLesson && lessonDone && mDone === ml.length - 1) {
+            return (
+              <Card className="p-3 sm:p-4 mb-3 border-primary/30 bg-primary/5">
+                <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+                  <div className="flex items-start gap-3 flex-1 min-w-0">
+                    <div className="h-9 w-9 rounded-full bg-primary/15 flex items-center justify-center shrink-0">
+                      <CheckCircle2 className="h-4 w-4 text-primary" />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-sm font-semibold">
+                        Last lesson of {currentModule.title} done.
+                      </p>
+                      <p className="text-xs text-muted-foreground mt-0.5">
+                        Mark the module complete to lock in your progress
+                        {nextMod ? ` and move on to ${nextMod.title}.` : "."}
+                      </p>
+                    </div>
+                  </div>
+                  <Button
+                    size="sm"
+                    onClick={() => void markModuleComplete(currentModule.id)}
+                    disabled={isLoading}
+                    className="shrink-0 w-full sm:w-auto"
+                  >
+                    {isLoading ? (
+                      <>
+                        <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" />
+                        Saving…
+                      </>
+                    ) : (
+                      <>
+                        <Trophy className="h-3.5 w-3.5 mr-1" />
+                        Mark module complete
+                      </>
+                    )}
+                  </Button>
+                </div>
+              </Card>
+            );
+          }
+
+          // Case 3: on the last lesson but not yet marked complete → nudge
+          if (onLastLesson && !lessonDone) {
+            return (
+              <Card className="p-3 sm:p-4 mb-3 border-dashed">
+                <div className="flex items-start gap-3">
+                  <BookOpen className="h-4 w-4 text-muted-foreground mt-0.5 shrink-0" />
+                  <p className="text-xs text-muted-foreground">
+                    This is the <span className="font-medium text-foreground">last lesson</span> of {currentModule.title}.
+                    Once you've finished, mark it complete — then you'll be able to wrap up the whole module.
+                  </p>
+                </div>
+              </Card>
+            );
+          }
+
+          return null;
+        })()}
 
         {/* Chat is the main surface — full width, dominant */}
         <Card className="flex flex-col h-[calc(100vh-260px)] min-h-[480px] overflow-hidden">
