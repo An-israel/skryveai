@@ -96,10 +96,12 @@ export default function LearnAssignment() {
 
   const [textValue, setTextValue] = useState("");
   const [urlValue, setUrlValue] = useState("");
+  const [notesValue, setNotesValue] = useState("");
   const [file, setFile] = useState<File | null>(null);
   const [tab, setTab] = useState<"text" | "url" | "file">("text");
   const [submitting, setSubmitting] = useState(false);
   const [reviewing, setReviewing] = useState(false);
+  const [showRubric, setShowRubric] = useState(true);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
