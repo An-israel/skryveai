@@ -54,6 +54,33 @@ interface Submission {
   passed_at: string | null;
 }
 
+// Parse the markdown ai_feedback into rubric sections we can render as a structured panel.
+function parseRubric(feedback: string | null): {
+  verdict: string;
+  criteriaMet: string[];
+  criteriaMissed: string[];
+  nextStep: string;
+} {
+  if (!feedback) return { verdict: "", criteriaMet: [], criteriaMissed: [], nextStep: "" };
+  const grab = (label: string): string[] => {
+    const re = new RegExp(`\\*\\*${label}\\*\\*\\s*\\n([\\s\\S]*?)(?=\\n\\*\\*|$)`, "i");
+    const m = feedback.match(re);
+    if (!m) return [];
+    return m[1]
+      .split("\n")
+      .map((l) => l.replace(/^-\s*/, "").trim())
+      .filter(Boolean);
+  };
+  const verdictMatch = feedback.match(/\*\*Verdict:\*\*\s*([^\n]+)/i);
+  const nextMatch = feedback.match(/\*\*Next step:\*\*\s*([^\n]+)/i);
+  return {
+    verdict: verdictMatch?.[1]?.trim() || "",
+    criteriaMet: grab("Criteria met"),
+    criteriaMissed: grab("Criteria missed"),
+    nextStep: nextMatch?.[1]?.trim() || "",
+  };
+}
+
 export default function LearnAssignment() {
   const { assignmentId, userLearningId } = useParams<{
     assignmentId: string;
