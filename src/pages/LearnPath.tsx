@@ -487,17 +487,17 @@ export default function LearnPath() {
 
         <div className="grid xl:grid-cols-[1fr_400px] gap-4 sm:gap-6">
           {/* Left: lesson area + module list */}
-          <div className="space-y-6 min-w-0">
+          <div className="space-y-4 sm:space-y-6 min-w-0">
             {activeLesson && (
-              <Card className="p-6">
-                <div className="flex items-start justify-between gap-4 mb-3">
-                  <div className="min-w-0">
-                    <Badge variant="secondary" className="mb-2 capitalize">
+              <Card className="p-4 sm:p-6">
+                <div className="flex items-start justify-between gap-3 mb-3">
+                  <div className="min-w-0 flex-1">
+                    <Badge variant="secondary" className="mb-2 capitalize text-[10px] sm:text-xs">
                       {activeLesson.content_type}
                     </Badge>
-                    <h2 className="text-xl font-semibold">{activeLesson.title}</h2>
+                    <h2 className="text-lg sm:text-xl font-semibold break-words">{activeLesson.title}</h2>
                     {activeLesson.description && (
-                      <p className="text-sm text-muted-foreground mt-2">
+                      <p className="text-xs sm:text-sm text-muted-foreground mt-2 break-words">
                         {activeLesson.description}
                       </p>
                     )}
@@ -580,17 +580,20 @@ export default function LearnPath() {
                     </div>
                   );
                 })()}
-                <div className="flex gap-2">
+                <div className="flex flex-col sm:flex-row gap-2">
                   <Button
                     onClick={() => markComplete(activeLesson)}
                     disabled={completedSet.has(activeLesson.id)}
+                    className="w-full sm:w-auto"
                   >
                     {completedSet.has(activeLesson.id) ? "Completed" : "Mark complete"}
                   </Button>
                   <Button
                     variant="outline"
+                    className="w-full sm:w-auto"
                     onClick={() => {
                       setInput(`Teach me "${activeLesson.title}" — give me the key concepts, an example, and a 5-minute exercise.`);
+                      setChatOpen(true);
                     }}
                   >
                     Ask coach to teach this
@@ -613,22 +616,24 @@ export default function LearnPath() {
                 <BookOpen className="h-4 w-4" /> Curriculum
               </h3>
               <Tabs defaultValue={modules[0]?.id} className="w-full">
-                <TabsList className="w-full flex-wrap h-auto justify-start">
-                  {modules.map((m) => {
-                    const ml = lessonsByModule[m.id] || [];
-                    const mDone = ml.filter((l) => completedSet.has(l.id)).length;
-                    const allDone = ml.length > 0 && mDone === ml.length;
-                    return (
-                      <TabsTrigger key={m.id} value={m.id} className="text-xs gap-1.5">
-                        {allDone && <CheckCircle2 className="h-3 w-3 text-primary" />}
-                        M{m.module_number}: {m.title}
-                        <span className="text-[10px] text-muted-foreground">
-                          ({mDone}/{ml.length})
-                        </span>
-                      </TabsTrigger>
-                    );
-                  })}
-                </TabsList>
+                <ScrollArea className="w-full">
+                  <TabsList className="inline-flex w-max h-auto justify-start">
+                    {modules.map((m) => {
+                      const ml = lessonsByModule[m.id] || [];
+                      const mDone = ml.filter((l) => completedSet.has(l.id)).length;
+                      const allDone = ml.length > 0 && mDone === ml.length;
+                      return (
+                        <TabsTrigger key={m.id} value={m.id} className="text-xs gap-1.5 whitespace-nowrap">
+                          {allDone && <CheckCircle2 className="h-3 w-3 text-primary" />}
+                          M{m.module_number}: {m.title}
+                          <span className="text-[10px] text-muted-foreground">
+                            ({mDone}/{ml.length})
+                          </span>
+                        </TabsTrigger>
+                      );
+                    })}
+                  </TabsList>
+                </ScrollArea>
                 {modules.map((m) => {
                   const ml = lessonsByModule[m.id] || [];
                   const mDone = ml.filter((l) => completedSet.has(l.id)).length;
