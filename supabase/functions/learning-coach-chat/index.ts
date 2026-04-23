@@ -82,7 +82,8 @@ Deno.serve(async (req) => {
       return json({ error: "Learning path not found" }, 404);
     }
 
-    // Credit check (skip staff/lifetime)
+    // Coach is FREE for everyone — no credit check, no deduction.
+    // We still load roles/sub for analytics/debugging but never block on credits.
     const [{ data: roles }, { data: sub }] = await Promise.all([
       admin.from("user_roles").select("role").eq("user_id", user.id),
       admin
@@ -95,19 +96,9 @@ Deno.serve(async (req) => {
       STAFF_ROLES.includes(r.role)
     );
     const isLifetime = sub?.plan === "lifetime";
-    const isFree = isStaff || isLifetime;
-
-    if (!isFree) {
-      if (!sub || (sub.credits ?? 0) < COACH_CREDITS_COST) {
-        return json(
-          {
-            error:
-              "Not enough credits to chat with the coach. Upgrade your plan to continue.",
-          },
-          402
-        );
-      }
-    }
+    // Kept for downstream metadata; coach is free for everyone.
+    const isFree = true;
+    void isStaff; void isLifetime;
 
     // Optional lesson + assignment context
     let lessonCtx: any = null;
