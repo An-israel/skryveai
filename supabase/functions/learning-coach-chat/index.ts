@@ -17,7 +17,8 @@ const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY")!;
 const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY")!;
 
 const STAFF_ROLES = ["super_admin", "content_editor", "support_agent", "staff"];
-const COACH_CREDITS_COST = 0.1;
+// Coach is now FREE for all learners — no credit cost, no deduction, no balance check.
+const COACH_CREDITS_COST = 0;
 
 interface ProgressSnapshot {
   completedLessons?: number;
