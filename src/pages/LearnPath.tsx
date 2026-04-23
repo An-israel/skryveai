@@ -252,6 +252,66 @@ export default function LearnPath() {
     if (next) setActiveLessonId(next.id);
   }
 
+  async function markModuleComplete(moduleId: string) {
+    if (!ul) return;
+    const ml = lessonsByModule[moduleId] || [];
+    if (ml.length === 0) return;
+    const completed = new Set(ul.completed_lesson_ids || []);
+    let added = 0;
+    ml.forEach((l) => {
+      if (!completed.has(l.id)) {
+        completed.add(l.id);
+        added++;
+      }
+    });
+    if (added === 0) {
+      toast({ title: "Module already complete ✅" });
+      return;
+    }
+    const newCount = completed.size;
+    const { error } = await supabase
+      .from("user_learning")
+      .update({
+        completed_lesson_ids: Array.from(completed),
+        completed_lessons: newCount,
+        last_activity_date: new Date().toISOString().slice(0, 10),
+      })
+      .eq("id", ul.id);
+    if (error) {
+      toast({ title: "Could not save progress", variant: "destructive" });
+      return;
+    }
+    setUl({ ...ul, completed_lesson_ids: Array.from(completed), completed_lessons: newCount });
+    const mod = modules.find((m) => m.id === moduleId);
+    toast({
+      title: "Module complete 🎉",
+      description: `${mod?.title || "Module"} marked complete (${added} lesson${added === 1 ? "" : "s"}).`,
+    });
+
+    void evaluateAchievements({
+      id: ul.id,
+      user_id: ul.user_id,
+      completed_lessons: newCount,
+      total_lessons: ul.total_lessons,
+      streak_days: ul.streak_days,
+      current_module: ul.current_module,
+      current_level: ul.current_level,
+      learning_paths: ul.learning_paths,
+    }).then((earned) => {
+      earned.forEach((name) =>
+        toast({ title: "🏆 Achievement unlocked", description: name })
+      );
+    });
+
+    // Move to first lesson of next module if exists
+    const idx = modules.findIndex((m) => m.id === moduleId);
+    const nextMod = modules[idx + 1];
+    if (nextMod) {
+      const first = (lessonsByModule[nextMod.id] || [])[0];
+      if (first) setActiveLessonId(first.id);
+    }
+  }
+
   async function sendMessage() {
     if (!ul || !input.trim() || streaming) return;
     const userMsg = input.trim();
