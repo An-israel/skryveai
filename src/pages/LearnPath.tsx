@@ -21,13 +21,12 @@ import { validateUrl, parseUrl, type UrlStatus } from "@/lib/learning/url-valida
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import {
   ArrowLeft,
-  AlertTriangle,
   BookOpen,
   CheckCircle2,
+  ChevronRight,
   Clock,
   Flame,
   Loader2,
-  MessageCircle,
   Send,
   Sparkles,
 } from "lucide-react";
