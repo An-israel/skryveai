@@ -27,8 +27,10 @@ import {
   Clock,
   Flame,
   Loader2,
+  PartyPopper,
   Send,
   Sparkles,
+  Trophy,
 } from "lucide-react";
 
 type ChatMsg = { role: "user" | "assistant"; content: string };
