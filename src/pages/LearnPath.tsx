@@ -90,6 +90,9 @@ export default function LearnPath() {
   const [streaming, setStreaming] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
 
+  // URL validation cache: url -> "checking" | "ok" | "broken"
+  const [urlStatuses, setUrlStatuses] = useState<Record<string, UrlStatus>>({});
+
   useEffect(() => {
     if (!user || !userLearningId) return;
     void loadAll();
