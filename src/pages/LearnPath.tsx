@@ -344,6 +344,7 @@ export default function LearnPath() {
               <Flame className="h-3 w-3 mr-1" />
               {ul.streak_days}d streak
             </Badge>
+            <ReminderSettingsButton ul={ul} onUpdate={setUl} />
           </div>
           <h1 className="text-2xl md:text-3xl font-bold">{ul.learning_paths.display_name}</h1>
           <div className="flex items-center gap-3 mt-3">
