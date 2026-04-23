@@ -952,6 +952,74 @@ export default function LearnPath() {
           </Card>
         )}
 
+        {/* Accessible live region — announces module readiness to screen readers */}
+        <div
+          role="status"
+          aria-live="polite"
+          aria-atomic="true"
+          className="sr-only"
+        >
+          {liveAnnounce}
+        </div>
+
+        {/* Module timeline — shows exactly what's left in the current module */}
+        {activeLesson && (() => {
+          const currentModule = modules.find((m) => m.id === activeLesson.module_id);
+          if (!currentModule) return null;
+          const ml = lessonsByModule[currentModule.id] || [];
+          if (ml.length === 0) return null;
+          const done = ml.filter((l) => completedSet.has(l.id)).length;
+          const remaining = ml.length - done;
+          return (
+            <Card className="p-3 sm:p-4 mb-3">
+              <div className="flex items-center justify-between gap-2 mb-2">
+                <p className="text-xs font-medium text-muted-foreground">
+                  {currentModule.title} · {done}/{ml.length} lessons
+                </p>
+                <span className="text-[10px] text-muted-foreground whitespace-nowrap">
+                  {remaining === 0 ? "All done" : `${remaining} left`}
+                </span>
+              </div>
+              <ol className="space-y-1">
+                {ml.map((l) => {
+                  const isDone = completedSet.has(l.id);
+                  const isActive = l.id === activeLesson.id;
+                  return (
+                    <li key={l.id}>
+                      <button
+                        type="button"
+                        onClick={() => setActiveLessonId(l.id)}
+                        className={`w-full flex items-center gap-2 text-left text-xs rounded-md px-2 py-1.5 transition-colors ${
+                          isActive
+                            ? "bg-primary/10 text-foreground"
+                            : "hover:bg-muted/60 text-muted-foreground"
+                        }`}
+                        aria-current={isActive ? "step" : undefined}
+                      >
+                        {isDone ? (
+                          <Check className="h-3.5 w-3.5 text-primary shrink-0" />
+                        ) : isActive ? (
+                          <PlayCircle className="h-3.5 w-3.5 text-primary shrink-0" />
+                        ) : (
+                          <Circle className="h-3.5 w-3.5 shrink-0" />
+                        )}
+                        <span className={`truncate ${isDone ? "line-through opacity-70" : ""} ${isActive ? "font-medium text-foreground" : ""}`}>
+                          {l.title}
+                        </span>
+                        {isActive && !isDone && (
+                          <Badge variant="secondary" className="ml-auto text-[9px] py-0 px-1.5">
+                            Now
+                          </Badge>
+                        )}
+                      </button>
+                    </li>
+                  );
+                })}
+              </ol>
+            </Card>
+          );
+        })()}
+
         {/* Module wrap-up banner — tells the user when they've finished a module
             and what to do next. Always visible above the chat so it can't be missed. */}
         {activeLesson && (() => {
