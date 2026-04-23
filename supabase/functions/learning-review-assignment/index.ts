@@ -282,6 +282,59 @@ Review this submission and return the JSON verdict.`;
         },
         credits_used: isFree ? 0 : REVIEW_CREDITS_COST,
       });
+
+      // Extra coaching nudge specifically when learner needs to revise.
+      if (!passed) {
+        const fixList = improvements.length
+          ? improvements.map((i, idx) => `${idx + 1}. ${i}`).join("\n")
+          : "Re-read the brief, address each passing criterion, and add concrete examples.";
+
+        const lessonLink = `${SUPABASE_URL.replace(".supabase.co", "")
+          ? ""
+          : ""}/tools/learn/${userLearningId}`;
+        const lessonResource = lesson?.content_url
+          ? `\n\n📚 **Revisit this lesson** before resubmitting:\n[${lesson.title}](${lesson.content_url})`
+          : "";
+        const nextStepStr = verdict?.next_step
+          ? `\n\n👉 **Next step:** ${verdict.next_step}`
+          : "";
+
+        const revisionMessage = `Your submission scored **${score}/100** — close, but not over the line yet. Here's exactly what to change:\n\n${fixList}${lessonResource}${nextStepStr}\n\n[Open the assignment to revise →](${lessonLink}/assignment/${assignment.id})`;
+
+        await admin.from("coach_messages").insert({
+          user_id: user.id,
+          user_learning_id: userLearningId,
+          message_type: "revision_guidance",
+          message_text: revisionMessage,
+          sent_by: "coach",
+          is_proactive: true,
+          credits_used: 0,
+          context: {
+            assignmentId: assignment.id,
+            submissionId: sub.id,
+            score,
+            improvements,
+            lessonId: lesson?.id || null,
+            lessonUrl: lesson?.content_url || null,
+          },
+        });
+
+        // Header notification so they see it immediately
+        await admin.from("notifications").insert({
+          user_id: user.id,
+          type: "coach",
+          title: `Revision needed — ${score}/100`,
+          message: improvements[0]
+            ? `Top fix: ${improvements[0]}`
+            : "Open your assignment to see what to change.",
+          data: {
+            link: `/tools/learn/${userLearningId}/assignment/${assignment.id}`,
+            assignmentId: assignment.id,
+            submissionId: sub.id,
+            lessonUrl: lesson?.content_url || null,
+          },
+        });
+      }
     }
 
     // Achievements
