@@ -592,6 +592,7 @@ export default function LearnPath() {
       <div className="p-3 border-t shrink-0">
         <div className="flex gap-2">
           <Textarea
+            ref={inputRef}
             value={input}
             onChange={(e) => setInput(e.target.value)}
             placeholder="Ask the coach anything…"
