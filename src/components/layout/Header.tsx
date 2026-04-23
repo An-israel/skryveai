@@ -114,6 +114,9 @@ export function Header({ isAuthenticated: isAuthenticatedProp, onLogout }: Heade
               <Link to="/team" className="px-3 py-1.5 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors rounded-lg hover:bg-muted/50">
                 Team
               </Link>
+              <Link to="/tools/learn" className="px-3 py-1.5 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors rounded-lg hover:bg-muted/50">
+                Learn
+              </Link>
 
               {/* ── Auto-Pilot CTA ── */}
               <Link

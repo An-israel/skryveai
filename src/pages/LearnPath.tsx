@@ -14,6 +14,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
+import { ReminderSettingsButton } from "@/components/learning/ReminderSettingsButton";
 import {
   ArrowLeft,
   BookOpen,
@@ -47,6 +48,7 @@ interface Module {
   title: string;
   description: string | null;
   estimated_hours: number | null;
+  content_url: string | null;
 }
 
 interface UserLearning {
@@ -62,6 +64,8 @@ interface UserLearning {
   total_time_minutes: number;
   coach_tone: string;
   learning_path_id: string;
+  reminders_enabled: boolean;
+  reminder_inactivity_days: number;
   learning_paths: { skill_name: string; display_name: string };
 }
 
@@ -93,7 +97,7 @@ export default function LearnPath() {
     const { data: ulData, error: ulErr } = await supabase
       .from("user_learning")
       .select(
-        "id, user_id, current_level, current_module, current_lesson, completed_lessons, completed_lesson_ids, total_lessons, streak_days, total_time_minutes, coach_tone, learning_path_id, learning_paths(skill_name, display_name)"
+        "id, user_id, current_level, current_module, current_lesson, completed_lessons, completed_lesson_ids, total_lessons, streak_days, total_time_minutes, coach_tone, learning_path_id, reminders_enabled, reminder_inactivity_days, learning_paths(skill_name, display_name)"
       )
       .eq("id", userLearningId!)
       .maybeSingle();
@@ -341,6 +345,7 @@ export default function LearnPath() {
               <Flame className="h-3 w-3 mr-1" />
               {ul.streak_days}d streak
             </Badge>
+            <ReminderSettingsButton ul={ul} onUpdate={setUl} />
           </div>
           <h1 className="text-2xl md:text-3xl font-bold">{ul.learning_paths.display_name}</h1>
           <div className="flex items-center gap-3 mt-3">
@@ -383,20 +388,50 @@ export default function LearnPath() {
                     <Badge variant="outline" className="text-[10px]">Has assignment</Badge>
                   )}
                 </div>
-                {activeLesson.content_url ? (
-                  <a
-                    href={activeLesson.content_url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center gap-2 text-sm text-primary hover:underline mb-4"
-                  >
-                    <PlayCircle className="h-4 w-4" /> Open resource
-                  </a>
-                ) : (
-                  <p className="text-sm text-muted-foreground italic mb-4">
-                    Resource coming soon. Use the coach on the right to learn this topic now.
-                  </p>
-                )}
+                {(() => {
+                  const ownUrl = activeLesson.content_url;
+                  const isValid = (u: string | null | undefined) =>
+                    !!u && /^https?:\/\//i.test(u);
+                  if (isValid(ownUrl)) {
+                    return (
+                      <a
+                        href={ownUrl!}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-2 text-sm text-primary hover:underline mb-4"
+                      >
+                        <PlayCircle className="h-4 w-4" /> Open lesson resource
+                      </a>
+                    );
+                  }
+                  const parentModule = modules.find((m) => m.id === activeLesson.module_id);
+                  const moduleUrl = parentModule?.content_url;
+                  if (isValid(moduleUrl)) {
+                    return (
+                      <div className="mb-4 space-y-2">
+                        <Badge variant="outline" className="bg-warning/10 text-warning border-warning/30 text-[10px]">
+                          Using module resource
+                        </Badge>
+                        <a
+                          href={moduleUrl!}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex items-center gap-2 text-sm text-primary hover:underline"
+                        >
+                          <PlayCircle className="h-4 w-4" /> Open module resource ({parentModule?.title})
+                        </a>
+                        <p className="text-xs text-muted-foreground">
+                          This lesson doesn't have its own link yet — opening the module-level resource instead.
+                        </p>
+                      </div>
+                    );
+                  }
+                  return (
+                    <p className="text-sm text-muted-foreground italic mb-4">
+                      Resource coming soon. Use the coach on the right to learn this topic now.
+                    </p>
+                  );
+                })()}
                 <div className="flex gap-2">
                   <Button
                     onClick={() => markComplete(activeLesson)}

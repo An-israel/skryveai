@@ -39,7 +39,9 @@ import {
   FileText,
   Target,
   Briefcase,
-  Linkedin
+  Linkedin,
+  GraduationCap,
+  Sparkles,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -312,6 +314,42 @@ export default function Dashboard() {
         >
           <SubscriptionStats />
           <CreditsDisplay userId={user?.id} />
+        </motion.div>
+
+        {/* Learn a Skill — hero CTA, equal prominence to Auto-Pilot */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.11 }}
+          className="mb-6"
+        >
+          <Card
+            className="relative overflow-hidden cursor-pointer border-primary/40 ring-1 ring-primary/20 shadow-[0_4px_28px_hsl(var(--primary)/0.18)] hover:shadow-[0_6px_36px_hsl(var(--primary)/0.32)] transition-all duration-300"
+            onClick={() => navigate("/tools/learn")}
+          >
+            <div className="absolute inset-0 bg-gradient-to-r from-primary/15 via-primary/5 to-transparent pointer-events-none" />
+            <CardContent className="relative p-5 sm:p-6 flex flex-col sm:flex-row sm:items-center gap-4">
+              <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-primary to-primary/70 text-primary-foreground flex items-center justify-center shrink-0 shadow-glow">
+                <GraduationCap className="w-7 h-7" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2 mb-1">
+                  <h2 className="font-display text-lg sm:text-xl font-extrabold tracking-tight">
+                    Learn a Skill with your AI Coach
+                  </h2>
+                  <Badge className="bg-primary/15 text-primary border-primary/30">
+                    <Sparkles className="w-3 h-3 mr-1" /> New
+                  </Badge>
+                </div>
+                <p className="text-sm text-muted-foreground">
+                  Master copywriting, design, SEO and more — guided lessons, real assignments, and a coach that nudges you daily.
+                </p>
+              </div>
+              <Button size="lg" className="font-bold shrink-0">
+                Start learning <ArrowRight className="w-4 h-4 ml-1.5" />
+              </Button>
+            </CardContent>
+          </Card>
         </motion.div>
 
         {/* Career Tools */}

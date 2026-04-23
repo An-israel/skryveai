@@ -1289,6 +1289,7 @@ export type Database = {
       }
       learning_modules: {
         Row: {
+          content_url: string | null
           created_at: string
           description: string | null
           estimated_hours: number | null
@@ -1300,6 +1301,7 @@ export type Database = {
           unlock_level: number | null
         }
         Insert: {
+          content_url?: string | null
           created_at?: string
           description?: string | null
           estimated_hours?: number | null
@@ -1311,6 +1313,7 @@ export type Database = {
           unlock_level?: number | null
         }
         Update: {
+          content_url?: string | null
           created_at?: string
           description?: string | null
           estimated_hours?: number | null
@@ -2153,10 +2156,13 @@ export type Database = {
           id: string
           is_active: boolean
           last_activity_date: string | null
+          last_reminder_sent_at: string | null
           learning_pace: string | null
           learning_path_id: string
           pause_reason: string | null
           paused_at: string | null
+          reminder_inactivity_days: number
+          reminders_enabled: boolean
           started_at: string
           streak_days: number
           target_completion_date: string | null
@@ -2177,10 +2183,13 @@ export type Database = {
           id?: string
           is_active?: boolean
           last_activity_date?: string | null
+          last_reminder_sent_at?: string | null
           learning_pace?: string | null
           learning_path_id: string
           pause_reason?: string | null
           paused_at?: string | null
+          reminder_inactivity_days?: number
+          reminders_enabled?: boolean
           started_at?: string
           streak_days?: number
           target_completion_date?: string | null
@@ -2201,10 +2210,13 @@ export type Database = {
           id?: string
           is_active?: boolean
           last_activity_date?: string | null
+          last_reminder_sent_at?: string | null
           learning_pace?: string | null
           learning_path_id?: string
           pause_reason?: string | null
           paused_at?: string | null
+          reminder_inactivity_days?: number
+          reminders_enabled?: boolean
           started_at?: string
           streak_days?: number
           target_completion_date?: string | null
