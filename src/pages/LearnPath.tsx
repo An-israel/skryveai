@@ -424,6 +424,21 @@ export default function LearnPath() {
       description: `${mod?.title || "Module"} marked complete (${newlyCompleted.length} lesson${newlyCompleted.length === 1 ? "" : "s"}).`,
     });
 
+    // Track skill_learning usage (silent, fire-and-forget) for admin analytics
+    void supabase.from("tool_usage").insert({
+      user_id: ul.user_id,
+      tool_name: "skill_learning",
+      metadata: {
+        skill: (ul as any).learning_paths?.skill_name || null,
+        skill_display: (ul as any).learning_paths?.display_name || null,
+        module_title: mod?.title || null,
+        module_id: moduleId,
+        lessons_completed: newlyCompleted.length,
+        total_completed: newCount,
+        total_lessons: ul.total_lessons,
+      },
+    } as never).then(() => {});
+
     void evaluateAchievements({
       id: ul.id,
       user_id: ul.user_id,

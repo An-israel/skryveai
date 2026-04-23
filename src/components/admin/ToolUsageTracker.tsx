@@ -4,7 +4,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Wrench, RefreshCw, FileText, Target, TrendingUp, Linkedin, Bot, Send, Users } from "lucide-react";
+import { Wrench, RefreshCw, FileText, Target, TrendingUp, Linkedin, Bot, Send, Users, GraduationCap } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 
@@ -24,6 +24,7 @@ const TOOL_LABELS: Record<string, string> = {
   linkedin_analyzer: "LinkedIn Analyzer",
   autopilot: "AutoPilot",
   campaign_email: "Campaign Emails",
+  skill_learning: "Skill Learning",
 };
 
 const TOOL_ICONS: Record<string, React.ReactNode> = {
@@ -32,6 +33,7 @@ const TOOL_ICONS: Record<string, React.ReactNode> = {
   linkedin_analyzer: <Linkedin className="w-4 h-4" />,
   autopilot: <Bot className="w-4 h-4" />,
   campaign_email: <Send className="w-4 h-4" />,
+  skill_learning: <GraduationCap className="w-4 h-4" />,
 };
 
 const TOOL_COLORS: Record<string, string> = {
@@ -40,6 +42,7 @@ const TOOL_COLORS: Record<string, string> = {
   linkedin_analyzer: "bg-sky-500/10 text-sky-600",
   autopilot: "bg-purple-500/10 text-purple-600",
   campaign_email: "bg-orange-500/10 text-orange-600",
+  skill_learning: "bg-indigo-500/10 text-indigo-600",
 };
 
 function getToolDetail(r: UsageRecord): string {
@@ -61,6 +64,10 @@ function getToolDetail(r: UsageRecord): string {
     case "campaign_email":
       return r.metadata?.emails_queued
         ? `${r.metadata.emails_queued} emails · ${r.metadata.campaign_type || "freelancer"}`
+        : "—";
+    case "skill_learning":
+      return r.metadata?.module_title
+        ? `${r.metadata.skill_display || r.metadata.skill || "Skill"} · ${r.metadata.module_title} (${r.metadata.lessons_completed ?? "?"} lessons)`
         : "—";
     default:
       return JSON.stringify(r.metadata || {}).slice(0, 60);
