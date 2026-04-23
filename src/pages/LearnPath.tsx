@@ -1031,7 +1031,7 @@ export default function LearnPath() {
                   </div>
                   <Button
                     size="sm"
-                    onClick={() => void markModuleComplete(currentModule.id)}
+                    onClick={() => setConfirmModuleId(currentModule.id)}
                     disabled={isLoading}
                     className="shrink-0 w-full sm:w-auto"
                   >
