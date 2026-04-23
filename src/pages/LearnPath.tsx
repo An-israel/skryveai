@@ -266,6 +266,57 @@ export default function LearnPath() {
     return urlStatuses[u] || "checking";
   }
 
+  // Detects natural-language signals that the user finished an interactive task
+  // tied to the active lesson (quiz/checklist/upload/done/submitted).
+  function looksLikeCompletionSignal(text: string): boolean {
+    const t = text.toLowerCase();
+    const verbs = [
+      "finished", "completed", "done with", "i'm done", "im done",
+      "submitted", "uploaded", "turned in", "passed", "aced",
+    ];
+    const nouns = [
+      "quiz", "checklist", "exercise", "assignment", "task",
+      "upload", "submission", "lesson",
+    ];
+    if (verbs.some((v) => t.includes(v))) {
+      // either a verb alone ("i'm done") or verb + noun match
+      if (/i('?| a)?m? ?done/.test(t)) return true;
+      return nouns.some((n) => t.includes(n));
+    }
+    return false;
+  }
+
+  // Announce module readiness to screen readers
+  useEffect(() => {
+    if (!activeLesson) return;
+    const mod = modules.find((m) => m.id === activeLesson.module_id);
+    if (!mod) return;
+    const ml = lessonsByModule[mod.id] || [];
+    if (ml.length === 0) return;
+    const done = ml.filter((l) => completedSet.has(l.id)).length;
+    const allDone = done === ml.length;
+    const lastLesson = ml[ml.length - 1]?.id === activeLesson.id;
+    const lessonDone = completedSet.has(activeLesson.id);
+
+    let msg = "";
+    let key = "";
+    if (allDone) {
+      msg = `Module ${mod.title} is ready to mark complete. All ${ml.length} lessons are finished.`;
+      key = `ready:${mod.id}`;
+    } else if (lastLesson && lessonDone) {
+      msg = `Last lesson of ${mod.title} complete. ${ml.length - done} lesson${ml.length - done === 1 ? "" : "s"} remaining before the module is done.`;
+      key = `last-done:${activeLesson.id}`;
+    } else if (lastLesson) {
+      msg = `You're on the last lesson of ${mod.title}.`;
+      key = `last:${activeLesson.id}`;
+    }
+    if (msg && key !== lastAnnouncedKeyRef.current) {
+      lastAnnouncedKeyRef.current = key;
+      setLiveAnnounce(msg);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeLesson, completedSet, lessonsByModule, modules]);
+
   async function markComplete(lesson: Lesson) {
     if (!ul) return;
     const completed = new Set(ul.completed_lesson_ids || []);
