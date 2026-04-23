@@ -262,6 +262,20 @@ export default function LearnPath() {
       const token = session?.access_token;
       if (!token) throw new Error("Not authenticated");
 
+      // Build a rich progress snapshot so the coach NEVER repeats itself
+      // and always knows what's done vs what's next.
+      const activeModule = activeLesson
+        ? modules.find((m) => m.id === activeLesson.module_id)
+        : null;
+      const moduleLessons = activeModule ? lessonsByModule[activeModule.id] || [] : [];
+      const moduleDoneCount = moduleLessons.filter((l) => completedSet.has(l.id)).length;
+      const moduleAllDone = moduleLessons.length > 0 && moduleDoneCount === moduleLessons.length;
+      const completedTitles = lessons.filter((l) => completedSet.has(l.id)).map((l) => l.title);
+      const remainingInModule = moduleLessons
+        .filter((l) => !completedSet.has(l.id))
+        .map((l) => l.title);
+      const nextLessonOverall = lessons.find((l) => !completedSet.has(l.id));
+
       const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/learning-coach-chat`;
       const resp = await fetch(url, {
         method: "POST",
@@ -274,6 +288,19 @@ export default function LearnPath() {
           message: userMsg,
           lessonId: activeLessonId,
           history: messages.slice(-10),
+          progress: {
+            completedLessons: ul.completed_lessons,
+            totalLessons: ul.total_lessons,
+            streakDays: ul.streak_days,
+            currentModuleNumber: activeModule?.module_number ?? null,
+            currentModuleTitle: activeModule?.title ?? null,
+            moduleDoneCount,
+            moduleTotal: moduleLessons.length,
+            moduleAllDone,
+            completedLessonTitles: completedTitles.slice(-20),
+            remainingInModule: remainingInModule.slice(0, 10),
+            nextLessonTitle: nextLessonOverall?.title ?? null,
+          },
         }),
       });
 
