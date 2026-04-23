@@ -112,7 +112,7 @@ export function NextBadgeCard({
           {/* Exact inputs used to compute this preview */}
           <div className="mt-3 pt-3 border-t border-border/50 grid grid-cols-2 gap-2 text-[11px]">
             <div className="flex items-center gap-1.5">
-              <Flame className="h-3 w-3 text-orange-500" />
+              <Flame className="h-3 w-3 text-primary" />
               <span className="text-muted-foreground">Streak:</span>
               <span className="font-semibold">{streakDays}d</span>
             </div>
