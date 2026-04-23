@@ -18,6 +18,7 @@ import { ReminderSettingsButton } from "@/components/learning/ReminderSettingsBu
 import { NextBadgeCard } from "@/components/learning/NextBadgeCard";
 import { LessonContentEmbed } from "@/components/learning/LessonContentEmbed";
 import { validateUrl, parseUrl, type UrlStatus } from "@/lib/learning/url-validation";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import {
   ArrowLeft,
   AlertTriangle,
@@ -26,6 +27,7 @@ import {
   Clock,
   Flame,
   Loader2,
+  MessageCircle,
   Send,
   Sparkles,
 } from "lucide-react";
@@ -88,6 +90,7 @@ export default function LearnPath() {
   const [messages, setMessages] = useState<ChatMsg[]>([]);
   const [input, setInput] = useState("");
   const [streaming, setStreaming] = useState(false);
+  const [chatOpen, setChatOpen] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   // URL validation cache: url -> "checking" | "ok" | "broken"
@@ -379,6 +382,73 @@ export default function LearnPath() {
     ? Math.round((ul.completed_lessons / ul.total_lessons) * 100)
     : 0;
 
+  // Reusable chat panel — used as a sticky side rail on xl+ and inside a bottom Sheet on smaller screens.
+  const chatPanel = (
+    <div className="flex flex-col h-full min-h-0">
+      <div className="p-3 sm:p-4 border-b shrink-0">
+        <div className="flex items-center gap-2">
+          <Sparkles className="h-4 w-4 text-primary" />
+          <h3 className="font-semibold text-sm sm:text-base">AI Coach</h3>
+          <Badge variant="outline" className="ml-auto text-[10px]">0.1 cr/msg</Badge>
+        </div>
+        {activeLesson && (
+          <p className="text-xs text-muted-foreground mt-1 truncate">
+            Context: {activeLesson.title}
+          </p>
+        )}
+      </div>
+      <ScrollArea className="flex-1 p-3 sm:p-4 min-h-0" ref={scrollRef as any}>
+        <div className="space-y-3">
+          {messages.map((m, i) => (
+            <div
+              key={i}
+              className={`rounded-lg px-3 py-2 text-sm break-words ${
+                m.role === "user"
+                  ? "bg-primary text-primary-foreground ml-4 sm:ml-8"
+                  : "bg-muted mr-4 sm:mr-8"
+              }`}
+            >
+              {m.role === "assistant" ? (
+                <div className="prose prose-sm dark:prose-invert max-w-none prose-p:my-1 prose-ul:my-1 prose-headings:my-2 break-words">
+                  <ReactMarkdown>{m.content || "…"}</ReactMarkdown>
+                </div>
+              ) : (
+                <p className="whitespace-pre-wrap">{m.content}</p>
+              )}
+            </div>
+          ))}
+          {streaming && messages[messages.length - 1]?.content === "" && (
+            <div className="text-xs text-muted-foreground">Coach is typing…</div>
+          )}
+        </div>
+      </ScrollArea>
+      <div className="p-3 border-t shrink-0">
+        <div className="flex gap-2">
+          <Textarea
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            placeholder="Ask the coach anything…"
+            className="min-h-[44px] max-h-32 resize-none text-sm"
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && !e.shiftKey) {
+                e.preventDefault();
+                void sendMessage();
+              }
+            }}
+            disabled={streaming}
+          />
+          <Button
+            size="icon"
+            onClick={() => void sendMessage()}
+            disabled={streaming || !input.trim()}
+          >
+            {streaming ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
+
   return (
     <div className="min-h-screen bg-background">
       <SEOHead
@@ -386,14 +456,14 @@ export default function LearnPath() {
         description={`Learn ${ul.learning_paths.display_name} with your AI coach.`}
       />
       <Header />
-      <main className="container mx-auto px-4 py-6 max-w-7xl">
-        <div className="mb-6">
+      <main className="container mx-auto px-3 sm:px-4 py-4 sm:py-6 max-w-7xl pb-24 xl:pb-6">
+        <div className="mb-4 sm:mb-6">
           <Button variant="ghost" size="sm" asChild className="mb-3">
             <Link to="/tools/learn">
               <ArrowLeft className="h-4 w-4 mr-1" /> All skills
             </Link>
           </Button>
-          <div className="flex flex-wrap items-center gap-3 mb-2">
+          <div className="flex flex-wrap items-center gap-2 mb-2">
             <Badge variant="secondary">
               <Sparkles className="h-3 w-3 mr-1" /> AI Coach
             </Badge>
@@ -404,28 +474,30 @@ export default function LearnPath() {
             </Badge>
             <ReminderSettingsButton ul={ul} onUpdate={setUl} />
           </div>
-          <h1 className="text-2xl md:text-3xl font-bold">{ul.learning_paths.display_name}</h1>
+          <h1 className="text-xl sm:text-2xl md:text-3xl font-bold break-words">
+            {ul.learning_paths.display_name}
+          </h1>
           <div className="flex items-center gap-3 mt-3">
             <Progress value={progressPct} className="flex-1 max-w-md" />
-            <span className="text-sm text-muted-foreground">
-              {ul.completed_lessons}/{ul.total_lessons} lessons · {progressPct}%
+            <span className="text-xs sm:text-sm text-muted-foreground whitespace-nowrap">
+              {ul.completed_lessons}/{ul.total_lessons} · {progressPct}%
             </span>
           </div>
         </div>
 
-        <div className="grid lg:grid-cols-[1fr_400px] gap-6">
+        <div className="grid xl:grid-cols-[1fr_400px] gap-4 sm:gap-6">
           {/* Left: lesson area + module list */}
-          <div className="space-y-6 min-w-0">
+          <div className="space-y-4 sm:space-y-6 min-w-0">
             {activeLesson && (
-              <Card className="p-6">
-                <div className="flex items-start justify-between gap-4 mb-3">
-                  <div className="min-w-0">
-                    <Badge variant="secondary" className="mb-2 capitalize">
+              <Card className="p-4 sm:p-6">
+                <div className="flex items-start justify-between gap-3 mb-3">
+                  <div className="min-w-0 flex-1">
+                    <Badge variant="secondary" className="mb-2 capitalize text-[10px] sm:text-xs">
                       {activeLesson.content_type}
                     </Badge>
-                    <h2 className="text-xl font-semibold">{activeLesson.title}</h2>
+                    <h2 className="text-lg sm:text-xl font-semibold break-words">{activeLesson.title}</h2>
                     {activeLesson.description && (
-                      <p className="text-sm text-muted-foreground mt-2">
+                      <p className="text-xs sm:text-sm text-muted-foreground mt-2 break-words">
                         {activeLesson.description}
                       </p>
                     )}
@@ -508,17 +580,20 @@ export default function LearnPath() {
                     </div>
                   );
                 })()}
-                <div className="flex gap-2">
+                <div className="flex flex-col sm:flex-row gap-2">
                   <Button
                     onClick={() => markComplete(activeLesson)}
                     disabled={completedSet.has(activeLesson.id)}
+                    className="w-full sm:w-auto"
                   >
                     {completedSet.has(activeLesson.id) ? "Completed" : "Mark complete"}
                   </Button>
                   <Button
                     variant="outline"
+                    className="w-full sm:w-auto"
                     onClick={() => {
                       setInput(`Teach me "${activeLesson.title}" — give me the key concepts, an example, and a 5-minute exercise.`);
+                      setChatOpen(true);
                     }}
                   >
                     Ask coach to teach this
@@ -541,22 +616,24 @@ export default function LearnPath() {
                 <BookOpen className="h-4 w-4" /> Curriculum
               </h3>
               <Tabs defaultValue={modules[0]?.id} className="w-full">
-                <TabsList className="w-full flex-wrap h-auto justify-start">
-                  {modules.map((m) => {
-                    const ml = lessonsByModule[m.id] || [];
-                    const mDone = ml.filter((l) => completedSet.has(l.id)).length;
-                    const allDone = ml.length > 0 && mDone === ml.length;
-                    return (
-                      <TabsTrigger key={m.id} value={m.id} className="text-xs gap-1.5">
-                        {allDone && <CheckCircle2 className="h-3 w-3 text-primary" />}
-                        M{m.module_number}: {m.title}
-                        <span className="text-[10px] text-muted-foreground">
-                          ({mDone}/{ml.length})
-                        </span>
-                      </TabsTrigger>
-                    );
-                  })}
-                </TabsList>
+                <ScrollArea className="w-full">
+                  <TabsList className="inline-flex w-max h-auto justify-start">
+                    {modules.map((m) => {
+                      const ml = lessonsByModule[m.id] || [];
+                      const mDone = ml.filter((l) => completedSet.has(l.id)).length;
+                      const allDone = ml.length > 0 && mDone === ml.length;
+                      return (
+                        <TabsTrigger key={m.id} value={m.id} className="text-xs gap-1.5 whitespace-nowrap">
+                          {allDone && <CheckCircle2 className="h-3 w-3 text-primary" />}
+                          M{m.module_number}: {m.title}
+                          <span className="text-[10px] text-muted-foreground">
+                            ({mDone}/{ml.length})
+                          </span>
+                        </TabsTrigger>
+                      );
+                    })}
+                  </TabsList>
+                </ScrollArea>
                 {modules.map((m) => {
                   const ml = lessonsByModule[m.id] || [];
                   const mDone = ml.filter((l) => completedSet.has(l.id)).length;
@@ -611,72 +688,36 @@ export default function LearnPath() {
             </Card>
           </div>
 
-          {/* Right: AI Coach chat */}
-          <Card className="flex flex-col h-[calc(100vh-220px)] sticky top-20">
-            <div className="p-4 border-b">
-              <div className="flex items-center gap-2">
-                <Sparkles className="h-4 w-4 text-primary" />
-                <h3 className="font-semibold">AI Coach</h3>
-                <Badge variant="outline" className="ml-auto text-[10px]">0.1 cr/msg</Badge>
-              </div>
-              {activeLesson && (
-                <p className="text-xs text-muted-foreground mt-1 truncate">
-                  Context: {activeLesson.title}
-                </p>
-              )}
-            </div>
-            <ScrollArea className="flex-1 p-4" ref={scrollRef as any}>
-              <div className="space-y-3">
-                {messages.map((m, i) => (
-                  <div
-                    key={i}
-                    className={`rounded-lg px-3 py-2 text-sm ${
-                      m.role === "user"
-                        ? "bg-primary text-primary-foreground ml-8"
-                        : "bg-muted mr-8"
-                    }`}
-                  >
-                    {m.role === "assistant" ? (
-                      <div className="prose prose-sm dark:prose-invert max-w-none prose-p:my-1 prose-ul:my-1 prose-headings:my-2">
-                        <ReactMarkdown>{m.content || "…"}</ReactMarkdown>
-                      </div>
-                    ) : (
-                      <p className="whitespace-pre-wrap">{m.content}</p>
-                    )}
-                  </div>
-                ))}
-                {streaming && messages[messages.length - 1]?.content === "" && (
-                  <div className="text-xs text-muted-foreground">Coach is typing…</div>
-                )}
-              </div>
-            </ScrollArea>
-            <div className="p-3 border-t">
-              <div className="flex gap-2">
-                <Textarea
-                  value={input}
-                  onChange={(e) => setInput(e.target.value)}
-                  placeholder="Ask the coach anything…"
-                  className="min-h-[44px] max-h-32 resize-none text-sm"
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter" && !e.shiftKey) {
-                      e.preventDefault();
-                      void sendMessage();
-                    }
-                  }}
-                  disabled={streaming}
-                />
-                <Button
-                  size="icon"
-                  onClick={() => void sendMessage()}
-                  disabled={streaming || !input.trim()}
-                >
-                  {streaming ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
-                </Button>
-              </div>
-            </div>
+          {/* Right: AI Coach chat — sticky side rail on xl+ only */}
+          <Card className="hidden xl:flex flex-col h-[calc(100vh-220px)] sticky top-20 overflow-hidden">
+            {chatPanel}
           </Card>
         </div>
       </main>
+
+      {/* Mobile/tablet: floating chat button + bottom sheet (hidden on xl+) */}
+      <div className="xl:hidden">
+        <Sheet open={chatOpen} onOpenChange={setChatOpen}>
+          <SheetTrigger asChild>
+            <Button
+              size="lg"
+              className="fixed bottom-4 right-4 z-40 rounded-full h-14 w-14 shadow-lg p-0"
+              aria-label="Open AI Coach"
+            >
+              <MessageCircle className="h-6 w-6" />
+            </Button>
+          </SheetTrigger>
+          <SheetContent
+            side="bottom"
+            className="h-[85vh] p-0 flex flex-col"
+          >
+            <SheetHeader className="sr-only">
+              <SheetTitle>AI Coach</SheetTitle>
+            </SheetHeader>
+            <div className="flex-1 min-h-0">{chatPanel}</div>
+          </SheetContent>
+        </Sheet>
+      </div>
     </div>
   );
 }
