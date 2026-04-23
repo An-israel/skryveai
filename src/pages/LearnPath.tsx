@@ -788,6 +788,21 @@ export default function LearnPath() {
                       streakDays={ul.streak_days}
                       skillName={ul.learning_paths.display_name}
                     />
+                    <div className="flex items-center justify-between gap-3 rounded-md border p-2.5">
+                      <div className="min-w-0">
+                        <Label htmlFor="auto-detect" className="text-xs font-medium flex items-center gap-1.5">
+                          <Eye className="h-3 w-3" /> Auto-detect lesson done
+                        </Label>
+                        <p className="text-[10px] text-muted-foreground mt-0.5">
+                          Marks the lesson complete when you tell the coach you finished a quiz, checklist, or upload.
+                        </p>
+                      </div>
+                      <Switch
+                        id="auto-detect"
+                        checked={autoDetect}
+                        onCheckedChange={setAutoDetect}
+                      />
+                    </div>
                     <Tabs defaultValue={modules.find((m) => m.id === activeLesson?.module_id)?.id || modules[0]?.id} className="w-full">
                       <ScrollArea className="w-full">
                         <TabsList className="inline-flex w-max h-auto justify-start">
