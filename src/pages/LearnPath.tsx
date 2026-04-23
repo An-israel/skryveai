@@ -102,8 +102,23 @@ export default function LearnPath() {
 
   useEffect(() => {
     if (!user || !userLearningId) return;
+    // Hydrate "already taught in chat" memory so we don't re-stage the prompt
+    // when the user revisits the same lesson on mobile or desktop.
+    try {
+      const key = `skryve.taughtLessons.${userLearningId}`;
+      const raw = localStorage.getItem(key);
+      if (raw) taughtLessonsRef.current = new Set(JSON.parse(raw));
+    } catch { /* ignore */ }
     void loadAll();
   }, [user, userLearningId]);
+
+  function rememberTaught(lessonId: string) {
+    taughtLessonsRef.current.add(lessonId);
+    try {
+      const key = `skryve.taughtLessons.${userLearningId}`;
+      localStorage.setItem(key, JSON.stringify(Array.from(taughtLessonsRef.current)));
+    } catch { /* ignore */ }
+  }
 
   async function loadAll() {
     setLoadingData(true);
