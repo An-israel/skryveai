@@ -277,17 +277,18 @@ export default function LearnPath() {
     const ml = lessonsByModule[moduleId] || [];
     if (ml.length === 0) return;
     const completed = new Set(ul.completed_lesson_ids || []);
-    let added = 0;
+    const newlyCompleted: Lesson[] = [];
     ml.forEach((l) => {
       if (!completed.has(l.id)) {
         completed.add(l.id);
-        added++;
+        newlyCompleted.push(l);
       }
     });
-    if (added === 0) {
+    if (newlyCompleted.length === 0) {
       toast({ title: "Module already complete ✅" });
       return;
     }
+    setCompletingModuleId(moduleId);
     const newCount = completed.size;
     const { error } = await supabase
       .from("user_learning")
@@ -298,14 +299,16 @@ export default function LearnPath() {
       })
       .eq("id", ul.id);
     if (error) {
+      setCompletingModuleId(null);
       toast({ title: "Could not save progress", variant: "destructive" });
       return;
     }
+    // Instantly refresh UI indicators in the curriculum drawer
     setUl({ ...ul, completed_lesson_ids: Array.from(completed), completed_lessons: newCount });
     const mod = modules.find((m) => m.id === moduleId);
     toast({
       title: "Module complete 🎉",
-      description: `${mod?.title || "Module"} marked complete (${added} lesson${added === 1 ? "" : "s"}).`,
+      description: `${mod?.title || "Module"} marked complete (${newlyCompleted.length} lesson${newlyCompleted.length === 1 ? "" : "s"}).`,
     });
 
     void evaluateAchievements({
@@ -326,9 +329,26 @@ export default function LearnPath() {
     // Move to first lesson of next module if exists
     const idx = modules.findIndex((m) => m.id === moduleId);
     const nextMod = modules[idx + 1];
-    if (nextMod) {
-      const first = (lessonsByModule[nextMod.id] || [])[0];
-      if (first) setActiveLessonId(first.id);
+    const nextFirstLesson = nextMod ? (lessonsByModule[nextMod.id] || [])[0] : null;
+
+    // Post a chat confirmation summarising what was completed and what's next
+    const titlesList = newlyCompleted
+      .map((l) => `- ${l.title}`)
+      .join("\n");
+    const confirmation = nextFirstLesson
+      ? `✅ **${mod?.title || "Module"} complete!** Marked these as done:\n${titlesList}\n\n👉 Up next: **${nextFirstLesson.title}** (Module ${nextMod!.module_number}). I'll start teaching it now.`
+      : `✅ **${mod?.title || "Module"} complete!** Marked these as done:\n${titlesList}\n\n🎓 You've reached the end of the curriculum — incredible work!`;
+    setMessages((m) => [...m, { role: "assistant", content: confirmation }]);
+
+    setJustCompletedModuleId(moduleId);
+    setTimeout(() => setJustCompletedModuleId((cur) => (cur === moduleId ? null : cur)), 2500);
+    setCompletingModuleId(null);
+
+    if (nextFirstLesson) {
+      // Trigger auto-focus + auto-stage on next lesson load
+      pendingFocusRef.current = true;
+      setActiveLessonId(nextFirstLesson.id);
+      setCurriculumOpen(false);
     }
   }
 
