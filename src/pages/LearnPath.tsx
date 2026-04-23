@@ -469,6 +469,14 @@ export default function LearnPath() {
     if (!ul || !input.trim() || streaming) return;
     const userMsg = input.trim();
     setInput("");
+
+    // Auto-detect: if the user signals they finished a quiz/checklist/upload/exercise
+    // for the active lesson, silently mark that lesson complete so the module
+    // completion banner can appear on the next render.
+    if (autoDetect && activeLesson && !completedSet.has(activeLesson.id) && looksLikeCompletionSignal(userMsg)) {
+      void markComplete(activeLesson);
+    }
+
     setMessages((m) => [...m, { role: "user", content: userMsg }, { role: "assistant", content: "" }]);
     setStreaming(true);
 
