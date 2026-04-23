@@ -429,6 +429,47 @@ export default function LearnPath() {
     }
   }
 
+  // Decide whether the active lesson has an INLINE-EMBEDDABLE video.
+  // (Articles & blocked sites are NOT shown here — the coach handles them in chat.)
+  const activeVideoUrl = useMemo(() => {
+    if (!activeLesson) return null;
+    const candidates = [activeLesson.content_url];
+    const parentMod = modules.find((m) => m.id === activeLesson.module_id);
+    if (parentMod?.content_url) candidates.push(parentMod.content_url);
+    for (const u of candidates) {
+      if (!u || !parseUrl(u)) continue;
+      const state = urlState(u);
+      if (state === "broken") continue; // never show broken
+      try {
+        const host = new URL(u).hostname.toLowerCase();
+        const videoHost =
+          host === "youtu.be" ||
+          host.endsWith("youtube.com") ||
+          host === "vimeo.com" ||
+          host === "player.vimeo.com" ||
+          host.endsWith("loom.com");
+        if (videoHost) return u;
+      } catch { /* ignore */ }
+    }
+    return null;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeLesson, modules, urlStatuses]);
+
+  function askCoachToTeachLesson(lesson: Lesson) {
+    const prompt = `Teach me "${lesson.title}" right here in the chat. Give me:\n1. The 3 most important concepts in plain language\n2. A concrete example from the real world\n3. A 5-minute exercise I can do right now\n\nDo not link me anywhere — explain it all here.`;
+    setInput(prompt);
+  }
+
+  // When the active lesson changes and there's NO embeddable video, auto-stage the
+  // teach-in-chat prompt so the user just hits send. Only stage if the input is empty.
+  useEffect(() => {
+    if (!activeLesson) return;
+    if (activeVideoUrl) return;
+    if (input.trim()) return;
+    askCoachToTeachLesson(activeLesson);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeLessonId, activeVideoUrl]);
+
   if (loading || loadingData || !ul) {
     return (
       <div className="min-h-screen flex items-center justify-center">
