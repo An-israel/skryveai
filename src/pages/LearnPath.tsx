@@ -30,7 +30,6 @@ import {
   MessageCircle,
   Send,
   Sparkles,
-  X,
 } from "lucide-react";
 
 type ChatMsg = { role: "user" | "assistant"; content: string };
