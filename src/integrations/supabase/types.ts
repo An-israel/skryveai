@@ -2390,6 +2390,17 @@ export type Database = {
     }
     Functions: {
       add_daily_credits: { Args: never; Returns: undefined }
+      award_learning_achievement: {
+        Args: {
+          _achievement_description: string
+          _achievement_name: string
+          _achievement_type: string
+          _skill_name: string
+          _user_id: string
+          _user_learning_id: string
+        }
+        Returns: string
+      }
       get_signup_order: { Args: never; Returns: number }
       has_role: {
         Args: {

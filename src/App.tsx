@@ -38,6 +38,7 @@ import EmailFinder from "./pages/EmailFinder";
 import EmailFinderLanding from "./pages/EmailFinderLanding";
 import LearnHub from "./pages/LearnHub";
 import LearnPath from "./pages/LearnPath";
+import LearnAssignment from "./pages/LearnAssignment";
 import { ChatWidget } from "@/components/chat/ChatWidget";
 
 const queryClient = new QueryClient();
@@ -96,6 +97,7 @@ const App = () => (
           <Route path="/email-finder" element={<GuardedRoute><EmailFinder /></GuardedRoute>} />
           <Route path="/tools/learn" element={<GuardedRoute><LearnHub /></GuardedRoute>} />
           <Route path="/tools/learn/:userLearningId" element={<GuardedRoute><LearnPath /></GuardedRoute>} />
+          <Route path="/tools/learn/:userLearningId/assignment/:assignmentId" element={<GuardedRoute><LearnAssignment /></GuardedRoute>} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>
