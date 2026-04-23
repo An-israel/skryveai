@@ -843,7 +843,7 @@ export default function LearnPath() {
                                   variant="outline"
                                   className="w-full"
                                   disabled={completingModuleId === m.id}
-                                  onClick={() => void markModuleComplete(m.id)}
+                                  onClick={() => setConfirmModuleId(m.id)}
                                 >
                                   {completingModuleId === m.id ? (
                                     <>
