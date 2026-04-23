@@ -39,6 +39,7 @@ import EmailFinderLanding from "./pages/EmailFinderLanding";
 import LearnHub from "./pages/LearnHub";
 import LearnPath from "./pages/LearnPath";
 import LearnAssignment from "./pages/LearnAssignment";
+import SkillLearningAnalytics from "./pages/admin/SkillLearningAnalytics";
 import { ChatWidget } from "@/components/chat/ChatWidget";
 
 const queryClient = new QueryClient();
@@ -84,6 +85,7 @@ const App = () => (
           <Route path="/campaigns/new" element={<GuardedRoute><NewCampaign /></GuardedRoute>} />
           <Route path="/payment/callback" element={<PaymentCallback />} />
           <Route path="/admin" element={<Admin />} />
+          <Route path="/admin/skill-learning" element={<GuardedRoute><SkillLearningAnalytics /></GuardedRoute>} />
           <Route path="/settings" element={<GuardedRoute><Settings /></GuardedRoute>} />
           <Route path="/analytics" element={<GuardedRoute><Analytics /></GuardedRoute>} />
           <Route path="/team" element={<GuardedRoute><TeamManagement /></GuardedRoute>} />
