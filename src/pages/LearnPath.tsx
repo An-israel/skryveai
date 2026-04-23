@@ -1143,6 +1143,92 @@ export default function LearnPath() {
           {chatPanel}
         </Card>
       </main>
+
+      {/* Confirmation modal for marking a module complete */}
+      <AlertDialog
+        open={!!confirmModuleId}
+        onOpenChange={(o) => !o && setConfirmModuleId(null)}
+      >
+        <AlertDialogContent>
+          {(() => {
+            const mod = modules.find((m) => m.id === confirmModuleId);
+            const ml = confirmModuleId ? lessonsByModule[confirmModuleId] || [] : [];
+            const completedLessons = ml.filter((l) => completedSet.has(l.id));
+            const incompleteLessons = ml.filter((l) => !completedSet.has(l.id));
+            const hasIncomplete = incompleteLessons.length > 0;
+            return (
+              <>
+                <AlertDialogHeader>
+                  <AlertDialogTitle className="flex items-center gap-2">
+                    <Trophy className="h-4 w-4 text-primary" />
+                    Mark "{mod?.title || "Module"}" complete?
+                  </AlertDialogTitle>
+                  <AlertDialogDescription>
+                    This will mark every lesson in the module as done and move you to the next module.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+
+                <div className="space-y-3 max-h-[40vh] overflow-y-auto">
+                  {completedLessons.length > 0 && (
+                    <div>
+                      <p className="text-xs font-medium text-muted-foreground mb-1.5">
+                        ✅ Already complete ({completedLessons.length})
+                      </p>
+                      <ul className="space-y-1">
+                        {completedLessons.map((l) => (
+                          <li key={l.id} className="flex items-center gap-2 text-xs">
+                            <Check className="h-3 w-3 text-primary shrink-0" />
+                            <span className="truncate">{l.title}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+
+                  {hasIncomplete && (
+                    <div className="rounded-md border border-amber-500/30 bg-amber-500/5 p-2.5">
+                      <div className="flex items-start gap-2">
+                        <AlertTriangle className="h-4 w-4 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
+                        <div className="min-w-0 flex-1">
+                          <p className="text-xs font-medium">
+                            {incompleteLessons.length} lesson{incompleteLessons.length === 1 ? "" : "s"} not finished
+                          </p>
+                          <p className="text-[11px] text-muted-foreground mb-1.5">
+                            These will be marked complete too:
+                          </p>
+                          <ul className="space-y-1">
+                            {incompleteLessons.map((l) => (
+                              <li key={l.id} className="flex items-center gap-2 text-xs">
+                                <Circle className="h-3 w-3 shrink-0 text-muted-foreground" />
+                                <span className="truncate">{l.title}</span>
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Not yet</AlertDialogCancel>
+                  <AlertDialogAction
+                    onClick={() => {
+                      if (confirmModuleId) {
+                        const id = confirmModuleId;
+                        setConfirmModuleId(null);
+                        void markModuleComplete(id);
+                      }
+                    }}
+                  >
+                    {hasIncomplete ? "Complete anyway" : "Mark complete"}
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </>
+            );
+          })()}
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
