@@ -425,69 +425,58 @@ export default function LearnPath() {
                   const moduleUrl = parentModule?.content_url;
                   const moduleState = urlState(moduleUrl);
 
-                  // Lesson URL is good (or still being checked optimistically) → render it.
-                  if (ownState === "ok" || ownState === "checking") {
+                  const askCoach = () =>
+                    setInput(
+                      `Teach me "${activeLesson.title}" — give me the key concepts, an example, and a 5-minute exercise I can do right now.`
+                    );
+
+                  // Lesson URL is good (or still being checked optimistically) → embed it.
+                  if (ownUrl && (ownState === "ok" || ownState === "checking")) {
                     return (
-                      <div className="mb-4 space-y-1">
-                        <a
-                          href={ownUrl!}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="inline-flex items-center gap-2 text-sm text-primary hover:underline"
-                        >
-                          <PlayCircle className="h-4 w-4" /> Open lesson resource
-                          {ownState === "checking" && (
-                            <Loader2 className="h-3 w-3 animate-spin text-muted-foreground" />
-                          )}
-                        </a>
+                      <div className="mb-4">
+                        <LessonContentEmbed
+                          url={ownUrl}
+                          title={activeLesson.title}
+                          onAskCoach={askCoach}
+                        />
                       </div>
                     );
                   }
 
-                  // Lesson URL missing or broken → fall back to module-level URL.
-                  if (moduleState === "ok" || moduleState === "checking") {
+                  // Lesson URL missing or broken → fall back to module-level URL embed.
+                  if (moduleUrl && (moduleState === "ok" || moduleState === "checking")) {
                     return (
-                      <div className="mb-4 space-y-2">
-                        <Badge variant="outline" className="bg-warning/10 text-warning border-warning/30 text-[10px]">
-                          {ownState === "broken" ? (
-                            <>
-                              <AlertTriangle className="h-3 w-3 mr-1" />
-                              Lesson link unreachable — using module resource
-                            </>
-                          ) : (
-                            "Using module resource"
-                          )}
-                        </Badge>
-                        <a
-                          href={moduleUrl!}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="flex items-center gap-2 text-sm text-primary hover:underline"
-                        >
-                          <PlayCircle className="h-4 w-4" /> Open module resource ({parentModule?.title})
-                        </a>
-                        <p className="text-xs text-muted-foreground">
-                          {ownState === "broken"
-                            ? "We couldn't reach the lesson link, so we're showing the module-level resource instead."
-                            : "This lesson doesn't have its own link yet — opening the module-level resource instead."}
-                        </p>
+                      <div className="mb-4">
+                        <LessonContentEmbed
+                          url={moduleUrl}
+                          title={parentModule?.title}
+                          fallbackLabel={
+                            ownState === "broken"
+                              ? "Lesson link unreachable — using module resource"
+                              : "Using module resource"
+                          }
+                          onAskCoach={askCoach}
+                        />
                       </div>
                     );
                   }
 
-                  // Both broken or missing.
+                  // Both broken or missing — keep the user inside the product via coach.
                   return (
                     <div className="mb-4 flex items-start gap-2 rounded-md border border-warning/30 bg-warning/5 px-3 py-2">
                       <AlertTriangle className="h-4 w-4 text-warning mt-0.5 shrink-0" />
-                      <div>
+                      <div className="flex-1">
                         <p className="text-sm font-medium">
                           {ownState === "broken" || moduleState === "broken"
-                            ? "Resource link is broken or redirecting"
+                            ? "Resource link is broken"
                             : "Resource coming soon"}
                         </p>
-                        <p className="text-xs text-muted-foreground">
-                          Use the AI coach on the right to learn this topic right now — it knows the lesson context.
+                        <p className="text-xs text-muted-foreground mb-2">
+                          Use the AI coach on the right to learn this topic right inside SkryveAI — it knows the lesson context.
                         </p>
+                        <Button size="sm" variant="outline" onClick={askCoach}>
+                          Learn this with the AI coach
+                        </Button>
                       </div>
                     </div>
                   );
