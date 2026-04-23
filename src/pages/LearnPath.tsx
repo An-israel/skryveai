@@ -63,6 +63,8 @@ interface UserLearning {
   total_time_minutes: number;
   coach_tone: string;
   learning_path_id: string;
+  reminders_enabled: boolean;
+  reminder_inactivity_days: number;
   learning_paths: { skill_name: string; display_name: string };
 }
 
@@ -94,7 +96,7 @@ export default function LearnPath() {
     const { data: ulData, error: ulErr } = await supabase
       .from("user_learning")
       .select(
-        "id, user_id, current_level, current_module, current_lesson, completed_lessons, completed_lesson_ids, total_lessons, streak_days, total_time_minutes, coach_tone, learning_path_id, learning_paths(skill_name, display_name)"
+        "id, user_id, current_level, current_module, current_lesson, completed_lessons, completed_lesson_ids, total_lessons, streak_days, total_time_minutes, coach_tone, learning_path_id, reminders_enabled, reminder_inactivity_days, learning_paths(skill_name, display_name)"
       )
       .eq("id", userLearningId!)
       .maybeSingle();
