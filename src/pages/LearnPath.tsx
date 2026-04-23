@@ -17,7 +17,7 @@ import { useToast } from "@/hooks/use-toast";
 import { ReminderSettingsButton } from "@/components/learning/ReminderSettingsButton";
 import { NextBadgeCard } from "@/components/learning/NextBadgeCard";
 import { LessonContentEmbed } from "@/components/learning/LessonContentEmbed";
-import { validateUrl, parseUrl, type UrlStatus } from "@/lib/learning/url-validation";
+import { validateUrl, parseUrl, seedUrlStatuses, type UrlStatus } from "@/lib/learning/url-validation";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import {
   AlertDialog,
