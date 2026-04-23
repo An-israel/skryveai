@@ -21,13 +21,12 @@ import { validateUrl, parseUrl, type UrlStatus } from "@/lib/learning/url-valida
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import {
   ArrowLeft,
-  AlertTriangle,
   BookOpen,
   CheckCircle2,
+  ChevronRight,
   Clock,
   Flame,
   Loader2,
-  MessageCircle,
   Send,
   Sparkles,
 } from "lucide-react";
@@ -90,7 +89,7 @@ export default function LearnPath() {
   const [messages, setMessages] = useState<ChatMsg[]>([]);
   const [input, setInput] = useState("");
   const [streaming, setStreaming] = useState(false);
-  const [chatOpen, setChatOpen] = useState(false);
+  const [curriculumOpen, setCurriculumOpen] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   // URL validation cache: url -> "checking" | "ok" | "broken"
@@ -253,6 +252,66 @@ export default function LearnPath() {
     if (next) setActiveLessonId(next.id);
   }
 
+  async function markModuleComplete(moduleId: string) {
+    if (!ul) return;
+    const ml = lessonsByModule[moduleId] || [];
+    if (ml.length === 0) return;
+    const completed = new Set(ul.completed_lesson_ids || []);
+    let added = 0;
+    ml.forEach((l) => {
+      if (!completed.has(l.id)) {
+        completed.add(l.id);
+        added++;
+      }
+    });
+    if (added === 0) {
+      toast({ title: "Module already complete ✅" });
+      return;
+    }
+    const newCount = completed.size;
+    const { error } = await supabase
+      .from("user_learning")
+      .update({
+        completed_lesson_ids: Array.from(completed),
+        completed_lessons: newCount,
+        last_activity_date: new Date().toISOString().slice(0, 10),
+      })
+      .eq("id", ul.id);
+    if (error) {
+      toast({ title: "Could not save progress", variant: "destructive" });
+      return;
+    }
+    setUl({ ...ul, completed_lesson_ids: Array.from(completed), completed_lessons: newCount });
+    const mod = modules.find((m) => m.id === moduleId);
+    toast({
+      title: "Module complete 🎉",
+      description: `${mod?.title || "Module"} marked complete (${added} lesson${added === 1 ? "" : "s"}).`,
+    });
+
+    void evaluateAchievements({
+      id: ul.id,
+      user_id: ul.user_id,
+      completed_lessons: newCount,
+      total_lessons: ul.total_lessons,
+      streak_days: ul.streak_days,
+      current_module: ul.current_module,
+      current_level: ul.current_level,
+      learning_paths: ul.learning_paths,
+    }).then((earned) => {
+      earned.forEach((name) =>
+        toast({ title: "🏆 Achievement unlocked", description: name })
+      );
+    });
+
+    // Move to first lesson of next module if exists
+    const idx = modules.findIndex((m) => m.id === moduleId);
+    const nextMod = modules[idx + 1];
+    if (nextMod) {
+      const first = (lessonsByModule[nextMod.id] || [])[0];
+      if (first) setActiveLessonId(first.id);
+    }
+  }
+
   async function sendMessage() {
     if (!ul || !input.trim() || streaming) return;
     const userMsg = input.trim();
@@ -370,6 +429,47 @@ export default function LearnPath() {
     }
   }
 
+  // Decide whether the active lesson has an INLINE-EMBEDDABLE video.
+  // (Articles & blocked sites are NOT shown here — the coach handles them in chat.)
+  const activeVideoUrl = useMemo(() => {
+    if (!activeLesson) return null;
+    const candidates = [activeLesson.content_url];
+    const parentMod = modules.find((m) => m.id === activeLesson.module_id);
+    if (parentMod?.content_url) candidates.push(parentMod.content_url);
+    for (const u of candidates) {
+      if (!u || !parseUrl(u)) continue;
+      const state = urlState(u);
+      if (state === "broken") continue; // never show broken
+      try {
+        const host = new URL(u).hostname.toLowerCase();
+        const videoHost =
+          host === "youtu.be" ||
+          host.endsWith("youtube.com") ||
+          host === "vimeo.com" ||
+          host === "player.vimeo.com" ||
+          host.endsWith("loom.com");
+        if (videoHost) return u;
+      } catch { /* ignore */ }
+    }
+    return null;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeLesson, modules, urlStatuses]);
+
+  function askCoachToTeachLesson(lesson: Lesson) {
+    const prompt = `Teach me "${lesson.title}" right here in the chat. Give me:\n1. The 3 most important concepts in plain language\n2. A concrete example from the real world\n3. A 5-minute exercise I can do right now\n\nDo not link me anywhere — explain it all here.`;
+    setInput(prompt);
+  }
+
+  // When the active lesson changes and there's NO embeddable video, auto-stage the
+  // teach-in-chat prompt so the user just hits send. Only stage if the input is empty.
+  useEffect(() => {
+    if (!activeLesson) return;
+    if (activeVideoUrl) return;
+    if (input.trim()) return;
+    askCoachToTeachLesson(activeLesson);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeLessonId, activeVideoUrl]);
+
   if (loading || loadingData || !ul) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -456,9 +556,10 @@ export default function LearnPath() {
         description={`Learn ${ul.learning_paths.display_name} with your AI coach.`}
       />
       <Header />
-      <main className="container mx-auto px-3 sm:px-4 py-4 sm:py-6 max-w-7xl pb-24 xl:pb-6">
-        <div className="mb-4 sm:mb-6">
-          <Button variant="ghost" size="sm" asChild className="mb-3">
+      <main className="container mx-auto px-3 sm:px-4 py-4 sm:py-6 max-w-5xl">
+        {/* Compact header */}
+        <div className="mb-4">
+          <Button variant="ghost" size="sm" asChild className="mb-2 -ml-2">
             <Link to="/tools/learn">
               <ArrowLeft className="h-4 w-4 mr-1" /> All skills
             </Link>
@@ -470,254 +571,185 @@ export default function LearnPath() {
             <Badge variant="outline">Level {ul.current_level}</Badge>
             <Badge variant="outline">
               <Flame className="h-3 w-3 mr-1" />
-              {ul.streak_days}d streak
+              {ul.streak_days}d
             </Badge>
             <ReminderSettingsButton ul={ul} onUpdate={setUl} />
+            {/* Curriculum trigger — opens a side drawer */}
+            <Sheet open={curriculumOpen} onOpenChange={setCurriculumOpen}>
+              <SheetTrigger asChild>
+                <Button size="sm" variant="outline" className="ml-auto">
+                  <BookOpen className="h-3.5 w-3.5 mr-1" />
+                  Curriculum
+                  <ChevronRight className="h-3.5 w-3.5 ml-1" />
+                </Button>
+              </SheetTrigger>
+              <SheetContent side="right" className="w-full sm:max-w-md p-0 flex flex-col">
+                <SheetHeader className="p-4 border-b">
+                  <SheetTitle className="flex items-center gap-2">
+                    <BookOpen className="h-4 w-4" /> Curriculum
+                  </SheetTitle>
+                </SheetHeader>
+                <ScrollArea className="flex-1">
+                  <div className="p-4 space-y-4">
+                    <NextBadgeCard
+                      userId={ul.user_id}
+                      userLearningId={ul.id}
+                      completedLessons={ul.completed_lessons}
+                      totalLessons={ul.total_lessons}
+                      streakDays={ul.streak_days}
+                      skillName={ul.learning_paths.display_name}
+                    />
+                    <Tabs defaultValue={modules.find((m) => m.id === activeLesson?.module_id)?.id || modules[0]?.id} className="w-full">
+                      <ScrollArea className="w-full">
+                        <TabsList className="inline-flex w-max h-auto justify-start">
+                          {modules.map((m) => {
+                            const ml = lessonsByModule[m.id] || [];
+                            const mDone = ml.filter((l) => completedSet.has(l.id)).length;
+                            const allDone = ml.length > 0 && mDone === ml.length;
+                            return (
+                              <TabsTrigger key={m.id} value={m.id} className="text-xs gap-1.5 whitespace-nowrap">
+                                {allDone && <CheckCircle2 className="h-3 w-3 text-primary" />}
+                                M{m.module_number}
+                                <span className="text-[10px] text-muted-foreground">
+                                  ({mDone}/{ml.length})
+                                </span>
+                              </TabsTrigger>
+                            );
+                          })}
+                        </TabsList>
+                      </ScrollArea>
+                      {modules.map((m) => {
+                        const ml = lessonsByModule[m.id] || [];
+                        const mDone = ml.filter((l) => completedSet.has(l.id)).length;
+                        const mPct = ml.length ? Math.round((mDone / ml.length) * 100) : 0;
+                        const allDone = ml.length > 0 && mDone === ml.length;
+                        return (
+                          <TabsContent key={m.id} value={m.id} className="mt-4">
+                            <div className="mb-3 space-y-2">
+                              <p className="text-sm font-medium">{m.title}</p>
+                              {m.description && (
+                                <p className="text-xs text-muted-foreground">{m.description}</p>
+                              )}
+                              <div className="flex items-center gap-2">
+                                <Progress value={mPct} className="h-1.5 flex-1" />
+                                <span className="text-[10px] text-muted-foreground whitespace-nowrap">
+                                  {mDone}/{ml.length}
+                                </span>
+                              </div>
+                              {allDone ? (
+                                <Badge className="bg-primary/10 text-primary border-primary/20" variant="outline">
+                                  <CheckCircle2 className="h-3 w-3 mr-1" /> Module complete
+                                </Badge>
+                              ) : (
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  className="w-full"
+                                  onClick={() => void markModuleComplete(m.id)}
+                                >
+                                  <CheckCircle2 className="h-3.5 w-3.5 mr-1" />
+                                  Mark module complete
+                                </Button>
+                              )}
+                            </div>
+                            <ul className="space-y-1">
+                              {ml.map((l) => {
+                                const done = completedSet.has(l.id);
+                                return (
+                                  <li key={l.id}>
+                                    <button
+                                      onClick={() => {
+                                        setActiveLessonId(l.id);
+                                        setCurriculumOpen(false);
+                                      }}
+                                      className={`w-full text-left flex items-center gap-2 px-3 py-2 rounded-md text-sm hover:bg-muted transition-colors ${
+                                        activeLessonId === l.id ? "bg-muted" : ""
+                                      }`}
+                                    >
+                                      {done ? (
+                                        <CheckCircle2 className="h-4 w-4 text-primary shrink-0" />
+                                      ) : (
+                                        <span className="h-4 w-4 rounded-full border border-muted-foreground/30 shrink-0" />
+                                      )}
+                                      <span className="flex-1 truncate">{l.title}</span>
+                                    </button>
+                                  </li>
+                                );
+                              })}
+                            </ul>
+                          </TabsContent>
+                        );
+                      })}
+                    </Tabs>
+                  </div>
+                </ScrollArea>
+              </SheetContent>
+            </Sheet>
           </div>
-          <h1 className="text-xl sm:text-2xl md:text-3xl font-bold break-words">
+          <h1 className="text-lg sm:text-xl md:text-2xl font-bold break-words">
             {ul.learning_paths.display_name}
           </h1>
-          <div className="flex items-center gap-3 mt-3">
-            <Progress value={progressPct} className="flex-1 max-w-md" />
-            <span className="text-xs sm:text-sm text-muted-foreground whitespace-nowrap">
+          <div className="flex items-center gap-3 mt-2">
+            <Progress value={progressPct} className="flex-1 max-w-md h-1.5" />
+            <span className="text-xs text-muted-foreground whitespace-nowrap">
               {ul.completed_lessons}/{ul.total_lessons} · {progressPct}%
             </span>
           </div>
         </div>
 
-        <div className="grid xl:grid-cols-[1fr_400px] gap-4 sm:gap-6">
-          {/* Left: lesson area + module list */}
-          <div className="space-y-4 sm:space-y-6 min-w-0">
-            {activeLesson && (
-              <Card className="p-4 sm:p-6">
-                <div className="flex items-start justify-between gap-3 mb-3">
-                  <div className="min-w-0 flex-1">
-                    <Badge variant="secondary" className="mb-2 capitalize text-[10px] sm:text-xs">
-                      {activeLesson.content_type}
-                    </Badge>
-                    <h2 className="text-lg sm:text-xl font-semibold break-words">{activeLesson.title}</h2>
-                    {activeLesson.description && (
-                      <p className="text-xs sm:text-sm text-muted-foreground mt-2 break-words">
-                        {activeLesson.description}
-                      </p>
-                    )}
-                  </div>
+        {/* Active lesson summary strip — always visible, very compact */}
+        {activeLesson && (
+          <Card className="p-3 sm:p-4 mb-3">
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0 flex-1">
+                <div className="flex flex-wrap items-center gap-2 mb-1">
+                  <Badge variant="secondary" className="text-[10px]">
+                    Now learning
+                  </Badge>
                   {completedSet.has(activeLesson.id) && (
-                    <CheckCircle2 className="h-6 w-6 text-primary shrink-0" />
+                    <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20 text-[10px]">
+                      <CheckCircle2 className="h-3 w-3 mr-1" /> Done
+                    </Badge>
                   )}
-                </div>
-                <div className="flex items-center gap-3 text-xs text-muted-foreground mb-4">
                   {activeLesson.estimated_minutes && (
-                    <span className="flex items-center gap-1">
+                    <span className="flex items-center gap-1 text-[11px] text-muted-foreground">
                       <Clock className="h-3 w-3" />
                       {activeLesson.estimated_minutes} min
                     </span>
                   )}
-                  {activeLesson.has_assignment && (
-                    <Badge variant="outline" className="text-[10px]">Has assignment</Badge>
-                  )}
                 </div>
-                {(() => {
-                  const ownUrl = activeLesson.content_url;
-                  const ownState = urlState(ownUrl);
-                  const parentModule = modules.find((m) => m.id === activeLesson.module_id);
-                  const moduleUrl = parentModule?.content_url;
-                  const moduleState = urlState(moduleUrl);
-
-                  const askCoach = () =>
-                    setInput(
-                      `Teach me "${activeLesson.title}" — give me the key concepts, an example, and a 5-minute exercise I can do right now.`
-                    );
-
-                  // Lesson URL is good (or still being checked optimistically) → embed it.
-                  if (ownUrl && (ownState === "ok" || ownState === "checking")) {
-                    return (
-                      <div className="mb-4">
-                        <LessonContentEmbed
-                          url={ownUrl}
-                          title={activeLesson.title}
-                          onAskCoach={askCoach}
-                        />
-                      </div>
-                    );
-                  }
-
-                  // Lesson URL missing or broken → fall back to module-level URL embed.
-                  if (moduleUrl && (moduleState === "ok" || moduleState === "checking")) {
-                    return (
-                      <div className="mb-4">
-                        <LessonContentEmbed
-                          url={moduleUrl}
-                          title={parentModule?.title}
-                          fallbackLabel={
-                            ownState === "broken"
-                              ? "Lesson link unreachable — using module resource"
-                              : "Using module resource"
-                          }
-                          onAskCoach={askCoach}
-                        />
-                      </div>
-                    );
-                  }
-
-                  // Both broken or missing — keep the user inside the product via coach.
-                  return (
-                    <div className="mb-4 flex items-start gap-2 rounded-md border border-warning/30 bg-warning/5 px-3 py-2">
-                      <AlertTriangle className="h-4 w-4 text-warning mt-0.5 shrink-0" />
-                      <div className="flex-1">
-                        <p className="text-sm font-medium">
-                          {ownState === "broken" || moduleState === "broken"
-                            ? "Resource link is broken"
-                            : "Resource coming soon"}
-                        </p>
-                        <p className="text-xs text-muted-foreground mb-2">
-                          Use the AI coach on the right to learn this topic right inside SkryveAI — it knows the lesson context.
-                        </p>
-                        <Button size="sm" variant="outline" onClick={askCoach}>
-                          Learn this with the AI coach
-                        </Button>
-                      </div>
-                    </div>
-                  );
-                })()}
-                <div className="flex flex-col sm:flex-row gap-2">
-                  <Button
-                    onClick={() => markComplete(activeLesson)}
-                    disabled={completedSet.has(activeLesson.id)}
-                    className="w-full sm:w-auto"
-                  >
-                    {completedSet.has(activeLesson.id) ? "Completed" : "Mark complete"}
-                  </Button>
-                  <Button
-                    variant="outline"
-                    className="w-full sm:w-auto"
-                    onClick={() => {
-                      setInput(`Teach me "${activeLesson.title}" — give me the key concepts, an example, and a 5-minute exercise.`);
-                      setChatOpen(true);
-                    }}
-                  >
-                    Ask coach to teach this
-                  </Button>
-                </div>
-              </Card>
+                <h2 className="text-base sm:text-lg font-semibold break-words leading-tight">
+                  {activeLesson.title}
+                </h2>
+              </div>
+              <Button
+                size="sm"
+                variant={completedSet.has(activeLesson.id) ? "outline" : "default"}
+                onClick={() => markComplete(activeLesson)}
+                disabled={completedSet.has(activeLesson.id)}
+                className="shrink-0"
+              >
+                {completedSet.has(activeLesson.id) ? "Completed" : "Mark complete"}
+              </Button>
+            </div>
+            {/* Inline video ONLY — no article links, no external CTAs */}
+            {activeVideoUrl && (
+              <div className="mt-3">
+                <LessonContentEmbed
+                  url={activeVideoUrl}
+                  title={activeLesson.title}
+                  onAskCoach={() => askCoachToTeachLesson(activeLesson)}
+                />
+              </div>
             )}
-
-            <NextBadgeCard
-              userId={ul.user_id}
-              userLearningId={ul.id}
-              completedLessons={ul.completed_lessons}
-              totalLessons={ul.total_lessons}
-              streakDays={ul.streak_days}
-              skillName={ul.learning_paths.display_name}
-            />
-
-            <Card className="p-4">
-              <h3 className="font-semibold mb-3 flex items-center gap-2">
-                <BookOpen className="h-4 w-4" /> Curriculum
-              </h3>
-              <Tabs defaultValue={modules[0]?.id} className="w-full">
-                <ScrollArea className="w-full">
-                  <TabsList className="inline-flex w-max h-auto justify-start">
-                    {modules.map((m) => {
-                      const ml = lessonsByModule[m.id] || [];
-                      const mDone = ml.filter((l) => completedSet.has(l.id)).length;
-                      const allDone = ml.length > 0 && mDone === ml.length;
-                      return (
-                        <TabsTrigger key={m.id} value={m.id} className="text-xs gap-1.5 whitespace-nowrap">
-                          {allDone && <CheckCircle2 className="h-3 w-3 text-primary" />}
-                          M{m.module_number}: {m.title}
-                          <span className="text-[10px] text-muted-foreground">
-                            ({mDone}/{ml.length})
-                          </span>
-                        </TabsTrigger>
-                      );
-                    })}
-                  </TabsList>
-                </ScrollArea>
-                {modules.map((m) => {
-                  const ml = lessonsByModule[m.id] || [];
-                  const mDone = ml.filter((l) => completedSet.has(l.id)).length;
-                  const mPct = ml.length ? Math.round((mDone / ml.length) * 100) : 0;
-                  const allDone = ml.length > 0 && mDone === ml.length;
-                  return (
-                    <TabsContent key={m.id} value={m.id} className="mt-4">
-                      <div className="mb-3 space-y-2">
-                        <div className="flex items-center justify-between gap-2">
-                          <p className="text-xs text-muted-foreground">{m.description}</p>
-                          {allDone ? (
-                            <Badge className="shrink-0 bg-primary/10 text-primary border-primary/20" variant="outline">
-                              <CheckCircle2 className="h-3 w-3 mr-1" /> Module complete
-                            </Badge>
-                          ) : (
-                            <Badge variant="outline" className="shrink-0 text-[10px]">
-                              {mDone}/{ml.length} done
-                            </Badge>
-                          )}
-                        </div>
-                        <Progress value={mPct} className="h-1.5" />
-                      </div>
-                      <ul className="space-y-1">
-                        {ml.map((l) => {
-                          const done = completedSet.has(l.id);
-                          return (
-                            <li key={l.id}>
-                              <button
-                                onClick={() => setActiveLessonId(l.id)}
-                                className={`w-full text-left flex items-center gap-2 px-3 py-2 rounded-md text-sm hover:bg-muted transition-colors ${
-                                  activeLessonId === l.id ? "bg-muted" : ""
-                                }`}
-                              >
-                                {done ? (
-                                  <CheckCircle2 className="h-4 w-4 text-primary shrink-0" />
-                                ) : (
-                                  <span className="h-4 w-4 rounded-full border border-muted-foreground/30 shrink-0" />
-                                )}
-                                <span className="flex-1">{l.title}</span>
-                                <span className="text-[10px] uppercase text-muted-foreground">
-                                  {l.content_type}
-                                </span>
-                              </button>
-                            </li>
-                          );
-                        })}
-                      </ul>
-                    </TabsContent>
-                  );
-                })}
-              </Tabs>
-            </Card>
-          </div>
-
-          {/* Right: AI Coach chat — sticky side rail on xl+ only */}
-          <Card className="hidden xl:flex flex-col h-[calc(100vh-220px)] sticky top-20 overflow-hidden">
-            {chatPanel}
           </Card>
-        </div>
-      </main>
+        )}
 
-      {/* Mobile/tablet: floating chat button + bottom sheet (hidden on xl+) */}
-      <div className="xl:hidden">
-        <Sheet open={chatOpen} onOpenChange={setChatOpen}>
-          <SheetTrigger asChild>
-            <Button
-              size="lg"
-              className="fixed bottom-4 right-4 z-40 rounded-full h-14 w-14 shadow-lg p-0"
-              aria-label="Open AI Coach"
-            >
-              <MessageCircle className="h-6 w-6" />
-            </Button>
-          </SheetTrigger>
-          <SheetContent
-            side="bottom"
-            className="h-[85vh] p-0 flex flex-col"
-          >
-            <SheetHeader className="sr-only">
-              <SheetTitle>AI Coach</SheetTitle>
-            </SheetHeader>
-            <div className="flex-1 min-h-0">{chatPanel}</div>
-          </SheetContent>
-        </Sheet>
-      </div>
+        {/* Chat is the main surface — full width, dominant */}
+        <Card className="flex flex-col h-[calc(100vh-260px)] min-h-[480px] overflow-hidden">
+          {chatPanel}
+        </Card>
+      </main>
     </div>
   );
 }
