@@ -16,6 +16,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { ReminderSettingsButton } from "@/components/learning/ReminderSettingsButton";
 import { NextBadgeCard } from "@/components/learning/NextBadgeCard";
+import { LessonContentEmbed } from "@/components/learning/LessonContentEmbed";
 import { validateUrl, parseUrl, type UrlStatus } from "@/lib/learning/url-validation";
 import {
   ArrowLeft,
@@ -25,7 +26,6 @@ import {
   Clock,
   Flame,
   Loader2,
-  PlayCircle,
   Send,
   Sparkles,
 } from "lucide-react";
