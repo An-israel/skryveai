@@ -12,6 +12,7 @@ import { EmailQueueStatus } from "@/components/dashboard/EmailQueueStatus";
 import { CreditsDisplay } from "@/components/dashboard/CreditsDisplay";
 import { AchievementsCard } from "@/components/dashboard/AchievementsCard";
 import { LearningSubmissionsCard } from "@/components/dashboard/LearningSubmissionsCard";
+import { CoachRemindersTimeline } from "@/components/dashboard/CoachRemindersTimeline";
 
 import { EmailSettingsDialog } from "@/components/settings/EmailSettingsDialog";
 import { FeatureUpdatePopup } from "@/components/notifications/FeatureUpdatePopup";
