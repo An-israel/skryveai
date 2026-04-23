@@ -154,6 +154,12 @@ verify_jwt = false
 [functions.learning-coach-chat]
 verify_jwt = false
 
+[functions.learning-review-assignment]
+verify_jwt = false
+
+[functions.learning-coach-reminders]
+verify_jwt = false
+
 # [crons.autopilot-run]
 # schedule = "* * * * *"
 # function = "autopilot-run"

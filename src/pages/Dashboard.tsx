@@ -10,6 +10,7 @@ import { CampaignCharts } from "@/components/dashboard/CampaignCharts";
 import { SubscriptionStats } from "@/components/dashboard/SubscriptionStats";
 import { EmailQueueStatus } from "@/components/dashboard/EmailQueueStatus";
 import { CreditsDisplay } from "@/components/dashboard/CreditsDisplay";
+import { AchievementsCard } from "@/components/dashboard/AchievementsCard";
 
 import { EmailSettingsDialog } from "@/components/settings/EmailSettingsDialog";
 import { FeatureUpdatePopup } from "@/components/notifications/FeatureUpdatePopup";
@@ -390,6 +391,16 @@ export default function Dashboard() {
           className="mb-8"
         >
           <EmailQueueStatus />
+        </motion.div>
+
+        {/* Learning Achievements */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.18 }}
+          className="mb-8"
+        >
+          <AchievementsCard />
         </motion.div>
 
         {/* Stats Grid */}
