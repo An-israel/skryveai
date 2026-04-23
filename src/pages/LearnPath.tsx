@@ -688,72 +688,36 @@ export default function LearnPath() {
             </Card>
           </div>
 
-          {/* Right: AI Coach chat */}
-          <Card className="flex flex-col h-[calc(100vh-220px)] sticky top-20">
-            <div className="p-4 border-b">
-              <div className="flex items-center gap-2">
-                <Sparkles className="h-4 w-4 text-primary" />
-                <h3 className="font-semibold">AI Coach</h3>
-                <Badge variant="outline" className="ml-auto text-[10px]">0.1 cr/msg</Badge>
-              </div>
-              {activeLesson && (
-                <p className="text-xs text-muted-foreground mt-1 truncate">
-                  Context: {activeLesson.title}
-                </p>
-              )}
-            </div>
-            <ScrollArea className="flex-1 p-4" ref={scrollRef as any}>
-              <div className="space-y-3">
-                {messages.map((m, i) => (
-                  <div
-                    key={i}
-                    className={`rounded-lg px-3 py-2 text-sm ${
-                      m.role === "user"
-                        ? "bg-primary text-primary-foreground ml-8"
-                        : "bg-muted mr-8"
-                    }`}
-                  >
-                    {m.role === "assistant" ? (
-                      <div className="prose prose-sm dark:prose-invert max-w-none prose-p:my-1 prose-ul:my-1 prose-headings:my-2">
-                        <ReactMarkdown>{m.content || "…"}</ReactMarkdown>
-                      </div>
-                    ) : (
-                      <p className="whitespace-pre-wrap">{m.content}</p>
-                    )}
-                  </div>
-                ))}
-                {streaming && messages[messages.length - 1]?.content === "" && (
-                  <div className="text-xs text-muted-foreground">Coach is typing…</div>
-                )}
-              </div>
-            </ScrollArea>
-            <div className="p-3 border-t">
-              <div className="flex gap-2">
-                <Textarea
-                  value={input}
-                  onChange={(e) => setInput(e.target.value)}
-                  placeholder="Ask the coach anything…"
-                  className="min-h-[44px] max-h-32 resize-none text-sm"
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter" && !e.shiftKey) {
-                      e.preventDefault();
-                      void sendMessage();
-                    }
-                  }}
-                  disabled={streaming}
-                />
-                <Button
-                  size="icon"
-                  onClick={() => void sendMessage()}
-                  disabled={streaming || !input.trim()}
-                >
-                  {streaming ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
-                </Button>
-              </div>
-            </div>
+          {/* Right: AI Coach chat — sticky side rail on xl+ only */}
+          <Card className="hidden xl:flex flex-col h-[calc(100vh-220px)] sticky top-20 overflow-hidden">
+            {chatPanel}
           </Card>
         </div>
       </main>
+
+      {/* Mobile/tablet: floating chat button + bottom sheet (hidden on xl+) */}
+      <div className="xl:hidden">
+        <Sheet open={chatOpen} onOpenChange={setChatOpen}>
+          <SheetTrigger asChild>
+            <Button
+              size="lg"
+              className="fixed bottom-4 right-4 z-40 rounded-full h-14 w-14 shadow-lg p-0"
+              aria-label="Open AI Coach"
+            >
+              <MessageCircle className="h-6 w-6" />
+            </Button>
+          </SheetTrigger>
+          <SheetContent
+            side="bottom"
+            className="h-[85vh] p-0 flex flex-col"
+          >
+            <SheetHeader className="sr-only">
+              <SheetTitle>AI Coach</SheetTitle>
+            </SheetHeader>
+            <div className="flex-1 min-h-0">{chatPanel}</div>
+          </SheetContent>
+        </Sheet>
+      </div>
     </div>
   );
 }
