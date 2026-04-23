@@ -459,6 +459,37 @@ export default function LearnAssignment() {
             <h2 className="font-semibold mb-3">
               {submission ? "Resubmit your work" : "Submit your work"}
             </h2>
+
+            {needsRevision && (
+              <div className="mb-4 rounded-md border border-primary/20 bg-primary/5 p-3 text-sm">
+                <p className="font-medium mb-1">💡 Tip for resubmission</p>
+                <p className="text-muted-foreground text-xs">
+                  Your previous submission is pre-loaded below — edit it directly and add a note
+                  for the AI reviewer explaining what you changed. The reviewer uses the rubric
+                  above to grade you.
+                </p>
+              </div>
+            )}
+
+            <div className="mb-4">
+              <label className="text-sm font-medium mb-1.5 block">
+                Notes for the AI reviewer{" "}
+                <span className="text-muted-foreground font-normal">(optional)</span>
+              </label>
+              <Textarea
+                rows={3}
+                value={notesValue}
+                onChange={(e) => setNotesValue(e.target.value)}
+                placeholder={
+                  needsRevision
+                    ? "What did you change in this revision? E.g. 'Added a stronger hook in paragraph 1 and rewrote the CTA to address the missed criterion.'"
+                    : "Anything the reviewer should know? E.g. 'I focused on conciseness and tone. Tools used: Figma + Notion.'"
+                }
+              />
+              <p className="text-xs text-muted-foreground mt-1">
+                These notes are passed to Gemini 2.5 Pro alongside your work.
+              </p>
+            </div>
             <Tabs value={tab} onValueChange={(v) => setTab(v as any)}>
               <TabsList>
                 <TabsTrigger value="text">
