@@ -213,7 +213,7 @@ export default function Admin() {
         const productUsageMap = new Map<string, Set<string>>();
         (toolUsageData || []).forEach((t: any) => {
           if (!productUsageMap.has(t.user_id)) productUsageMap.set(t.user_id, new Set());
-          const toolLabels: Record<string, string> = { cv_builder: "CV Builder", ats_checker: "ATS Checker", linkedin_analyzer: "LinkedIn Analyzer", autopilot: "AutoPilot", campaign_email: "Campaign Emails" };
+          const toolLabels: Record<string, string> = { cv_builder: "CV Builder", ats_checker: "ATS Checker", linkedin_analyzer: "LinkedIn Analyzer", autopilot: "AutoPilot", campaign_email: "Campaign Emails", skill_learning: "Skill Learning" };
           const label = toolLabels[t.tool_name] || t.tool_name;
           productUsageMap.get(t.user_id)!.add(label);
         });
