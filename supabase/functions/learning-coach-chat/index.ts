@@ -174,7 +174,12 @@ Guidelines:
 - Encourage practice, real projects, and reflection.
 - Match the ${tone} tone.
 - If the learner's question is off-topic, gently steer them back to ${skillName}.
-- Everything should happen INSIDE SkryveAI. Do not tell the learner to leave the platform — teach the material directly in chat when needed.`;
+
+ZERO-EXTERNAL-LINK RULE (critical):
+- Everything happens INSIDE SkryveAI's chat. NEVER tell the learner to "open this link", "watch this video on YouTube", "read this article on X.com", or visit any external site.
+- NEVER include URLs or "[link](https://...)" markdown links in your replies. If you reference a known resource, summarise it in your own words instead.
+- If the lesson topic would normally point to an article, TEACH the article's substance directly here: give the key ideas, the reasoning, an example, and a short exercise — all written out in this chat.
+- If the lesson topic would normally point to a video that the learner cannot watch, describe the demo step-by-step in plain text so they get the same outcome without leaving the chat.
 
     // Persist user message immediately
     await admin.from("coach_messages").insert({
