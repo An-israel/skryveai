@@ -183,6 +183,30 @@ export default function LearnPath() {
     return m;
   }, [lessons]);
 
+  // Validate all known content URLs in the background; broken ones get hidden.
+  useEffect(() => {
+    const urls = new Set<string>();
+    lessons.forEach((l) => {
+      if (l.content_url && parseUrl(l.content_url)) urls.add(l.content_url);
+    });
+    modules.forEach((m) => {
+      if (m.content_url && parseUrl(m.content_url)) urls.add(m.content_url);
+    });
+    urls.forEach((u) => {
+      if (urlStatuses[u]) return;
+      setUrlStatuses((s) => ({ ...s, [u]: "checking" }));
+      void validateUrl(u).then((status) => {
+        setUrlStatuses((s) => ({ ...s, [u]: status }));
+      });
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [lessons, modules]);
+
+  function urlState(u: string | null | undefined): UrlStatus | "missing" {
+    if (!u || !parseUrl(u)) return "missing";
+    return urlStatuses[u] || "checking";
+  }
+
   async function markComplete(lesson: Lesson) {
     if (!ul) return;
     const completed = new Set(ul.completed_lesson_ids || []);
