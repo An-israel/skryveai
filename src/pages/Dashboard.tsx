@@ -11,6 +11,7 @@ import { SubscriptionStats } from "@/components/dashboard/SubscriptionStats";
 import { EmailQueueStatus } from "@/components/dashboard/EmailQueueStatus";
 import { CreditsDisplay } from "@/components/dashboard/CreditsDisplay";
 import { AchievementsCard } from "@/components/dashboard/AchievementsCard";
+import { LearningSubmissionsCard } from "@/components/dashboard/LearningSubmissionsCard";
 
 import { EmailSettingsDialog } from "@/components/settings/EmailSettingsDialog";
 import { FeatureUpdatePopup } from "@/components/notifications/FeatureUpdatePopup";
@@ -401,6 +402,15 @@ export default function Dashboard() {
           className="mb-8"
         >
           <AchievementsCard />
+        </motion.div>
+
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.35 }}
+          className="mb-8"
+        >
+          <LearningSubmissionsCard />
         </motion.div>
 
         {/* Stats Grid */}
