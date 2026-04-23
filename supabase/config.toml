@@ -151,6 +151,9 @@ verify_jwt = false
 [functions.autopilot-config]
 verify_jwt = false
 
+[functions.learning-coach-chat]
+verify_jwt = false
+
 # [crons.autopilot-run]
 # schedule = "* * * * *"
 # function = "autopilot-run"
