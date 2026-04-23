@@ -90,7 +90,12 @@ export default function LearnPath() {
   const [input, setInput] = useState("");
   const [streaming, setStreaming] = useState(false);
   const [curriculumOpen, setCurriculumOpen] = useState(false);
+  const [completingModuleId, setCompletingModuleId] = useState<string | null>(null);
+  const [justCompletedModuleId, setJustCompletedModuleId] = useState<string | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLTextAreaElement>(null);
+  const taughtLessonsRef = useRef<Set<string>>(new Set());
+  const pendingFocusRef = useRef(false);
 
   // URL validation cache: url -> "checking" | "ok" | "broken"
   const [urlStatuses, setUrlStatuses] = useState<Record<string, UrlStatus>>({});
