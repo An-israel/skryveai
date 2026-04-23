@@ -420,27 +420,43 @@ export default function LearnPath() {
                 </div>
                 {(() => {
                   const ownUrl = activeLesson.content_url;
-                  const isValid = (u: string | null | undefined) =>
-                    !!u && /^https?:\/\//i.test(u);
-                  if (isValid(ownUrl)) {
-                    return (
-                      <a
-                        href={ownUrl!}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="inline-flex items-center gap-2 text-sm text-primary hover:underline mb-4"
-                      >
-                        <PlayCircle className="h-4 w-4" /> Open lesson resource
-                      </a>
-                    );
-                  }
+                  const ownState = urlState(ownUrl);
                   const parentModule = modules.find((m) => m.id === activeLesson.module_id);
                   const moduleUrl = parentModule?.content_url;
-                  if (isValid(moduleUrl)) {
+                  const moduleState = urlState(moduleUrl);
+
+                  // Lesson URL is good (or still being checked optimistically) → render it.
+                  if (ownState === "ok" || ownState === "checking") {
+                    return (
+                      <div className="mb-4 space-y-1">
+                        <a
+                          href={ownUrl!}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-2 text-sm text-primary hover:underline"
+                        >
+                          <PlayCircle className="h-4 w-4" /> Open lesson resource
+                          {ownState === "checking" && (
+                            <Loader2 className="h-3 w-3 animate-spin text-muted-foreground" />
+                          )}
+                        </a>
+                      </div>
+                    );
+                  }
+
+                  // Lesson URL missing or broken → fall back to module-level URL.
+                  if (moduleState === "ok" || moduleState === "checking") {
                     return (
                       <div className="mb-4 space-y-2">
                         <Badge variant="outline" className="bg-warning/10 text-warning border-warning/30 text-[10px]">
-                          Using module resource
+                          {ownState === "broken" ? (
+                            <>
+                              <AlertTriangle className="h-3 w-3 mr-1" />
+                              Lesson link unreachable — using module resource
+                            </>
+                          ) : (
+                            "Using module resource"
+                          )}
                         </Badge>
                         <a
                           href={moduleUrl!}
@@ -451,15 +467,29 @@ export default function LearnPath() {
                           <PlayCircle className="h-4 w-4" /> Open module resource ({parentModule?.title})
                         </a>
                         <p className="text-xs text-muted-foreground">
-                          This lesson doesn't have its own link yet — opening the module-level resource instead.
+                          {ownState === "broken"
+                            ? "We couldn't reach the lesson link, so we're showing the module-level resource instead."
+                            : "This lesson doesn't have its own link yet — opening the module-level resource instead."}
                         </p>
                       </div>
                     );
                   }
+
+                  // Both broken or missing.
                   return (
-                    <p className="text-sm text-muted-foreground italic mb-4">
-                      Resource coming soon. Use the coach on the right to learn this topic now.
-                    </p>
+                    <div className="mb-4 flex items-start gap-2 rounded-md border border-warning/30 bg-warning/5 px-3 py-2">
+                      <AlertTriangle className="h-4 w-4 text-warning mt-0.5 shrink-0" />
+                      <div>
+                        <p className="text-sm font-medium">
+                          {ownState === "broken" || moduleState === "broken"
+                            ? "Resource link is broken or redirecting"
+                            : "Resource coming soon"}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          Use the AI coach on the right to learn this topic right now — it knows the lesson context.
+                        </p>
+                      </div>
+                    </div>
                   );
                 })()}
                 <div className="flex gap-2">
