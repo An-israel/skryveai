@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { Search, BarChart3, FileText, Send, Target, Linkedin, Zap, Bot } from "lucide-react";
+import { Search, BarChart3, FileText, Send, Target, Linkedin, Zap, Bot, GraduationCap } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 
 const features = [
@@ -50,6 +50,12 @@ const features = [
     title: "LinkedIn Profile Analyzer",
     description: "Upload your LinkedIn PDF and get a full profile score with section-by-section feedback, quick wins, and headline/about rewrite suggestions.",
     badge: null,
+  },
+  {
+    icon: GraduationCap,
+    title: "Skill Learning Paths",
+    description: "Master in-demand skills with structured AI-coached learning paths — modules, lessons, assignments, and a personal coach that keeps you on track.",
+    badge: "NEW",
   },
 ];
 

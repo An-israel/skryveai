@@ -35,6 +35,7 @@ const orgSchema = {
     "AI CV Builder with ATS optimization",
     "ATS Score Checker with keyword gap analysis",
     "LinkedIn Profile Analyzer with section-by-section scoring",
+    "Skill Learning Paths with AI coach, modules, lessons, and assignments",
   ],
   offers: {
     "@type": "Offer",
@@ -63,10 +64,10 @@ export default function Landing() {
   return (
     <div className="min-h-screen bg-background">
       <SEOHead
-        title="SkryveAI — AI Cold Outreach Tool for Freelancers & Startups | Get More Clients"
-        description="SkryveAI is an AI-powered outreach tool built for freelancers and startup founders. Find clients, send hyper-personalized cold emails, build ATS-optimized CVs, check ATS scores, and analyze LinkedIn profiles. Stop sending generic templates — craft tailored pitches that stand out and get responses. Free 7-day trial."
+        title="SkryveAI — AI Cold Outreach, CV Builder & Skill Learning for Freelancers & Startups"
+        description="SkryveAI is an AI-powered platform for freelancers and startup founders. Find clients, send hyper-personalized cold emails, build ATS-optimized CVs, check ATS scores, analyze LinkedIn profiles, and master in-demand skills with AI-coached learning paths. Free 7-day trial."
         canonical="https://skryveai.com/"
-        keywords="AI cold email outreach, find clients for freelancers, cold email automation, client prospecting tool, AI outreach tool for freelancers, personalized cold email, freelancer client finder, startup lead generation, cold outreach software, hyper-personalized outreach, AI tool that writes cold emails, best cold outreach tool for freelancers, automated client outreach, AI business finder, ATS score checker, CV builder AI, LinkedIn profile analyzer, smart outreach tools, get more clients as a freelancer, cold email tool for startups"
+        keywords="AI cold email outreach, find clients for freelancers, cold email automation, client prospecting tool, AI outreach tool for freelancers, personalized cold email, freelancer client finder, startup lead generation, cold outreach software, hyper-personalized outreach, AI tool that writes cold emails, best cold outreach tool for freelancers, automated client outreach, AI business finder, ATS score checker, CV builder AI, LinkedIn profile analyzer, smart outreach tools, get more clients as a freelancer, cold email tool for startups, AI skill learning paths, learn skills with AI coach, online learning platform freelancers"
         jsonLd={orgSchema}
       />
       <Header isAuthenticated={false} />
