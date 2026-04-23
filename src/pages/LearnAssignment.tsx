@@ -367,9 +367,72 @@ export default function LearnAssignment() {
             )}
 
             {submission.ai_feedback ? (
-              <div className="prose prose-sm max-w-none dark:prose-invert">
-                <ReactMarkdown>{submission.ai_feedback}</ReactMarkdown>
-              </div>
+              <>
+                {/* Structured rubric panel */}
+                {(() => {
+                  const r = parseRubric(submission.ai_feedback);
+                  const hasAny =
+                    r.verdict || r.criteriaMet.length || r.criteriaMissed.length || r.nextStep;
+                  if (!hasAny) return null;
+                  return (
+                    <div className="mb-4 rounded-lg border bg-muted/30 p-4">
+                      <div className="flex items-center justify-between mb-2 flex-wrap gap-2">
+                        <h4 className="text-sm font-semibold flex items-center gap-1">
+                          <Sparkles className="h-3.5 w-3.5 text-primary" /> AI grading rubric
+                        </h4>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="h-7 text-xs"
+                          onClick={() => setShowRubric((s) => !s)}
+                        >
+                          {showRubric ? "Hide" : "Show"}
+                        </Button>
+                      </div>
+                      {showRubric && (
+                        <div className="space-y-3 text-sm">
+                          {r.verdict && (
+                            <p className="text-muted-foreground italic">{r.verdict}</p>
+                          )}
+                          {r.criteriaMet.length > 0 && (
+                            <div>
+                              <p className="text-xs font-medium text-primary mb-1">
+                                ✓ Criteria met
+                              </p>
+                              <ul className="list-disc pl-5 space-y-0.5 text-xs">
+                                {r.criteriaMet.map((c, i) => (
+                                  <li key={i}>{c}</li>
+                                ))}
+                              </ul>
+                            </div>
+                          )}
+                          {r.criteriaMissed.length > 0 && (
+                            <div>
+                              <p className="text-xs font-medium text-destructive mb-1">
+                                ✗ Criteria missed
+                              </p>
+                              <ul className="list-disc pl-5 space-y-0.5 text-xs">
+                                {r.criteriaMissed.map((c, i) => (
+                                  <li key={i}>{c}</li>
+                                ))}
+                              </ul>
+                            </div>
+                          )}
+                          {r.nextStep && (
+                            <p className="text-xs">
+                              <span className="font-medium">Next step:</span> {r.nextStep}
+                            </p>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })()}
+
+                <div className="prose prose-sm max-w-none dark:prose-invert">
+                  <ReactMarkdown>{submission.ai_feedback}</ReactMarkdown>
+                </div>
+              </>
             ) : (
               <p className="text-sm text-muted-foreground italic">
                 {reviewing
