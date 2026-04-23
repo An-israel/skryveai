@@ -36,6 +36,8 @@ import Blog from "./pages/Blog";
 import BlogPost from "./pages/BlogPost";
 import EmailFinder from "./pages/EmailFinder";
 import EmailFinderLanding from "./pages/EmailFinderLanding";
+import LearnHub from "./pages/LearnHub";
+import LearnPath from "./pages/LearnPath";
 import { ChatWidget } from "@/components/chat/ChatWidget";
 
 const queryClient = new QueryClient();
@@ -92,6 +94,8 @@ const App = () => (
           <Route path="/auto-pilot" element={<GuardedRoute><AutoPilot /></GuardedRoute>} />
           <Route path="/reply" element={<EmailReply />} />
           <Route path="/email-finder" element={<GuardedRoute><EmailFinder /></GuardedRoute>} />
+          <Route path="/tools/learn" element={<GuardedRoute><LearnHub /></GuardedRoute>} />
+          <Route path="/tools/learn/:userLearningId" element={<GuardedRoute><LearnPath /></GuardedRoute>} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>
