@@ -521,7 +521,7 @@ export default function LearnPath() {
   }, [activeLesson, modules, urlStatuses]);
 
   function askCoachToTeachLesson(lesson: Lesson, opts?: { autoSend?: boolean }) {
-    const prompt = `Teach me "${lesson.title}" right here in the chat. Give me:\n1. The 3 most important concepts in plain language\n2. A concrete example from the real world\n3. A 5-minute exercise I can do right now\n\nDo not link me anywhere — explain it all here.`;
+    const prompt = `Teach me "${lesson.title}". Walk me through:\n1. The 3 most important concepts in plain language\n2. A concrete real-world example\n3. A 5-minute exercise I can try right now`;
     rememberTaught(lesson.id);
     if (opts?.autoSend) {
       // Set input then trigger send on the next tick
