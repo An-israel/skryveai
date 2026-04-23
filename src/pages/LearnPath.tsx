@@ -557,7 +557,6 @@ export default function LearnPath() {
         <div className="flex items-center gap-2">
           <Sparkles className="h-4 w-4 text-primary" />
           <h3 className="font-semibold text-sm sm:text-base">AI Coach</h3>
-          <Badge variant="outline" className="ml-auto text-[10px]">0.1 cr/msg</Badge>
         </div>
         {activeLesson && (
           <p className="text-xs text-muted-foreground mt-1 truncate">
