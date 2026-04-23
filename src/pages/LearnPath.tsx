@@ -20,14 +20,31 @@ import { LessonContentEmbed } from "@/components/learning/LessonContentEmbed";
 import { validateUrl, parseUrl, type UrlStatus } from "@/lib/learning/url-validation";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
+import {
+  AlertTriangle,
   ArrowLeft,
   BookOpen,
+  Check,
   CheckCircle2,
   ChevronRight,
+  Circle,
   Clock,
+  Eye,
   Flame,
   Loader2,
   PartyPopper,
+  PlayCircle,
   Send,
   Sparkles,
   Trophy,
