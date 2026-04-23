@@ -35,6 +35,7 @@ const orgSchema = {
     "AI CV Builder with ATS optimization",
     "ATS Score Checker with keyword gap analysis",
     "LinkedIn Profile Analyzer with section-by-section scoring",
+    "Skill Learning Paths with AI coach, modules, lessons, and assignments",
   ],
   offers: {
     "@type": "Offer",
