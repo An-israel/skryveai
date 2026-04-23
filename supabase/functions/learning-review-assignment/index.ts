@@ -70,6 +70,13 @@ Deno.serve(async (req) => {
 
     if (!assignment) return json({ error: "Assignment not found" }, 404);
 
+    // Load lesson resources for revision linkbacks
+    const { data: lesson } = await admin
+      .from("learning_lessons")
+      .select("id, title, content_url, content_type, lesson_number, module_id")
+      .eq("id", assignment.lesson_id)
+      .maybeSingle();
+
     // Load user_learning for skill context
     let skillName = "freelancing";
     let userLearningId: string | null = sub.user_learning_id;
