@@ -91,6 +91,7 @@ export default function LearnPath() {
   const [messages, setMessages] = useState<ChatMsg[]>([]);
   const [input, setInput] = useState("");
   const [streaming, setStreaming] = useState(false);
+  const [chatOpen, setChatOpen] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   // URL validation cache: url -> "checking" | "ok" | "broken"
