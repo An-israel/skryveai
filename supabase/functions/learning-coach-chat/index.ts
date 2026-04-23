@@ -19,12 +19,27 @@ const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY")!;
 const STAFF_ROLES = ["super_admin", "content_editor", "support_agent", "staff"];
 const COACH_CREDITS_COST = 0.1;
 
+interface ProgressSnapshot {
+  completedLessons?: number;
+  totalLessons?: number;
+  streakDays?: number;
+  currentModuleNumber?: number | null;
+  currentModuleTitle?: string | null;
+  moduleDoneCount?: number;
+  moduleTotal?: number;
+  moduleAllDone?: boolean;
+  completedLessonTitles?: string[];
+  remainingInModule?: string[];
+  nextLessonTitle?: string | null;
+}
+
 interface ChatBody {
   userLearningId: string;
   message: string;
   lessonId?: string | null;
   assignmentId?: string | null;
   history?: { role: "user" | "assistant"; content: string }[];
+  progress?: ProgressSnapshot;
 }
 
 Deno.serve(async (req) => {
@@ -117,13 +132,37 @@ Deno.serve(async (req) => {
     const skillName = path?.display_name || path?.skill_name || "freelancing";
     const tone = ul.coach_tone || "moderate";
 
+    const p = body.progress || {};
+    const progressBlock = `
+LIVE PROGRESS SNAPSHOT (use this — do NOT ask the learner what they've done):
+- Lessons completed: ${p.completedLessons ?? "?"}/${p.totalLessons ?? "?"}
+- Streak: ${p.streakDays ?? 0} days
+- Current module: ${p.currentModuleNumber ?? "?"} — "${p.currentModuleTitle ?? "n/a"}"
+- Module progress: ${p.moduleDoneCount ?? 0}/${p.moduleTotal ?? 0} lessons done${p.moduleAllDone ? " (MODULE COMPLETE ✅)" : ""}
+- Recently completed lesson titles: ${(p.completedLessonTitles || []).slice(-8).join(" | ") || "none yet"}
+- Remaining in current module: ${(p.remainingInModule || []).slice(0, 5).join(" | ") || "none — module is done"}
+- Next lesson overall: ${p.nextLessonTitle || "the learner has finished every lesson"}
+
+MODULE-COMPLETION RULE:
+- A module is complete when every lesson in it is marked complete by the learner.
+- The learner sees a "Module complete ✅" badge in the curriculum panel and a per-module progress bar.
+- If the snapshot above says MODULE COMPLETE, congratulate them ONCE and then move on to the next module's first lesson by name. Never re-teach a completed module.
+
+ANTI-REPETITION RULES (critical):
+- NEVER repeat the same advice or framing you gave in a previous message.
+- NEVER ask "what have you completed?" — the snapshot already tells you.
+- If the learner says "next", "proceed", "continue", "move on", or similar, immediately advance: introduce the NEXT lesson by title with one fresh, concrete drill they can do in 5 minutes. Do NOT recap.
+- If the learner is stuck, ask ONE pointed diagnostic question and offer one new angle (different example, different format) — don't repeat the previous explanation.
+`;
+
     const systemPrompt = `You are an expert ${skillName} coach mentoring a learner on the SkryveAI platform.
 
 Learner context:
 - Skill: ${skillName}
 - Current level: ${ul.current_level}/10
-- Current module: ${ul.current_module}, lesson: ${ul.current_lesson}
 - Coaching tone: ${tone} (lenient = warm/forgiving, moderate = balanced, strict = direct/high standards)
+
+${progressBlock}
 
 ${lessonCtx ? `Current lesson: "${lessonCtx.title}" (${lessonCtx.content_type})\nLesson summary: ${lessonCtx.description || "n/a"}` : ""}
 ${assignmentCtx ? `Current assignment: "${assignmentCtx.title}"\nInstructions: ${assignmentCtx.instructions}\nPassing criteria: ${assignmentCtx.passing_criteria || "n/a"}` : ""}
@@ -134,7 +173,8 @@ Guidelines:
 - Use short paragraphs and markdown (lists, **bold**, code blocks) for readability.
 - Encourage practice, real projects, and reflection.
 - Match the ${tone} tone.
-- If the learner's question is off-topic, gently steer them back to ${skillName}.`;
+- If the learner's question is off-topic, gently steer them back to ${skillName}.
+- Everything should happen INSIDE SkryveAI. Do not tell the learner to leave the platform — teach the material directly in chat when needed.`;
 
     // Persist user message immediately
     await admin.from("coach_messages").insert({

@@ -16,6 +16,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { ReminderSettingsButton } from "@/components/learning/ReminderSettingsButton";
 import { NextBadgeCard } from "@/components/learning/NextBadgeCard";
+import { LessonContentEmbed } from "@/components/learning/LessonContentEmbed";
 import { validateUrl, parseUrl, type UrlStatus } from "@/lib/learning/url-validation";
 import {
   ArrowLeft,
@@ -25,7 +26,6 @@ import {
   Clock,
   Flame,
   Loader2,
-  PlayCircle,
   Send,
   Sparkles,
 } from "lucide-react";
@@ -262,6 +262,20 @@ export default function LearnPath() {
       const token = session?.access_token;
       if (!token) throw new Error("Not authenticated");
 
+      // Build a rich progress snapshot so the coach NEVER repeats itself
+      // and always knows what's done vs what's next.
+      const activeModule = activeLesson
+        ? modules.find((m) => m.id === activeLesson.module_id)
+        : null;
+      const moduleLessons = activeModule ? lessonsByModule[activeModule.id] || [] : [];
+      const moduleDoneCount = moduleLessons.filter((l) => completedSet.has(l.id)).length;
+      const moduleAllDone = moduleLessons.length > 0 && moduleDoneCount === moduleLessons.length;
+      const completedTitles = lessons.filter((l) => completedSet.has(l.id)).map((l) => l.title);
+      const remainingInModule = moduleLessons
+        .filter((l) => !completedSet.has(l.id))
+        .map((l) => l.title);
+      const nextLessonOverall = lessons.find((l) => !completedSet.has(l.id));
+
       const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/learning-coach-chat`;
       const resp = await fetch(url, {
         method: "POST",
@@ -274,6 +288,19 @@ export default function LearnPath() {
           message: userMsg,
           lessonId: activeLessonId,
           history: messages.slice(-10),
+          progress: {
+            completedLessons: ul.completed_lessons,
+            totalLessons: ul.total_lessons,
+            streakDays: ul.streak_days,
+            currentModuleNumber: activeModule?.module_number ?? null,
+            currentModuleTitle: activeModule?.title ?? null,
+            moduleDoneCount,
+            moduleTotal: moduleLessons.length,
+            moduleAllDone,
+            completedLessonTitles: completedTitles.slice(-20),
+            remainingInModule: remainingInModule.slice(0, 10),
+            nextLessonTitle: nextLessonOverall?.title ?? null,
+          },
         }),
       });
 
@@ -425,69 +452,58 @@ export default function LearnPath() {
                   const moduleUrl = parentModule?.content_url;
                   const moduleState = urlState(moduleUrl);
 
-                  // Lesson URL is good (or still being checked optimistically) → render it.
-                  if (ownState === "ok" || ownState === "checking") {
+                  const askCoach = () =>
+                    setInput(
+                      `Teach me "${activeLesson.title}" — give me the key concepts, an example, and a 5-minute exercise I can do right now.`
+                    );
+
+                  // Lesson URL is good (or still being checked optimistically) → embed it.
+                  if (ownUrl && (ownState === "ok" || ownState === "checking")) {
                     return (
-                      <div className="mb-4 space-y-1">
-                        <a
-                          href={ownUrl!}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="inline-flex items-center gap-2 text-sm text-primary hover:underline"
-                        >
-                          <PlayCircle className="h-4 w-4" /> Open lesson resource
-                          {ownState === "checking" && (
-                            <Loader2 className="h-3 w-3 animate-spin text-muted-foreground" />
-                          )}
-                        </a>
+                      <div className="mb-4">
+                        <LessonContentEmbed
+                          url={ownUrl}
+                          title={activeLesson.title}
+                          onAskCoach={askCoach}
+                        />
                       </div>
                     );
                   }
 
-                  // Lesson URL missing or broken → fall back to module-level URL.
-                  if (moduleState === "ok" || moduleState === "checking") {
+                  // Lesson URL missing or broken → fall back to module-level URL embed.
+                  if (moduleUrl && (moduleState === "ok" || moduleState === "checking")) {
                     return (
-                      <div className="mb-4 space-y-2">
-                        <Badge variant="outline" className="bg-warning/10 text-warning border-warning/30 text-[10px]">
-                          {ownState === "broken" ? (
-                            <>
-                              <AlertTriangle className="h-3 w-3 mr-1" />
-                              Lesson link unreachable — using module resource
-                            </>
-                          ) : (
-                            "Using module resource"
-                          )}
-                        </Badge>
-                        <a
-                          href={moduleUrl!}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="flex items-center gap-2 text-sm text-primary hover:underline"
-                        >
-                          <PlayCircle className="h-4 w-4" /> Open module resource ({parentModule?.title})
-                        </a>
-                        <p className="text-xs text-muted-foreground">
-                          {ownState === "broken"
-                            ? "We couldn't reach the lesson link, so we're showing the module-level resource instead."
-                            : "This lesson doesn't have its own link yet — opening the module-level resource instead."}
-                        </p>
+                      <div className="mb-4">
+                        <LessonContentEmbed
+                          url={moduleUrl}
+                          title={parentModule?.title}
+                          fallbackLabel={
+                            ownState === "broken"
+                              ? "Lesson link unreachable — using module resource"
+                              : "Using module resource"
+                          }
+                          onAskCoach={askCoach}
+                        />
                       </div>
                     );
                   }
 
-                  // Both broken or missing.
+                  // Both broken or missing — keep the user inside the product via coach.
                   return (
                     <div className="mb-4 flex items-start gap-2 rounded-md border border-warning/30 bg-warning/5 px-3 py-2">
                       <AlertTriangle className="h-4 w-4 text-warning mt-0.5 shrink-0" />
-                      <div>
+                      <div className="flex-1">
                         <p className="text-sm font-medium">
                           {ownState === "broken" || moduleState === "broken"
-                            ? "Resource link is broken or redirecting"
+                            ? "Resource link is broken"
                             : "Resource coming soon"}
                         </p>
-                        <p className="text-xs text-muted-foreground">
-                          Use the AI coach on the right to learn this topic right now — it knows the lesson context.
+                        <p className="text-xs text-muted-foreground mb-2">
+                          Use the AI coach on the right to learn this topic right inside SkryveAI — it knows the lesson context.
                         </p>
+                        <Button size="sm" variant="outline" onClick={askCoach}>
+                          Learn this with the AI coach
+                        </Button>
                       </div>
                     </div>
                   );
@@ -526,42 +542,71 @@ export default function LearnPath() {
               </h3>
               <Tabs defaultValue={modules[0]?.id} className="w-full">
                 <TabsList className="w-full flex-wrap h-auto justify-start">
-                  {modules.map((m) => (
-                    <TabsTrigger key={m.id} value={m.id} className="text-xs">
-                      M{m.module_number}: {m.title}
-                    </TabsTrigger>
-                  ))}
+                  {modules.map((m) => {
+                    const ml = lessonsByModule[m.id] || [];
+                    const mDone = ml.filter((l) => completedSet.has(l.id)).length;
+                    const allDone = ml.length > 0 && mDone === ml.length;
+                    return (
+                      <TabsTrigger key={m.id} value={m.id} className="text-xs gap-1.5">
+                        {allDone && <CheckCircle2 className="h-3 w-3 text-primary" />}
+                        M{m.module_number}: {m.title}
+                        <span className="text-[10px] text-muted-foreground">
+                          ({mDone}/{ml.length})
+                        </span>
+                      </TabsTrigger>
+                    );
+                  })}
                 </TabsList>
-                {modules.map((m) => (
-                  <TabsContent key={m.id} value={m.id} className="mt-4">
-                    <p className="text-xs text-muted-foreground mb-3">{m.description}</p>
-                    <ul className="space-y-1">
-                      {(lessonsByModule[m.id] || []).map((l) => {
-                        const done = completedSet.has(l.id);
-                        return (
-                          <li key={l.id}>
-                            <button
-                              onClick={() => setActiveLessonId(l.id)}
-                              className={`w-full text-left flex items-center gap-2 px-3 py-2 rounded-md text-sm hover:bg-muted transition-colors ${
-                                activeLessonId === l.id ? "bg-muted" : ""
-                              }`}
-                            >
-                              {done ? (
-                                <CheckCircle2 className="h-4 w-4 text-primary shrink-0" />
-                              ) : (
-                                <span className="h-4 w-4 rounded-full border border-muted-foreground/30 shrink-0" />
-                              )}
-                              <span className="flex-1">{l.title}</span>
-                              <span className="text-[10px] uppercase text-muted-foreground">
-                                {l.content_type}
-                              </span>
-                            </button>
-                          </li>
-                        );
-                      })}
-                    </ul>
-                  </TabsContent>
-                ))}
+                {modules.map((m) => {
+                  const ml = lessonsByModule[m.id] || [];
+                  const mDone = ml.filter((l) => completedSet.has(l.id)).length;
+                  const mPct = ml.length ? Math.round((mDone / ml.length) * 100) : 0;
+                  const allDone = ml.length > 0 && mDone === ml.length;
+                  return (
+                    <TabsContent key={m.id} value={m.id} className="mt-4">
+                      <div className="mb-3 space-y-2">
+                        <div className="flex items-center justify-between gap-2">
+                          <p className="text-xs text-muted-foreground">{m.description}</p>
+                          {allDone ? (
+                            <Badge className="shrink-0 bg-primary/10 text-primary border-primary/20" variant="outline">
+                              <CheckCircle2 className="h-3 w-3 mr-1" /> Module complete
+                            </Badge>
+                          ) : (
+                            <Badge variant="outline" className="shrink-0 text-[10px]">
+                              {mDone}/{ml.length} done
+                            </Badge>
+                          )}
+                        </div>
+                        <Progress value={mPct} className="h-1.5" />
+                      </div>
+                      <ul className="space-y-1">
+                        {ml.map((l) => {
+                          const done = completedSet.has(l.id);
+                          return (
+                            <li key={l.id}>
+                              <button
+                                onClick={() => setActiveLessonId(l.id)}
+                                className={`w-full text-left flex items-center gap-2 px-3 py-2 rounded-md text-sm hover:bg-muted transition-colors ${
+                                  activeLessonId === l.id ? "bg-muted" : ""
+                                }`}
+                              >
+                                {done ? (
+                                  <CheckCircle2 className="h-4 w-4 text-primary shrink-0" />
+                                ) : (
+                                  <span className="h-4 w-4 rounded-full border border-muted-foreground/30 shrink-0" />
+                                )}
+                                <span className="flex-1">{l.title}</span>
+                                <span className="text-[10px] uppercase text-muted-foreground">
+                                  {l.content_type}
+                                </span>
+                              </button>
+                            </li>
+                          );
+                        })}
+                      </ul>
+                    </TabsContent>
+                  );
+                })}
               </Tabs>
             </Card>
           </div>

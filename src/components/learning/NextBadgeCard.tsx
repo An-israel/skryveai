@@ -82,6 +82,7 @@ export function NextBadgeCard({
 
   const Icon = iconFor(next);
   const remaining = Math.max(0, next.target - next.current);
+  const lessonsPct = totalLessons > 0 ? Math.round((completedLessons / totalLessons) * 100) : 0;
 
   return (
     <Card className="p-4 bg-gradient-to-br from-primary/5 to-transparent border-primary/20">
@@ -106,6 +107,26 @@ export function NextBadgeCard({
                 · {remaining} {next.unit} to unlock
               </span>
             )}
+          </p>
+
+          {/* Exact inputs used to compute this preview */}
+          <div className="mt-3 pt-3 border-t border-border/50 grid grid-cols-2 gap-2 text-[11px]">
+            <div className="flex items-center gap-1.5">
+              <Flame className="h-3 w-3 text-primary" />
+              <span className="text-muted-foreground">Streak:</span>
+              <span className="font-semibold">{streakDays}d</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <BookOpen className="h-3 w-3 text-primary" />
+              <span className="text-muted-foreground">Lessons:</span>
+              <span className="font-semibold">
+                {completedLessons}/{totalLessons}
+              </span>
+              <span className="text-muted-foreground">({lessonsPct}%)</span>
+            </div>
+          </div>
+          <p className="mt-1.5 text-[10px] text-muted-foreground/80">
+            Used to compute next-badge progress · category: <span className="capitalize">{next.category}</span>
           </p>
         </div>
       </div>
