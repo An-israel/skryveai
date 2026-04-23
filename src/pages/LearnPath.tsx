@@ -382,6 +382,73 @@ export default function LearnPath() {
     ? Math.round((ul.completed_lessons / ul.total_lessons) * 100)
     : 0;
 
+  // Reusable chat panel — used as a sticky side rail on xl+ and inside a bottom Sheet on smaller screens.
+  const chatPanel = (
+    <div className="flex flex-col h-full min-h-0">
+      <div className="p-3 sm:p-4 border-b shrink-0">
+        <div className="flex items-center gap-2">
+          <Sparkles className="h-4 w-4 text-primary" />
+          <h3 className="font-semibold text-sm sm:text-base">AI Coach</h3>
+          <Badge variant="outline" className="ml-auto text-[10px]">0.1 cr/msg</Badge>
+        </div>
+        {activeLesson && (
+          <p className="text-xs text-muted-foreground mt-1 truncate">
+            Context: {activeLesson.title}
+          </p>
+        )}
+      </div>
+      <ScrollArea className="flex-1 p-3 sm:p-4 min-h-0" ref={scrollRef as any}>
+        <div className="space-y-3">
+          {messages.map((m, i) => (
+            <div
+              key={i}
+              className={`rounded-lg px-3 py-2 text-sm break-words ${
+                m.role === "user"
+                  ? "bg-primary text-primary-foreground ml-4 sm:ml-8"
+                  : "bg-muted mr-4 sm:mr-8"
+              }`}
+            >
+              {m.role === "assistant" ? (
+                <div className="prose prose-sm dark:prose-invert max-w-none prose-p:my-1 prose-ul:my-1 prose-headings:my-2 break-words">
+                  <ReactMarkdown>{m.content || "…"}</ReactMarkdown>
+                </div>
+              ) : (
+                <p className="whitespace-pre-wrap">{m.content}</p>
+              )}
+            </div>
+          ))}
+          {streaming && messages[messages.length - 1]?.content === "" && (
+            <div className="text-xs text-muted-foreground">Coach is typing…</div>
+          )}
+        </div>
+      </ScrollArea>
+      <div className="p-3 border-t shrink-0">
+        <div className="flex gap-2">
+          <Textarea
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            placeholder="Ask the coach anything…"
+            className="min-h-[44px] max-h-32 resize-none text-sm"
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && !e.shiftKey) {
+                e.preventDefault();
+                void sendMessage();
+              }
+            }}
+            disabled={streaming}
+          />
+          <Button
+            size="icon"
+            onClick={() => void sendMessage()}
+            disabled={streaming || !input.trim()}
+          >
+            {streaming ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
+
   return (
     <div className="min-h-screen bg-background">
       <SEOHead
@@ -389,14 +456,14 @@ export default function LearnPath() {
         description={`Learn ${ul.learning_paths.display_name} with your AI coach.`}
       />
       <Header />
-      <main className="container mx-auto px-4 py-6 max-w-7xl">
-        <div className="mb-6">
+      <main className="container mx-auto px-3 sm:px-4 py-4 sm:py-6 max-w-7xl pb-24 xl:pb-6">
+        <div className="mb-4 sm:mb-6">
           <Button variant="ghost" size="sm" asChild className="mb-3">
             <Link to="/tools/learn">
               <ArrowLeft className="h-4 w-4 mr-1" /> All skills
             </Link>
           </Button>
-          <div className="flex flex-wrap items-center gap-3 mb-2">
+          <div className="flex flex-wrap items-center gap-2 mb-2">
             <Badge variant="secondary">
               <Sparkles className="h-3 w-3 mr-1" /> AI Coach
             </Badge>
@@ -407,16 +474,18 @@ export default function LearnPath() {
             </Badge>
             <ReminderSettingsButton ul={ul} onUpdate={setUl} />
           </div>
-          <h1 className="text-2xl md:text-3xl font-bold">{ul.learning_paths.display_name}</h1>
+          <h1 className="text-xl sm:text-2xl md:text-3xl font-bold break-words">
+            {ul.learning_paths.display_name}
+          </h1>
           <div className="flex items-center gap-3 mt-3">
             <Progress value={progressPct} className="flex-1 max-w-md" />
-            <span className="text-sm text-muted-foreground">
-              {ul.completed_lessons}/{ul.total_lessons} lessons · {progressPct}%
+            <span className="text-xs sm:text-sm text-muted-foreground whitespace-nowrap">
+              {ul.completed_lessons}/{ul.total_lessons} · {progressPct}%
             </span>
           </div>
         </div>
 
-        <div className="grid lg:grid-cols-[1fr_400px] gap-6">
+        <div className="grid xl:grid-cols-[1fr_400px] gap-4 sm:gap-6">
           {/* Left: lesson area + module list */}
           <div className="space-y-6 min-w-0">
             {activeLesson && (
