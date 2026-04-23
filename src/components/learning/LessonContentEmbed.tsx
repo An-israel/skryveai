@@ -77,7 +77,7 @@ export function LessonContentEmbed({ url, title, fallbackLabel, onAskCoach }: Pr
   }
 
   const aspectClass =
-    info.aspect === "16/9" ? "aspect-video" : info.aspect === "4/3" ? "aspect-[4/3]" : "h-[70vh]";
+    info.aspect === "16/9" ? "aspect-video" : info.aspect === "4/3" ? "aspect-[4/3]" : "h-[55vh] sm:h-[65vh] lg:h-[70vh]";
 
   return (
     <div className="space-y-2">

@@ -18,6 +18,7 @@ import { ReminderSettingsButton } from "@/components/learning/ReminderSettingsBu
 import { NextBadgeCard } from "@/components/learning/NextBadgeCard";
 import { LessonContentEmbed } from "@/components/learning/LessonContentEmbed";
 import { validateUrl, parseUrl, type UrlStatus } from "@/lib/learning/url-validation";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import {
   ArrowLeft,
   AlertTriangle,
@@ -26,8 +27,10 @@ import {
   Clock,
   Flame,
   Loader2,
+  MessageCircle,
   Send,
   Sparkles,
+  X,
 } from "lucide-react";
 
 type ChatMsg = { role: "user" | "assistant"; content: string };
