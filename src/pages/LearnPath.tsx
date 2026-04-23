@@ -511,6 +511,15 @@ export default function LearnPath() {
               </Card>
             )}
 
+            <NextBadgeCard
+              userId={ul.user_id}
+              userLearningId={ul.id}
+              completedLessons={ul.completed_lessons}
+              totalLessons={ul.total_lessons}
+              streakDays={ul.streak_days}
+              skillName={ul.learning_paths.display_name}
+            />
+
             <Card className="p-4">
               <h3 className="font-semibold mb-3 flex items-center gap-2">
                 <BookOpen className="h-4 w-4" /> Curriculum
