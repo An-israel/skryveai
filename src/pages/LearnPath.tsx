@@ -705,18 +705,36 @@ export default function LearnPath() {
                                 </span>
                               </div>
                               {allDone ? (
-                                <Badge className="bg-primary/10 text-primary border-primary/20" variant="outline">
-                                  <CheckCircle2 className="h-3 w-3 mr-1" /> Module complete
+                                <Badge
+                                  className={`border-primary/20 transition-colors ${
+                                    justCompletedModuleId === m.id
+                                      ? "bg-primary text-primary-foreground"
+                                      : "bg-primary/10 text-primary"
+                                  }`}
+                                  variant="outline"
+                                >
+                                  <CheckCircle2 className="h-3 w-3 mr-1" />
+                                  {justCompletedModuleId === m.id ? "Marked complete!" : "Module complete"}
                                 </Badge>
                               ) : (
                                 <Button
                                   size="sm"
                                   variant="outline"
                                   className="w-full"
+                                  disabled={completingModuleId === m.id}
                                   onClick={() => void markModuleComplete(m.id)}
                                 >
-                                  <CheckCircle2 className="h-3.5 w-3.5 mr-1" />
-                                  Mark module complete
+                                  {completingModuleId === m.id ? (
+                                    <>
+                                      <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" />
+                                      Marking complete…
+                                    </>
+                                  ) : (
+                                    <>
+                                      <CheckCircle2 className="h-3.5 w-3.5 mr-1" />
+                                      Mark module complete
+                                    </>
+                                  )}
                                 </Button>
                               )}
                             </div>
