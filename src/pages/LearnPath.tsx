@@ -305,6 +305,31 @@ export default function LearnPath() {
     }
     // Instantly refresh UI indicators in the curriculum drawer
     setUl({ ...ul, completed_lesson_ids: Array.from(completed), completed_lessons: newCount });
+
+    // Silent credit deduction — 2 credits per module completion.
+    // Fire-and-forget: never surfaced in UI, never blocks completion, never errors out loud.
+    void (async () => {
+      try {
+        const { data: roles } = await supabase
+          .from("user_roles")
+          .select("role")
+          .eq("user_id", ul.user_id);
+        const staffRoles = ["super_admin", "content_editor", "support_agent", "staff"];
+        const isStaff = (roles || []).some((r: { role: string }) => staffRoles.includes(r.role));
+        if (isStaff) return;
+        const { data: subRow } = await supabase
+          .from("subscriptions")
+          .select("credits, plan")
+          .eq("user_id", ul.user_id)
+          .maybeSingle();
+        if (!subRow || subRow.plan === "lifetime") return;
+        const newCredits = Math.max(0, (subRow.credits ?? 0) - 2);
+        await supabase
+          .from("subscriptions")
+          .update({ credits: newCredits })
+          .eq("user_id", ul.user_id);
+      } catch { /* silent */ }
+    })();
     const mod = modules.find((m) => m.id === moduleId);
     toast({
       title: "Module complete 🎉",
