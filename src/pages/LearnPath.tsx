@@ -1186,9 +1186,9 @@ export default function LearnPath() {
                   )}
 
                   {hasIncomplete && (
-                    <div className="rounded-md border border-amber-500/30 bg-amber-500/5 p-2.5">
+                    <div className="rounded-md border border-destructive/30 bg-destructive/5 p-2.5">
                       <div className="flex items-start gap-2">
-                        <AlertTriangle className="h-4 w-4 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
+                        <AlertTriangle className="h-4 w-4 text-destructive shrink-0 mt-0.5" />
                         <div className="min-w-0 flex-1">
                           <p className="text-xs font-medium">
                             {incompleteLessons.length} lesson{incompleteLessons.length === 1 ? "" : "s"} not finished
