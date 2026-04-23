@@ -54,6 +54,33 @@ interface Submission {
   passed_at: string | null;
 }
 
+// Parse the markdown ai_feedback into rubric sections we can render as a structured panel.
+function parseRubric(feedback: string | null): {
+  verdict: string;
+  criteriaMet: string[];
+  criteriaMissed: string[];
+  nextStep: string;
+} {
+  if (!feedback) return { verdict: "", criteriaMet: [], criteriaMissed: [], nextStep: "" };
+  const grab = (label: string): string[] => {
+    const re = new RegExp(`\\*\\*${label}\\*\\*\\s*\\n([\\s\\S]*?)(?=\\n\\*\\*|$)`, "i");
+    const m = feedback.match(re);
+    if (!m) return [];
+    return m[1]
+      .split("\n")
+      .map((l) => l.replace(/^-\s*/, "").trim())
+      .filter(Boolean);
+  };
+  const verdictMatch = feedback.match(/\*\*Verdict:\*\*\s*([^\n]+)/i);
+  const nextMatch = feedback.match(/\*\*Next step:\*\*\s*([^\n]+)/i);
+  return {
+    verdict: verdictMatch?.[1]?.trim() || "",
+    criteriaMet: grab("Criteria met"),
+    criteriaMissed: grab("Criteria missed"),
+    nextStep: nextMatch?.[1]?.trim() || "",
+  };
+}
+
 export default function LearnAssignment() {
   const { assignmentId, userLearningId } = useParams<{
     assignmentId: string;
@@ -69,10 +96,12 @@ export default function LearnAssignment() {
 
   const [textValue, setTextValue] = useState("");
   const [urlValue, setUrlValue] = useState("");
+  const [notesValue, setNotesValue] = useState("");
   const [file, setFile] = useState<File | null>(null);
   const [tab, setTab] = useState<"text" | "url" | "file">("text");
   const [submitting, setSubmitting] = useState(false);
   const [reviewing, setReviewing] = useState(false);
+  const [showRubric, setShowRubric] = useState(true);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -151,11 +180,21 @@ export default function LearnAssignment() {
     try {
       const filePath = tab === "file" && file ? await uploadFileIfAny() : submission?.file_path || null;
 
+      // Append learner notes (intent / context for the reviewer) to whatever was submitted.
+      const notesBlock = notesValue.trim()
+        ? `\n\n---\n📝 Notes for the reviewer (from the learner):\n${notesValue.trim()}`
+        : "";
+
       const payload = {
         user_id: user.id,
         assignment_id: assignment.id,
         user_learning_id: userLearningId || null,
-        submission_data: tab === "text" ? textValue : null,
+        submission_data:
+          tab === "text"
+            ? `${textValue}${notesBlock}`
+            : notesValue.trim()
+            ? notesBlock.trim()
+            : null,
         submission_url: tab === "url" ? urlValue : null,
         file_path: tab === "file" ? filePath : null,
         status: "pending",
@@ -328,9 +367,72 @@ export default function LearnAssignment() {
             )}
 
             {submission.ai_feedback ? (
-              <div className="prose prose-sm max-w-none dark:prose-invert">
-                <ReactMarkdown>{submission.ai_feedback}</ReactMarkdown>
-              </div>
+              <>
+                {/* Structured rubric panel */}
+                {(() => {
+                  const r = parseRubric(submission.ai_feedback);
+                  const hasAny =
+                    r.verdict || r.criteriaMet.length || r.criteriaMissed.length || r.nextStep;
+                  if (!hasAny) return null;
+                  return (
+                    <div className="mb-4 rounded-lg border bg-muted/30 p-4">
+                      <div className="flex items-center justify-between mb-2 flex-wrap gap-2">
+                        <h4 className="text-sm font-semibold flex items-center gap-1">
+                          <Sparkles className="h-3.5 w-3.5 text-primary" /> AI grading rubric
+                        </h4>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="h-7 text-xs"
+                          onClick={() => setShowRubric((s) => !s)}
+                        >
+                          {showRubric ? "Hide" : "Show"}
+                        </Button>
+                      </div>
+                      {showRubric && (
+                        <div className="space-y-3 text-sm">
+                          {r.verdict && (
+                            <p className="text-muted-foreground italic">{r.verdict}</p>
+                          )}
+                          {r.criteriaMet.length > 0 && (
+                            <div>
+                              <p className="text-xs font-medium text-primary mb-1">
+                                ✓ Criteria met
+                              </p>
+                              <ul className="list-disc pl-5 space-y-0.5 text-xs">
+                                {r.criteriaMet.map((c, i) => (
+                                  <li key={i}>{c}</li>
+                                ))}
+                              </ul>
+                            </div>
+                          )}
+                          {r.criteriaMissed.length > 0 && (
+                            <div>
+                              <p className="text-xs font-medium text-destructive mb-1">
+                                ✗ Criteria missed
+                              </p>
+                              <ul className="list-disc pl-5 space-y-0.5 text-xs">
+                                {r.criteriaMissed.map((c, i) => (
+                                  <li key={i}>{c}</li>
+                                ))}
+                              </ul>
+                            </div>
+                          )}
+                          {r.nextStep && (
+                            <p className="text-xs">
+                              <span className="font-medium">Next step:</span> {r.nextStep}
+                            </p>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })()}
+
+                <div className="prose prose-sm max-w-none dark:prose-invert">
+                  <ReactMarkdown>{submission.ai_feedback}</ReactMarkdown>
+                </div>
+              </>
             ) : (
               <p className="text-sm text-muted-foreground italic">
                 {reviewing
@@ -357,6 +459,37 @@ export default function LearnAssignment() {
             <h2 className="font-semibold mb-3">
               {submission ? "Resubmit your work" : "Submit your work"}
             </h2>
+
+            {needsRevision && (
+              <div className="mb-4 rounded-md border border-primary/20 bg-primary/5 p-3 text-sm">
+                <p className="font-medium mb-1">💡 Tip for resubmission</p>
+                <p className="text-muted-foreground text-xs">
+                  Your previous submission is pre-loaded below — edit it directly and add a note
+                  for the AI reviewer explaining what you changed. The reviewer uses the rubric
+                  above to grade you.
+                </p>
+              </div>
+            )}
+
+            <div className="mb-4">
+              <label className="text-sm font-medium mb-1.5 block">
+                Notes for the AI reviewer{" "}
+                <span className="text-muted-foreground font-normal">(optional)</span>
+              </label>
+              <Textarea
+                rows={3}
+                value={notesValue}
+                onChange={(e) => setNotesValue(e.target.value)}
+                placeholder={
+                  needsRevision
+                    ? "What did you change in this revision? E.g. 'Added a stronger hook in paragraph 1 and rewrote the CTA to address the missed criterion.'"
+                    : "Anything the reviewer should know? E.g. 'I focused on conciseness and tone. Tools used: Figma + Notion.'"
+                }
+              />
+              <p className="text-xs text-muted-foreground mt-1">
+                These notes are passed to Gemini 2.5 Pro alongside your work.
+              </p>
+            </div>
             <Tabs value={tab} onValueChange={(v) => setTab(v as any)}>
               <TabsList>
                 <TabsTrigger value="text">
