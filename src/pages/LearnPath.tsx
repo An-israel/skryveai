@@ -20,14 +20,31 @@ import { LessonContentEmbed } from "@/components/learning/LessonContentEmbed";
 import { validateUrl, parseUrl, type UrlStatus } from "@/lib/learning/url-validation";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
+import {
+  AlertTriangle,
   ArrowLeft,
   BookOpen,
+  Check,
   CheckCircle2,
   ChevronRight,
+  Circle,
   Clock,
+  Eye,
   Flame,
   Loader2,
   PartyPopper,
+  PlayCircle,
   Send,
   Sparkles,
   Trophy,
@@ -101,6 +118,24 @@ export default function LearnPath() {
 
   // URL validation cache: url -> "checking" | "ok" | "broken"
   const [urlStatuses, setUrlStatuses] = useState<Record<string, UrlStatus>>({});
+
+  // Confirmation modal for marking a module complete
+  const [confirmModuleId, setConfirmModuleId] = useState<string | null>(null);
+
+  // ARIA live announcements (module readiness, etc.)
+  const [liveAnnounce, setLiveAnnounce] = useState("");
+  const lastAnnouncedKeyRef = useRef<string>("");
+
+  // Auto-detect lesson completion from chat signals (quiz/checklist/upload/done)
+  const [autoDetect, setAutoDetect] = useState<boolean>(() => {
+    try {
+      const v = localStorage.getItem("skryve.learn.autoDetect");
+      return v === null ? true : v === "1";
+    } catch { return true; }
+  });
+  useEffect(() => {
+    try { localStorage.setItem("skryve.learn.autoDetect", autoDetect ? "1" : "0"); } catch {}
+  }, [autoDetect]);
 
   useEffect(() => {
     if (!user || !userLearningId) return;
@@ -230,6 +265,57 @@ export default function LearnPath() {
     if (!u || !parseUrl(u)) return "missing";
     return urlStatuses[u] || "checking";
   }
+
+  // Detects natural-language signals that the user finished an interactive task
+  // tied to the active lesson (quiz/checklist/upload/done/submitted).
+  function looksLikeCompletionSignal(text: string): boolean {
+    const t = text.toLowerCase();
+    const verbs = [
+      "finished", "completed", "done with", "i'm done", "im done",
+      "submitted", "uploaded", "turned in", "passed", "aced",
+    ];
+    const nouns = [
+      "quiz", "checklist", "exercise", "assignment", "task",
+      "upload", "submission", "lesson",
+    ];
+    if (verbs.some((v) => t.includes(v))) {
+      // either a verb alone ("i'm done") or verb + noun match
+      if (/i('?| a)?m? ?done/.test(t)) return true;
+      return nouns.some((n) => t.includes(n));
+    }
+    return false;
+  }
+
+  // Announce module readiness to screen readers
+  useEffect(() => {
+    if (!activeLesson) return;
+    const mod = modules.find((m) => m.id === activeLesson.module_id);
+    if (!mod) return;
+    const ml = lessonsByModule[mod.id] || [];
+    if (ml.length === 0) return;
+    const done = ml.filter((l) => completedSet.has(l.id)).length;
+    const allDone = done === ml.length;
+    const lastLesson = ml[ml.length - 1]?.id === activeLesson.id;
+    const lessonDone = completedSet.has(activeLesson.id);
+
+    let msg = "";
+    let key = "";
+    if (allDone) {
+      msg = `Module ${mod.title} is ready to mark complete. All ${ml.length} lessons are finished.`;
+      key = `ready:${mod.id}`;
+    } else if (lastLesson && lessonDone) {
+      msg = `Last lesson of ${mod.title} complete. ${ml.length - done} lesson${ml.length - done === 1 ? "" : "s"} remaining before the module is done.`;
+      key = `last-done:${activeLesson.id}`;
+    } else if (lastLesson) {
+      msg = `You're on the last lesson of ${mod.title}.`;
+      key = `last:${activeLesson.id}`;
+    }
+    if (msg && key !== lastAnnouncedKeyRef.current) {
+      lastAnnouncedKeyRef.current = key;
+      setLiveAnnounce(msg);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeLesson, completedSet, lessonsByModule, modules]);
 
   async function markComplete(lesson: Lesson) {
     if (!ul) return;
@@ -383,6 +469,14 @@ export default function LearnPath() {
     if (!ul || !input.trim() || streaming) return;
     const userMsg = input.trim();
     setInput("");
+
+    // Auto-detect: if the user signals they finished a quiz/checklist/upload/exercise
+    // for the active lesson, silently mark that lesson complete so the module
+    // completion banner can appear on the next render.
+    if (autoDetect && activeLesson && !completedSet.has(activeLesson.id) && looksLikeCompletionSignal(userMsg)) {
+      void markComplete(activeLesson);
+    }
+
     setMessages((m) => [...m, { role: "user", content: userMsg }, { role: "assistant", content: "" }]);
     setStreaming(true);
 
@@ -694,6 +788,21 @@ export default function LearnPath() {
                       streakDays={ul.streak_days}
                       skillName={ul.learning_paths.display_name}
                     />
+                    <div className="flex items-center justify-between gap-3 rounded-md border p-2.5">
+                      <div className="min-w-0">
+                        <Label htmlFor="auto-detect" className="text-xs font-medium flex items-center gap-1.5">
+                          <Eye className="h-3 w-3" /> Auto-detect lesson done
+                        </Label>
+                        <p className="text-[10px] text-muted-foreground mt-0.5">
+                          Marks the lesson complete when you tell the coach you finished a quiz, checklist, or upload.
+                        </p>
+                      </div>
+                      <Switch
+                        id="auto-detect"
+                        checked={autoDetect}
+                        onCheckedChange={setAutoDetect}
+                      />
+                    </div>
                     <Tabs defaultValue={modules.find((m) => m.id === activeLesson?.module_id)?.id || modules[0]?.id} className="w-full">
                       <ScrollArea className="w-full">
                         <TabsList className="inline-flex w-max h-auto justify-start">
@@ -749,7 +858,7 @@ export default function LearnPath() {
                                   variant="outline"
                                   className="w-full"
                                   disabled={completingModuleId === m.id}
-                                  onClick={() => void markModuleComplete(m.id)}
+                                  onClick={() => setConfirmModuleId(m.id)}
                                 >
                                   {completingModuleId === m.id ? (
                                     <>
@@ -858,6 +967,74 @@ export default function LearnPath() {
           </Card>
         )}
 
+        {/* Accessible live region — announces module readiness to screen readers */}
+        <div
+          role="status"
+          aria-live="polite"
+          aria-atomic="true"
+          className="sr-only"
+        >
+          {liveAnnounce}
+        </div>
+
+        {/* Module timeline — shows exactly what's left in the current module */}
+        {activeLesson && (() => {
+          const currentModule = modules.find((m) => m.id === activeLesson.module_id);
+          if (!currentModule) return null;
+          const ml = lessonsByModule[currentModule.id] || [];
+          if (ml.length === 0) return null;
+          const done = ml.filter((l) => completedSet.has(l.id)).length;
+          const remaining = ml.length - done;
+          return (
+            <Card className="p-3 sm:p-4 mb-3">
+              <div className="flex items-center justify-between gap-2 mb-2">
+                <p className="text-xs font-medium text-muted-foreground">
+                  {currentModule.title} · {done}/{ml.length} lessons
+                </p>
+                <span className="text-[10px] text-muted-foreground whitespace-nowrap">
+                  {remaining === 0 ? "All done" : `${remaining} left`}
+                </span>
+              </div>
+              <ol className="space-y-1">
+                {ml.map((l) => {
+                  const isDone = completedSet.has(l.id);
+                  const isActive = l.id === activeLesson.id;
+                  return (
+                    <li key={l.id}>
+                      <button
+                        type="button"
+                        onClick={() => setActiveLessonId(l.id)}
+                        className={`w-full flex items-center gap-2 text-left text-xs rounded-md px-2 py-1.5 transition-colors ${
+                          isActive
+                            ? "bg-primary/10 text-foreground"
+                            : "hover:bg-muted/60 text-muted-foreground"
+                        }`}
+                        aria-current={isActive ? "step" : undefined}
+                      >
+                        {isDone ? (
+                          <Check className="h-3.5 w-3.5 text-primary shrink-0" />
+                        ) : isActive ? (
+                          <PlayCircle className="h-3.5 w-3.5 text-primary shrink-0" />
+                        ) : (
+                          <Circle className="h-3.5 w-3.5 shrink-0" />
+                        )}
+                        <span className={`truncate ${isDone ? "line-through opacity-70" : ""} ${isActive ? "font-medium text-foreground" : ""}`}>
+                          {l.title}
+                        </span>
+                        {isActive && !isDone && (
+                          <Badge variant="secondary" className="ml-auto text-[9px] py-0 px-1.5">
+                            Now
+                          </Badge>
+                        )}
+                      </button>
+                    </li>
+                  );
+                })}
+              </ol>
+            </Card>
+          );
+        })()}
+
         {/* Module wrap-up banner — tells the user when they've finished a module
             and what to do next. Always visible above the chat so it can't be missed. */}
         {activeLesson && (() => {
@@ -895,7 +1072,7 @@ export default function LearnPath() {
                   </div>
                   <Button
                     size="sm"
-                    onClick={() => void markModuleComplete(currentModule.id)}
+                    onClick={() => setConfirmModuleId(currentModule.id)}
                     disabled={isLoading}
                     className="shrink-0 w-full sm:w-auto"
                   >
@@ -937,7 +1114,7 @@ export default function LearnPath() {
                   </div>
                   <Button
                     size="sm"
-                    onClick={() => void markModuleComplete(currentModule.id)}
+                    onClick={() => setConfirmModuleId(currentModule.id)}
                     disabled={isLoading}
                     className="shrink-0 w-full sm:w-auto"
                   >
@@ -981,6 +1158,92 @@ export default function LearnPath() {
           {chatPanel}
         </Card>
       </main>
+
+      {/* Confirmation modal for marking a module complete */}
+      <AlertDialog
+        open={!!confirmModuleId}
+        onOpenChange={(o) => !o && setConfirmModuleId(null)}
+      >
+        <AlertDialogContent>
+          {(() => {
+            const mod = modules.find((m) => m.id === confirmModuleId);
+            const ml = confirmModuleId ? lessonsByModule[confirmModuleId] || [] : [];
+            const completedLessons = ml.filter((l) => completedSet.has(l.id));
+            const incompleteLessons = ml.filter((l) => !completedSet.has(l.id));
+            const hasIncomplete = incompleteLessons.length > 0;
+            return (
+              <>
+                <AlertDialogHeader>
+                  <AlertDialogTitle className="flex items-center gap-2">
+                    <Trophy className="h-4 w-4 text-primary" />
+                    Mark "{mod?.title || "Module"}" complete?
+                  </AlertDialogTitle>
+                  <AlertDialogDescription>
+                    This will mark every lesson in the module as done and move you to the next module.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+
+                <div className="space-y-3 max-h-[40vh] overflow-y-auto">
+                  {completedLessons.length > 0 && (
+                    <div>
+                      <p className="text-xs font-medium text-muted-foreground mb-1.5">
+                        ✅ Already complete ({completedLessons.length})
+                      </p>
+                      <ul className="space-y-1">
+                        {completedLessons.map((l) => (
+                          <li key={l.id} className="flex items-center gap-2 text-xs">
+                            <Check className="h-3 w-3 text-primary shrink-0" />
+                            <span className="truncate">{l.title}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+
+                  {hasIncomplete && (
+                    <div className="rounded-md border border-destructive/30 bg-destructive/5 p-2.5">
+                      <div className="flex items-start gap-2">
+                        <AlertTriangle className="h-4 w-4 text-destructive shrink-0 mt-0.5" />
+                        <div className="min-w-0 flex-1">
+                          <p className="text-xs font-medium">
+                            {incompleteLessons.length} lesson{incompleteLessons.length === 1 ? "" : "s"} not finished
+                          </p>
+                          <p className="text-[11px] text-muted-foreground mb-1.5">
+                            These will be marked complete too:
+                          </p>
+                          <ul className="space-y-1">
+                            {incompleteLessons.map((l) => (
+                              <li key={l.id} className="flex items-center gap-2 text-xs">
+                                <Circle className="h-3 w-3 shrink-0 text-muted-foreground" />
+                                <span className="truncate">{l.title}</span>
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Not yet</AlertDialogCancel>
+                  <AlertDialogAction
+                    onClick={() => {
+                      if (confirmModuleId) {
+                        const id = confirmModuleId;
+                        setConfirmModuleId(null);
+                        void markModuleComplete(id);
+                      }
+                    }}
+                  >
+                    {hasIncomplete ? "Complete anyway" : "Mark complete"}
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </>
+            );
+          })()}
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
