@@ -622,6 +622,59 @@ export type Database = {
         }
         Relationships: []
       }
+      coach_messages: {
+        Row: {
+          context: Json | null
+          credits_used: number | null
+          id: string
+          is_proactive: boolean
+          message_text: string
+          message_type: string
+          sent_at: string
+          sent_by: string
+          user_id: string
+          user_learning_id: string | null
+          user_read: boolean
+          user_replied: boolean
+        }
+        Insert: {
+          context?: Json | null
+          credits_used?: number | null
+          id?: string
+          is_proactive?: boolean
+          message_text: string
+          message_type?: string
+          sent_at?: string
+          sent_by?: string
+          user_id: string
+          user_learning_id?: string | null
+          user_read?: boolean
+          user_replied?: boolean
+        }
+        Update: {
+          context?: Json | null
+          credits_used?: number | null
+          id?: string
+          is_proactive?: boolean
+          message_text?: string
+          message_type?: string
+          sent_at?: string
+          sent_by?: string
+          user_id?: string
+          user_learning_id?: string | null
+          user_read?: boolean
+          user_replied?: boolean
+        }
+        Relationships: [
+          {
+            foreignKeyName: "coach_messages_user_learning_id_fkey"
+            columns: ["user_learning_id"]
+            isOneToOne: false
+            referencedRelation: "user_learning"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       contacted_businesses: {
         Row: {
           contacted_at: string | null
@@ -1067,6 +1120,345 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      learning_achievements: {
+        Row: {
+          achievement_description: string | null
+          achievement_name: string | null
+          achievement_type: string
+          badge_image_url: string | null
+          earned_at: string
+          id: string
+          skill_name: string | null
+          user_id: string
+          user_learning_id: string | null
+        }
+        Insert: {
+          achievement_description?: string | null
+          achievement_name?: string | null
+          achievement_type: string
+          badge_image_url?: string | null
+          earned_at?: string
+          id?: string
+          skill_name?: string | null
+          user_id: string
+          user_learning_id?: string | null
+        }
+        Update: {
+          achievement_description?: string | null
+          achievement_name?: string | null
+          achievement_type?: string
+          badge_image_url?: string | null
+          earned_at?: string
+          id?: string
+          skill_name?: string | null
+          user_id?: string
+          user_learning_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "learning_achievements_user_learning_id_fkey"
+            columns: ["user_learning_id"]
+            isOneToOne: false
+            referencedRelation: "user_learning"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      learning_assignments: {
+        Row: {
+          created_at: string
+          credits_cost: number | null
+          description: string
+          due_after_hours: number | null
+          example_solution_url: string | null
+          id: string
+          instructions: string
+          lesson_id: string
+          max_revisions: number | null
+          passing_criteria: string | null
+          submission_type: string
+          title: string
+        }
+        Insert: {
+          created_at?: string
+          credits_cost?: number | null
+          description: string
+          due_after_hours?: number | null
+          example_solution_url?: string | null
+          id?: string
+          instructions: string
+          lesson_id: string
+          max_revisions?: number | null
+          passing_criteria?: string | null
+          submission_type?: string
+          title: string
+        }
+        Update: {
+          created_at?: string
+          credits_cost?: number | null
+          description?: string
+          due_after_hours?: number | null
+          example_solution_url?: string | null
+          id?: string
+          instructions?: string
+          lesson_id?: string
+          max_revisions?: number | null
+          passing_criteria?: string | null
+          submission_type?: string
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "learning_assignments_lesson_id_fkey"
+            columns: ["lesson_id"]
+            isOneToOne: false
+            referencedRelation: "learning_lessons"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      learning_lessons: {
+        Row: {
+          content_text: string | null
+          content_type: string
+          content_url: string | null
+          created_at: string
+          credits_cost: number | null
+          description: string | null
+          estimated_minutes: number | null
+          has_assignment: boolean | null
+          id: string
+          learning_path_id: string
+          lesson_number: number
+          module_id: string
+          order_index: number | null
+          required_for_next: boolean | null
+          title: string
+        }
+        Insert: {
+          content_text?: string | null
+          content_type?: string
+          content_url?: string | null
+          created_at?: string
+          credits_cost?: number | null
+          description?: string | null
+          estimated_minutes?: number | null
+          has_assignment?: boolean | null
+          id?: string
+          learning_path_id: string
+          lesson_number: number
+          module_id: string
+          order_index?: number | null
+          required_for_next?: boolean | null
+          title: string
+        }
+        Update: {
+          content_text?: string | null
+          content_type?: string
+          content_url?: string | null
+          created_at?: string
+          credits_cost?: number | null
+          description?: string | null
+          estimated_minutes?: number | null
+          has_assignment?: boolean | null
+          id?: string
+          learning_path_id?: string
+          lesson_number?: number
+          module_id?: string
+          order_index?: number | null
+          required_for_next?: boolean | null
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "learning_lessons_learning_path_id_fkey"
+            columns: ["learning_path_id"]
+            isOneToOne: false
+            referencedRelation: "learning_paths"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "learning_lessons_module_id_fkey"
+            columns: ["module_id"]
+            isOneToOne: false
+            referencedRelation: "learning_modules"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      learning_modules: {
+        Row: {
+          created_at: string
+          description: string | null
+          estimated_hours: number | null
+          id: string
+          learning_path_id: string
+          module_number: number
+          order_index: number | null
+          title: string
+          unlock_level: number | null
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          estimated_hours?: number | null
+          id?: string
+          learning_path_id: string
+          module_number: number
+          order_index?: number | null
+          title: string
+          unlock_level?: number | null
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          estimated_hours?: number | null
+          id?: string
+          learning_path_id?: string
+          module_number?: number
+          order_index?: number | null
+          title?: string
+          unlock_level?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "learning_modules_learning_path_id_fkey"
+            columns: ["learning_path_id"]
+            isOneToOne: false
+            referencedRelation: "learning_paths"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      learning_paths: {
+        Row: {
+          cover_image_url: string | null
+          created_at: string
+          description: string | null
+          difficulty_level: string | null
+          display_name: string
+          estimated_weeks: number | null
+          icon_url: string | null
+          id: string
+          is_active: boolean
+          popular_rank: number | null
+          short_description: string | null
+          skill_name: string
+          total_lessons: number
+          total_modules: number
+          updated_at: string
+        }
+        Insert: {
+          cover_image_url?: string | null
+          created_at?: string
+          description?: string | null
+          difficulty_level?: string | null
+          display_name: string
+          estimated_weeks?: number | null
+          icon_url?: string | null
+          id?: string
+          is_active?: boolean
+          popular_rank?: number | null
+          short_description?: string | null
+          skill_name: string
+          total_lessons?: number
+          total_modules?: number
+          updated_at?: string
+        }
+        Update: {
+          cover_image_url?: string | null
+          created_at?: string
+          description?: string | null
+          difficulty_level?: string | null
+          display_name?: string
+          estimated_weeks?: number | null
+          icon_url?: string | null
+          id?: string
+          is_active?: boolean
+          popular_rank?: number | null
+          short_description?: string | null
+          skill_name?: string
+          total_lessons?: number
+          total_modules?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      learning_submissions: {
+        Row: {
+          ai_feedback: string | null
+          assignment_id: string
+          created_at: string
+          file_path: string | null
+          id: string
+          improvements: string[] | null
+          passed_at: string | null
+          reviewed_at: string | null
+          revision_count: number
+          score: number | null
+          status: string
+          strengths: string[] | null
+          submission_data: string | null
+          submission_url: string | null
+          submitted_at: string
+          user_id: string
+          user_learning_id: string | null
+        }
+        Insert: {
+          ai_feedback?: string | null
+          assignment_id: string
+          created_at?: string
+          file_path?: string | null
+          id?: string
+          improvements?: string[] | null
+          passed_at?: string | null
+          reviewed_at?: string | null
+          revision_count?: number
+          score?: number | null
+          status?: string
+          strengths?: string[] | null
+          submission_data?: string | null
+          submission_url?: string | null
+          submitted_at?: string
+          user_id: string
+          user_learning_id?: string | null
+        }
+        Update: {
+          ai_feedback?: string | null
+          assignment_id?: string
+          created_at?: string
+          file_path?: string | null
+          id?: string
+          improvements?: string[] | null
+          passed_at?: string | null
+          reviewed_at?: string | null
+          revision_count?: number
+          score?: number | null
+          status?: string
+          strengths?: string[] | null
+          submission_data?: string | null
+          submission_url?: string | null
+          submitted_at?: string
+          user_id?: string
+          user_learning_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "learning_submissions_assignment_id_fkey"
+            columns: ["assignment_id"]
+            isOneToOne: false
+            referencedRelation: "learning_assignments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "learning_submissions_user_learning_id_fkey"
+            columns: ["user_learning_id"]
+            isOneToOne: false
+            referencedRelation: "user_learning"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       notifications: {
         Row: {
@@ -1747,6 +2139,89 @@ export type Database = {
           signup_order?: number
         }
         Relationships: []
+      }
+      user_learning: {
+        Row: {
+          coach_tone: string
+          completed_at: string | null
+          completed_lesson_ids: string[] | null
+          completed_lessons: number
+          created_at: string
+          current_lesson: number
+          current_level: number
+          current_module: number
+          id: string
+          is_active: boolean
+          last_activity_date: string | null
+          learning_pace: string | null
+          learning_path_id: string
+          pause_reason: string | null
+          paused_at: string | null
+          started_at: string
+          streak_days: number
+          target_completion_date: string | null
+          total_lessons: number
+          total_time_minutes: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          coach_tone?: string
+          completed_at?: string | null
+          completed_lesson_ids?: string[] | null
+          completed_lessons?: number
+          created_at?: string
+          current_lesson?: number
+          current_level?: number
+          current_module?: number
+          id?: string
+          is_active?: boolean
+          last_activity_date?: string | null
+          learning_pace?: string | null
+          learning_path_id: string
+          pause_reason?: string | null
+          paused_at?: string | null
+          started_at?: string
+          streak_days?: number
+          target_completion_date?: string | null
+          total_lessons?: number
+          total_time_minutes?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          coach_tone?: string
+          completed_at?: string | null
+          completed_lesson_ids?: string[] | null
+          completed_lessons?: number
+          created_at?: string
+          current_lesson?: number
+          current_level?: number
+          current_module?: number
+          id?: string
+          is_active?: boolean
+          last_activity_date?: string | null
+          learning_pace?: string | null
+          learning_path_id?: string
+          pause_reason?: string | null
+          paused_at?: string | null
+          started_at?: string
+          streak_days?: number
+          target_completion_date?: string | null
+          total_lessons?: number
+          total_time_minutes?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_learning_learning_path_id_fkey"
+            columns: ["learning_path_id"]
+            isOneToOne: false
+            referencedRelation: "learning_paths"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       user_roles: {
         Row: {
