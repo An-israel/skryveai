@@ -1,10 +1,11 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Wrench, RefreshCw, FileText, Target, TrendingUp, Linkedin, Bot, Send, Users, GraduationCap } from "lucide-react";
+import { Wrench, RefreshCw, FileText, Target, TrendingUp, Linkedin, Bot, Send, Users, GraduationCap, ArrowUpRight } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 
@@ -75,6 +76,7 @@ function getToolDetail(r: UsageRecord): string {
 }
 
 export function ToolUsageTracker() {
+  const navigate = useNavigate();
   const [records, setRecords] = useState<UsageRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<string>("all");
@@ -150,6 +152,11 @@ export function ToolUsageTracker() {
               <CardDescription>Track usage across all product features — CV Builder, ATS Checker, LinkedIn Analyzer, AutoPilot, and Campaign Emails.</CardDescription>
             </div>
             <div className="flex gap-2">
+              <Button variant="outline" size="sm" onClick={() => navigate("/admin/skill-learning")} className="gap-1">
+                <GraduationCap className="w-4 h-4" />
+                Skill Learning
+                <ArrowUpRight className="w-3 h-3" />
+              </Button>
               <Select value={filter} onValueChange={setFilter}>
                 <SelectTrigger className="w-44">
                   <SelectValue />
