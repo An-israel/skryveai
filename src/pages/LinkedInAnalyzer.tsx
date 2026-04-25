@@ -12,6 +12,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
 import { extractTextFromPdf } from "@/lib/extract-pdf-text";
 import { useCredits } from "@/hooks/use-credits";
+import { getEdgeFunctionErrorMessage } from "@/lib/edge-function-error";
 import { FeatureGuide } from "@/components/onboarding/FeatureGuide";
 import { linkedInGuide } from "@/components/onboarding/guideConfigs";
 import {
@@ -192,9 +193,10 @@ export default function LinkedInAnalyzer() {
         supabase.from("tool_usage").insert({ user_id: user.id, tool_name: "linkedin_analyzer", metadata: { score: data.overallScore, grade: data.grade, profile_strength: data.profileStrength } } as any).then(() => {});
       }
     } catch (err) {
+      const description = await getEdgeFunctionErrorMessage(err, "Please try again");
       toast({
         title: "Analysis failed",
-        description: err instanceof Error ? err.message : "Please try again",
+        description,
         variant: "destructive",
       });
     } finally {

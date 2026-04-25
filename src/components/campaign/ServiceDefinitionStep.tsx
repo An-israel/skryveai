@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Loader2, Sparkles, Target, MapPin, ArrowLeft, ArrowRight, Wand2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { getEdgeFunctionErrorMessage } from "@/lib/edge-function-error";
 import { SIGNAL_LABELS, ALL_SIGNALS, type ServiceDefinition } from "@/types/smartFind";
 import { LocationsInput } from "@/components/ui/locations-input";
 
@@ -46,9 +47,10 @@ export function ServiceDefinitionStep({ expertise, onProceed, onBack }: ServiceD
       });
       toast({ title: "Analyzed!", description: "Review and adjust the criteria below, then run smart search." });
     } catch (err) {
+      const description = await getEdgeFunctionErrorMessage(err, "Try rephrasing your service description.");
       toast({
         title: "Analysis failed",
-        description: err instanceof Error ? err.message : "Try rephrasing your service description.",
+        description,
         variant: "destructive",
       });
     } finally {

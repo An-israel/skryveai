@@ -90,7 +90,7 @@ async function buildServiceDefinition(
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "google/gemini-3-flash-preview",
+        model: "google/gemini-2.5-flash",
         messages: [
           { role: "system", content: systemPrompt },
           { role: "user", content: userPrompt },
@@ -204,7 +204,7 @@ async function detectSignalsForBusiness(
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "google/gemini-3-flash-preview",
+        model: "google/gemini-2.5-flash",
         messages: [
           { role: "system", content: "You are a precise website auditor. Respond ONLY via the tool call." },
           { role: "user", content: prompt },
