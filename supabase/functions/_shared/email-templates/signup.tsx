@@ -29,29 +29,25 @@ export const SignupEmail = ({
 }: SignupEmailProps) => (
   <Html lang="en" dir="ltr">
     <Head />
-    <Preview>Confirm your email for {siteName}</Preview>
+    <Preview>Confirm your SkryveAI account</Preview>
     <Body style={main}>
       <Container style={container}>
-        <Heading style={h1}>Confirm your email</Heading>
+        <Heading style={h1}>Welcome to SkryveAI 👋</Heading>
         <Text style={text}>
-          Thanks for signing up for{' '}
-          <Link href={siteUrl} style={link}>
-            <strong>{siteName}</strong>
-          </Link>
-          !
+          Hi there, thanks for signing up for{' '}
+          <Link href={siteUrl} style={link}><strong>{siteName}</strong></Link>!
+          You're one click away from finding clients with AI-powered cold outreach.
         </Text>
         <Text style={text}>
-          Please confirm your email address (
-          <Link href={`mailto:${recipient}`} style={link}>
-            {recipient}
-          </Link>
-          ) by clicking the button below:
+          Please confirm your email ({recipient}) to activate your account:
         </Text>
         <Button style={button} href={confirmationUrl}>
-          Verify Email
+          Confirm my account
         </Button>
         <Text style={footer}>
-          If you didn't create an account, you can safely ignore this email.
+          If you didn't sign up for SkryveAI, you can safely ignore this email.
+          <br /><br />
+          — The SkryveAI Team
         </Text>
       </Container>
     </Body>
@@ -60,27 +56,19 @@ export const SignupEmail = ({
 
 export default SignupEmail
 
-const main = { backgroundColor: '#ffffff', fontFamily: 'Arial, sans-serif' }
-const container = { padding: '20px 25px' }
-const h1 = {
-  fontSize: '22px',
-  fontWeight: 'bold' as const,
-  color: '#000000',
-  margin: '0 0 20px',
-}
-const text = {
-  fontSize: '14px',
-  color: '#55575d',
-  lineHeight: '1.5',
-  margin: '0 0 25px',
-}
-const link = { color: 'inherit', textDecoration: 'underline' }
+const main = { backgroundColor: '#ffffff', fontFamily: 'Inter, -apple-system, Segoe UI, Arial, sans-serif' }
+const container = { padding: '32px 28px', maxWidth: '560px' }
+const h1 = { fontSize: '24px', fontWeight: 'bold' as const, color: '#0f172a', margin: '0 0 20px' }
+const text = { fontSize: '15px', color: '#334155', lineHeight: '1.6', margin: '0 0 20px' }
+const link = { color: 'hsl(217, 91%, 55%)', textDecoration: 'none' }
 const button = {
-  backgroundColor: '#000000',
+  backgroundColor: 'hsl(217, 91%, 55%)',
   color: '#ffffff',
-  fontSize: '14px',
+  fontSize: '15px',
+  fontWeight: '600' as const,
   borderRadius: '8px',
-  padding: '12px 20px',
+  padding: '12px 24px',
   textDecoration: 'none',
+  display: 'inline-block',
 }
-const footer = { fontSize: '12px', color: '#999999', margin: '30px 0 0' }
+const footer = { fontSize: '13px', color: '#64748b', margin: '32px 0 0', lineHeight: '1.5' }
