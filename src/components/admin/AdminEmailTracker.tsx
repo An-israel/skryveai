@@ -425,7 +425,7 @@ export function AdminEmailTracker() {
                                   <p className="font-semibold text-sm mb-1">{email.subject}</p>
                                   <div
                                     className="text-sm text-muted-foreground prose prose-sm max-w-none"
-                                    dangerouslySetInnerHTML={{ __html: email.body }}
+                                    dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(email.body) }}
                                   />
                                 </div>
 
