@@ -1,0 +1,1 @@
+DROP POLICY IF EXISTS "Admins can view all smtp credentials" ON public.smtp_credentials;
