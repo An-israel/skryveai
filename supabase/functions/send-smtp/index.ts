@@ -122,7 +122,35 @@ serve(async (req) => {
   }
 
   try {
-    const { to, subject, body, userId }: SendEmailRequest = await req.json();
+    // Authenticate caller. Allow service-role bypass for internal callers (e.g. autopilot-run).
+    const authHeader = req.headers.get("authorization") || "";
+    const token = authHeader.startsWith("Bearer ") ? authHeader.slice(7) : "";
+    if (!token) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    const isServiceRole = token === supabaseServiceKey;
+    let authedUserId: string | null = null;
+
+    if (!isServiceRole) {
+      const authClient = createClient(supabaseUrl, Deno.env.get("SUPABASE_ANON_KEY") || "");
+      const { data: userData, error: userError } = await authClient.auth.getUser(token);
+      if (userError || !userData?.user) {
+        return new Response(JSON.stringify({ error: "Unauthorized" }), {
+          status: 401,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      authedUserId = userData.user.id;
+    }
+
+    const body_req: SendEmailRequest = await req.json();
+    const { to, subject, body } = body_req;
+    // For service-role calls, trust the body userId. For user calls, force the authenticated user id.
+    const userId = isServiceRole ? body_req.userId : (authedUserId as string);
 
     if (!to || !subject || !body || !userId) {
       throw new Error("Missing required fields: to, subject, body, userId");
