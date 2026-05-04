@@ -39,6 +39,7 @@ export function GrowthDashboard() {
   const [conversionFunnel, setConversionFunnel] = useState<{ stage: string; count: number; rate: string }[]>([]);
   const [topReferrers, setTopReferrers] = useState<{ name: string; email: string; referrals: number; conversions: number }[]>([]);
   const [recentSignups, setRecentSignups] = useState<{ name: string; email: string; signed_up: string; activated: boolean; plan: string }[]>([]);
+  const [heardFromData, setHeardFromData] = useState<{ source: string; count: number }[]>([]);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -174,6 +175,26 @@ export function GrowthDashboard() {
           plan: subsMap.get(p.user_id)?.status || "none",
         }));
       setRecentSignups(recent);
+
+      // Heard-from breakdown
+      const heardFromMap: Record<string, number> = {};
+      for (const p of profiles) {
+        const src = (p as any).heard_from || "not_specified";
+        heardFromMap[src] = (heardFromMap[src] || 0) + 1;
+      }
+      const LABEL_MAP: Record<string, string> = {
+        google_search: "Google Search", facebook: "Facebook", instagram: "Instagram",
+        tiktok: "TikTok", youtube: "YouTube", twitter_x: "Twitter/X", linkedin: "LinkedIn",
+        whatsapp: "WhatsApp", telegram: "Telegram", friend_colleague: "Friend/Colleague",
+        referral_link: "Referral Link", influencer: "Influencer", blog_article: "Blog/Article",
+        podcast: "Podcast", reddit: "Reddit", online_community: "Community",
+        email_newsletter: "Email Newsletter", webinar_event: "Webinar/Event",
+        school_university: "School/University", other: "Other", not_specified: "Not specified",
+      };
+      const heardFrom = Object.entries(heardFromMap)
+        .map(([key, count]) => ({ source: LABEL_MAP[key] || key, count }))
+        .sort((a, b) => b.count - a.count);
+      setHeardFromData(heardFrom);
     } catch (error) {
       console.error("Failed to load growth data:", error);
       toast({ title: "Failed to load growth data", variant: "destructive" });
@@ -425,6 +446,37 @@ export function GrowthDashboard() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Heard From Breakdown */}
+      {heardFromData.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base flex items-center gap-2">
+              📣 How Users Found Us
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-2">
+              {heardFromData.map((item, i) => {
+                const maxCount = heardFromData[0].count;
+                const pct = Math.round((item.count / maxCount) * 100);
+                return (
+                  <div key={item.source} className="flex items-center gap-3">
+                    <span className="w-36 text-sm truncate text-muted-foreground shrink-0">{item.source}</span>
+                    <div className="flex-1 bg-muted rounded-full h-2 overflow-hidden">
+                      <div
+                        className="h-2 rounded-full bg-primary transition-all"
+                        style={{ width: `${pct}%` }}
+                      />
+                    </div>
+                    <span className="w-8 text-right text-sm font-semibold shrink-0">{item.count}</span>
+                  </div>
+                );
+              })}
+            </div>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }

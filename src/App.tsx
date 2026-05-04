@@ -40,6 +40,7 @@ import LearnHub from "./pages/LearnHub";
 import LearnPath from "./pages/LearnPath";
 import LearnAssignment from "./pages/LearnAssignment";
 import SkillLearningAnalytics from "./pages/admin/SkillLearningAnalytics";
+import JobTracker from "./pages/JobTracker";
 import { ChatWidget } from "@/components/chat/ChatWidget";
 
 const queryClient = new QueryClient();
@@ -100,6 +101,7 @@ const App = () => (
           <Route path="/tools/learn" element={<GuardedRoute><LearnHub /></GuardedRoute>} />
           <Route path="/tools/learn/:userLearningId" element={<GuardedRoute><LearnPath /></GuardedRoute>} />
           <Route path="/tools/learn/:userLearningId/assignment/:assignmentId" element={<GuardedRoute><LearnAssignment /></GuardedRoute>} />
+          <Route path="/job-tracker" element={<GuardedRoute><JobTracker /></GuardedRoute>} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>
