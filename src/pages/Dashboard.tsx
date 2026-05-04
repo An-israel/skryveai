@@ -13,6 +13,8 @@ import { CreditsDisplay } from "@/components/dashboard/CreditsDisplay";
 import { AchievementsCard } from "@/components/dashboard/AchievementsCard";
 import { LearningSubmissionsCard } from "@/components/dashboard/LearningSubmissionsCard";
 import { CoachRemindersTimeline } from "@/components/dashboard/CoachRemindersTimeline";
+import { SetupChecklist } from "@/components/dashboard/SetupChecklist";
+import { ActivityFeed } from "@/components/dashboard/ActivityFeed";
 
 import { EmailSettingsDialog } from "@/components/settings/EmailSettingsDialog";
 import { FeatureUpdatePopup } from "@/components/notifications/FeatureUpdatePopup";
@@ -306,6 +308,9 @@ export default function Dashboard() {
           </div>
         </motion.div>
 
+        {/* Setup Checklist — shown to new users until all steps complete */}
+        {user && <SetupChecklist userId={user.id} />}
+
         {/* Subscription Status */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -422,6 +427,13 @@ export default function Dashboard() {
             </Link>
           </Button>
         </motion.div>
+
+        {/* AutoPilot Activity Feed */}
+        {user && (
+          <div className="mb-8">
+            <ActivityFeed userId={user.id} />
+          </div>
+        )}
 
         {/* Email Queue Status */}
         <motion.div
