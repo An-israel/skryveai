@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { NextStepsCard } from "@/components/shared/NextStepsCard";
 import { SEOHead } from "@/components/SEOHead";
 import { motion, AnimatePresence } from "framer-motion";
 import { Header } from "@/components/layout/Header";
@@ -75,6 +76,8 @@ export default function CVBuilder() {
   const [atsScore, setAtsScore] = useState<ATSScore | null>(null);
   const [linkedInGuide, setLinkedInGuide] = useState<LinkedInGuide | null>(null);
   const [isGeneratingGuide, setIsGeneratingGuide] = useState(false);
+  const [coverLetter, setCoverLetter] = useState<string | null>(null);
+  const [isGeneratingCoverLetter, setIsGeneratingCoverLetter] = useState(false);
 
   // Mode A state
   const [existingCv, setExistingCv] = useState("");
@@ -234,6 +237,39 @@ export default function CVBuilder() {
     }
   };
 
+  const generateCoverLetter = async () => {
+    if (!cvResult) return;
+    setIsGeneratingCoverLetter(true);
+    try {
+      const LOVABLE_API_KEY = import.meta.env.VITE_LOVABLE_API_KEY;
+      const cvText = [
+        cvResult.fullName,
+        cvResult.contactInfo,
+        "Professional Summary:",
+        cvResult.professionalSummary,
+        "Experience:",
+        ...(cvResult.experience || []).map((e: { jobTitle: string; company: string; responsibilities: string[] }) =>
+          `${e.jobTitle} at ${e.company}: ${e.responsibilities?.join(", ")}`
+        ),
+      ].join("\n");
+
+      const { data, error } = await supabase.functions.invoke("generate-cover-letter", {
+        body: { cvText, jobDescription },
+      });
+
+      if (error) throw new Error(error.message);
+      setCoverLetter(data?.coverLetter || "");
+    } catch (err) {
+      toast({
+        title: "Cover letter failed",
+        description: err instanceof Error ? err.message : "Failed to generate cover letter",
+        variant: "destructive",
+      });
+    } finally {
+      setIsGeneratingCoverLetter(false);
+    }
+  };
+
   const downloadCvAsText = () => {
     if (!cvResult) return;
     let text = `${cvResult.fullName}\n${cvResult.contactInfo}\n\n`;
@@ -377,7 +413,7 @@ export default function CVBuilder() {
             </div>
 
             <Tabs defaultValue="cv" className="space-y-6">
-              <TabsList className="grid w-full grid-cols-3">
+              <TabsList className="grid w-full grid-cols-4">
                 <TabsTrigger value="cv">
                   <FileText className="w-4 h-4 mr-2" /> CV Preview
                 </TabsTrigger>
@@ -387,6 +423,9 @@ export default function CVBuilder() {
                 <TabsTrigger value="linkedin">
                   <BookOpen className="w-4 h-4 mr-2" /> LinkedIn Guide
                   {isGeneratingGuide && <Loader2 className="w-3 h-3 ml-1 animate-spin" />}
+                </TabsTrigger>
+                <TabsTrigger value="cover-letter">
+                  <FileText className="w-4 h-4 mr-2" /> Cover Letter
                 </TabsTrigger>
               </TabsList>
 
@@ -587,7 +626,75 @@ export default function CVBuilder() {
                   </Card>
                 )}
               </TabsContent>
+
+              {/* Cover Letter Tab */}
+              <TabsContent value="cover-letter">
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Cover Letter</CardTitle>
+                    <CardDescription>
+                      AI writes a personalised cover letter using your CV{jobDescription ? " and the job description you provided" : ""}.
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    {!jobDescription && (
+                      <div className="rounded-lg bg-muted/50 p-4 text-sm text-muted-foreground">
+                        No job description was provided. Go back and use <strong>Optimize mode</strong> (paste your CV + a job description) to get a fully tailored cover letter.
+                      </div>
+                    )}
+                    {!coverLetter ? (
+                      <Button
+                        onClick={generateCoverLetter}
+                        disabled={isGeneratingCoverLetter || !jobDescription}
+                        className="w-full"
+                        size="lg"
+                      >
+                        {isGeneratingCoverLetter ? (
+                          <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Writing cover letter…</>
+                        ) : (
+                          <><Sparkles className="w-4 h-4 mr-2" /> Generate Cover Letter</>
+                        )}
+                      </Button>
+                    ) : (
+                      <div className="space-y-4">
+                        <div className="rounded-lg border bg-white p-6 text-sm leading-relaxed whitespace-pre-wrap font-serif text-black">
+                          {coverLetter}
+                        </div>
+                        <div className="flex gap-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
+                              navigator.clipboard.writeText(coverLetter);
+                              toast({ title: "Copied!", description: "Cover letter copied to clipboard" });
+                            }}
+                          >
+                            Copy Text
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
+                              const a = document.createElement("a");
+                              a.href = "data:text/plain;charset=utf-8," + encodeURIComponent(coverLetter);
+                              a.download = `Cover_Letter_${cvResult?.fullName?.replace(/\s+/g, "_") || "SkryveAI"}.txt`;
+                              a.click();
+                            }}
+                          >
+                            Download .txt
+                          </Button>
+                          <Button variant="ghost" size="sm" onClick={() => setCoverLetter(null)}>
+                            Regenerate
+                          </Button>
+                        </div>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              </TabsContent>
             </Tabs>
+
+            <NextStepsCard context={mode === "optimize" ? "cv_builder_optimize" : "cv_builder_scratch"} />
           </motion.div>
         </main>
       </div>
