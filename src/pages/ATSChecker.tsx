@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { SEOHead } from "@/components/SEOHead";
 import { motion } from "framer-motion";
 import { Header } from "@/components/layout/Header";
+import { NextStepsCard } from "@/components/shared/NextStepsCard";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -349,6 +350,8 @@ export default function ATSChecker() {
                   </Button>
                 )}
               </div>
+
+              <NextStepsCard context="ats_checker" />
             </div>
           )}
         </motion.div>

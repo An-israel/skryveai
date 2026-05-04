@@ -1,6 +1,7 @@
 import { useState, useRef } from "react";
 import { SEOHead } from "@/components/SEOHead";
 import { motion, AnimatePresence } from "framer-motion";
+import { NextStepsCard } from "@/components/shared/NextStepsCard";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -427,6 +428,8 @@ export default function LinkedInAnalyzer() {
                   </CardContent>
                 </Card>
               </div>
+
+              <NextStepsCard context="linkedin_analyzer" />
 
               <Button variant="outline" className="w-full gap-2" onClick={() => setResult(null)}>
                 <ArrowLeft className="w-4 h-4" /> Analyze another profile
