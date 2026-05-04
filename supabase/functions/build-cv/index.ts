@@ -124,6 +124,7 @@ Return using the generate_cv function.`;
       },
       body: JSON.stringify({
         model: "google/gemini-2.5-flash",
+        temperature: 0,
         messages: [
           { role: "system", content: systemPrompt },
           { role: "user", content: userPrompt },
@@ -217,6 +218,7 @@ Return using the generate_cv function.`;
       },
       body: JSON.stringify({
         model: "google/gemini-2.5-flash-lite",
+        temperature: 0,
         messages: [
           { role: "system", content: `You are an ATS (Applicant Tracking System) scoring expert. Score the CV on these criteria:
 - Keyword optimization (does it include relevant industry keywords?)

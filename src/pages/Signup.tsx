@@ -6,11 +6,35 @@ import { Input } from "@/components/ui/input";
 import { PasswordInput } from "@/components/ui/password-input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Mail, Lock, User, Loader2, Phone, Gift, CheckCircle2, Sparkles, Zap, Search, BarChart3, Bot, X } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Mail, Lock, User, Loader2, Phone, Gift, CheckCircle2, Sparkles, Zap, Search, BarChart3, Bot, X, MapPin } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
+
+const HEARD_FROM_OPTIONS = [
+  { value: "google_search",      label: "Google Search" },
+  { value: "facebook",           label: "Facebook" },
+  { value: "instagram",          label: "Instagram" },
+  { value: "tiktok",             label: "TikTok" },
+  { value: "youtube",            label: "YouTube" },
+  { value: "twitter_x",         label: "Twitter / X" },
+  { value: "linkedin",           label: "LinkedIn" },
+  { value: "whatsapp",           label: "WhatsApp (group or message)" },
+  { value: "telegram",           label: "Telegram" },
+  { value: "friend_colleague",   label: "A friend or colleague" },
+  { value: "referral_link",      label: "Someone shared a referral link" },
+  { value: "influencer",         label: "An influencer or content creator" },
+  { value: "blog_article",       label: "Blog post or article" },
+  { value: "podcast",            label: "Podcast" },
+  { value: "reddit",             label: "Reddit" },
+  { value: "online_community",   label: "Online community (Discord, Slack, etc.)" },
+  { value: "email_newsletter",   label: "Email newsletter" },
+  { value: "webinar_event",      label: "Webinar or online event" },
+  { value: "school_university",  label: "School or university" },
+  { value: "other",              label: "Other" },
+];
 
 const features = [
   { icon: Search, title: "Smart Business Discovery", desc: "Find ideal clients using AI-powered search across any industry and location" },
@@ -31,6 +55,7 @@ export default function Signup() {
     password: "",
     phone: "",
     referralCode: referralCode,
+    heardFrom: "",
   });
   const [isLoading, setIsLoading] = useState(false);
   const [referrerName, setReferrerName] = useState<string | null>(null);
@@ -64,10 +89,10 @@ export default function Signup() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!formData.fullName || !formData.email || !formData.password || !formData.phone) {
+    if (!formData.fullName || !formData.email || !formData.password || !formData.phone || !formData.heardFrom) {
       toast({
         title: "Missing fields",
-        description: "Please fill in all required fields, including your phone number",
+        description: "Please fill in all required fields, including how you heard about us",
         variant: "destructive",
       });
       return;
@@ -97,6 +122,7 @@ export default function Signup() {
             full_name: formData.fullName,
             phone: formData.phone || null,
             referral_code: formData.referralCode ? formData.referralCode.toUpperCase() : null,
+            heard_from: formData.heardFrom || null,
           },
         },
       });
@@ -317,6 +343,28 @@ export default function Signup() {
                   />
                 </div>
                 <p className="text-xs text-muted-foreground">Must be at least 6 characters</p>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="heardFrom">How did you hear about us? *</Label>
+                <div className="relative">
+                  <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground z-10 pointer-events-none" />
+                  <Select
+                    value={formData.heardFrom}
+                    onValueChange={(value) => setFormData(prev => ({ ...prev, heardFrom: value }))}
+                  >
+                    <SelectTrigger id="heardFrom" className="pl-10">
+                      <SelectValue placeholder="Select an option" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {HEARD_FROM_OPTIONS.map((opt) => (
+                        <SelectItem key={opt.value} value={opt.value}>
+                          {opt.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
 
               <Button type="submit" className="w-full" size="lg" disabled={isLoading}>
