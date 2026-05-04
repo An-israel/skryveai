@@ -91,6 +91,7 @@ async function buildServiceDefinition(
       },
       body: JSON.stringify({
         model: "google/gemini-2.5-flash",
+        temperature: 0,
         messages: [
           { role: "system", content: systemPrompt },
           { role: "user", content: userPrompt },
@@ -205,6 +206,7 @@ async function detectSignalsForBusiness(
       },
       body: JSON.stringify({
         model: "google/gemini-2.5-flash",
+        temperature: 0,
         messages: [
           { role: "system", content: "You are a precise website auditor. Respond ONLY via the tool call." },
           { role: "user", content: prompt },
@@ -355,22 +357,42 @@ serve(async (req) => {
       );
     }
 
-    const searchQuery = `${serviceDefinition.industryVertical} in ${location}`;
-    console.log(`[SmartFind] Searching: ${searchQuery}`);
+    // Build search queries: primary (industry vertical) + broad fallback ("small businesses")
+    const primaryQuery = `${serviceDefinition.industryVertical} in ${location}`;
+    const fallbackQuery = `small businesses in ${location}`;
+    console.log(`[SmartFind] Searching: ${primaryQuery}`);
 
-    const searchUrl = `https://maps.googleapis.com/maps/api/place/textsearch/json?query=${encodeURIComponent(searchQuery)}&key=${GOOGLE_PLACES_API_KEY}`;
-    const searchResp = await fetch(searchUrl);
-    const searchData = await searchResp.json();
-
-    if (searchData.status !== "OK" && searchData.status !== "ZERO_RESULTS") {
-      throw new Error(`Google Places error: ${searchData.status}`);
+    async function fetchPlaces(query: string) {
+      const url = `https://maps.googleapis.com/maps/api/place/textsearch/json?query=${encodeURIComponent(query)}&key=${GOOGLE_PLACES_API_KEY}`;
+      const resp = await fetch(url);
+      const data = await resp.json();
+      if (data.status !== "OK" && data.status !== "ZERO_RESULTS") {
+        console.warn(`[SmartFind] Places API status: ${data.status} for query: ${query}`);
+        return [];
+      }
+      return (data.results || []) as { place_id: string; name?: string; formatted_address?: string; rating?: number; user_ratings_total?: number; types?: string[] }[];
     }
 
-    const places = searchData.results?.slice(0, Math.min(40, limit * 2)) || [];
-    console.log(`[SmartFind] Google returned ${places.length} candidates`);
+    let allPlaces = await fetchPlaces(primaryQuery);
+
+    // If primary search returns too few, supplement with fallback query
+    if (allPlaces.length < 15) {
+      console.log(`[SmartFind] Only ${allPlaces.length} from primary query, running fallback`);
+      const fallbackPlaces = await fetchPlaces(fallbackQuery);
+      const existingIds = new Set(allPlaces.map((p) => p.place_id));
+      for (const p of fallbackPlaces) {
+        if (!existingIds.has(p.place_id)) {
+          allPlaces.push(p);
+          existingIds.add(p.place_id);
+        }
+      }
+    }
+
+    const places = allPlaces.slice(0, Math.min(40, limit * 2));
+    console.log(`[SmartFind] ${places.length} candidates total`);
 
     const candidates = await Promise.all(
-      places.map(async (place: { place_id: string; name?: string; formatted_address?: string; rating?: number; user_ratings_total?: number; types?: string[] }) => {
+      places.map(async (place) => {
         try {
           const detailsUrl = `https://maps.googleapis.com/maps/api/place/details/json?place_id=${place.place_id}&fields=name,formatted_address,formatted_phone_number,website,rating,user_ratings_total,types&key=${GOOGLE_PLACES_API_KEY}`;
           const detailsResp = await fetch(detailsUrl);
@@ -393,8 +415,10 @@ serve(async (req) => {
       }),
     );
 
-    const withWebsites = candidates.filter((c) => c && c.website) as NonNullable<typeof candidates[0]>[];
-    console.log(`[SmartFind] ${withWebsites.length} candidates have websites`);
+    const validCandidates = candidates.filter(Boolean) as NonNullable<typeof candidates[0]>[];
+    const withWebsites = validCandidates.filter((c) => c.website);
+    const withoutWebsites = validCandidates.filter((c) => !c.website);
+    console.log(`[SmartFind] ${withWebsites.length} with websites, ${withoutWebsites.length} without`);
 
     const signalsToCheck = serviceDefinition.signalsToDetect.length > 0
       ? serviceDefinition.signalsToDetect
@@ -412,18 +436,23 @@ serve(async (req) => {
       const batch = withWebsites.slice(i, i + BATCH);
       const batchResults = await Promise.all(
         batch.map(async (c) => {
-          const { signals, evidence, screenshotUrl } = await detectSignalsForBusiness(
+          const { signals, evidence } = await detectSignalsForBusiness(
             FIRECRAWL_API_KEY,
             LOVABLE_API_KEY,
             { name: c!.name, website: c!.website || undefined },
             signalsToCheck,
           );
-          const score = calculateNeedScore(signals, weights);
+          // If signal detection failed entirely (scrape failed), assign a baseline score
+          // so the business is not silently dropped
+          const hasAnySignalData = Object.keys(signals).length > 0;
+          const score = hasAnySignalData
+            ? calculateNeedScore(signals, weights)
+            : 30; // baseline: scrape failed but business exists and might need the service
           const problemsFound = Object.entries(signals)
             .filter(([_, present]) => present)
             .map(([sig]) => evidence[sig] || sig.replace(/_/g, " "));
 
-          const sb: ScoredBusiness = {
+          return {
             id: c!.id,
             name: c!.name,
             address: c!.address,
@@ -437,19 +466,51 @@ serve(async (req) => {
             signals,
             evidence,
             problemsFound,
-          };
-          return sb;
+          } as ScoredBusiness;
         }),
       );
       scored.push(...batchResults);
     }
 
-    const qualified = scored
-      .filter((s) => s.needScore >= 40)
-      .sort((a, b) => b.needScore - a.needScore)
+    // Businesses without a website are strong candidates: they clearly need digital services.
+    // Add them with a score of 35 so they show up unless we have plenty of higher-scored results.
+    for (const c of withoutWebsites) {
+      scored.push({
+        id: c!.id,
+        name: c!.name,
+        address: c!.address,
+        phone: c!.phone || undefined,
+        website: undefined,
+        rating: c!.rating,
+        reviewCount: c!.reviewCount,
+        category: c!.category,
+        placeId: c!.placeId,
+        needScore: 35,
+        signals: { no_website: true } as Record<string, boolean>,
+        evidence: { no_website: "No website found — business is offline and needs digital presence" },
+        problemsFound: ["No website found — business needs digital presence"],
+      });
+    }
+
+    // Sort all scored businesses by needScore desc
+    scored.sort((a, b) => b.needScore - a.needScore);
+
+    // Primary filter: score >= 20 (was 40 — too aggressive for non-web-dev skills)
+    let qualified = scored
+      .filter((s) => s.needScore >= 20)
       .slice(0, limit);
 
-    console.log(`[SmartFind] ${qualified.length}/${scored.length} businesses qualified (score >= 40)`);
+    // Guarantee a minimum of 10 results: if not enough pass the threshold, pad from the rest
+    const MIN_RESULTS = 10;
+    if (qualified.length < MIN_RESULTS) {
+      const qualifiedIds = new Set(qualified.map((q) => q.id));
+      const extras = scored
+        .filter((s) => !qualifiedIds.has(s.id))
+        .slice(0, MIN_RESULTS - qualified.length);
+      qualified = [...qualified, ...extras];
+    }
+
+    console.log(`[SmartFind] ${qualified.length}/${scored.length} businesses returned (min 10 guaranteed)`);
 
     if (campaignId && qualified.length > 0) {
       const signalRows = qualified.map((q) => ({
