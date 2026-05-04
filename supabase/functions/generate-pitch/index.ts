@@ -400,10 +400,11 @@ ABSOLUTELY DO NOT:
       },
       body: JSON.stringify({
         model: "google/gemini-2.5-flash",
+        temperature: 0,
         messages: [
-          { 
-            role: "system", 
-            content: systemMessage 
+          {
+            role: "system",
+            content: systemMessage
           },
           { role: "user", content: pitchPrompt }
         ],

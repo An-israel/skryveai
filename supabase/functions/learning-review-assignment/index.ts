@@ -173,6 +173,7 @@ Review this submission and return the JSON verdict.`;
         },
         body: JSON.stringify({
           model: "google/gemini-2.5-pro",
+          temperature: 0,
           messages: [
             { role: "system", content: systemPrompt },
             { role: "user", content: userPrompt },
