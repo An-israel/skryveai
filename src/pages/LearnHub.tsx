@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { useToast } from "@/hooks/use-toast";
-import { BookOpen, Clock, Flame, Sparkles, Loader2 } from "lucide-react";
+import { BookOpen, Clock, Flame, Sparkles, Loader2, ArrowLeft, LayoutDashboard } from "lucide-react";
 
 interface Path {
   id: string;
@@ -122,8 +122,34 @@ export default function LearnHub() {
         title="Learn Freelance Skills | SkryveAI"
         description="Learn web design, copywriting, video editing, SEO and more with your AI coach. Affordable, structured paths for African freelancers."
       />
-      <Header />
-      <main className="container mx-auto px-4 py-8 max-w-6xl">
+
+      {/* Learning Platform top bar — distinct from main app header */}
+      <div className="fixed top-0 left-0 right-0 z-50 border-b bg-background/95 backdrop-blur">
+        <div className="container mx-auto px-4 h-14 flex items-center justify-between max-w-6xl">
+          <div className="flex items-center gap-3">
+            <Link to="/dashboard" className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors">
+              <ArrowLeft className="w-3.5 h-3.5" /> Dashboard
+            </Link>
+            <span className="text-border">|</span>
+            <div className="flex items-center gap-1.5">
+              <BookOpen className="w-4 h-4 text-primary" />
+              <span className="font-display font-bold text-sm">SkryveAI <span className="text-primary">Learn</span></span>
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <Badge variant="secondary" className="text-xs hidden sm:flex items-center gap-1">
+              <Sparkles className="w-3 h-3" /> AI Coach
+            </Badge>
+            <Link to="/dashboard">
+              <Button variant="outline" size="sm" className="h-7 text-xs gap-1">
+                <LayoutDashboard className="w-3 h-3" /> Main App
+              </Button>
+            </Link>
+          </div>
+        </div>
+      </div>
+
+      <main className="container mx-auto px-4 pt-20 pb-8 max-w-6xl">
         <div className="mb-10">
           <div className="flex items-center gap-2 mb-2">
             <Sparkles className="h-5 w-5 text-primary" />
@@ -131,8 +157,7 @@ export default function LearnHub() {
           </div>
           <h1 className="text-3xl md:text-4xl font-bold mb-2">Learn any freelance skill</h1>
           <p className="text-muted-foreground max-w-2xl">
-            10 structured paths, AI-powered coaching, project-based assignments. Build a real
-            portfolio in weeks, not months.
+            Structured paths, AI-powered coaching, and real assignments. Build portfolio-ready skills in weeks.
           </p>
         </div>
 
