@@ -23,7 +23,7 @@ import { dashboardGuide } from "@/components/onboarding/guideConfigs";
 import {
   Plus, Mail, Eye, MessageSquare, TrendingUp, BarChart3,
   Clock, ArrowRight, Send, Calendar, Settings, Gift,
-  FileText, Zap, Search, Briefcase, ChevronRight,
+  FileText, Zap, Search, ChevronRight,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -143,11 +143,10 @@ export default function Dashboard() {
   }));
 
   const quickActions = [
-    { label: "Find Clients",  icon: Search,   to: "/campaigns/new", primary: false },
-    { label: "Auto-Pilot",    icon: Zap,      to: "/auto-pilot",    primary: true  },
-    { label: "CV Builder",    icon: FileText,  to: "/cv-builder",    primary: false },
-    { label: "Job Tracker",   icon: Briefcase, to: "/job-tracker",   primary: false },
-    { label: "Refer & Earn",  icon: Gift,      to: "/referrals",     primary: false },
+    { label: "Find Clients", icon: Search,   to: "/campaigns/new", primary: false },
+    { label: "Auto-Pilot",   icon: Zap,      to: "/auto-pilot",    primary: true  },
+    { label: "CV Builder",   icon: FileText,  to: "/cv-builder",    primary: false },
+    { label: "Refer & Earn", icon: Gift,      to: "/referrals",     primary: false },
   ];
 
   return (
