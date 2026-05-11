@@ -9,7 +9,6 @@ import { Header } from "@/components/layout/Header";
 import { CreditsDisplay } from "@/components/dashboard/CreditsDisplay";
 import { SubscriptionStats } from "@/components/dashboard/SubscriptionStats";
 import { EmailQueueStatus } from "@/components/dashboard/EmailQueueStatus";
-import { SetupChecklist } from "@/components/dashboard/SetupChecklist";
 import { ActivityFeed } from "@/components/dashboard/ActivityFeed";
 import { ReferralCard } from "@/components/dashboard/ReferralCard";
 import { EmailSettingsDialog } from "@/components/settings/EmailSettingsDialog";
@@ -195,9 +194,6 @@ export default function Dashboard() {
             </Button>
           </div>
         </motion.div>
-
-        {/* ── Setup Checklist ── */}
-        {user && <SetupChecklist userId={user.id} />}
 
         {/* ── Stats Row ── */}
         <motion.div
