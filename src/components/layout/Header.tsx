@@ -114,8 +114,9 @@ export function Header({ isAuthenticated: isAuthenticatedProp, onLogout }: Heade
               <Link to="/cv-builder" className="px-3 py-1.5 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors rounded-lg hover:bg-muted/50">
                 CV Builder
               </Link>
-              <Link to="/learn" className="px-3 py-1.5 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors rounded-lg hover:bg-muted/50 flex items-center gap-1">
+              <Link to="/learn" className="px-3 py-1.5 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors rounded-lg hover:bg-muted/50 flex items-center gap-1.5 relative">
                 <BookOpen className="w-3.5 h-3.5" /> Learn
+                <span className="text-[9px] font-bold bg-amber-500/20 text-amber-600 dark:text-amber-400 border border-amber-500/30 rounded px-1 py-px leading-tight">SOON</span>
               </Link>
 
               {/* ── Auto-Pilot CTA ── */}
@@ -213,6 +214,7 @@ export function Header({ isAuthenticated: isAuthenticatedProp, onLogout }: Heade
                   </Link>
                   <Link to="/learn" className="py-2.5 px-3 text-sm font-medium text-muted-foreground hover:text-foreground rounded-lg hover:bg-muted/50 transition-colors flex items-center gap-2">
                     <BookOpen className="w-4 h-4" /> Learn
+                    <span className="text-[9px] font-bold bg-amber-500/20 text-amber-600 dark:text-amber-400 border border-amber-500/30 rounded px-1 py-px leading-tight">SOON</span>
                   </Link>
 
                   {/* Mobile Auto-Pilot CTA */}

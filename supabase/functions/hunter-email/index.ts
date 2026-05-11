@@ -19,6 +19,8 @@ serve(async (req) => {
     const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
     const SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const FIRECRAWL_KEY = Deno.env.get("FIRECRAWL_API_KEY");
+    const HUNTER_KEY = Deno.env.get("HUNTER_API_KEY");
+    const APOLLO_KEY = Deno.env.get("APOLLO_API_KEY");
 
     if (!FIRECRAWL_KEY) {
       return new Response(JSON.stringify({ error: "Email discovery service not configured" }), {
@@ -57,6 +59,8 @@ serve(async (req) => {
       firecrawlKey: FIRECRAWL_KEY,
       supabaseUrl: SUPABASE_URL,
       serviceKey: SERVICE_KEY,
+      hunterApiKey: HUNTER_KEY,
+      apolloApiKey: APOLLO_KEY,
     });
 
     return new Response(JSON.stringify({

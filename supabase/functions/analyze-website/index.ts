@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
+import { findEmail } from "../_shared/email-finder-engine.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -416,6 +417,9 @@ serve(async (req) => {
 
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
+
+    const HUNTER_API_KEY = Deno.env.get("HUNTER_API_KEY");
+    const APOLLO_API_KEY = Deno.env.get("APOLLO_API_KEY");
 
     const { url, businessName, expertise, cta, socialOnly, socialHandles, deep, detectedSignals, evidence }: AnalyzeRequest = await req.json();
 
@@ -939,6 +943,30 @@ DO NOT include: generic SEO metadata, page speed scores, alt text, sitemaps, or 
       } else {
         // No ZeroBounce key — use MX-verified result as-is
         email = allCandidates;
+      }
+    }
+
+    // Enterprise fallback: if scraping found nothing, use Hunter → Apollo → pattern pipeline
+    if (!email && FIRECRAWL_API_KEY && formattedUrl) {
+      try {
+        console.log(`[Email] Scrape found nothing — trying enterprise email pipeline for ${formattedUrl}`);
+        const enterpriseResult = await findEmail(
+          { website: formattedUrl, company: businessName },
+          {
+            firecrawlKey: FIRECRAWL_API_KEY,
+            supabaseUrl: SUPABASE_URL!,
+            serviceKey: SUPABASE_SERVICE_ROLE_KEY!,
+            hunterApiKey: HUNTER_API_KEY,
+            apolloApiKey: APOLLO_API_KEY,
+            userId: userId ?? undefined,
+          },
+        );
+        if (enterpriseResult.email && enterpriseResult.emailVerified) {
+          email = enterpriseResult.email;
+          console.log(`[Email] Enterprise pipeline found: ${email} (source: ${enterpriseResult.emailSource}, confidence: ${enterpriseResult.confidence})`);
+        }
+      } catch (e) {
+        console.error("[Email] Enterprise pipeline error:", (e as Error).message);
       }
     }
 
