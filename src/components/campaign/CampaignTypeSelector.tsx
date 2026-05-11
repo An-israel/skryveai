@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { Target, UserPlus, TrendingUp, Briefcase, ArrowRight, Sparkles } from "lucide-react";
+import { Target, UserPlus, ArrowRight, Sparkles } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -29,56 +29,14 @@ const campaignTypes = [
     features: ["Enter client details manually", "Full online presence audit", "Personalized pitch generation", "Social media analysis"],
     isNew: false,
   },
-  {
-    id: "investor" as CampaignType,
-    icon: TrendingUp,
-    title: "Find Investors",
-    subtitle: "Raise Funding",
-    description: "Find investors in your industry, craft compelling pitch emails about your business or idea, and reach out at scale.",
-    features: ["Search investors by industry", "Structured pitch builder", "Traction & proof points", "Up to 10 emails per campaign"],
-    isNew: false,
-  },
-  {
-    id: "job_application" as CampaignType,
-    icon: Briefcase,
-    title: "Apply for Jobs",
-    subtitle: "Bulk Job Applications",
-    description: "Search jobs across LinkedIn, Indeed, Glassdoor & more. AI tailors your CV and writes cover letters for each job — apply to 50 at once.",
-    features: ["Search 7+ job platforms", "AI-tailored CV per job", "Auto cover letters", "Apply to 50 jobs at once"],
-    isNew: true,
-  },
 ];
 
 export function CampaignTypeSelector({ onSelect }: CampaignTypeSelectorProps) {
-  const [disabledTypes, setDisabledTypes] = useState<Set<string>>(new Set());
-
-  useEffect(() => {
-    const checkFeatureFlags = async () => {
-      const { data } = await supabase
-        .from("site_pages")
-        .select("route, is_enabled")
-        .like("route", "/feature/%");
-
-      if (data) {
-        const disabled = new Set<string>();
-        data.forEach((flag) => {
-          if (!flag.is_enabled && flag.route === "/feature/job-applications") {
-            disabled.add("job_application");
-          }
-        });
-        setDisabledTypes(disabled);
-      }
-    };
-    checkFeatureFlags();
-  }, []);
-
-  const visibleTypes = campaignTypes.filter((t) => !disabledTypes.has(t.id));
-
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      className="w-full max-w-6xl mx-auto"
+      className="w-full max-w-3xl mx-auto"
     >
       <div className="text-center mb-12">
         <h1 className="font-display text-3xl md:text-4xl font-extrabold mb-3 tracking-tight">Create a Campaign</h1>
@@ -87,8 +45,8 @@ export function CampaignTypeSelector({ onSelect }: CampaignTypeSelectorProps) {
         </p>
       </div>
 
-      <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-5">
-        {visibleTypes.map((type, i) => (
+      <div className="grid sm:grid-cols-2 gap-5">
+        {campaignTypes.map((type, i) => (
           <motion.div
             key={type.id}
             initial={{ opacity: 0, y: 20 }}
@@ -130,3 +88,4 @@ export function CampaignTypeSelector({ onSelect }: CampaignTypeSelectorProps) {
     </motion.div>
   );
 }
+
