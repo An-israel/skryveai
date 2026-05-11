@@ -98,9 +98,9 @@ const App = () => (
           <Route path="/auto-pilot" element={<GuardedRoute><AutoPilot /></GuardedRoute>} />
           <Route path="/reply" element={<EmailReply />} />
           <Route path="/email-finder" element={<GuardedRoute><EmailFinder /></GuardedRoute>} />
-          <Route path="/tools/learn" element={<GuardedRoute><LearnHub /></GuardedRoute>} />
-          <Route path="/tools/learn/:userLearningId" element={<GuardedRoute><LearnPath /></GuardedRoute>} />
-          <Route path="/tools/learn/:userLearningId/assignment/:assignmentId" element={<GuardedRoute><LearnAssignment /></GuardedRoute>} />
+          <Route path="/learn" element={<GuardedRoute><LearnHub /></GuardedRoute>} />
+          <Route path="/learn/:userLearningId" element={<GuardedRoute><LearnPath /></GuardedRoute>} />
+          <Route path="/learn/:userLearningId/assignment/:assignmentId" element={<GuardedRoute><LearnAssignment /></GuardedRoute>} />
           <Route path="/job-tracker" element={<GuardedRoute><JobTracker /></GuardedRoute>} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />

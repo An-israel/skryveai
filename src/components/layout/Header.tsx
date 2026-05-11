@@ -117,7 +117,7 @@ export function Header({ isAuthenticated: isAuthenticatedProp, onLogout }: Heade
               <Link to="/job-tracker" className="px-3 py-1.5 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors rounded-lg hover:bg-muted/50 flex items-center gap-1">
                 <Briefcase className="w-3.5 h-3.5" /> Jobs
               </Link>
-              <Link to="/tools/learn" className="px-3 py-1.5 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors rounded-lg hover:bg-muted/50 flex items-center gap-1">
+              <Link to="/learn" className="px-3 py-1.5 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors rounded-lg hover:bg-muted/50 flex items-center gap-1">
                 <BookOpen className="w-3.5 h-3.5" /> Learn
               </Link>
 
@@ -217,7 +217,7 @@ export function Header({ isAuthenticated: isAuthenticatedProp, onLogout }: Heade
                   <Link to="/job-tracker" className="py-2.5 px-3 text-sm font-medium text-muted-foreground hover:text-foreground rounded-lg hover:bg-muted/50 transition-colors flex items-center gap-2">
                     <Briefcase className="w-4 h-4" /> Job Tracker
                   </Link>
-                  <Link to="/tools/learn" className="py-2.5 px-3 text-sm font-medium text-muted-foreground hover:text-foreground rounded-lg hover:bg-muted/50 transition-colors flex items-center gap-2">
+                  <Link to="/learn" className="py-2.5 px-3 text-sm font-medium text-muted-foreground hover:text-foreground rounded-lg hover:bg-muted/50 transition-colors flex items-center gap-2">
                     <BookOpen className="w-4 h-4" /> Learn
                   </Link>
 

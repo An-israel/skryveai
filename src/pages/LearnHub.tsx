@@ -80,7 +80,7 @@ export default function LearnHub() {
       // If already active, just go to it
       const existing = active.find((a) => a.learning_path_id === p.id);
       if (existing) {
-        navigate(`/tools/learn/${existing.id}`);
+        navigate(`/learn/${existing.id}`);
         return;
       }
       const { data, error } = await supabase
@@ -96,7 +96,7 @@ export default function LearnHub() {
         .single();
       if (error) throw error;
       toast({ title: `Welcome to ${p.display_name}!`, description: "Your coach is ready." });
-      navigate(`/tools/learn/${data.id}`);
+      navigate(`/learn/${data.id}`);
     } catch (e: any) {
       toast({
         title: "Could not start path",
@@ -196,7 +196,7 @@ export default function LearnHub() {
                       </span>
                     </div>
                     <Button asChild className="w-full">
-                      <Link to={`/tools/learn/${a.id}`}>Continue learning</Link>
+                      <Link to={`/learn/${a.id}`}>Continue learning</Link>
                     </Button>
                   </Card>
                 );
