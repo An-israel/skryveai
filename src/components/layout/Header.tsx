@@ -1,6 +1,6 @@
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Menu, X, Settings, Shield, Zap } from "lucide-react";
+import { Menu, X, Settings, Shield, Zap, Briefcase, BookOpen } from "lucide-react";
 import { ThemeToggle } from "@/components/ThemeToggle";
 
 import { NotificationBell } from "@/components/layout/NotificationBell";
@@ -109,13 +109,16 @@ export function Header({ isAuthenticated: isAuthenticatedProp, onLogout }: Heade
                 Dashboard
               </Link>
               <Link to="/campaigns/new" className="px-3 py-1.5 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors rounded-lg hover:bg-muted/50">
-                New Campaign
+                Campaigns
               </Link>
-              <Link to="/team" className="px-3 py-1.5 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors rounded-lg hover:bg-muted/50">
-                Team
+              <Link to="/cv-builder" className="px-3 py-1.5 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors rounded-lg hover:bg-muted/50">
+                CV Builder
               </Link>
-              <Link to="/tools/learn" className="px-3 py-1.5 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors rounded-lg hover:bg-muted/50">
-                Learn
+              <Link to="/job-tracker" className="px-3 py-1.5 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors rounded-lg hover:bg-muted/50 flex items-center gap-1">
+                <Briefcase className="w-3.5 h-3.5" /> Jobs
+              </Link>
+              <Link to="/learn" className="px-3 py-1.5 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors rounded-lg hover:bg-muted/50 flex items-center gap-1">
+                <BookOpen className="w-3.5 h-3.5" /> Learn
               </Link>
 
               {/* ── Auto-Pilot CTA ── */}
@@ -206,10 +209,16 @@ export function Header({ isAuthenticated: isAuthenticatedProp, onLogout }: Heade
                     Dashboard
                   </Link>
                   <Link to="/campaigns/new" className="py-2.5 px-3 text-sm font-medium text-muted-foreground hover:text-foreground rounded-lg hover:bg-muted/50 transition-colors">
-                    New Campaign
+                    Campaigns
                   </Link>
-                  <Link to="/team" className="py-2.5 px-3 text-sm font-medium text-muted-foreground hover:text-foreground rounded-lg hover:bg-muted/50 transition-colors">
-                    Team
+                  <Link to="/cv-builder" className="py-2.5 px-3 text-sm font-medium text-muted-foreground hover:text-foreground rounded-lg hover:bg-muted/50 transition-colors">
+                    CV Builder
+                  </Link>
+                  <Link to="/job-tracker" className="py-2.5 px-3 text-sm font-medium text-muted-foreground hover:text-foreground rounded-lg hover:bg-muted/50 transition-colors flex items-center gap-2">
+                    <Briefcase className="w-4 h-4" /> Job Tracker
+                  </Link>
+                  <Link to="/learn" className="py-2.5 px-3 text-sm font-medium text-muted-foreground hover:text-foreground rounded-lg hover:bg-muted/50 transition-colors flex items-center gap-2">
+                    <BookOpen className="w-4 h-4" /> Learn
                   </Link>
 
                   {/* Mobile Auto-Pilot CTA */}

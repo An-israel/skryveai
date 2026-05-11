@@ -562,6 +562,7 @@ Analyze each provided platform and find 4-8 real problems a ${campaignExpertise}
         },
         body: JSON.stringify({
           model: "google/gemini-2.5-flash",
+          temperature: 0,
           messages: [
             { role: "system", content: "You are a senior social media strategist who identifies business-critical issues. Focus only on problems that cost real money and engagement. Respond with structured tool calls only." },
             { role: "user", content: analysisPrompt }
@@ -795,6 +796,7 @@ DO NOT include: generic SEO metadata, page speed scores, alt text, sitemaps, or 
       },
       body: JSON.stringify({
         model: "google/gemini-2.5-flash",
+        temperature: 0,
         messages: [
           { role: "system", content: "You are a senior digital marketing consultant who identifies business-critical issues in online presence. Focus only on problems that cost real money. Respond with structured tool calls only." },
           { role: "user", content: analysisPrompt }

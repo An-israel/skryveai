@@ -97,6 +97,7 @@ Return the response using the generate_application function.`;
       },
       body: JSON.stringify({
         model: "google/gemini-2.5-flash",
+        temperature: 0,
         messages: [
           { role: "system", content: systemPrompt },
           { role: "user", content: userPrompt },

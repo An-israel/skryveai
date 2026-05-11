@@ -84,7 +84,7 @@ export function LearningSubmissionsCard() {
             </CardDescription>
           </div>
           <Button asChild variant="outline" size="sm">
-            <Link to="/tools/learn">
+            <Link to="/learn">
               Continue learning <ArrowRight className="h-4 w-4 ml-1" />
             </Link>
           </Button>
@@ -99,7 +99,7 @@ export function LearningSubmissionsCard() {
               No submissions yet. Complete a lesson with an assignment to start building your portfolio.
             </p>
             <Button asChild size="sm">
-              <Link to="/tools/learn">Browse skills</Link>
+              <Link to="/learn">Browse skills</Link>
             </Button>
           </div>
         ) : (
@@ -188,7 +188,7 @@ export function LearningSubmissionsCard() {
                         {latest.status !== "approved" && latest.user_learning_id && (
                           <Button asChild size="sm" variant="outline" className="w-full">
                             <Link
-                              to={`/tools/learn/${latest.user_learning_id}/assignment/${assignmentId}`}
+                              to={`/learn/${latest.user_learning_id}/assignment/${assignmentId}`}
                             >
                               {latest.status === "needs_revision"
                                 ? "Revise & resubmit"

@@ -630,11 +630,25 @@ serve(async (req) => {
 
   const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
   const SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+  const CRON_SECRET = Deno.env.get("AUTOPILOT_CRON_SECRET");
 
   if (!SUPABASE_URL || !SERVICE_KEY) {
     return new Response(
       JSON.stringify({ error: "Missing environment variables" }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    );
+  }
+
+  // Accept either: a valid user Bearer token OR the cron secret header
+  const authHeader = req.headers.get("authorization");
+  const cronSecretHeader = req.headers.get("x-autopilot-cron-secret");
+  const isCronCall = CRON_SECRET && cronSecretHeader === CRON_SECRET;
+  const isUserCall = authHeader?.startsWith("Bearer ");
+
+  if (!isCronCall && !isUserCall) {
+    return new Response(
+      JSON.stringify({ error: "Unauthorized" }),
+      { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }
 
@@ -648,6 +662,18 @@ serve(async (req) => {
     force = body?.force === true; // bypass sending-hours check for immediate first run
   } catch {
     // No body — process all users
+  }
+
+  // For user calls (not cron), scope to that user only
+  if (isUserCall && !isCronCall && !targetUserId) {
+    try {
+      const { data: { user } } = await createClient(SUPABASE_URL, authHeader!.replace("Bearer ", ""), {
+        auth: { persistSession: false },
+      }).auth.getUser();
+      if (user) targetUserId = user.id;
+    } catch {
+      // continue without scoping — service role will process all
+    }
   }
 
   try {

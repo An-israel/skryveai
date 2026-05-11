@@ -128,7 +128,7 @@ export default function LearnAssignment() {
     ]);
     if (!a) {
       toast({ title: "Assignment not found", variant: "destructive" });
-      navigate(`/tools/learn/${userLearningId}`);
+      navigate(`/learn/${userLearningId}`);
       return;
     }
     setAssignment(a as Assignment);
@@ -304,7 +304,7 @@ export default function LearnAssignment() {
       <Header />
       <main className="container mx-auto px-4 py-6 max-w-4xl">
         <Button variant="ghost" size="sm" asChild className="mb-4">
-          <Link to={`/tools/learn/${userLearningId}`}>
+          <Link to={`/learn/${userLearningId}`}>
             <ArrowLeft className="h-4 w-4 mr-1" /> Back to lessons
           </Link>
         </Button>
@@ -572,7 +572,7 @@ export default function LearnAssignment() {
               Head back to your lessons to keep building momentum.
             </p>
             <Button asChild>
-              <Link to={`/tools/learn/${userLearningId}`}>Continue learning</Link>
+              <Link to={`/learn/${userLearningId}`}>Continue learning</Link>
             </Button>
           </Card>
         )}

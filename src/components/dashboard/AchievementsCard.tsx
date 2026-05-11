@@ -57,7 +57,7 @@ export function AchievementsCard() {
           <h3 className="font-semibold">Learning Achievements</h3>
         </div>
         <Button variant="ghost" size="sm" asChild>
-          <Link to="/tools/learn">Learn more</Link>
+          <Link to="/learn">Learn more</Link>
         </Button>
       </div>
 
@@ -67,7 +67,7 @@ export function AchievementsCard() {
             No badges yet. Start a learning path to earn your first one.
           </p>
           <Button size="sm" asChild>
-            <Link to="/tools/learn">Browse skills</Link>
+            <Link to="/learn">Browse skills</Link>
           </Button>
         </div>
       ) : (

@@ -70,7 +70,7 @@ export function CoachRemindersTimeline() {
           <h3 className="font-semibold">Coach Reminders</h3>
         </div>
         <Button variant="ghost" size="sm" asChild>
-          <Link to="/tools/learn">
+          <Link to="/learn">
             Manage <ArrowRight className="h-3 w-3 ml-1" />
           </Link>
         </Button>
@@ -92,7 +92,7 @@ export function CoachRemindersTimeline() {
                 className="flex flex-wrap items-center gap-2 rounded-lg border bg-muted/30 px-3 py-2"
               >
                 <Link
-                  to={`/tools/learn/${p.id}`}
+                  to={`/learn/${p.id}`}
                   className="text-sm font-medium hover:underline truncate max-w-[40%]"
                 >
                   {p.learning_paths?.display_name}

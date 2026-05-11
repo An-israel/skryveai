@@ -168,12 +168,12 @@ export default function LearnPath() {
       .maybeSingle();
     if (ulErr || !ulData) {
       toast({ title: "Path not found", variant: "destructive" });
-      navigate("/tools/learn");
+      navigate("/learn");
       return;
     }
     const ulRow = ulData as unknown as UserLearning;
     if (ulRow.user_id !== user!.id) {
-      navigate("/tools/learn");
+      navigate("/learn");
       return;
     }
     setUl(ulRow);
@@ -791,7 +791,7 @@ export default function LearnPath() {
         {/* Compact header */}
         <div className="mb-4">
           <Button variant="ghost" size="sm" asChild className="mb-2 -ml-2">
-            <Link to="/tools/learn">
+            <Link to="/learn">
               <ArrowLeft className="h-4 w-4 mr-1" /> All skills
             </Link>
           </Button>

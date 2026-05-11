@@ -40,7 +40,7 @@ const STEPS: Record<string, Step[]> = {
   smart_find: [
     { icon: Bot,       title: "Run AutoPilot",                   description: "Let AI pitch to these businesses for you automatically every day.",          to: "/auto-pilot" },
     { icon: FileText,  title: "Build your CV",                   description: "A great CV helps when clients want to see your background.",                 to: "/cv-builder" },
-    { icon: BookOpen,  title: "Learn a new skill",               description: "Add another skill to expand the clients you can serve.",                     to: "/tools/learn", variant: "outline" },
+    { icon: BookOpen,  title: "Learn a new skill",               description: "Add another skill to expand the clients you can serve.",                     to: "/learn", variant: "outline" },
   ],
 };
 
