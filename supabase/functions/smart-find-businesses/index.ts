@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
+import { findEmail, resolveDomain } from "../_shared/email-finder-engine.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -301,6 +302,8 @@ serve(async (req) => {
     const GOOGLE_PLACES_API_KEY = Deno.env.get("GOOGLE_PLACES_API_KEY");
     const FIRECRAWL_API_KEY = Deno.env.get("FIRECRAWL_API_KEY");
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+    const HUNTER_API_KEY = Deno.env.get("HUNTER_API_KEY");
+    const APOLLO_API_KEY = Deno.env.get("APOLLO_API_KEY");
 
     if (!GOOGLE_PLACES_API_KEY) throw new Error("GOOGLE_PLACES_API_KEY not configured");
     if (!FIRECRAWL_API_KEY) throw new Error("FIRECRAWL_API_KEY not configured");
@@ -511,6 +514,34 @@ serve(async (req) => {
     }
 
     console.log(`[SmartFind] ${qualified.length}/${scored.length} businesses returned (min 10 guaranteed)`);
+
+    // Enrich each qualified business with a contact email (enterprise pipeline)
+    // Run in parallel batches of 5 to avoid overwhelming DNS/API rate limits
+    const ENRICH_BATCH = 5;
+    for (let i = 0; i < qualified.length; i += ENRICH_BATCH) {
+      const batch = qualified.slice(i, i + ENRICH_BATCH);
+      await Promise.all(batch.map(async (biz) => {
+        if (biz.email) return; // already has email
+        if (!biz.website) return; // no domain to query
+        try {
+          const emailResult = await findEmail(
+            { website: biz.website, company: biz.name },
+            {
+              firecrawlKey: FIRECRAWL_API_KEY!,
+              supabaseUrl: SUPABASE_URL,
+              serviceKey: SUPABASE_SERVICE_ROLE_KEY,
+              hunterApiKey: HUNTER_API_KEY,
+              apolloApiKey: APOLLO_API_KEY,
+            },
+          );
+          if (emailResult.email && emailResult.emailVerified) {
+            biz.email = emailResult.email;
+          }
+        } catch {
+          // Non-critical: email enrichment failure should not break the result
+        }
+      }));
+    }
 
     if (campaignId && qualified.length > 0) {
       const signalRows = qualified.map((q) => ({

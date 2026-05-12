@@ -431,11 +431,266 @@ export async function verifyEmail(email: string): Promise<VerifyResult> {
 }
 
 // ────────────────────────────────────────────────────────────
+// Enterprise Layer: verified_emails DB cache
+// ────────────────────────────────────────────────────────────
+async function lookupVerifiedEmail(
+  supabaseUrl: string,
+  serviceKey: string,
+  firstName: string,
+  lastName: string,
+  domain: string,
+): Promise<{ email: string; status: string; confidence: number } | null> {
+  try {
+    const f = firstName.toLowerCase();
+    const l = lastName.toLowerCase();
+    const candidates = [
+      `${f}.${l}@${domain}`, `${f}${l}@${domain}`, `${f[0]}.${l}@${domain}`,
+      `${f[0]}${l}@${domain}`, `${f}_${l}@${domain}`,
+    ].map(encodeURIComponent).join(",");
+
+    const resp = await fetch(
+      `${supabaseUrl}/rest/v1/verified_emails?email=in.(${candidates})&status=neq.invalid&order=confidence_score.desc&limit=1`,
+      { headers: { apikey: serviceKey, Authorization: `Bearer ${serviceKey}` } },
+    );
+    if (!resp.ok) return null;
+    const rows = await resp.json();
+    if (!Array.isArray(rows) || !rows[0]) return null;
+    const row = rows[0];
+    // Re-verify if older than 30 days
+    const daysOld = (Date.now() - new Date(row.last_verified_at).getTime()) / 86400000;
+    if (daysOld > 30) return null;
+    return { email: row.email, status: row.status, confidence: row.confidence_score };
+  } catch {
+    return null;
+  }
+}
+
+async function storeVerifiedEmail(
+  supabaseUrl: string,
+  serviceKey: string,
+  data: {
+    email: string; domain: string; firstName?: string; lastName?: string;
+    companyName?: string; companyDomain?: string; status: string; confidenceScore: number;
+    foundVia: string; verificationMethod: string; isRoleBased?: boolean;
+  },
+): Promise<void> {
+  try {
+    await fetch(`${supabaseUrl}/rest/v1/verified_emails`, {
+      method: "POST",
+      headers: {
+        apikey: serviceKey,
+        Authorization: `Bearer ${serviceKey}`,
+        "Content-Type": "application/json",
+        Prefer: "resolution=merge-duplicates",
+      },
+      body: JSON.stringify({
+        email: data.email,
+        domain: data.domain,
+        first_name: data.firstName,
+        last_name: data.lastName,
+        company_name: data.companyName,
+        company_domain: data.companyDomain || data.domain,
+        status: data.status,
+        confidence_score: data.confidenceScore,
+        found_via: data.foundVia,
+        verification_method: data.verificationMethod,
+        is_role_based: data.isRoleBased ?? false,
+        last_verified_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      }),
+    });
+  } catch { /* non-critical */ }
+}
+
+async function checkApiCache(
+  supabaseUrl: string,
+  serviceKey: string,
+  cacheKey: string,
+): Promise<unknown | null> {
+  try {
+    const resp = await fetch(
+      `${supabaseUrl}/rest/v1/api_response_cache?cache_key=eq.${encodeURIComponent(cacheKey)}&limit=1`,
+      { headers: { apikey: serviceKey, Authorization: `Bearer ${serviceKey}` } },
+    );
+    if (!resp.ok) return null;
+    const rows = await resp.json();
+    if (!Array.isArray(rows) || !rows[0]) return null;
+    const row = rows[0];
+    if (row.expires_at && new Date(row.expires_at) < new Date()) return null;
+    // Increment hit count async (fire & forget)
+    fetch(`${supabaseUrl}/rest/v1/api_response_cache?cache_key=eq.${encodeURIComponent(cacheKey)}`, {
+      method: "PATCH",
+      headers: {
+        apikey: serviceKey, Authorization: `Bearer ${serviceKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ hit_count: row.hit_count + 1 }),
+    }).catch(() => {});
+    return row.response_data;
+  } catch {
+    return null;
+  }
+}
+
+async function storeApiCache(
+  supabaseUrl: string,
+  serviceKey: string,
+  cacheKey: string,
+  provider: string,
+  data: unknown,
+  ttlDays = 30,
+): Promise<void> {
+  try {
+    const expiresAt = new Date(Date.now() + ttlDays * 86400000).toISOString();
+    await fetch(`${supabaseUrl}/rest/v1/api_response_cache`, {
+      method: "POST",
+      headers: {
+        apikey: serviceKey, Authorization: `Bearer ${serviceKey}`,
+        "Content-Type": "application/json",
+        Prefer: "resolution=merge-duplicates",
+      },
+      body: JSON.stringify({ cache_key: cacheKey, api_provider: provider, response_data: data, expires_at: expiresAt }),
+    });
+  } catch { /* non-critical */ }
+}
+
+async function trackApiUsage(
+  supabaseUrl: string,
+  serviceKey: string,
+  provider: string,
+  endpoint: string,
+  success: boolean,
+  creditsUsed = 1,
+  costUsd = 0,
+  responseTimeMs = 0,
+  userId?: string,
+): Promise<void> {
+  try {
+    await fetch(`${supabaseUrl}/rest/v1/api_usage_tracking`, {
+      method: "POST",
+      headers: {
+        apikey: serviceKey, Authorization: `Bearer ${serviceKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        api_provider: provider, endpoint, success,
+        credits_used: creditsUsed, cost_usd: costUsd,
+        response_time_ms: responseTimeMs, user_id: userId,
+      }),
+    });
+  } catch { /* non-critical */ }
+}
+
+// ────────────────────────────────────────────────────────────
+// Enterprise Layer: Hunter.io Email Finder API
+// ────────────────────────────────────────────────────────────
+async function hunterEmailFinder(
+  supabaseUrl: string,
+  serviceKey: string,
+  firstName: string,
+  lastName: string,
+  domain: string,
+  apiKey: string,
+  userId?: string,
+): Promise<{ email: string; confidence: number; sources: string[] } | null> {
+  const cacheKey = `hunter:${firstName.toLowerCase()}-${lastName.toLowerCase()}-${domain}`;
+  const cached = await checkApiCache(supabaseUrl, serviceKey, cacheKey);
+  if (cached && typeof cached === "object" && (cached as Record<string, unknown>).email) {
+    return cached as { email: string; confidence: number; sources: string[] };
+  }
+
+  const t0 = Date.now();
+  try {
+    const url = `https://api.hunter.io/v2/email-finder?domain=${encodeURIComponent(domain)}&first_name=${encodeURIComponent(firstName)}&last_name=${encodeURIComponent(lastName)}&api_key=${encodeURIComponent(apiKey)}`;
+    const resp = await fetch(url, { signal: AbortSignal.timeout(8000) });
+    const ms = Date.now() - t0;
+
+    if (!resp.ok) {
+      await trackApiUsage(supabaseUrl, serviceKey, "hunter", "email-finder", false, 0, 0, ms, userId);
+      return null;
+    }
+
+    const data = await resp.json();
+    await trackApiUsage(supabaseUrl, serviceKey, "hunter", "email-finder", true, 1, 0.01, ms, userId);
+
+    if (!data?.data?.email) return null;
+    const result = {
+      email: data.data.email as string,
+      confidence: (data.data.confidence as number) ?? 70,
+      sources: ((data.data.sources as { uri: string }[]) || []).map((s) => s.uri),
+    };
+    await storeApiCache(supabaseUrl, serviceKey, cacheKey, "hunter", result);
+    return result;
+  } catch (e) {
+    console.error("[Hunter] API error:", (e as Error).message);
+    return null;
+  }
+}
+
+// ────────────────────────────────────────────────────────────
+// Enterprise Layer: Apollo.io Email Finder API
+// ────────────────────────────────────────────────────────────
+async function apolloEmailFinder(
+  supabaseUrl: string,
+  serviceKey: string,
+  firstName: string,
+  lastName: string,
+  domain: string,
+  apiKey: string,
+  userId?: string,
+): Promise<{ email: string; status: string; title?: string } | null> {
+  const cacheKey = `apollo:${firstName.toLowerCase()}-${lastName.toLowerCase()}-${domain}`;
+  const cached = await checkApiCache(supabaseUrl, serviceKey, cacheKey);
+  if (cached && typeof cached === "object" && (cached as Record<string, unknown>).email) {
+    return cached as { email: string; status: string; title?: string };
+  }
+
+  const t0 = Date.now();
+  try {
+    const resp = await fetch("https://api.apollo.io/v1/people/search", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "X-Api-Key": apiKey },
+      body: JSON.stringify({
+        first_name: firstName, last_name: lastName,
+        organization_domains: [domain], page: 1, per_page: 1,
+      }),
+      signal: AbortSignal.timeout(10000),
+    });
+    const ms = Date.now() - t0;
+
+    if (!resp.ok) {
+      await trackApiUsage(supabaseUrl, serviceKey, "apollo", "people-search", false, 0, 0, ms, userId);
+      return null;
+    }
+
+    const data = await resp.json();
+    await trackApiUsage(supabaseUrl, serviceKey, "apollo", "people-search", true, 1, 0.02, ms, userId);
+
+    const person = data?.people?.[0];
+    if (!person?.email || person.email_status === "unavailable") return null;
+
+    const result = { email: person.email as string, status: person.email_status as string, title: person.title as string | undefined };
+    await storeApiCache(supabaseUrl, serviceKey, cacheKey, "apollo", result);
+    return result;
+  } catch (e) {
+    console.error("[Apollo] API error:", (e as Error).message);
+    return null;
+  }
+}
+
+// ────────────────────────────────────────────────────────────
 // Main finder — orchestrates the whole pipeline
 // ────────────────────────────────────────────────────────────
 export async function findEmail(
   input: PersonInput,
-  env: { firecrawlKey: string; supabaseUrl: string; serviceKey: string },
+  env: {
+    firecrawlKey: string;
+    supabaseUrl: string;
+    serviceKey: string;
+    hunterApiKey?: string;
+    apolloApiKey?: string;
+    userId?: string;
+  },
 ): Promise<EmailFinderResult> {
   const domain = resolveDomain(input);
 
@@ -472,7 +727,28 @@ export async function findEmail(
 
   const hasName = !!(input.firstName && input.lastName);
 
-  // Step 2: Check cached pattern for this domain (global)
+  // Step 2: Check verified_emails DB cache (enterprise layer)
+  if (hasName) {
+    const dbHit = await lookupVerifiedEmail(
+      env.supabaseUrl, env.serviceKey,
+      input.firstName!, input.lastName!, domain,
+    );
+    if (dbHit) {
+      sources.push({ type: "cache", found_at: new Date().toISOString() });
+      return {
+        email: dbHit.email,
+        confidence: dbHit.confidence,
+        status: dbHit.status as EmailFinderResult["status"],
+        emailVerified: dbHit.status !== "invalid" && dbHit.status !== "unknown",
+        emailConfidence: dbHit.confidence >= 80 ? "high" : dbHit.confidence >= 60 ? "medium" : "low",
+        emailSource: "cache",
+        employerDomain: domain,
+        sources,
+      };
+    }
+  }
+
+  // Step 3: Check cached email pattern for this domain
   const cachedPattern = await getCachedPattern(env.supabaseUrl, env.serviceKey, domain);
 
   if (hasName && cachedPattern && cachedPattern.confidence >= 70) {
@@ -480,6 +756,12 @@ export async function findEmail(
     const verification = await verifyEmail(guessed);
     if (verification.isDeliverable) {
       sources.push({ type: "cache", pattern: cachedPattern.pattern, found_at: new Date().toISOString() });
+      await storeVerifiedEmail(env.supabaseUrl, env.serviceKey, {
+        email: guessed, domain, firstName: input.firstName, lastName: input.lastName,
+        companyName: input.company, companyDomain: domain,
+        status: verification.status, confidenceScore: Math.min(95, cachedPattern.confidence + 10),
+        foundVia: "internal_db", verificationMethod: "pattern", isRoleBased: verification.isRoleBased,
+      });
       return {
         email: guessed,
         confidence: Math.min(95, cachedPattern.confidence + 10),
@@ -494,10 +776,76 @@ export async function findEmail(
     }
   }
 
-  // Step 3: Crawl the domain
+  // Step 4: Hunter.io API (enterprise layer — name required)
+  if (hasName && env.hunterApiKey) {
+    const hunterResult = await hunterEmailFinder(
+      env.supabaseUrl, env.serviceKey,
+      input.firstName!, input.lastName!, domain,
+      env.hunterApiKey, env.userId,
+    );
+    if (hunterResult) {
+      const verification = await verifyEmail(hunterResult.email);
+      sources.push({ type: "scrape", url: "hunter.io", found_at: new Date().toISOString() });
+      await storeVerifiedEmail(env.supabaseUrl, env.serviceKey, {
+        email: hunterResult.email, domain, firstName: input.firstName, lastName: input.lastName,
+        companyName: input.company, companyDomain: domain,
+        status: verification.status,
+        confidenceScore: Math.min(hunterResult.confidence, verification.isDeliverable ? 90 : 40),
+        foundVia: "hunter_api", verificationMethod: "api_hunter",
+        isRoleBased: verification.isRoleBased,
+      });
+      const pattern = detectPattern(hunterResult.email, input.firstName, input.lastName);
+      if (pattern) await upsertPattern(env.supabaseUrl, env.serviceKey, domain, pattern, hunterResult.email);
+      return {
+        email: hunterResult.email,
+        confidence: Math.min(hunterResult.confidence, verification.isDeliverable ? 90 : 40),
+        status: verification.status,
+        emailVerified: verification.isDeliverable,
+        emailConfidence: hunterResult.confidence >= 80 ? "high" : "medium",
+        emailSource: "scrape",
+        employerDomain: domain,
+        sources,
+      };
+    }
+  }
+
+  // Step 5: Apollo.io API (enterprise layer — name required, fallback)
+  if (hasName && env.apolloApiKey) {
+    const apolloResult = await apolloEmailFinder(
+      env.supabaseUrl, env.serviceKey,
+      input.firstName!, input.lastName!, domain,
+      env.apolloApiKey, env.userId,
+    );
+    if (apolloResult) {
+      const verification = await verifyEmail(apolloResult.email);
+      sources.push({ type: "scrape", url: "apollo.io", found_at: new Date().toISOString() });
+      await storeVerifiedEmail(env.supabaseUrl, env.serviceKey, {
+        email: apolloResult.email, domain, firstName: input.firstName, lastName: input.lastName,
+        companyName: input.company, companyDomain: domain,
+        status: verification.status,
+        confidenceScore: verification.isDeliverable ? 85 : 35,
+        foundVia: "apollo_api", verificationMethod: "api_apollo",
+        isRoleBased: verification.isRoleBased,
+      });
+      const pattern = detectPattern(apolloResult.email, input.firstName, input.lastName);
+      if (pattern) await upsertPattern(env.supabaseUrl, env.serviceKey, domain, pattern, apolloResult.email);
+      return {
+        email: apolloResult.email,
+        confidence: verification.isDeliverable ? 85 : 35,
+        status: verification.status,
+        emailVerified: verification.isDeliverable,
+        emailConfidence: verification.isDeliverable ? "high" : "low",
+        emailSource: "scrape",
+        employerDomain: domain,
+        sources,
+      };
+    }
+  }
+
+  // Step 6: Crawl the domain (Firecrawl)
   const discovered = await discoverEmailsOnDomain(domain, env.firecrawlKey);
 
-  // If we have a name, try to find a matching email
+  // If we have a name, look for a name-matching email on the site
   if (hasName) {
     const fLower = input.firstName!.toLowerCase();
     const lLower = input.lastName!.toLowerCase();
@@ -506,11 +854,14 @@ export async function findEmail(
       if (local.includes(fLower) || local.includes(lLower)) {
         const verification = await verifyEmail(email);
         sources.push({ type: "scrape", url, found_at: new Date().toISOString() });
-        // Learn the pattern
         const pattern = detectPattern(email, input.firstName, input.lastName);
-        if (pattern) {
-          await upsertPattern(env.supabaseUrl, env.serviceKey, domain, pattern, email);
-        }
+        if (pattern) await upsertPattern(env.supabaseUrl, env.serviceKey, domain, pattern, email);
+        await storeVerifiedEmail(env.supabaseUrl, env.serviceKey, {
+          email, domain, firstName: input.firstName, lastName: input.lastName,
+          companyName: input.company, companyDomain: domain,
+          status: verification.status, confidenceScore: 92,
+          foundVia: "scrape", verificationMethod: "scrape", isRoleBased: verification.isRoleBased,
+        });
         return {
           email,
           confidence: 92,
@@ -526,11 +877,8 @@ export async function findEmail(
     }
   }
 
-  // Step 4: Detect pattern from any discovered email and apply it
+  // Step 7: Generate from common patterns and verify each
   if (hasName && discovered.length > 0) {
-    // Look at any email and infer pattern using its local-part vs the person's name
-    // (only useful if the discovered emails were from people whose names we infer)
-    // Better: try common patterns and verify each
     const patternsToTry = cachedPattern
       ? [cachedPattern.pattern, ...COMMON_PATTERNS.filter((p) => p !== cachedPattern.pattern)]
       : COMMON_PATTERNS;
@@ -541,6 +889,12 @@ export async function findEmail(
       if (verification.isDeliverable && verification.status !== "risky") {
         sources.push({ type: "pattern", pattern, found_at: new Date().toISOString() });
         await upsertPattern(env.supabaseUrl, env.serviceKey, domain, pattern, guessed);
+        await storeVerifiedEmail(env.supabaseUrl, env.serviceKey, {
+          email: guessed, domain, firstName: input.firstName, lastName: input.lastName,
+          companyName: input.company, companyDomain: domain,
+          status: verification.status, confidenceScore: 65,
+          foundVia: "pattern_gen", verificationMethod: "pattern",
+        });
         return {
           email: guessed,
           confidence: 65,
@@ -556,14 +910,11 @@ export async function findEmail(
     }
   }
 
-  // Step 5: Fall back to a discovered generic email (info@, contact@, etc.)
+  // Step 8: Use generic/department email discovered on site
   if (discovered.length > 0) {
-    // Prefer department prefixes
     const sorted = [...discovered].sort((a, b) => {
-      const localA = a.email.split("@")[0];
-      const localB = b.email.split("@")[0];
-      const aDept = DEPT_PREFIXES.includes(localA) ? 1 : 0;
-      const bDept = DEPT_PREFIXES.includes(localB) ? 1 : 0;
+      const aDept = DEPT_PREFIXES.includes(a.email.split("@")[0]) ? 1 : 0;
+      const bDept = DEPT_PREFIXES.includes(b.email.split("@")[0]) ? 1 : 0;
       return bDept - aDept;
     });
     const best = sorted[0];
@@ -572,6 +923,11 @@ export async function findEmail(
     for (const { email, url } of discovered.slice(0, 5)) {
       allEmails.push({ email, confidence: 70, source: url });
     }
+    await storeVerifiedEmail(env.supabaseUrl, env.serviceKey, {
+      email: best.email, domain, companyName: input.company, companyDomain: domain,
+      status: verification.status, confidenceScore: verification.isRoleBased ? 60 : 75,
+      foundVia: "scrape", verificationMethod: "scrape", isRoleBased: verification.isRoleBased,
+    });
     return {
       email: best.email,
       confidence: verification.isRoleBased ? 60 : 75,
@@ -585,10 +941,17 @@ export async function findEmail(
     };
   }
 
-  // Step 6: Last resort — generic info@ guess
+  // Step 9: Last resort — guess info@domain
   const genericEmail = `info@${domain}`;
   const genericVerify = await verifyEmail(genericEmail);
   sources.push({ type: "generic", found_at: new Date().toISOString() });
+  if (genericVerify.isDeliverable) {
+    await storeVerifiedEmail(env.supabaseUrl, env.serviceKey, {
+      email: genericEmail, domain, companyName: input.company, companyDomain: domain,
+      status: genericVerify.status, confidenceScore: 40,
+      foundVia: "pattern_gen", verificationMethod: "pattern", isRoleBased: true,
+    });
+  }
   return {
     email: genericVerify.isDeliverable ? genericEmail : null,
     confidence: genericVerify.isDeliverable ? 40 : 0,
