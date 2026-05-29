@@ -57,6 +57,7 @@ import Referrals        from "./pages/Referrals";
 import Admin            from "./pages/Admin";
 import SkillLearningAnalytics from "./pages/admin/SkillLearningAnalytics";
 import PaymentCallback  from "./pages/PaymentCallback";
+import PortfolioManager from "./pages/PortfolioManager";
 
 const queryClient = new QueryClient();
 
@@ -96,9 +97,11 @@ export default function App() {
               <Route element={<AppLayout />}>
 
                 {/* Core */}
-                <Route path="/dashboard"    element={<Dashboard />} />
-                <Route path="/profile"      element={<Profile />} />
-                <Route path="/profile/:username" element={<ProfileView />} />
+                <Route path="/dashboard"          element={<Dashboard />} />
+                <Route path="/profile"            element={<Profile />} />
+                <Route path="/profile/edit"       element={<Profile />} />
+                <Route path="/profile/portfolio"  element={<PortfolioManager />} />
+                <Route path="/profile/:username"  element={<ProfileView />} />
 
                 {/* Jobs & Marketplace */}
                 <Route path="/jobs"                 element={<Jobs />} />
