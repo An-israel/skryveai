@@ -4,7 +4,6 @@ import ReactMarkdown from "react-markdown";
 import { evaluateAchievements } from "@/lib/learning/achievements";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
-import { Header } from "@/components/layout/Header";
 import { SEOHead } from "@/components/SEOHead";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -781,12 +780,11 @@ export default function LearnPath() {
   );
 
   return (
-    <div className="min-h-screen bg-background">
+    <div>
       <SEOHead
         title={`${ul.learning_paths.display_name} | SkryveAI Learn`}
         description={`Learn ${ul.learning_paths.display_name} with your AI coach.`}
       />
-      <Header />
       <main className="container mx-auto px-3 sm:px-4 py-4 sm:py-6 max-w-5xl">
         {/* Compact header */}
         <div className="mb-4">

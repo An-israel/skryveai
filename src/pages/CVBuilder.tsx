@@ -3,7 +3,6 @@ import { useNavigate } from "react-router-dom";
 import { NextStepsCard } from "@/components/shared/NextStepsCard";
 import { SEOHead } from "@/components/SEOHead";
 import { motion, AnimatePresence } from "framer-motion";
-import { Header } from "@/components/layout/Header";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -324,15 +323,10 @@ export default function CVBuilder() {
     URL.revokeObjectURL(url);
   };
 
-  const handleLogout = async () => {
-    await signOut();
-    navigate("/");
-  };
-
   // Mode Selection
   if (mode === "select") {
     return (
-      <div className="min-h-screen bg-background">
+      <div>
         <SEOHead
           title="AI CV Builder — Build ATS-Optimized Resumes in Seconds | SkryveAI"
           description="Build or optimize your CV with AI. SkryveAI's CV Builder creates ATS-optimized resumes, scores them against job descriptions, and generates a LinkedIn profile guide. Free to try."
@@ -348,8 +342,7 @@ export default function CVBuilder() {
             offers: { "@type": "Offer", price: "0", priceCurrency: "USD", description: "Free trial available" }
           }}
         />
-        <Header isAuthenticated={!!user} onLogout={handleLogout} />
-        <main className="container mx-auto px-4 pt-24 pb-12 max-w-3xl">
+        <main className="container mx-auto px-4 pb-8 max-w-3xl">
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
             <div className="text-center mb-8">
               <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-primary/10 flex items-center justify-center">
@@ -396,9 +389,8 @@ export default function CVBuilder() {
   // Results view
   if (cvResult) {
     return (
-      <div className="min-h-screen bg-background">
-        <Header isAuthenticated={!!user} onLogout={handleLogout} />
-        <main className="container mx-auto px-4 pt-24 pb-12 max-w-5xl">
+      <div>
+        <main className="container mx-auto px-4 pb-8 max-w-5xl">
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
             <div className="flex items-center justify-between mb-6">
               <div>
@@ -704,9 +696,8 @@ export default function CVBuilder() {
   // Generation loading
   if (isGenerating) {
     return (
-      <div className="min-h-screen bg-background">
-        <Header isAuthenticated={!!user} onLogout={handleLogout} />
-        <main className="container mx-auto px-4 pt-24 pb-12 max-w-2xl">
+      <div>
+        <main className="container mx-auto px-4 pb-8 max-w-2xl">
           <Card>
             <CardContent className="p-12 text-center">
               <div className="w-16 h-16 mx-auto mb-6 rounded-2xl bg-primary/10 flex items-center justify-center">
@@ -728,9 +719,8 @@ export default function CVBuilder() {
   // Mode A: Optimize existing CV
   if (mode === "optimize") {
     return (
-      <div className="min-h-screen bg-background">
-        <Header isAuthenticated={!!user} onLogout={handleLogout} />
-        <main className="container mx-auto px-4 pt-24 pb-12 max-w-3xl">
+      <div>
+        <main className="container mx-auto px-4 pb-8 max-w-3xl">
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
             <Button variant="ghost" size="sm" onClick={() => setMode("select")} className="mb-4">
               <ArrowLeft className="w-4 h-4 mr-1" /> Back
@@ -874,10 +864,9 @@ export default function CVBuilder() {
 
   // Mode B: Build from scratch
   return (
-    <div className="min-h-screen bg-background">
+    <div>
       <FeatureGuide featureKey="cv-builder" steps={cvBuilderGuide} />
-      <Header isAuthenticated={!!user} onLogout={handleLogout} />
-      <main className="container mx-auto px-4 pt-24 pb-12 max-w-3xl">
+      <main className="container mx-auto px-4 pb-8 max-w-3xl">
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
           <Button variant="ghost" size="sm" onClick={() => setMode("select")} className="mb-4">
             <ArrowLeft className="w-4 h-4 mr-1" /> Back

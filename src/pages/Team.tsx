@@ -5,7 +5,6 @@ import {
 } from "lucide-react"
 import { supabase } from "@/integrations/supabase/client"
 import { useAuth } from "@/hooks/use-auth"
-import { Header } from "@/components/layout/Header"
 import { Footer } from "@/components/layout/Footer"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -198,9 +197,8 @@ export default function Team() {
   }
 
   return (
-    <div className="min-h-screen bg-background flex flex-col">
-      <Header isAuthenticated={!!user} />
-      <main className="flex-1 py-10 px-4">
+    <div className="flex flex-col">
+      <main className="flex-1 py-0 px-0">
         <div className="max-w-3xl mx-auto space-y-6">
 
           <div>

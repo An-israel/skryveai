@@ -3,7 +3,6 @@ import { useNavigate, useParams, Link } from "react-router-dom";
 import ReactMarkdown from "react-markdown";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
-import { Header } from "@/components/layout/Header";
 import { SEOHead } from "@/components/SEOHead";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -296,12 +295,11 @@ export default function LearnAssignment() {
   const needsRevision = submission?.status === "needs_revision";
 
   return (
-    <div className="min-h-screen bg-background">
+    <div>
       <SEOHead
         title={`${assignment.title} | SkryveAI Learn`}
         description="Submit your assignment for AI-powered review and feedback."
       />
-      <Header />
       <main className="container mx-auto px-4 py-6 max-w-4xl">
         <Button variant="ghost" size="sm" asChild className="mb-4">
           <Link to={`/learn/${userLearningId}`}>

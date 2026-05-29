@@ -4,7 +4,6 @@ import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Header } from "@/components/layout/Header";
 import { CreditsDisplay } from "@/components/dashboard/CreditsDisplay";
 import { SubscriptionStats } from "@/components/dashboard/SubscriptionStats";
 import { ActivityFeed } from "@/components/dashboard/ActivityFeed";
@@ -78,23 +77,16 @@ export default function Dashboard() {
     return () => subscription.unsubscribe();
   }, [navigate]);
 
-  const handleLogout = async () => {
-    await supabase.auth.signOut();
-    toast({ title: "Logged out successfully" });
-    navigate("/");
-  };
-
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div className="flex items-center justify-center py-24">
         <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      <Header isAuthenticated={true} onLogout={handleLogout} />
+    <div>
       <UIRefreshPopup />
       <FeatureUpdatePopup />
       <MotivationalPopup />
@@ -109,7 +101,7 @@ export default function Dashboard() {
       )}
       {showTour && !showWizard && <OnboardingTour onComplete={markOnboardingComplete} />}
 
-      <main className="container mx-auto px-4 pt-24 pb-16">
+      <main className="container mx-auto px-0 pb-8">
 
         {/* ── Welcome Row ── */}
         <motion.div

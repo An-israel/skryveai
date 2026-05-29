@@ -218,7 +218,7 @@ export default function LinkedInAnalyzer() {
   };
 
   return (
-    <div className="min-h-screen bg-background py-8 px-4">
+    <div className="py-0 px-0">
       <FeatureGuide featureKey="linkedin-analyzer" steps={linkedInGuide} />
       <SEOHead
         title="AI LinkedIn Profile Analyzer — Analyze & Optimize Your LinkedIn in Seconds | SkryveAI"

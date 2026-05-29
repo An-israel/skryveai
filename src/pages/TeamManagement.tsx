@@ -27,7 +27,6 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/use-auth";
-import { Header } from "@/components/layout/Header";
 import { SearchableMultiSelect } from "@/components/ui/searchable-multi-select";
 
 const EXPERTISE_OPTIONS = [
@@ -354,9 +353,8 @@ export default function TeamManagement() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      <Header />
-      <main className="container py-8 max-w-4xl mx-auto px-4">
+    <div>
+      <main className="container py-0 max-w-4xl mx-auto px-0">
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
           <div className="flex items-center gap-4 mb-8">
             <Button variant="ghost" size="icon" onClick={() => navigate("/dashboard")}>

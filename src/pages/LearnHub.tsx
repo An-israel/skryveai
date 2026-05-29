@@ -2,7 +2,6 @@ import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
-import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
 import { SEOHead } from "@/components/SEOHead";
 import { Card } from "@/components/ui/card";
@@ -117,7 +116,7 @@ export default function LearnHub() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div>
       <SEOHead
         title="Learn Freelance Skills | SkryveAI"
         description="Learn web design, copywriting, video editing, SEO and more with your AI coach. Affordable, structured paths for African freelancers."

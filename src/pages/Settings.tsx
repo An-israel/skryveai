@@ -28,7 +28,6 @@ import { useAuth } from "@/hooks/use-auth";
 import { isValidPhone } from "@/lib/whatsapp";
 import { FeatureGuide } from "@/components/onboarding/FeatureGuide";
 import { settingsGuide } from "@/components/onboarding/guideConfigs";
-import { Header } from "@/components/layout/Header";
 import { EmailVerificationStatus } from "@/components/settings/EmailVerificationStatus";
 import { SMTPConnection } from "@/components/settings/SMTPConnection";
 import { EmailWarmupSettings } from "@/components/settings/EmailWarmupSettings";
@@ -255,18 +254,17 @@ export default function Settings() {
 
   if (authLoading || loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div className="flex items-center justify-center py-24">
         <Loader2 className="w-8 h-8 animate-spin text-primary" />
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      <Header />
+    <div>
       <FeatureGuide featureKey="settings" steps={settingsGuide} />
-      
-      <main className="container py-8 max-w-4xl">
+
+      <main className="container py-0 max-w-4xl">
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
           <div className="flex items-center gap-4 mb-8">
             <Button variant="ghost" size="icon" onClick={() => navigate("/dashboard")}>
