@@ -20,6 +20,7 @@ import Blog             from "./pages/Blog";
 import BlogPost         from "./pages/BlogPost";
 import ForgotPassword   from "./pages/ForgotPassword";
 import ResetPassword    from "./pages/ResetPassword";
+import VerifyEmail      from "./pages/VerifyEmail";
 import PrivacyPolicy    from "./pages/PrivacyPolicy";
 import TermsOfService   from "./pages/TermsOfService";
 import NotFound         from "./pages/NotFound";
@@ -82,6 +83,7 @@ export default function App() {
               <Route path="/blog/:slug"      element={<Public><BlogPost /></Public>} />
               <Route path="/forgot-password" element={<Public><ForgotPassword /></Public>} />
               <Route path="/reset-password"  element={<Public><ResetPassword /></Public>} />
+              <Route path="/verify-email"   element={<Public><VerifyEmail /></Public>} />
               <Route path="/privacy-policy"  element={<Public><PrivacyPolicy /></Public>} />
               <Route path="/terms"           element={<Public><TermsOfService /></Public>} />
 

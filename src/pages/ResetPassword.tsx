@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { PasswordInput } from "@/components/ui/password-input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Zap, Lock, Loader2, CheckCircle } from "lucide-react";
+import { Lock, Loader2, CheckCircle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
@@ -20,20 +20,16 @@ export default function ResetPassword() {
   const { toast } = useToast();
 
   useEffect(() => {
-    // Check if we have a valid recovery session
     const checkSession = async () => {
       const { data: { session } } = await supabase.auth.getSession();
-      
-      // The user arrives here via the recovery link which creates a session
       if (session) {
         setIsValidSession(true);
       }
       setCheckingSession(false);
     };
 
-    // Listen for auth state changes (recovery link creates a session)
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
+      async (event) => {
         if (event === "PASSWORD_RECOVERY") {
           setIsValidSession(true);
           setCheckingSession(false);
@@ -72,9 +68,7 @@ export default function ResetPassword() {
     setIsLoading(true);
 
     try {
-      const { error } = await supabase.auth.updateUser({
-        password: password,
-      });
+      const { error } = await supabase.auth.updateUser({ password });
 
       if (error) throw error;
 
@@ -84,7 +78,6 @@ export default function ResetPassword() {
         description: "Your password has been successfully reset.",
       });
 
-      // Sign out and redirect to login after a delay
       setTimeout(async () => {
         await supabase.auth.signOut();
         navigate("/login");
@@ -101,37 +94,38 @@ export default function ResetPassword() {
     }
   };
 
+  const LogoLink = () => (
+    <Link to="/" className="flex items-center justify-center gap-2 mb-8">
+      <img src="/logo.png" alt="Skryve" className="w-8 h-8 object-contain" />
+      <span className="font-bold text-2xl text-[#1E3A5F]">Skryve</span>
+    </Link>
+  );
+
   if (checkingSession) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <Loader2 className="w-8 h-8 animate-spin text-[#2563EB]" />
       </div>
     );
   }
 
   if (!isValidSession) {
     return (
-      <div className="min-h-screen flex items-center justify-center px-4 bg-gradient-subtle">
+      <div className="min-h-screen flex items-center justify-center px-4 py-12 bg-gray-50">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           className="w-full max-w-md"
         >
-          <Link to="/" className="flex items-center justify-center gap-2 mb-8">
-            <div className="w-10 h-10 rounded-xl bg-gradient-accent flex items-center justify-center shadow-glow">
-              <Zap className="w-5 h-5 text-primary-foreground" />
-            </div>
-            <span className="font-bold text-2xl">OutreachPro</span>
-          </Link>
-
+          <LogoLink />
           <Card className="border-0 shadow-xl">
             <CardContent className="pt-6 text-center">
               <h2 className="text-xl font-semibold mb-2">Invalid or Expired Link</h2>
-              <p className="text-muted-foreground mb-6">
+              <p className="text-gray-500 mb-6">
                 This password reset link is invalid or has expired. Please request a new one.
               </p>
               <Link to="/forgot-password">
-                <Button className="w-full">Request New Link</Button>
+                <Button className="w-full bg-[#2563EB] hover:bg-[#1d4ed8]">Request New Link</Button>
               </Link>
             </CardContent>
           </Card>
@@ -142,29 +136,23 @@ export default function ResetPassword() {
 
   if (isSuccess) {
     return (
-      <div className="min-h-screen flex items-center justify-center px-4 bg-gradient-subtle">
+      <div className="min-h-screen flex items-center justify-center px-4 py-12 bg-gray-50">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           className="w-full max-w-md"
         >
-          <Link to="/" className="flex items-center justify-center gap-2 mb-8">
-            <div className="w-10 h-10 rounded-xl bg-gradient-accent flex items-center justify-center shadow-glow">
-              <Zap className="w-5 h-5 text-primary-foreground" />
-            </div>
-            <span className="font-bold text-2xl">OutreachPro</span>
-          </Link>
-
+          <LogoLink />
           <Card className="border-0 shadow-xl">
             <CardContent className="pt-6 text-center">
-              <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-4">
-                <CheckCircle className="w-8 h-8 text-primary" />
+              <div className="w-16 h-16 rounded-full bg-emerald-50 flex items-center justify-center mx-auto mb-4">
+                <CheckCircle className="w-8 h-8 text-[#059669]" />
               </div>
               <h2 className="text-xl font-semibold mb-2">Password Reset Complete!</h2>
-              <p className="text-muted-foreground mb-4">
+              <p className="text-gray-500 mb-4">
                 Your password has been successfully updated. Redirecting to login...
               </p>
-              <Loader2 className="w-6 h-6 animate-spin text-primary mx-auto" />
+              <Loader2 className="w-6 h-6 animate-spin text-[#2563EB] mx-auto" />
             </CardContent>
           </Card>
         </motion.div>
@@ -173,22 +161,16 @@ export default function ResetPassword() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center px-4 bg-gradient-subtle">
+    <div className="min-h-screen flex items-center justify-center px-4 py-12 bg-gray-50">
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         className="w-full max-w-md"
       >
-        <Link to="/" className="flex items-center justify-center gap-2 mb-8">
-          <div className="w-10 h-10 rounded-xl bg-gradient-accent flex items-center justify-center shadow-glow">
-            <Zap className="w-5 h-5 text-primary-foreground" />
-          </div>
-          <span className="font-bold text-2xl">OutreachPro</span>
-        </Link>
-
+        <LogoLink />
         <Card className="border-0 shadow-xl">
           <CardHeader className="text-center">
-            <CardTitle className="text-2xl">Reset Password</CardTitle>
+            <CardTitle className="text-2xl">Set Password</CardTitle>
             <CardDescription>Enter your new password below</CardDescription>
           </CardHeader>
           <CardContent>
@@ -196,7 +178,7 @@ export default function ResetPassword() {
               <div className="space-y-2">
                 <Label htmlFor="password">New Password</Label>
                 <div className="relative">
-                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground z-10" />
+                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 z-10" />
                   <PasswordInput
                     id="password"
                     placeholder="••••••••"
@@ -211,7 +193,7 @@ export default function ResetPassword() {
               <div className="space-y-2">
                 <Label htmlFor="confirmPassword">Confirm Password</Label>
                 <div className="relative">
-                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground z-10" />
+                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 z-10" />
                   <PasswordInput
                     id="confirmPassword"
                     placeholder="••••••••"
@@ -223,14 +205,14 @@ export default function ResetPassword() {
                   />
                 </div>
               </div>
-              <Button type="submit" className="w-full" size="lg" disabled={isLoading}>
+              <Button type="submit" className="w-full bg-[#2563EB] hover:bg-[#1d4ed8]" size="lg" disabled={isLoading}>
                 {isLoading ? (
                   <>
                     <Loader2 className="w-4 h-4 animate-spin mr-2" />
                     Updating...
                   </>
                 ) : (
-                  "Reset Password"
+                  "Set Password"
                 )}
               </Button>
             </form>
