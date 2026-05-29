@@ -1,373 +1,254 @@
 import { useState, useEffect } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { PasswordInput } from "@/components/ui/password-input";
 import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Mail, Lock, User, Loader2, Phone, Gift, CheckCircle2, Sparkles, Zap, Search, BarChart3, Bot, X, MapPin } from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Mail, User, Loader2, Gift } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Dialog, DialogContent } from "@/components/ui/dialog";
-
-const HEARD_FROM_OPTIONS = [
-  { value: "google_search",      label: "Google Search" },
-  { value: "facebook",           label: "Facebook" },
-  { value: "instagram",          label: "Instagram" },
-  { value: "tiktok",             label: "TikTok" },
-  { value: "youtube",            label: "YouTube" },
-  { value: "twitter_x",         label: "Twitter / X" },
-  { value: "linkedin",           label: "LinkedIn" },
-  { value: "whatsapp",           label: "WhatsApp (group or message)" },
-  { value: "telegram",           label: "Telegram" },
-  { value: "friend_colleague",   label: "A friend or colleague" },
-  { value: "referral_link",      label: "Someone shared a referral link" },
-  { value: "influencer",         label: "An influencer or content creator" },
-  { value: "blog_article",       label: "Blog post or article" },
-  { value: "podcast",            label: "Podcast" },
-  { value: "reddit",             label: "Reddit" },
-  { value: "online_community",   label: "Online community (Discord, Slack, etc.)" },
-  { value: "email_newsletter",   label: "Email newsletter" },
-  { value: "webinar_event",      label: "Webinar or online event" },
-  { value: "school_university",  label: "School or university" },
-  { value: "other",              label: "Other" },
-];
-
-const features = [
-  { icon: Search, title: "Smart Business Discovery", desc: "Find ideal clients using AI-powered search across any industry and location" },
-  { icon: BarChart3, title: "Website Audit & Scoring", desc: "Automatically analyze prospects' websites and identify improvement opportunities" },
-  { icon: Sparkles, title: "AI-Generated Pitches", desc: "Personalized cold emails crafted by AI based on real website analysis" },
-  { icon: Zap, title: "One-Click Send", desc: "Send verified emails directly from the platform with tracking built in" },
-  { icon: Bot, title: "Auto-Pilot Mode", desc: "Set it and forget it — let AI find and pitch clients for you daily" },
-];
 
 export default function Signup() {
   const [searchParams] = useSearchParams();
   const referralCode = searchParams.get("ref") || "";
-  const [showAnnouncement, setShowAnnouncement] = useState(false);
-  
-  const [formData, setFormData] = useState({
-    fullName: "",
-    email: "",
-    password: "",
-    phone: "",
-    referralCode: referralCode,
-    heardFrom: "",
-  });
+  const defaultRole = searchParams.get("role") === "client" ? "client" : "talent";
+
+  const [selectedRole, setSelectedRole] = useState<"talent" | "client">(defaultRole);
+  const [fullName, setFullName] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [agreed, setAgreed] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [isGoogleLoading, setIsGoogleLoading] = useState(false);
   const [referrerName, setReferrerName] = useState<string | null>(null);
-  const [showEmailConfirm, setShowEmailConfirm] = useState(false);
+
   const navigate = useNavigate();
   const { toast } = useToast();
 
   useEffect(() => {
-    const timer = setTimeout(() => setShowAnnouncement(true), 600);
-    return () => clearTimeout(timer);
-  }, []);
-
-  // Check if referral code is valid
-  useEffect(() => {
-    if (referralCode) {
-      const checkReferrer = async () => {
-        const { data } = await supabase
-          .from("profiles")
-          .select("full_name")
-          .eq("referral_code", referralCode.toUpperCase())
-          .single();
-        
-        if (data) {
-          setReferrerName(data.full_name);
-        }
-      };
-      checkReferrer();
-    }
+    if (!referralCode) return;
+    supabase
+      .from("profiles")
+      .select("full_name")
+      .eq("referral_code", referralCode.toUpperCase())
+      .single()
+      .then(({ data }) => {
+        if (data) setReferrerName(data.full_name);
+      });
   }, [referralCode]);
+
+  const handleGoogleSignIn = async () => {
+    setIsGoogleLoading(true);
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: "google",
+      options: {
+        redirectTo: window.location.origin + "/dashboard",
+        queryParams: { role: selectedRole },
+      },
+    });
+    if (error) {
+      toast({ title: "Google sign-in failed", description: error.message, variant: "destructive" });
+      setIsGoogleLoading(false);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    if (!formData.fullName || !formData.email || !formData.password || !formData.phone || !formData.heardFrom) {
+    if (!agreed) {
       toast({
-        title: "Missing fields",
-        description: "Please fill in all required fields, including how you heard about us",
+        title: "Terms required",
+        description: "Please agree to the Terms of Service and Privacy Policy to continue.",
         variant: "destructive",
       });
       return;
     }
-
-    // Basic phone validation: allow +, digits, spaces, dashes, parens; require 7+ digits
-    const digitCount = (formData.phone.match(/\d/g) || []).length;
-    if (digitCount < 7 || !/^[+\d\s\-()]+$/.test(formData.phone)) {
-      toast({
-        title: "Invalid phone number",
-        description: "Please enter a valid phone number (include country code, e.g. +234...)",
-        variant: "destructive",
-      });
-      return;
-    }
-
     setIsLoading(true);
-
     try {
-      // Use standard Supabase auth signup (no IP check)
-      const { data, error } = await supabase.auth.signUp({
-        email: formData.email,
-        password: formData.password,
+      const { error } = await supabase.auth.signUp({
+        email,
+        password,
         options: {
-          emailRedirectTo: `${window.location.origin}/login`,
+          emailRedirectTo: window.location.origin + "/login",
           data: {
-            full_name: formData.fullName,
-            phone: formData.phone || null,
-            referral_code: formData.referralCode ? formData.referralCode.toUpperCase() : null,
-            heard_from: formData.heardFrom || null,
+            full_name: fullName,
+            role: selectedRole,
+            referral_code: referralCode ? referralCode.toUpperCase() : null,
           },
         },
       });
-
       if (error) throw error;
-
-      // Fire-and-forget welcome email (won't block signup if it fails).
-      // Pass context so the email CTA can be personalized to the user.
-      supabase.functions
-        .invoke("send-welcome-email", {
-          body: {
-            email: formData.email,
-            fullName: formData.fullName,
-            userId: data?.user?.id,
-            plan: "trial",
-            source: referralCode ? "referral" : "signup",
-          },
-        })
-        .catch((err) => console.warn("[welcome-email] dispatch failed:", err));
-
-      setShowEmailConfirm(true);
+      navigate(`/verify-email?email=${encodeURIComponent(email)}`);
     } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : "Something went wrong";
-      toast({
-        title: "Sign up failed",
-        description: message,
-        variant: "destructive",
-      });
+      const msg = error instanceof Error ? error.message : "Something went wrong";
+      toast({ title: "Sign up failed", description: msg, variant: "destructive" });
     } finally {
       setIsLoading(false);
     }
   };
 
-  if (showEmailConfirm) {
-    return (
-      <div className="min-h-screen flex items-center justify-center px-4 py-12 bg-gradient-subtle">
-        <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="w-full max-w-md">
-          <Card className="border-0 shadow-xl text-center">
-            <CardContent className="pt-8 pb-8 space-y-4">
-              <div className="w-16 h-16 mx-auto rounded-full bg-primary/10 flex items-center justify-center">
-                <Mail className="w-8 h-8 text-primary" />
-              </div>
-              <h2 className="text-2xl font-bold">Check Your Email ✉️</h2>
-              <p className="text-muted-foreground">
-                We've sent a confirmation link to <strong>{formData.email}</strong>. 
-                Please check your inbox (and spam folder) and click the link to verify your account.
-              </p>
-              <div className="p-3 rounded-lg bg-muted/50">
-                <p className="text-sm text-muted-foreground">
-                  Once verified, you can sign in and start using SkryveAI!
-                </p>
-              </div>
-              <Button onClick={() => navigate("/login")} className="w-full" size="lg">
-                Go to Login
-              </Button>
-            </CardContent>
-          </Card>
-        </motion.div>
-      </div>
-    );
-  }
-
   return (
-    <div className="min-h-screen flex items-center justify-center px-4 py-12 bg-gradient-subtle relative">
-      {/* Welcome Announcement Overlay */}
-      <AnimatePresence>
-        {showAnnouncement && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4"
-            onClick={() => setShowAnnouncement(false)}
-          >
-            <motion.div
-              initial={{ opacity: 0, scale: 0.9, y: 20 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.9, y: 20 }}
-              transition={{ type: "spring", duration: 0.5 }}
-              className="w-full max-w-lg bg-card border border-border rounded-2xl shadow-2xl overflow-hidden"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <div className="relative bg-gradient-to-br from-primary/20 via-primary/10 to-transparent p-6 pb-4">
-                <button
-                  onClick={() => setShowAnnouncement(false)}
-                  className="absolute top-3 right-3 p-1.5 rounded-full hover:bg-muted transition-colors"
-                >
-                  <X className="w-4 h-4 text-muted-foreground" />
-                </button>
-                <div className="flex items-center gap-2 mb-2">
-                  <Sparkles className="w-6 h-6 text-primary" />
-                  <h2 className="text-xl font-bold text-foreground">Welcome to SkryveAI 🚀</h2>
-                </div>
-                <p className="text-sm text-muted-foreground">
-                  The AI-powered outreach platform that helps freelancers & startups land more clients on autopilot.
-                </p>
-              </div>
-              <div className="p-6 pt-4 space-y-3">
-                {features.map((f, i) => (
-                  <motion.div
-                    key={f.title}
-                    initial={{ opacity: 0, x: -10 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: 0.1 + i * 0.08 }}
-                    className="flex items-start gap-3"
-                  >
-                    <div className="mt-0.5 p-1.5 rounded-lg bg-primary/10 shrink-0">
-                      <f.icon className="w-4 h-4 text-primary" />
-                    </div>
-                    <div>
-                      <p className="text-sm font-semibold text-foreground">{f.title}</p>
-                      <p className="text-xs text-muted-foreground">{f.desc}</p>
-                    </div>
-                  </motion.div>
-                ))}
-              </div>
-              <div className="px-6 pb-6">
-                <Button
-                  onClick={() => setShowAnnouncement(false)}
-                  className="w-full"
-                  size="lg"
-                >
-                  Let's Get Started
-                </Button>
-                <p className="text-center text-xs text-muted-foreground mt-2">7-day free trial • No credit card required</p>
-              </div>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+    <div className="min-h-screen flex items-center justify-center px-4 py-12 bg-gray-50">
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         className="w-full max-w-md"
       >
         <Link to="/" className="flex items-center justify-center gap-2 mb-8">
-          <img src="/logo.png" alt="SkryveAI logo" className="w-8 h-8 object-contain" />
-          <span className="font-bold text-3xl" style={{ color: '#0B162B' }}>SkryveAI</span>
+          <img src="/logo.png" alt="Skryve" className="w-8 h-8 object-contain" />
+          <span className="font-bold text-2xl text-[#1E3A5F]">Skryve</span>
         </Link>
 
         <Card className="border-0 shadow-xl">
           {referrerName && (
-            <Alert className="mx-6 mt-6 bg-primary/5 border-primary/20">
-              <Gift className="h-4 w-4 text-primary" />
+            <Alert className="mx-6 mt-6 bg-blue-50 border-blue-200">
+              <Gift className="h-4 w-4 text-blue-600" />
               <AlertDescription>
                 You were referred by <strong>{referrerName}</strong>! You both get rewards when you subscribe.
               </AlertDescription>
             </Alert>
           )}
           <CardHeader className="text-center">
-            <CardTitle className="text-2xl">Create Your Account</CardTitle>
-            <CardDescription>
-              Start landing more clients with AI-powered outreach
-            </CardDescription>
+            <CardTitle className="text-2xl">Create your account</CardTitle>
+            <CardDescription>Join Skryve — it's free to get started</CardDescription>
           </CardHeader>
-          <CardContent>
+          <CardContent className="space-y-5">
+            <div className="flex rounded-full border border-gray-200 p-1 bg-gray-100 gap-1">
+              <button
+                type="button"
+                onClick={() => setSelectedRole("talent")}
+                className={`flex-1 py-2 px-4 rounded-full text-sm font-semibold transition-all ${
+                  selectedRole === "talent"
+                    ? "bg-[#2563EB] text-white shadow"
+                    : "text-gray-500 hover:text-gray-700"
+                }`}
+              >
+                I am a Talent
+              </button>
+              <button
+                type="button"
+                onClick={() => setSelectedRole("client")}
+                className={`flex-1 py-2 px-4 rounded-full text-sm font-semibold transition-all ${
+                  selectedRole === "client"
+                    ? "bg-[#2563EB] text-white shadow"
+                    : "text-gray-500 hover:text-gray-700"
+                }`}
+              >
+                I am a Client
+              </button>
+            </div>
+
+            <Button
+              type="button"
+              variant="outline"
+              className="w-full flex items-center gap-3 font-medium"
+              onClick={handleGoogleSignIn}
+              disabled={isGoogleLoading}
+            >
+              {isGoogleLoading ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <svg className="w-4 h-4" viewBox="0 0 24 24">
+                  <path
+                    d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
+                    fill="#4285F4"
+                  />
+                  <path
+                    d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
+                    fill="#34A853"
+                  />
+                  <path
+                    d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"
+                    fill="#FBBC05"
+                  />
+                  <path
+                    d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
+                    fill="#EA4335"
+                  />
+                </svg>
+              )}
+              Continue with Google
+            </Button>
+
+            <div className="relative">
+              <div className="absolute inset-0 flex items-center">
+                <span className="w-full border-t border-gray-200" />
+              </div>
+              <div className="relative flex justify-center text-xs">
+                <span className="bg-white px-3 text-gray-400">or</span>
+              </div>
+            </div>
+
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="fullName">Full Name *</Label>
+                <Label htmlFor="fullName">Full Name</Label>
                 <div className="relative">
-                  <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                  <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
                   <Input
                     id="fullName"
                     type="text"
                     placeholder="John Doe"
-                    value={formData.fullName}
-                    onChange={(e) => setFormData(prev => ({ ...prev, fullName: e.target.value }))}
+                    value={fullName}
+                    onChange={(e) => setFullName(e.target.value)}
                     className="pl-10"
                     required
                   />
                 </div>
               </div>
+
               <div className="space-y-2">
-                <Label htmlFor="email">Email *</Label>
+                <Label htmlFor="email">Email</Label>
                 <div className="relative">
-                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
                   <Input
                     id="email"
                     type="email"
                     placeholder="you@example.com"
-                    value={formData.email}
-                    onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
                     className="pl-10"
                     required
                   />
                 </div>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="phone">Phone Number *</Label>
-                <div className="relative">
-                  <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                  <Input
-                    id="phone"
-                    type="tel"
-                    placeholder="+234 800 000 0000"
-                    value={formData.phone}
-                    onChange={(e) => setFormData(prev => ({ ...prev, phone: e.target.value }))}
-                    className="pl-10"
-                    required
-                  />
-                </div>
-                <p className="text-xs text-muted-foreground">
-                  Include country code. We'll use this so our Customer Success team can reach you on WhatsApp if you need help.
-                </p>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="password">Password *</Label>
-                <div className="relative">
-                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground z-10" />
-                  <PasswordInput
-                    id="password"
-                    placeholder="••••••••"
-                    value={formData.password}
-                    onChange={(e) => setFormData(prev => ({ ...prev, password: e.target.value }))}
-                    className="pl-10"
-                    minLength={6}
-                    required
-                  />
-                </div>
-                <p className="text-xs text-muted-foreground">Must be at least 6 characters</p>
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="heardFrom">How did you hear about us? *</Label>
-                <div className="relative">
-                  <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground z-10 pointer-events-none" />
-                  <Select
-                    value={formData.heardFrom}
-                    onValueChange={(value) => setFormData(prev => ({ ...prev, heardFrom: value }))}
-                  >
-                    <SelectTrigger id="heardFrom" className="pl-10">
-                      <SelectValue placeholder="Select an option" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {HEARD_FROM_OPTIONS.map((opt) => (
-                        <SelectItem key={opt.value} value={opt.value}>
-                          {opt.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
+                <Label htmlFor="password">Password</Label>
+                <PasswordInput
+                  id="password"
+                  placeholder="••••••••"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  minLength={6}
+                  required
+                />
+                <p className="text-xs text-gray-400">Must be at least 6 characters</p>
               </div>
 
-              <Button type="submit" className="w-full" size="lg" disabled={isLoading}>
+              <div className="flex items-start gap-3">
+                <Checkbox
+                  id="terms"
+                  checked={agreed}
+                  onCheckedChange={(v) => setAgreed(v === true)}
+                  className="mt-0.5"
+                />
+                <Label htmlFor="terms" className="text-sm text-gray-600 leading-relaxed cursor-pointer">
+                  I agree to the{" "}
+                  <Link to="/terms" className="text-[#2563EB] hover:underline">Terms of Service</Link>
+                  {" "}and{" "}
+                  <Link to="/privacy-policy" className="text-[#2563EB] hover:underline">Privacy Policy</Link>
+                </Label>
+              </div>
+
+              <Button
+                type="submit"
+                className="w-full bg-[#2563EB] hover:bg-[#1d4ed8]"
+                size="lg"
+                disabled={isLoading}
+              >
                 {isLoading ? (
                   <>
                     <Loader2 className="w-4 h-4 animate-spin mr-2" />
@@ -378,10 +259,11 @@ export default function Signup() {
                 )}
               </Button>
             </form>
-            <p className="text-center text-sm text-muted-foreground mt-6">
+
+            <p className="text-center text-sm text-gray-500">
               Already have an account?{" "}
-              <Link to="/login" className="text-primary hover:underline font-medium">
-                Sign in
+              <Link to="/login" className="text-[#2563EB] hover:underline font-medium">
+                Sign In
               </Link>
             </p>
           </CardContent>
