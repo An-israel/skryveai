@@ -42,6 +42,7 @@ import Marketplace      from "./pages/Marketplace";
 import MarketplaceJob   from "./pages/MarketplaceJob";
 import Applications     from "./pages/Applications";
 import Projects         from "./pages/Projects";
+import ProjectDetail    from "./pages/ProjectDetail";
 import Events           from "./pages/Events";
 import EventDetail      from "./pages/EventDetail";
 import LearnHub         from "./pages/LearnHub";
@@ -115,6 +116,7 @@ export default function App() {
                 <Route path="/marketplace/:jobId"   element={<MarketplaceJob />} />
                 <Route path="/applications"         element={<Applications />} />
                 <Route path="/projects"             element={<Projects />} />
+                <Route path="/projects/:projectId" element={<ProjectDetail />} />
 
                 {/* Events */}
                 <Route path="/events"               element={<Events />} />
