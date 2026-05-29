@@ -49,6 +49,10 @@ import LearnHub         from "./pages/LearnHub";
 import LearnPath        from "./pages/LearnPath";
 import LearnAssignment  from "./pages/LearnAssignment";
 import MyLearning       from "./pages/MyLearning";
+import QuizPage         from "./pages/QuizPage";
+import CourseComplete   from "./pages/CourseComplete";
+import CertificatePage  from "./pages/CertificatePage";
+import CertificateVerify from "./pages/CertificateVerify";
 import CVBuilder        from "./pages/CVBuilder";
 import ATSChecker       from "./pages/ATSChecker";
 import LinkedInAnalyzer from "./pages/LinkedInAnalyzer";
@@ -140,6 +144,9 @@ export default function App() {
                 <Route path="/learn/my-courses"                  element={<MyLearning />} />
                 <Route path="/learn/:courseId"                   element={<LearnPath />} />
                 <Route path="/learn/:courseId/:lessonId"         element={<LearnAssignment />} />
+                <Route path="/learn/:courseId/quiz/:quizId"      element={<QuizPage />} />
+                <Route path="/learn/:courseId/complete"          element={<CourseComplete />} />
+                <Route path="/learn/:courseId/certificate"       element={<CertificatePage />} />
 
                 {/* Tools */}
                 <Route path="/cv-builder"           element={<CVBuilder />} />
@@ -169,6 +176,7 @@ export default function App() {
 
               {/* ── No layout ── */}
               <Route path="/payment/callback" element={<PaymentCallback />} />
+              <Route path="/certificates/:certId" element={<CertificateVerify />} />
 
               {/* ── 404 ── */}
               <Route path="*" element={<NotFound />} />
