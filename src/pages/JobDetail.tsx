@@ -5,10 +5,9 @@ import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Textarea } from "@/components/ui/textarea";
+import { ProposalModal } from "@/components/proposals/ProposalModal";
 import {
-  ArrowLeft, Heart, ExternalLink, Loader2, Copy, Check,
+  ArrowLeft, Heart, ExternalLink,
   MapPin, Briefcase, DollarSign, Calendar
 } from "lucide-react";
 import { formatDistanceToNow, format } from "date-fns";
@@ -107,8 +106,6 @@ export default function JobDetail() {
   const [userName, setUserName] = useState("");
   const [hourlyRate, setHourlyRate] = useState("");
   const [proposalOpen, setProposalOpen] = useState(false);
-  const [proposal, setProposal] = useState("");
-  const [copied, setCopied] = useState(false);
 
   useEffect(() => {
     if (!jobId) return;
@@ -153,13 +150,6 @@ export default function JobDetail() {
     load();
   }, [jobId, user]);
 
-  useEffect(() => {
-    if (!job) return;
-    setProposal(
-      `Dear Hiring Manager,\n\nI'm applying for the "${job.title}" position. I bring strong expertise in ${(job.skill_tags || []).slice(0, 3).join(", ") || "the required skills"} and have delivered similar projects with measurable results. I'm confident I can add immediate value to your team.\n\nMy rate is ${hourlyRate || "competitive"}. I'd love to discuss how I can help.\n\nBest regards,\n${userName || "Applicant"}`
-    );
-  }, [job, userName, hourlyRate]);
-
   const handleToggleSave = async () => {
     if (!user || !talentId || !jobId) return;
     if (saved) {
@@ -175,12 +165,6 @@ export default function JobDetail() {
       if (!error) setSaved(true);
       else toast({ title: "Error saving job", variant: "destructive" });
     }
-  };
-
-  const handleCopy = () => {
-    navigator.clipboard.writeText(proposal);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
   };
 
   if (loading) {
@@ -324,35 +308,18 @@ export default function JobDetail() {
         </div>
       )}
 
-      <Dialog open={proposalOpen} onOpenChange={v => !v && setProposalOpen(false)}>
-        <DialogContent className="max-w-lg">
-          <DialogHeader>
-            <DialogTitle>Generate Proposal</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4">
-            <div className="flex gap-2">
-              <Badge className={`text-xs font-semibold uppercase ${platformBadgeClass(job.platform)}`}>{job.platform}</Badge>
-              <span className="text-sm font-medium text-foreground truncate">{job.title}</span>
-            </div>
-            <Textarea
-              value={proposal}
-              onChange={e => setProposal(e.target.value)}
-              rows={10}
-              className="font-mono text-sm resize-none"
-            />
-            <div className="flex gap-2">
-              <Button onClick={handleCopy} variant="outline" className="flex-1">
-                {copied ? <Check className="w-4 h-4 mr-2" /> : <Copy className="w-4 h-4 mr-2" />}
-                {copied ? "Copied!" : "Copy Proposal"}
-              </Button>
-              <Button onClick={() => window.open(job.external_url, "_blank")} className="flex-1">
-                <ExternalLink className="w-4 h-4 mr-2" />
-                Apply on {job.platform}
-              </Button>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
+      <ProposalModal
+        open={proposalOpen}
+        onClose={() => setProposalOpen(false)}
+        job={job ? {
+          id: job.id,
+          title: job.title,
+          platform: job.platform,
+          description: job.description || "",
+          skill_tags: job.skill_tags,
+          external_url: job.external_url,
+        } : null}
+      />
     </div>
   );
 }
