@@ -1,264 +1,677 @@
-import { useEffect, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useEffect, useState, useCallback } from "react";
+import { useNavigate, Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/hooks/use-auth";
-import { Header } from "@/components/layout/Header";
-import { Footer } from "@/components/layout/Footer";
-import { SEOHead } from "@/components/SEOHead";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
+import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { BookOpen, Clock, Flame, Sparkles, Loader2, ArrowLeft, LayoutDashboard } from "lucide-react";
+import {
+  Search,
+  Star,
+  Clock,
+  BookOpen,
+  Users,
+  Loader2,
+  ChevronRight,
+  GraduationCap,
+  TrendingUp,
+  Sparkles,
+} from "lucide-react";
 
-interface Path {
+// ─── Types ────────────────────────────────────────────────────────────────────
+
+interface Course {
   id: string;
-  skill_name: string;
-  display_name: string;
-  short_description: string | null;
+  title: string;
   description: string | null;
-  total_lessons: number;
-  total_modules: number;
-  estimated_weeks: number | null;
-  popular_rank: number | null;
-  difficulty_level: string | null;
+  skill_category: string | null;
+  level: string | null;
+  duration_hours: number | null;
+  lesson_count: number;
+  price: number;
+  thumbnail_url: string | null;
+  is_published: boolean;
+  is_featured: boolean;
+  enrolled_count: number;
+  avg_rating: number | null;
+  review_count: number;
+  tags: string[];
+  instructor_name: string | null;
+  created_at: string;
 }
 
-interface ActivePath {
-  id: string; // user_learning id
-  learning_path_id: string;
-  current_level: number;
-  current_module: number;
-  current_lesson: number;
-  completed_lessons: number;
-  total_lessons: number;
-  streak_days: number;
-  total_time_minutes: number;
-  learning_paths: { skill_name: string; display_name: string };
+interface Enrollment {
+  id: string;
+  course_id: string;
+  progress_percent: number;
+  courses: Course;
 }
+
+// ─── Constants ────────────────────────────────────────────────────────────────
+
+const CATEGORIES = [
+  "All",
+  "Web Design",
+  "Graphic Design",
+  "Copywriting",
+  "Video Editing",
+  "Social Media",
+  "UI/UX",
+  "SEO",
+  "Digital Marketing",
+  "Coding",
+  "Data Analysis",
+  "AI & Automation",
+  "Virtual Assistance",
+  "Content Writing",
+];
+
+const LEVELS = [
+  { label: "All", value: "all" },
+  { label: "Beginner", value: "beginner" },
+  { label: "Intermediate", value: "intermediate" },
+  { label: "Advanced", value: "expert" },
+];
+
+const DURATIONS = [
+  { label: "All", value: "all" },
+  { label: "Under 10 hrs", value: "under10" },
+  { label: "10–30 hrs", value: "10to30" },
+  { label: "30+ hrs", value: "over30" },
+];
+
+const PRICES = [
+  { label: "All", value: "all" },
+  { label: "Free", value: "free" },
+  { label: "Paid", value: "paid" },
+];
+
+// ─── Helpers ─────────────────────────────────────────────────────────────────
+
+function StarRating({ rating, count }: { rating: number | null; count: number }) {
+  const r = rating ?? 0;
+  return (
+    <div className="flex items-center gap-1">
+      {[1, 2, 3, 4, 5].map((s) => (
+        <Star
+          key={s}
+          className={`h-3 w-3 ${s <= Math.round(r) ? "fill-yellow-400 text-yellow-400" : "text-muted-foreground/30"}`}
+        />
+      ))}
+      <span className="text-xs text-muted-foreground ml-1">
+        {r > 0 ? r.toFixed(1) : "No ratings"} {count > 0 && `(${count})`}
+      </span>
+    </div>
+  );
+}
+
+const CATEGORY_GRADIENTS: Record<string, string> = {
+  "Web Design": "from-blue-500 to-cyan-400",
+  "Graphic Design": "from-pink-500 to-purple-400",
+  "Copywriting": "from-orange-400 to-yellow-300",
+  "Video Editing": "from-red-500 to-pink-400",
+  "Social Media": "from-violet-500 to-purple-400",
+  "UI/UX": "from-indigo-500 to-blue-400",
+  "SEO": "from-green-500 to-emerald-400",
+  "Digital Marketing": "from-teal-500 to-cyan-400",
+  "Coding": "from-slate-600 to-blue-500",
+  "Data Analysis": "from-amber-500 to-orange-400",
+  "AI & Automation": "from-purple-600 to-indigo-500",
+  "Virtual Assistance": "from-rose-400 to-pink-300",
+  "Content Writing": "from-lime-500 to-green-400",
+};
+
+function getThumbnailGradient(category: string | null) {
+  if (!category) return "from-[#2563EB] to-[#1E3A5F]";
+  return CATEGORY_GRADIENTS[category] ?? "from-[#2563EB] to-[#1E3A5F]";
+}
+
+// ─── CourseCard ───────────────────────────────────────────────────────────────
+
+function CourseCard({
+  course,
+  isEnrolled,
+  onClick,
+}: {
+  course: Course;
+  isEnrolled: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <Card
+      className="overflow-hidden cursor-pointer hover:shadow-md transition-shadow group flex flex-col"
+      onClick={onClick}
+    >
+      {/* Thumbnail */}
+      <div className="relative h-40 overflow-hidden flex-shrink-0">
+        {course.thumbnail_url ? (
+          <img
+            src={course.thumbnail_url}
+            alt={course.title}
+            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+          />
+        ) : (
+          <div
+            className={`w-full h-full bg-gradient-to-br ${getThumbnailGradient(course.skill_category)} flex items-center justify-center`}
+          >
+            <GraduationCap className="h-12 w-12 text-white/60" />
+          </div>
+        )}
+        {isEnrolled && (
+          <Badge className="absolute top-2 right-2 bg-[#059669] text-white border-0">
+            Enrolled
+          </Badge>
+        )}
+      </div>
+
+      {/* Content */}
+      <div className="p-4 flex flex-col flex-1">
+        <div className="flex flex-wrap gap-1.5 mb-2">
+          {course.skill_category && (
+            <Badge variant="secondary" className="text-[11px]">
+              {course.skill_category}
+            </Badge>
+          )}
+          {course.level && (
+            <Badge variant="outline" className="text-[11px] capitalize">
+              {course.level === "expert" ? "Advanced" : course.level}
+            </Badge>
+          )}
+        </div>
+
+        <h3 className="font-semibold text-sm leading-tight mb-1.5 line-clamp-2">
+          {course.title}
+        </h3>
+
+        {course.description && (
+          <p className="text-xs text-muted-foreground line-clamp-2 mb-3 flex-1">
+            {course.description}
+          </p>
+        )}
+
+        <div className="flex items-center gap-3 text-xs text-muted-foreground mb-2">
+          {course.duration_hours && (
+            <span className="flex items-center gap-1">
+              <Clock className="h-3 w-3" />
+              {course.duration_hours}h
+            </span>
+          )}
+          {course.lesson_count > 0 && (
+            <span className="flex items-center gap-1">
+              <BookOpen className="h-3 w-3" />
+              {course.lesson_count} lessons
+            </span>
+          )}
+          {course.enrolled_count > 0 && (
+            <span className="flex items-center gap-1">
+              <Users className="h-3 w-3" />
+              {course.enrolled_count.toLocaleString()}
+            </span>
+          )}
+        </div>
+
+        <StarRating rating={course.avg_rating} count={course.review_count} />
+
+        <div className="mt-2 pt-2 border-t">
+          {course.price === 0 ? (
+            <span className="text-sm font-semibold text-[#059669]">Free</span>
+          ) : (
+            <span className="text-sm font-bold">
+              ₦{course.price.toLocaleString()}
+            </span>
+          )}
+        </div>
+      </div>
+    </Card>
+  );
+}
+
+// ─── ContinueLearningCard ─────────────────────────────────────────────────────
+
+function ContinueLearningCard({
+  enrollment,
+  onClick,
+}: {
+  enrollment: Enrollment;
+  onClick: () => void;
+}) {
+  const c = enrollment.courses;
+  return (
+    <Card
+      className="overflow-hidden cursor-pointer hover:shadow-md transition-shadow flex-shrink-0 w-64 group"
+      onClick={onClick}
+    >
+      <div className="relative h-32 overflow-hidden">
+        {c.thumbnail_url ? (
+          <img
+            src={c.thumbnail_url}
+            alt={c.title}
+            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+          />
+        ) : (
+          <div
+            className={`w-full h-full bg-gradient-to-br ${getThumbnailGradient(c.skill_category)}`}
+          />
+        )}
+      </div>
+      <div className="p-3">
+        <h3 className="font-medium text-sm line-clamp-1 mb-2">{c.title}</h3>
+        <Progress value={enrollment.progress_percent} className="h-1.5 mb-1.5" />
+        <div className="flex items-center justify-between">
+          <span className="text-xs text-muted-foreground">
+            {enrollment.progress_percent}% complete
+          </span>
+          <span className="text-xs text-[#2563EB] font-medium flex items-center gap-0.5">
+            Continue <ChevronRight className="h-3 w-3" />
+          </span>
+        </div>
+      </div>
+    </Card>
+  );
+}
+
+// ─── Main Component ───────────────────────────────────────────────────────────
 
 export default function LearnHub() {
-  const { user, loading } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
-  const [paths, setPaths] = useState<Path[]>([]);
-  const [active, setActive] = useState<ActivePath[]>([]);
-  const [loadingData, setLoadingData] = useState(true);
-  const [starting, setStarting] = useState<string | null>(null);
+
+  const [userId, setUserId] = useState<string | null>(null);
+  const [enrolledIds, setEnrolledIds] = useState<Set<string>>(new Set());
+  const [inProgressEnrollments, setInProgressEnrollments] = useState<Enrollment[]>([]);
+
+  const [featuredCourses, setFeaturedCourses] = useState<Course[]>([]);
+  const [popularCourses, setPopularCourses] = useState<Course[]>([]);
+  const [newCourses, setNewCourses] = useState<Course[]>([]);
+  const [filteredCourses, setFilteredCourses] = useState<Course[]>([]);
+  const [displayCount, setDisplayCount] = useState(12);
+
+  const [search, setSearch] = useState("");
+  const [category, setCategory] = useState("All");
+  const [level, setLevel] = useState("all");
+  const [duration, setDuration] = useState("all");
+  const [price, setPrice] = useState("all");
+
+  const [loading, setLoading] = useState(true);
+  const [filterLoading, setFilterLoading] = useState(false);
+
+  // ── Load user & enrollments ──────────────────────────────────────────────
 
   useEffect(() => {
-    if (!user) return;
-    void loadData();
-  }, [user]);
+    void init();
+  }, []);
 
-  async function loadData() {
-    setLoadingData(true);
-    const [{ data: pathsData }, { data: activeData }] = await Promise.all([
-      supabase
-        .from("learning_paths")
-        .select("*")
-        .eq("is_active", true)
-        .order("popular_rank", { ascending: true }),
-      supabase
-        .from("user_learning")
-        .select(
-          "id, learning_path_id, current_level, current_module, current_lesson, completed_lessons, total_lessons, streak_days, total_time_minutes, learning_paths(skill_name, display_name)"
-        )
-        .eq("user_id", user!.id)
-        .eq("is_active", true),
-    ]);
-    setPaths((pathsData as Path[]) || []);
-    setActive((activeData as unknown as ActivePath[]) || []);
-    setLoadingData(false);
+  async function init() {
+    setLoading(true);
+    const { data: { user } } = await supabase.auth.getUser();
+    if (user) {
+      setUserId(user.id);
+      await loadEnrollments(user.id);
+    }
+    await loadSections();
+    setLoading(false);
   }
 
-  async function startPath(p: Path) {
-    if (!user) return;
-    setStarting(p.id);
-    try {
-      // If already active, just go to it
-      const existing = active.find((a) => a.learning_path_id === p.id);
-      if (existing) {
-        navigate(`/learn/${existing.id}`);
-        return;
-      }
-      const { data, error } = await supabase
-        .from("user_learning")
-        .insert({
-          user_id: user.id,
-          learning_path_id: p.id,
-          total_lessons: p.total_lessons,
-          coach_tone: "moderate",
-          learning_pace: "2hr/day",
-        })
-        .select("id")
-        .single();
-      if (error) throw error;
-      toast({ title: `Welcome to ${p.display_name}!`, description: "Your coach is ready." });
-      navigate(`/learn/${data.id}`);
-    } catch (e: any) {
-      toast({
-        title: "Could not start path",
-        description: e.message || "Try again",
-        variant: "destructive",
-      });
-    } finally {
-      setStarting(null);
+  async function loadEnrollments(uid: string) {
+    const { data: profile } = await (supabase as any)
+      .from("talent_profiles")
+      .select("id")
+      .eq("user_id", uid)
+      .single();
+
+    if (!profile) return;
+
+    const { data: enrollments } = await (supabase as any)
+      .from("enrollments")
+      .select("id, course_id, progress_percent, courses(*)")
+      .eq("talent_id", profile.id)
+      .eq("payment_status", "paid");
+
+    if (enrollments) {
+      const ids = new Set<string>(enrollments.map((e: any) => e.course_id));
+      setEnrolledIds(ids);
+      const inProgress = enrollments.filter((e: any) => e.progress_percent < 100 && e.courses);
+      setInProgressEnrollments(inProgress as Enrollment[]);
     }
   }
 
-  if (loading || loadingData) {
+  async function loadSections() {
+    const [{ data: featured }, { data: popular }, { data: newest }] = await Promise.all([
+      (supabase as any)
+        .from("courses")
+        .select("*")
+        .eq("is_published", true)
+        .eq("is_featured", true)
+        .limit(3),
+      (supabase as any)
+        .from("courses")
+        .select("*")
+        .eq("is_published", true)
+        .order("enrolled_count", { ascending: false })
+        .limit(6),
+      (supabase as any)
+        .from("courses")
+        .select("*")
+        .eq("is_published", true)
+        .order("created_at", { ascending: false })
+        .limit(6),
+    ]);
+    setFeaturedCourses((featured as Course[]) || []);
+    setPopularCourses((popular as Course[]) || []);
+    setNewCourses((newest as Course[]) || []);
+  }
+
+  // ── Filtering ────────────────────────────────────────────────────────────
+
+  const runFilter = useCallback(async () => {
+    setFilterLoading(true);
+    let query = (supabase as any)
+      .from("courses")
+      .select("*")
+      .eq("is_published", true);
+
+    if (search.trim()) {
+      query = query.or(
+        `title.ilike.%${search.trim()}%,description.ilike.%${search.trim()}%`
+      );
+    }
+    if (category !== "All") {
+      query = query.eq("skill_category", category);
+    }
+    if (level !== "all") {
+      query = query.eq("level", level);
+    }
+    if (duration === "under10") {
+      query = query.lt("duration_hours", 10);
+    } else if (duration === "10to30") {
+      query = query.gte("duration_hours", 10).lte("duration_hours", 30);
+    } else if (duration === "over30") {
+      query = query.gt("duration_hours", 30);
+    }
+    if (price === "free") {
+      query = query.eq("price", 0);
+    } else if (price === "paid") {
+      query = query.gt("price", 0);
+    }
+
+    query = query.order("enrolled_count", { ascending: false });
+
+    const { data, error } = await query;
+    if (error) {
+      toast({ title: "Failed to load courses", variant: "destructive" });
+    } else {
+      setFilteredCourses((data as Course[]) || []);
+      setDisplayCount(12);
+    }
+    setFilterLoading(false);
+  }, [search, category, level, duration, price, toast]);
+
+  useEffect(() => {
+    void runFilter();
+  }, [runFilter]);
+
+  // ── Render ───────────────────────────────────────────────────────────────
+
+  if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div className="flex items-center justify-center min-h-[60vh]">
         <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
       </div>
     );
   }
 
-  return (
-    <div className="min-h-screen bg-background">
-      <SEOHead
-        title="Learn Freelance Skills | SkryveAI"
-        description="Learn web design, copywriting, video editing, SEO and more with your AI coach. Affordable, structured paths for African freelancers."
-      />
+  const visibleCourses = filteredCourses.slice(0, displayCount);
+  const hasMore = filteredCourses.length > displayCount;
 
-      {/* Learning Platform top bar — distinct from main app header */}
-      <div className="fixed top-0 left-0 right-0 z-50 border-b bg-background/95 backdrop-blur">
-        <div className="container mx-auto px-4 h-14 flex items-center justify-between max-w-6xl">
-          <div className="flex items-center gap-3">
-            <Link to="/dashboard" className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors">
-              <ArrowLeft className="w-3.5 h-3.5" /> Dashboard
-            </Link>
-            <span className="text-border">|</span>
-            <div className="flex items-center gap-1.5">
-              <BookOpen className="w-4 h-4 text-primary" />
-              <span className="font-display font-bold text-sm">SkryveAI <span className="text-primary">Learn</span></span>
-            </div>
-          </div>
-          <div className="flex items-center gap-2">
-            <Badge variant="secondary" className="text-xs hidden sm:flex items-center gap-1">
-              <Sparkles className="w-3 h-3" /> AI Coach
-            </Badge>
-            <Link to="/dashboard">
-              <Button variant="outline" size="sm" className="h-7 text-xs gap-1">
-                <LayoutDashboard className="w-3 h-3" /> Main App
-              </Button>
-            </Link>
+  return (
+    <div className="max-w-7xl mx-auto px-4 pb-12">
+      {/* ── Hero Banner ── */}
+      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-[#1E3A5F] to-[#2563EB] text-white p-8 mb-8 mt-2">
+        <div className="relative z-10 max-w-2xl">
+          <Badge className="mb-3 bg-white/20 text-white border-white/30">
+            <Sparkles className="h-3 w-3 mr-1" /> SkryveAI Learn
+          </Badge>
+          <h1 className="text-3xl md:text-4xl font-bold mb-3">
+            Learn a Skill. Land a Job.
+          </h1>
+          <p className="text-white/80 text-lg mb-6">
+            Practical courses built for African freelancers. Learn at your pace,
+            earn certificates, and unlock more opportunities.
+          </p>
+          <div className="relative max-w-md">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-white/60" />
+            <Input
+              placeholder="Search courses…"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="pl-9 bg-white/10 border-white/20 text-white placeholder:text-white/50 focus-visible:ring-white/30"
+            />
           </div>
         </div>
+        {/* decorative circles */}
+        <div className="absolute right-0 top-0 w-72 h-72 bg-white/5 rounded-full -translate-y-1/2 translate-x-1/2" />
+        <div className="absolute right-16 bottom-0 w-48 h-48 bg-white/5 rounded-full translate-y-1/2" />
       </div>
 
-      <main className="container mx-auto px-4 pt-20 pb-8 max-w-6xl">
-        <div className="mb-10">
-          <div className="flex items-center gap-2 mb-2">
-            <Sparkles className="h-5 w-5 text-primary" />
-            <Badge variant="secondary">AI Learning Coach</Badge>
-          </div>
-          <h1 className="text-3xl md:text-4xl font-bold mb-2">Learn any freelance skill</h1>
-          <p className="text-muted-foreground max-w-2xl">
-            Structured paths, AI-powered coaching, and real assignments. Build portfolio-ready skills in weeks.
-          </p>
-        </div>
+      {/* ── Filter Bar ── */}
+      <div className="flex flex-wrap gap-3 mb-8">
+        <Select value={category} onValueChange={setCategory}>
+          <SelectTrigger className="w-auto min-w-[160px]">
+            <SelectValue placeholder="Category" />
+          </SelectTrigger>
+          <SelectContent>
+            {CATEGORIES.map((c) => (
+              <SelectItem key={c} value={c}>
+                {c}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
 
-        {active.length > 0 && (
-          <section className="mb-12">
-            <h2 className="text-xl font-semibold mb-4">Currently learning</h2>
-            <div className="grid gap-4 md:grid-cols-2">
-              {active.map((a) => {
-                const pct = a.total_lessons
-                  ? Math.round((a.completed_lessons / a.total_lessons) * 100)
-                  : 0;
-                return (
-                  <Card key={a.id} className="p-6">
-                    <div className="flex items-start justify-between mb-3">
-                      <div>
-                        <h3 className="font-semibold text-lg">
-                          {a.learning_paths.display_name}
-                        </h3>
-                        <p className="text-sm text-muted-foreground">
-                          Module {a.current_module} · Lesson {a.current_lesson}
-                        </p>
-                      </div>
-                      <Badge variant="outline">Level {a.current_level}</Badge>
-                    </div>
-                    <Progress value={pct} className="mb-3" />
-                    <div className="flex items-center gap-4 text-xs text-muted-foreground mb-4">
-                      <span className="flex items-center gap-1">
-                        <Flame className="h-3.5 w-3.5" /> {a.streak_days}d streak
-                      </span>
-                      <span className="flex items-center gap-1">
-                        <Clock className="h-3.5 w-3.5" />{" "}
-                        {Math.floor(a.total_time_minutes / 60)}h logged
-                      </span>
-                      <span>
-                        {a.completed_lessons}/{a.total_lessons} lessons
-                      </span>
-                    </div>
-                    <Button asChild className="w-full">
-                      <Link to={`/learn/${a.id}`}>Continue learning</Link>
-                    </Button>
-                  </Card>
-                );
-              })}
-            </div>
-          </section>
+        <Select value={level} onValueChange={setLevel}>
+          <SelectTrigger className="w-auto min-w-[140px]">
+            <SelectValue placeholder="Level" />
+          </SelectTrigger>
+          <SelectContent>
+            {LEVELS.map((l) => (
+              <SelectItem key={l.value} value={l.value}>
+                {l.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+
+        <Select value={duration} onValueChange={setDuration}>
+          <SelectTrigger className="w-auto min-w-[140px]">
+            <SelectValue placeholder="Duration" />
+          </SelectTrigger>
+          <SelectContent>
+            {DURATIONS.map((d) => (
+              <SelectItem key={d.value} value={d.value}>
+                {d.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+
+        <Select value={price} onValueChange={setPrice}>
+          <SelectTrigger className="w-auto min-w-[120px]">
+            <SelectValue placeholder="Price" />
+          </SelectTrigger>
+          <SelectContent>
+            {PRICES.map((p) => (
+              <SelectItem key={p.value} value={p.value}>
+                {p.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+
+        {(category !== "All" || level !== "all" || duration !== "all" || price !== "all" || search) && (
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => {
+              setCategory("All");
+              setLevel("all");
+              setDuration("all");
+              setPrice("all");
+              setSearch("");
+            }}
+          >
+            Clear filters
+          </Button>
         )}
 
-        <section>
-          <h2 className="text-xl font-semibold mb-4">All skills</h2>
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {paths.map((p) => {
-              const isActive = active.some((a) => a.learning_path_id === p.id);
-              return (
-                <Card key={p.id} className="p-6 flex flex-col">
-                  <div className="flex items-start justify-between mb-2">
-                    <h3 className="font-semibold text-lg">{p.display_name}</h3>
-                    {p.popular_rank && p.popular_rank <= 3 && (
-                      <Badge className="bg-primary/10 text-primary border-primary/20" variant="outline">
-                        Popular
-                      </Badge>
-                    )}
-                  </div>
-                  <p className="text-sm text-muted-foreground mb-4 flex-1">
-                    {p.short_description || p.description}
-                  </p>
-                  <div className="flex items-center gap-4 text-xs text-muted-foreground mb-4">
-                    <span className="flex items-center gap-1">
-                      <BookOpen className="h-3.5 w-3.5" />
-                      {p.total_lessons} lessons
-                    </span>
-                    <span className="flex items-center gap-1">
-                      <Clock className="h-3.5 w-3.5" />
-                      {p.estimated_weeks}w
-                    </span>
-                    {p.difficulty_level && (
-                      <Badge variant="secondary" className="text-[10px] uppercase">
-                        {p.difficulty_level}
-                      </Badge>
-                    )}
-                  </div>
-                  <Button
-                    onClick={() => startPath(p)}
-                    disabled={starting === p.id}
-                    variant={isActive ? "outline" : "default"}
-                    className="w-full"
-                  >
-                    {starting === p.id ? (
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                    ) : isActive ? (
-                      "Continue"
-                    ) : (
-                      "Start learning"
-                    )}
-                  </Button>
-                </Card>
-              );
-            })}
+        <Link to="/learn/my-courses" className="ml-auto">
+          <Button variant="outline" size="sm" className="gap-1.5">
+            <GraduationCap className="h-4 w-4" /> My Learning
+          </Button>
+        </Link>
+      </div>
+
+      {/* ── Continue Learning ── */}
+      {inProgressEnrollments.length > 0 && (
+        <section className="mb-10">
+          <div className="flex items-center gap-2 mb-4">
+            <h2 className="text-xl font-bold">Continue Learning</h2>
+            <Badge variant="secondary">{inProgressEnrollments.length}</Badge>
+          </div>
+          <div className="flex gap-4 overflow-x-auto pb-2 scrollbar-none">
+            {inProgressEnrollments.map((e) => (
+              <ContinueLearningCard
+                key={e.id}
+                enrollment={e}
+                onClick={() => navigate(`/learn/${e.course_id}`)}
+              />
+            ))}
           </div>
         </section>
-      </main>
-      <Footer />
+      )}
+
+      {/* ── Featured Courses ── */}
+      {featuredCourses.length > 0 && !search && category === "All" && level === "all" && (
+        <section className="mb-10">
+          <div className="flex items-center gap-2 mb-4">
+            <Sparkles className="h-5 w-5 text-[#2563EB]" />
+            <h2 className="text-xl font-bold">Featured Courses</h2>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {featuredCourses.map((c) => (
+              <CourseCard
+                key={c.id}
+                course={c}
+                isEnrolled={enrolledIds.has(c.id)}
+                onClick={() => navigate(`/learn/${c.id}`)}
+              />
+            ))}
+          </div>
+        </section>
+      )}
+
+      {/* ── Most Popular ── */}
+      {popularCourses.length > 0 && !search && category === "All" && level === "all" && (
+        <section className="mb-10">
+          <div className="flex items-center gap-2 mb-4">
+            <TrendingUp className="h-5 w-5 text-[#2563EB]" />
+            <h2 className="text-xl font-bold">Most Popular</h2>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {popularCourses.map((c) => (
+              <CourseCard
+                key={c.id}
+                course={c}
+                isEnrolled={enrolledIds.has(c.id)}
+                onClick={() => navigate(`/learn/${c.id}`)}
+              />
+            ))}
+          </div>
+        </section>
+      )}
+
+      {/* ── New Courses ── */}
+      {newCourses.length > 0 && !search && category === "All" && level === "all" && (
+        <section className="mb-10">
+          <div className="flex items-center gap-2 mb-4">
+            <BookOpen className="h-5 w-5 text-[#2563EB]" />
+            <h2 className="text-xl font-bold">New Courses</h2>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {newCourses.map((c) => (
+              <CourseCard
+                key={c.id}
+                course={c}
+                isEnrolled={enrolledIds.has(c.id)}
+                onClick={() => navigate(`/learn/${c.id}`)}
+              />
+            ))}
+          </div>
+        </section>
+      )}
+
+      {/* ── All / Filtered Courses ── */}
+      <section>
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-xl font-bold">
+            {search || category !== "All" || level !== "all" || duration !== "all" || price !== "all"
+              ? `Results (${filteredCourses.length})`
+              : "All Courses"}
+          </h2>
+          {filterLoading && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />}
+        </div>
+
+        {filteredCourses.length === 0 && !filterLoading ? (
+          <div className="text-center py-16 text-muted-foreground">
+            <GraduationCap className="h-12 w-12 mx-auto mb-3 opacity-30" />
+            <p>No courses match your filters.</p>
+            <Button
+              variant="outline"
+              className="mt-4"
+              onClick={() => {
+                setCategory("All");
+                setLevel("all");
+                setDuration("all");
+                setPrice("all");
+                setSearch("");
+              }}
+            >
+              Clear filters
+            </Button>
+          </div>
+        ) : (
+          <>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+              {visibleCourses.map((c) => (
+                <CourseCard
+                  key={c.id}
+                  course={c}
+                  isEnrolled={enrolledIds.has(c.id)}
+                  onClick={() => navigate(`/learn/${c.id}`)}
+                />
+              ))}
+            </div>
+            {hasMore && (
+              <div className="text-center mt-8">
+                <Button
+                  variant="outline"
+                  onClick={() => setDisplayCount((n) => n + 12)}
+                >
+                  Load More ({filteredCourses.length - displayCount} remaining)
+                </Button>
+              </div>
+            )}
+          </>
+        )}
+      </section>
     </div>
   );
 }

@@ -2,7 +2,6 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { SEOHead } from "@/components/SEOHead";
 import { motion } from "framer-motion";
-import { Header } from "@/components/layout/Header";
 import { NextStepsCard } from "@/components/shared/NextStepsCard";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -120,11 +119,6 @@ export default function ATSChecker() {
     }
   };
 
-  const handleLogout = async () => {
-    await signOut();
-    navigate("/");
-  };
-
   const getScoreColor = (score: number) => {
     if (score >= 90) return "text-green-500";
     if (score >= 75) return "text-yellow-500";
@@ -140,7 +134,7 @@ export default function ATSChecker() {
   };
 
   return (
-    <div className="min-h-screen bg-background">
+    <div>
       <FeatureGuide featureKey="ats-checker" steps={atsCheckerGuide} />
       <SEOHead
         title="Free ATS Score Checker — Check Your Resume ATS Score Instantly | SkryveAI"
@@ -157,8 +151,7 @@ export default function ATSChecker() {
           offers: { "@type": "Offer", price: "0", priceCurrency: "USD", description: "Free trial available" }
         }}
       />
-      <Header isAuthenticated={!!user} onLogout={handleLogout} />
-      <main className="container mx-auto px-4 pt-24 pb-12 max-w-3xl">
+      <main className="container mx-auto px-0 pb-8 max-w-3xl">
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
           <Button variant="ghost" size="sm" onClick={() => navigate("/dashboard")} className="mb-4">
             <ArrowLeft className="w-4 h-4 mr-1" /> Back to Dashboard

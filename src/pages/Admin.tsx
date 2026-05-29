@@ -515,7 +515,7 @@ export default function Admin() {
   const visibleTabs = (Object.keys(TAB_PERMISSIONS) as TabId[]).filter(tab => hasTabAccess(tab));
 
   return (
-    <div className="min-h-screen bg-background">
+    <div>
       {/* Header */}
       <header className="border-b bg-card">
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">

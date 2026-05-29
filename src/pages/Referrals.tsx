@@ -1,20 +1,17 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { Header } from "@/components/layout/Header";
 import { ReferralCard } from "@/components/dashboard/ReferralCard";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft } from "lucide-react";
 import { FeatureGuide } from "@/components/onboarding/FeatureGuide";
 import { referralsGuide } from "@/components/onboarding/guideConfigs";
 import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "@/hooks/use-toast";
 
 export default function Referrals() {
   const [user, setUser] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
   const navigate = useNavigate();
-  const { toast } = useToast();
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -27,25 +24,18 @@ export default function Referrals() {
     });
   }, [navigate]);
 
-  const handleLogout = async () => {
-    await supabase.auth.signOut();
-    toast({ title: "Logged out successfully" });
-    navigate("/");
-  };
-
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div className="flex items-center justify-center py-24">
         <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      <Header isAuthenticated={true} onLogout={handleLogout} />
+    <div>
       <FeatureGuide featureKey="referrals" steps={referralsGuide} />
-      <main className="container mx-auto px-4 pt-24 pb-12 max-w-2xl">
+      <main className="container mx-auto px-0 pb-8 max-w-2xl">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
