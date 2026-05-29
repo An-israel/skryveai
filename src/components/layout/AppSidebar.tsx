@@ -1,43 +1,41 @@
 import { NavLink, useNavigate } from "react-router-dom";
-import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
-import { Badge } from "@/components/ui/badge";
 import {
   LayoutDashboard, Briefcase, Store, ClipboardList, FolderOpen,
   CalendarDays, BookOpen, MessageSquare, FileText, Users,
   PlusCircle, Settings, LogOut, Bell, ChevronRight,
+  Sparkles,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { useEffect, useState } from "react";
 import type { SkryveRole } from "@/hooks/use-skryve-role";
 
 interface NavItem {
-  label:  string;
-  to:     string;
-  icon:   React.ComponentType<{ className?: string }>;
+  label: string;
+  to:    string;
+  icon:  React.ComponentType<{ className?: string }>;
 }
 
 const talentNav: NavItem[] = [
-  { label: "Dashboard",    to: "/dashboard",     icon: LayoutDashboard },
-  { label: "Find Jobs",    to: "/jobs",           icon: Briefcase       },
-  { label: "Marketplace",  to: "/marketplace",    icon: Store           },
-  { label: "Applications", to: "/applications",   icon: ClipboardList   },
-  { label: "Projects",     to: "/projects",       icon: FolderOpen      },
-  { label: "Events",       to: "/events",         icon: CalendarDays    },
-  { label: "Learn",        to: "/learn",          icon: BookOpen        },
-  { label: "Messages",     to: "/messages",       icon: MessageSquare   },
-  { label: "CV Builder",   to: "/cv-builder",     icon: FileText        },
+  { label: "Dashboard",    to: "/dashboard",   icon: LayoutDashboard },
+  { label: "Find Jobs",    to: "/jobs",         icon: Briefcase       },
+  { label: "Marketplace",  to: "/marketplace",  icon: Store           },
+  { label: "Applications", to: "/applications", icon: ClipboardList   },
+  { label: "Projects",     to: "/projects",     icon: FolderOpen      },
+  { label: "Events",       to: "/events",       icon: CalendarDays    },
+  { label: "Learn",        to: "/learn",        icon: BookOpen        },
+  { label: "Messages",     to: "/messages",     icon: MessageSquare   },
+  { label: "CV Builder",   to: "/cv-builder",   icon: FileText        },
 ];
 
 const clientNav: NavItem[] = [
-  { label: "Dashboard",       to: "/dashboard",            icon: LayoutDashboard },
-  { label: "Post a Job",      to: "/marketplace/new",       icon: PlusCircle      },
-  { label: "Browse Talent",   to: "/marketplace?view=talent", icon: Users         },
-  { label: "My Jobs",         to: "/marketplace",            icon: Briefcase      },
-  { label: "Applications",    to: "/applications",           icon: ClipboardList  },
-  { label: "Projects",        to: "/projects",               icon: FolderOpen     },
-  { label: "Events",          to: "/events",                 icon: CalendarDays   },
-  { label: "Messages",        to: "/messages",               icon: MessageSquare  },
+  { label: "Dashboard",     to: "/dashboard",         icon: LayoutDashboard },
+  { label: "Post a Job",    to: "/marketplace/post",  icon: PlusCircle      },
+  { label: "Browse Talent", to: "/talent",            icon: Users           },
+  { label: "My Jobs",       to: "/marketplace/my-jobs", icon: Briefcase     },
+  { label: "Applications",  to: "/applications",      icon: ClipboardList   },
+  { label: "Projects",      to: "/projects",          icon: FolderOpen      },
+  { label: "Events",        to: "/events",            icon: CalendarDays    },
+  { label: "Messages",      to: "/messages",          icon: MessageSquare   },
 ];
 
 interface AppSidebarProps {
@@ -49,6 +47,33 @@ interface AppSidebarProps {
   onMobileClose: () => void;
 }
 
+function NavItem({ label, to, icon: Icon, unreadCount = 0, onClose }: NavItem & { unreadCount?: number; onClose?: () => void }) {
+  return (
+    <NavLink
+      to={to}
+      end={to === "/dashboard"}
+      onClick={onClose}
+      className={({ isActive }) =>
+        `flex items-center gap-2.5 px-3 py-[7px] text-[13px] font-medium rounded-md transition-all duration-100 group relative ${
+          isActive ? "nav-active" : "nav-inactive"
+        }`
+      }
+    >
+      {({ isActive }) => (
+        <>
+          <Icon className={`w-[15px] h-[15px] shrink-0 transition-colors ${isActive ? "opacity-100" : "opacity-50 group-hover:opacity-75"}`} />
+          <span className="truncate">{label}</span>
+          {label === "Messages" && unreadCount > 0 && (
+            <span className="ml-auto flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full bg-primary text-primary-foreground text-[10px] font-bold leading-none">
+              {unreadCount > 9 ? "9+" : unreadCount}
+            </span>
+          )}
+        </>
+      )}
+    </NavLink>
+  );
+}
+
 function SidebarContent({ role, userName, userAvatar, unreadCount, onClose }: Omit<AppSidebarProps, "mobileOpen" | "onMobileClose"> & { onClose?: () => void }) {
   const navigate = useNavigate();
   const nav = role === "client" ? clientNav : talentNav;
@@ -58,94 +83,77 @@ function SidebarContent({ role, userName, userAvatar, unreadCount, onClose }: Om
     navigate("/");
   };
 
-  const linkClass = ({ isActive }: { isActive: boolean }) =>
-    `flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-150 group ${
-      isActive
-        ? "bg-primary text-primary-foreground shadow-sm"
-        : "text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-foreground"
-    }`;
+  const initials = userName
+    .split(" ")
+    .map((w) => w[0])
+    .slice(0, 2)
+    .join("")
+    .toUpperCase() || "U";
 
   return (
-    <div className="flex flex-col h-full bg-sidebar border-r border-sidebar-border">
+    <div className="flex flex-col h-full bg-sidebar border-r border-sidebar-border select-none">
+
       {/* Logo */}
-      <div className="h-16 flex items-center px-5 border-b border-sidebar-border shrink-0">
-        <NavLink to="/" className="flex items-center gap-2.5">
-          <img src="/logo.png" alt="Skryve" className="w-7 h-7 object-contain" />
-          <span className="font-display font-bold text-lg text-sidebar-foreground tracking-tight">Skryve</span>
+      <div className="h-14 flex items-center px-4 shrink-0">
+        <NavLink to="/" className="flex items-center gap-2.5 group">
+          <img src="/logo.png" alt="Skryve" className="w-6 h-6 object-contain" />
+          <span className="font-display font-bold text-[15px] tracking-tight text-sidebar-accent-foreground">
+            Skryve
+          </span>
         </NavLink>
+
+        {/* Role chip */}
+        <span className={`ml-auto text-[10px] font-semibold uppercase tracking-widest px-1.5 py-0.5 rounded ${
+          role === "client"
+            ? "text-amber-400 bg-amber-400/10"
+            : "text-primary bg-primary/10"
+        }`}>
+          {role === "client" ? "Client" : "Talent"}
+        </span>
       </div>
 
-      {/* Role badge */}
-      <div className="px-4 pt-4 pb-2">
-        <Badge
-          variant="outline"
-          className={`text-[10px] font-bold uppercase tracking-wider ${
-            role === "client"
-              ? "border-amber-500/40 text-amber-500 bg-amber-500/10"
-              : "border-primary/40 text-primary bg-primary/10"
-          }`}
-        >
-          {role === "client" ? "Client" : "Talent"} account
-        </Badge>
-      </div>
+      <div className="h-px bg-sidebar-border mx-0 shrink-0" />
 
-      {/* Nav items */}
-      <nav className="flex-1 overflow-y-auto px-3 py-2 space-y-0.5">
-        {nav.map(({ label, to, icon: Icon }) => (
-          <NavLink key={to} to={to} end={to === "/dashboard"} className={linkClass} onClick={onClose}>
-            <Icon className="w-4 h-4 shrink-0" />
-            <span className="truncate">{label}</span>
-            {label === "Messages" && unreadCount > 0 && (
-              <span className="ml-auto flex items-center justify-center w-5 h-5 rounded-full bg-destructive text-destructive-foreground text-[10px] font-bold">
-                {unreadCount > 9 ? "9+" : unreadCount}
-              </span>
-            )}
-          </NavLink>
+      {/* Nav */}
+      <nav className="flex-1 overflow-y-auto py-3 px-2 space-y-px">
+        {nav.map(({ label, to, icon }) => (
+          <NavItem key={to} label={label} to={to} icon={icon} unreadCount={label === "Messages" ? unreadCount : 0} onClose={onClose} />
         ))}
       </nav>
 
-      {/* Bottom section */}
-      <div className="px-3 py-3 border-t border-sidebar-border space-y-0.5 shrink-0">
-        <NavLink
-          to="/notifications"
-          className={linkClass}
-          onClick={onClose}
-        >
-          <Bell className="w-4 h-4 shrink-0" />
-          <span>Notifications</span>
-          {unreadCount > 0 && (
-            <Badge variant="destructive" className="ml-auto h-5 min-w-5 flex items-center justify-center text-[10px] p-0 px-1">
-              {unreadCount}
-            </Badge>
-          )}
-        </NavLink>
+      {/* Bottom utilities */}
+      <div className="h-px bg-sidebar-border shrink-0" />
+      <div className="py-3 px-2 space-y-px shrink-0">
+        <NavItem label="Notifications" to="/notifications" icon={Bell} unreadCount={unreadCount} onClose={onClose} />
+        <NavItem label="Settings" to="/settings" icon={Settings} onClose={onClose} />
+      </div>
 
-        <NavLink to="/settings" className={linkClass} onClick={onClose}>
-          <Settings className="w-4 h-4 shrink-0" />
-          <span>Settings</span>
-        </NavLink>
-
-        {/* Profile row */}
-        <NavLink to="/profile" className={`${linkClass({ isActive: false })} mt-2`} onClick={onClose}>
-          <div className="w-7 h-7 rounded-full bg-primary/20 text-primary flex items-center justify-center text-xs font-bold uppercase shrink-0 overflow-hidden">
+      {/* Profile row */}
+      <div className="h-px bg-sidebar-border shrink-0" />
+      <div className="p-3 shrink-0">
+        <div className="flex items-center gap-2.5 px-2 py-2 rounded-md hover:bg-sidebar-accent cursor-pointer transition-colors group" onClick={() => { navigate("/profile"); onClose?.(); }}>
+          <div className="w-7 h-7 rounded-full bg-primary/20 text-primary flex items-center justify-center text-[11px] font-bold shrink-0 overflow-hidden ring-1 ring-sidebar-border">
             {userAvatar
               ? <img src={userAvatar} alt={userName} className="w-full h-full object-cover" />
-              : userName.charAt(0) || "U"
+              : initials
             }
           </div>
-          <span className="flex-1 min-w-0 truncate text-sm">{userName.split(" ")[0] || "Profile"}</span>
-          <ChevronRight className="w-3.5 h-3.5 opacity-40 shrink-0" />
-        </NavLink>
+          <div className="flex-1 min-w-0">
+            <p className="text-[13px] font-medium text-sidebar-accent-foreground truncate leading-none mb-0.5">
+              {userName.split(" ")[0] || "Account"}
+            </p>
+            <p className="text-[11px] text-sidebar-foreground truncate leading-none">View profile</p>
+          </div>
+          <ChevronRight className="w-3.5 h-3.5 text-sidebar-foreground/40 shrink-0 group-hover:text-sidebar-foreground/70 transition-colors" />
+        </div>
 
-        <Button
-          variant="ghost"
-          size="sm"
+        <button
           onClick={handleLogout}
-          className="w-full justify-start gap-3 text-sidebar-foreground/60 hover:text-destructive hover:bg-destructive/10 px-3 h-10"
+          className="w-full flex items-center gap-2.5 px-3 py-[7px] mt-1 text-[13px] font-medium text-sidebar-foreground/50 hover:text-red-400 hover:bg-red-500/8 rounded-md transition-all duration-100"
         >
-          <LogOut className="w-4 h-4 shrink-0" />
-          Log Out
-        </Button>
+          <LogOut className="w-[15px] h-[15px] shrink-0" />
+          Log out
+        </button>
       </div>
     </div>
   );
@@ -155,13 +163,13 @@ export function AppSidebar({ role, userName, userAvatar, unreadCount, mobileOpen
   return (
     <>
       {/* Desktop sidebar — fixed */}
-      <aside className="hidden md:flex flex-col fixed left-0 top-0 bottom-0 w-64 z-40">
+      <aside className="hidden md:flex flex-col fixed left-0 top-0 bottom-0 w-[220px] z-40">
         <SidebarContent role={role} userName={userName} userAvatar={userAvatar} unreadCount={unreadCount} />
       </aside>
 
-      {/* Mobile sidebar — sheet drawer */}
+      {/* Mobile drawer */}
       <Sheet open={mobileOpen} onOpenChange={onMobileClose}>
-        <SheetContent side="left" className="p-0 w-64">
+        <SheetContent side="left" className="p-0 w-[220px] bg-sidebar border-sidebar-border">
           <SidebarContent role={role} userName={userName} userAvatar={userAvatar} unreadCount={unreadCount} onClose={onMobileClose} />
         </SheetContent>
       </Sheet>
