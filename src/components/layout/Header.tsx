@@ -1,6 +1,6 @@
-import { Link, useNavigate, useLocation } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Menu, X, Settings, Shield, Zap, BookOpen } from "lucide-react";
+import { Menu, X, Shield, BookOpen, Briefcase, CalendarDays, LayoutDashboard } from "lucide-react";
 import { ThemeToggle } from "@/components/ThemeToggle";
 
 import { NotificationBell } from "@/components/layout/NotificationBell";
@@ -19,8 +19,6 @@ export function Header({ isAuthenticated: isAuthenticatedProp, onLogout }: Heade
   const [authState, setAuthState] = useState<boolean>(isAuthenticatedProp ?? false);
   const [userName, setUserName] = useState<string>("");
   const navigate = useNavigate();
-  const location = useLocation();
-  const isAutoPilotActive = location.pathname === "/auto-pilot";
 
   useEffect(() => {
     const checkAuth = async () => {
@@ -65,8 +63,8 @@ export function Header({ isAuthenticated: isAuthenticatedProp, onLogout }: Heade
       .from("user_roles")
       .select("role")
       .eq("user_id", userId);
-    
-    const hasAdminRole = roles?.some(r => 
+
+    const hasAdminRole = roles?.some(r =>
       ["super_admin", "content_editor", "support_agent"].includes(r.role)
     );
     setIsAdmin(!!hasAdminRole);
@@ -87,8 +85,8 @@ export function Header({ isAuthenticated: isAuthenticatedProp, onLogout }: Heade
     <header className="fixed top-0 left-0 right-0 z-50 glass border-b">
       <div className="container mx-auto px-4 h-[68px] flex items-center justify-between">
         <Link to="/" className="flex items-center gap-2.5 group">
-          <img src="/logo.png" alt="SkryveAI logo" className="w-8 h-8 object-contain" />
-          <span className="font-display font-bold text-xl text-foreground tracking-tight">SkryveAI</span>
+          <img src="/logo.png" alt="Skryve logo" className="w-8 h-8 object-contain" />
+          <span className="font-display font-bold text-xl text-foreground tracking-tight">Skryve</span>
         </Link>
 
         {/* Desktop Navigation */}
@@ -105,40 +103,24 @@ export function Header({ isAuthenticated: isAuthenticatedProp, onLogout }: Heade
 
           {isAuthenticated ? (
             <div className="flex items-center gap-0.5">
-              <Link to="/dashboard" className="px-3 py-1.5 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors rounded-lg hover:bg-muted/50">
+              <Link to="/dashboard" className="px-3 py-1.5 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors rounded-lg hover:bg-muted/50 flex items-center gap-1.5">
+                <LayoutDashboard className="w-3.5 h-3.5" />
                 Dashboard
               </Link>
-              <Link to="/campaigns/new" className="px-3 py-1.5 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors rounded-lg hover:bg-muted/50">
-                Campaigns
+              <Link to="/jobs" className="px-3 py-1.5 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors rounded-lg hover:bg-muted/50 flex items-center gap-1.5">
+                <Briefcase className="w-3.5 h-3.5" />
+                Jobs
+              </Link>
+              <Link to="/events" className="px-3 py-1.5 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors rounded-lg hover:bg-muted/50 flex items-center gap-1.5">
+                <CalendarDays className="w-3.5 h-3.5" />
+                Events
+              </Link>
+              <Link to="/learn" className="px-3 py-1.5 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors rounded-lg hover:bg-muted/50 flex items-center gap-1.5">
+                <BookOpen className="w-3.5 h-3.5" />
+                Learn
               </Link>
               <Link to="/cv-builder" className="px-3 py-1.5 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors rounded-lg hover:bg-muted/50">
                 CV Builder
-              </Link>
-              <Link to="/learn" className="px-3 py-1.5 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors rounded-lg hover:bg-muted/50 flex items-center gap-1.5 relative">
-                <BookOpen className="w-3.5 h-3.5" /> Learn
-                <span className="text-[9px] font-bold bg-amber-500/20 text-amber-600 dark:text-amber-400 border border-amber-500/30 rounded px-1 py-px leading-tight">SOON</span>
-              </Link>
-
-              {/* ── Auto-Pilot CTA ── */}
-              <Link
-                to="/auto-pilot"
-                className={`
-                  relative ml-2 flex items-center gap-1.5 px-5 py-2.5 rounded-full text-sm font-bold
-                  transition-all duration-300 hover:scale-[1.05]
-                  ${isAutoPilotActive
-                    ? "bg-gradient-to-r from-primary to-primary/80 text-primary-foreground shadow-[0_0_24px_hsl(var(--primary)/0.6)] ring-2 ring-primary/30"
-                    : "bg-gradient-to-r from-primary to-primary/80 text-primary-foreground shadow-[0_4px_20px_hsl(var(--primary)/0.4)] hover:shadow-[0_4px_28px_hsl(var(--primary)/0.6)] ring-1 ring-primary/20 animate-[pulse-glow_2s_ease-in-out_infinite]"
-                  }
-                `}
-              >
-                <Zap className="w-4 h-4" fill="currentColor" />
-                Auto-Pilot
-                {!isAutoPilotActive && (
-                  <span className="absolute -top-1 -right-1 flex h-3 w-3">
-                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-75" />
-                    <span className="relative inline-flex rounded-full h-3 w-3 bg-white" />
-                  </span>
-                )}
               </Link>
 
               {isAdmin && (
@@ -170,7 +152,7 @@ export function Header({ isAuthenticated: isAuthenticatedProp, onLogout }: Heade
                 Sign In
               </Link>
               <Button asChild className="rounded-full px-6 font-bold shadow-glow hover:shadow-glow-lg transition-all duration-300 hover:scale-[1.02]">
-                <Link to="/signup">Get Started</Link>
+                <Link to="/signup">Get Started Free</Link>
               </Button>
             </div>
           )}
@@ -203,29 +185,20 @@ export function Header({ isAuthenticated: isAuthenticatedProp, onLogout }: Heade
               </Link>
               {isAuthenticated ? (
                 <>
-                  <Link to="/dashboard" className="py-2.5 px-3 text-sm font-medium text-muted-foreground hover:text-foreground rounded-lg hover:bg-muted/50 transition-colors">
-                    Dashboard
+                  <Link to="/dashboard" onClick={() => setMobileMenuOpen(false)} className="py-2.5 px-3 text-sm font-medium text-muted-foreground hover:text-foreground rounded-lg hover:bg-muted/50 transition-colors flex items-center gap-2">
+                    <LayoutDashboard className="w-4 h-4" /> Dashboard
                   </Link>
-                  <Link to="/campaigns/new" className="py-2.5 px-3 text-sm font-medium text-muted-foreground hover:text-foreground rounded-lg hover:bg-muted/50 transition-colors">
-                    Campaigns
+                  <Link to="/jobs" onClick={() => setMobileMenuOpen(false)} className="py-2.5 px-3 text-sm font-medium text-muted-foreground hover:text-foreground rounded-lg hover:bg-muted/50 transition-colors flex items-center gap-2">
+                    <Briefcase className="w-4 h-4" /> Jobs
                   </Link>
-                  <Link to="/cv-builder" className="py-2.5 px-3 text-sm font-medium text-muted-foreground hover:text-foreground rounded-lg hover:bg-muted/50 transition-colors">
-                    CV Builder
+                  <Link to="/events" onClick={() => setMobileMenuOpen(false)} className="py-2.5 px-3 text-sm font-medium text-muted-foreground hover:text-foreground rounded-lg hover:bg-muted/50 transition-colors flex items-center gap-2">
+                    <CalendarDays className="w-4 h-4" /> Events
                   </Link>
-                  <Link to="/learn" className="py-2.5 px-3 text-sm font-medium text-muted-foreground hover:text-foreground rounded-lg hover:bg-muted/50 transition-colors flex items-center gap-2">
+                  <Link to="/learn" onClick={() => setMobileMenuOpen(false)} className="py-2.5 px-3 text-sm font-medium text-muted-foreground hover:text-foreground rounded-lg hover:bg-muted/50 transition-colors flex items-center gap-2">
                     <BookOpen className="w-4 h-4" /> Learn
-                    <span className="text-[9px] font-bold bg-amber-500/20 text-amber-600 dark:text-amber-400 border border-amber-500/30 rounded px-1 py-px leading-tight">SOON</span>
                   </Link>
-
-                  {/* Mobile Auto-Pilot CTA */}
-                  <Link
-                    to="/auto-pilot"
-                    className="mt-1 mx-0 py-3 px-4 rounded-xl text-sm font-semibold flex items-center gap-2 bg-primary/10 text-primary border border-primary/30 hover:bg-primary hover:text-primary-foreground transition-all duration-200"
-                    onClick={() => setMobileMenuOpen(false)}
-                  >
-                    <Zap className="w-4 h-4" fill="currentColor" />
-                    Auto-Pilot
-                    <span className="ml-auto text-xs bg-primary text-primary-foreground px-2 py-0.5 rounded-full font-bold">NEW</span>
+                  <Link to="/cv-builder" onClick={() => setMobileMenuOpen(false)} className="py-2.5 px-3 text-sm font-medium text-muted-foreground hover:text-foreground rounded-lg hover:bg-muted/50 transition-colors">
+                    CV Builder
                   </Link>
                   {isAdmin && (
                     <Link to="/admin" className="py-2.5 px-3 text-sm font-medium text-muted-foreground hover:text-foreground rounded-lg hover:bg-muted/50 flex items-center gap-2 transition-colors">
@@ -252,7 +225,7 @@ export function Header({ isAuthenticated: isAuthenticatedProp, onLogout }: Heade
                   </Link>
                   <div className="pt-2">
                     <Button asChild className="w-full rounded-full font-bold shadow-glow">
-                      <Link to="/signup">Get Started</Link>
+                      <Link to="/signup">Get Started Free</Link>
                     </Button>
                   </div>
                 </>

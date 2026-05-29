@@ -10,7 +10,6 @@ import Landing from "./pages/Landing";
 import Login from "./pages/Login";
 import Signup from "./pages/Signup";
 import Dashboard from "./pages/Dashboard";
-import NewCampaign from "./pages/NewCampaign";
 import Pricing from "./pages/Pricing";
 import PaymentCallback from "./pages/PaymentCallback";
 import Admin from "./pages/Admin";
@@ -18,7 +17,6 @@ import NotFound from "./pages/NotFound";
 import ForgotPassword from "./pages/ForgotPassword";
 import ResetPassword from "./pages/ResetPassword";
 import Settings from "./pages/Settings";
-import Analytics from "./pages/Analytics";
 import PrivacyPolicy from "./pages/PrivacyPolicy";
 import TermsOfService from "./pages/TermsOfService";
 import About from "./pages/About";
@@ -29,13 +27,8 @@ import Careers from "./pages/Careers";
 import CVBuilder from "./pages/CVBuilder";
 import ATSChecker from "./pages/ATSChecker";
 import LinkedInAnalyzer from "./pages/LinkedInAnalyzer";
-import CampaignDetails from "./pages/CampaignDetails";
-import AutoPilot from "./pages/AutoPilot";
-import EmailReply from "./pages/EmailReply";
 import Blog from "./pages/Blog";
 import BlogPost from "./pages/BlogPost";
-import EmailFinder from "./pages/EmailFinder";
-import EmailFinderLanding from "./pages/EmailFinderLanding";
 import LearnHub from "./pages/LearnHub";
 import LearnPath from "./pages/LearnPath";
 import LearnAssignment from "./pages/LearnAssignment";
@@ -56,7 +49,7 @@ const PublicRoute = ({ children }: { children: React.ReactNode }) => (
 );
 
 const App = () => (
-  <ThemeProvider attribute="class" defaultTheme="dark" enableSystem={false} storageKey="skryveai-theme">
+  <ThemeProvider attribute="class" defaultTheme="dark" enableSystem={false} storageKey="skryve-theme">
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
         <Toaster />
@@ -78,25 +71,18 @@ const App = () => (
           <Route path="/careers" element={<PublicRoute><Careers /></PublicRoute>} />
           <Route path="/blog" element={<PublicRoute><Blog /></PublicRoute>} />
           <Route path="/blog/:slug" element={<PublicRoute><BlogPost /></PublicRoute>} />
-          <Route path="/tools/email-finder" element={<PublicThemeWrapper><EmailFinderLanding /></PublicThemeWrapper>} />
 
           {/* Authenticated app — respects user theme preference */}
           <Route path="/dashboard" element={<GuardedRoute><Dashboard /></GuardedRoute>} />
-          <Route path="/campaigns/new" element={<GuardedRoute><NewCampaign /></GuardedRoute>} />
           <Route path="/payment/callback" element={<PaymentCallback />} />
           <Route path="/admin" element={<Admin />} />
           <Route path="/admin/skill-learning" element={<GuardedRoute><SkillLearningAnalytics /></GuardedRoute>} />
           <Route path="/settings" element={<GuardedRoute><Settings /></GuardedRoute>} />
-          <Route path="/analytics" element={<GuardedRoute><Analytics /></GuardedRoute>} />
           <Route path="/team" element={<GuardedRoute><TeamManagement /></GuardedRoute>} />
           <Route path="/referrals" element={<GuardedRoute><Referrals /></GuardedRoute>} />
           <Route path="/cv-builder" element={<GuardedRoute><CVBuilder /></GuardedRoute>} />
           <Route path="/ats-checker" element={<GuardedRoute><ATSChecker /></GuardedRoute>} />
           <Route path="/linkedin-analyzer" element={<GuardedRoute><LinkedInAnalyzer /></GuardedRoute>} />
-          <Route path="/campaigns/:id" element={<GuardedRoute><CampaignDetails /></GuardedRoute>} />
-          <Route path="/auto-pilot" element={<GuardedRoute><AutoPilot /></GuardedRoute>} />
-          <Route path="/reply" element={<EmailReply />} />
-          <Route path="/email-finder" element={<GuardedRoute><EmailFinder /></GuardedRoute>} />
           <Route path="/learn" element={<GuardedRoute><LearnHub /></GuardedRoute>} />
           <Route path="/learn/:userLearningId" element={<GuardedRoute><LearnPath /></GuardedRoute>} />
           <Route path="/learn/:userLearningId/assignment/:assignmentId" element={<GuardedRoute><LearnAssignment /></GuardedRoute>} />
