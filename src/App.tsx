@@ -62,6 +62,12 @@ import Admin            from "./pages/Admin";
 import SkillLearningAnalytics from "./pages/admin/SkillLearningAnalytics";
 import PaymentCallback  from "./pages/PaymentCallback";
 import PortfolioManager from "./pages/PortfolioManager";
+import PostJob          from "./pages/PostJob";
+import MyJobPosts       from "./pages/MyJobPosts";
+import BrowseTalent     from "./pages/BrowseTalent";
+import PaymentRelease   from "./pages/PaymentRelease";
+import PostEvent        from "./pages/PostEvent";
+import MyEvents         from "./pages/MyEvents";
 
 const queryClient = new QueryClient();
 
@@ -112,14 +118,20 @@ export default function App() {
                 <Route path="/jobs/preferences"     element={<JobPreferences />} />
                 <Route path="/jobs/saved"           element={<SavedJobs />} />
                 <Route path="/jobs/:jobId"          element={<JobDetail />} />
-                <Route path="/marketplace"          element={<Marketplace />} />
-                <Route path="/marketplace/:jobId"   element={<MarketplaceJob />} />
+                <Route path="/marketplace"              element={<Marketplace />} />
+                <Route path="/marketplace/post"         element={<PostJob />} />
+                <Route path="/marketplace/my-jobs"      element={<MyJobPosts />} />
+                <Route path="/marketplace/:jobId"       element={<MarketplaceJob />} />
+                <Route path="/talent"               element={<BrowseTalent />} />
                 <Route path="/applications"         element={<Applications />} />
                 <Route path="/projects"             element={<Projects />} />
-                <Route path="/projects/:projectId" element={<ProjectDetail />} />
+                <Route path="/projects/:projectId"  element={<ProjectDetail />} />
+                <Route path="/projects/:projectId/pay" element={<PaymentRelease />} />
 
                 {/* Events */}
                 <Route path="/events"               element={<Events />} />
+                <Route path="/events/post"          element={<PostEvent />} />
+                <Route path="/events/my-events"     element={<MyEvents />} />
                 <Route path="/events/:eventId"      element={<EventDetail />} />
 
                 {/* Learning */}

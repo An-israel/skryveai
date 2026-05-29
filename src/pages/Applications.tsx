@@ -3,6 +3,8 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { formatDistanceToNow } from "date-fns";
+import { useSkryveRole } from "@/hooks/use-skryve-role";
+import ClientApplicationsView from "@/components/applications/ClientApplicationsView";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -589,6 +591,7 @@ export default function Applications() {
   const [showAddForm, setShowAddForm] = useState(false);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [user, setUser] = useState<any>(null);
+  const role = useSkryveRole(user?.id);
   const [editingNote, setEditingNote] = useState<{ id: string; note: string } | null>(null);
   const [addForm, setAddForm] = useState<AddForm>({
     jobTitle: "",
@@ -906,6 +909,18 @@ export default function Applications() {
       )}
     </div>
   );
+
+  if (role === "client" && user) {
+    return (
+      <div className="space-y-6">
+        <div>
+          <h1 className="font-display text-2xl font-bold">Applications Inbox</h1>
+          <p className="text-muted-foreground text-sm">Review and manage applications to your jobs.</p>
+        </div>
+        <ClientApplicationsView user={user} />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
