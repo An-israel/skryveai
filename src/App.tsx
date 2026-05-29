@@ -35,6 +35,9 @@ import Dashboard        from "./pages/Dashboard";
 import Profile          from "./pages/Profile";
 import ProfileView      from "./pages/ProfileView";
 import Jobs             from "./pages/Jobs";
+import JobPreferences   from "./pages/JobPreferences";
+import SavedJobs        from "./pages/SavedJobs";
+import JobDetail        from "./pages/JobDetail";
 import Marketplace      from "./pages/Marketplace";
 import MarketplaceJob   from "./pages/MarketplaceJob";
 import Applications     from "./pages/Applications";
@@ -105,6 +108,9 @@ export default function App() {
 
                 {/* Jobs & Marketplace */}
                 <Route path="/jobs"                 element={<Jobs />} />
+                <Route path="/jobs/preferences"     element={<JobPreferences />} />
+                <Route path="/jobs/saved"           element={<SavedJobs />} />
+                <Route path="/jobs/:jobId"          element={<JobDetail />} />
                 <Route path="/marketplace"          element={<Marketplace />} />
                 <Route path="/marketplace/:jobId"   element={<MarketplaceJob />} />
                 <Route path="/applications"         element={<Applications />} />
