@@ -48,6 +48,7 @@ import EventDetail      from "./pages/EventDetail";
 import LearnHub         from "./pages/LearnHub";
 import LearnPath        from "./pages/LearnPath";
 import LearnAssignment  from "./pages/LearnAssignment";
+import MyLearning       from "./pages/MyLearning";
 import CVBuilder        from "./pages/CVBuilder";
 import ATSChecker       from "./pages/ATSChecker";
 import LinkedInAnalyzer from "./pages/LinkedInAnalyzer";
@@ -136,6 +137,7 @@ export default function App() {
 
                 {/* Learning */}
                 <Route path="/learn"                             element={<LearnHub />} />
+                <Route path="/learn/my-courses"                  element={<MyLearning />} />
                 <Route path="/learn/:courseId"                   element={<LearnPath />} />
                 <Route path="/learn/:courseId/:lessonId"         element={<LearnAssignment />} />
 
