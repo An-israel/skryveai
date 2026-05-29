@@ -104,7 +104,7 @@ export function AppLayout() {
       />
 
       {/* Main content — offset for fixed desktop sidebar */}
-      <div className="flex-1 flex flex-col min-w-0 md:ml-64">
+      <div className="flex-1 flex flex-col min-w-0 md:ml-[220px]">
         <AppTopBar
           userName={userName}
           userAvatar={userAvatar}
