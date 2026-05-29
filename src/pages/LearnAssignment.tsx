@@ -238,7 +238,7 @@ export default function LearnAssignment() {
       });
     }
 
-    // Module complete toast
+    // Module complete toast + quiz check
     const currentModule = currentLesson?.module_name;
     const moduleLessons = lessons.filter(
       (l) => (l.module_name ?? "Course Content") === (currentModule ?? "Course Content")
@@ -255,6 +255,36 @@ export default function LearnAssignment() {
     const newSet = new Set([...completedLessonIds, lessonId]);
     setCompletedLessonIds(newSet);
     setEnrollment({ ...enrollment, progress_percent: newPercent });
+
+    // If course complete → navigate to completion page
+    if (newPercent === 100) {
+      setTimeout(() => navigate(`/learn/${courseId}/complete`), 2000);
+      return;
+    }
+
+    // If this was the last lesson in a module, check for a quiz
+    if (allModuleDone && currentModule) {
+      const { data: quiz } = await (supabase as any)
+        .from("quizzes")
+        .select("id")
+        .eq("course_id", courseId)
+        .eq("module_name", currentModule)
+        .single();
+
+      if (quiz) {
+        // Check if course has quiz_required
+        const { data: courseInfo } = await (supabase as any)
+          .from("courses")
+          .select("quiz_required")
+          .eq("id", courseId)
+          .single();
+
+        if (courseInfo?.quiz_required) {
+          setTimeout(() => navigate(`/learn/${courseId}/quiz/${quiz.id}`), 2000);
+          return;
+        }
+      }
+    }
 
     // Auto-advance after 3 seconds
     if (currentLesson) {
