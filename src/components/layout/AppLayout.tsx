@@ -1,4 +1,4 @@
-import { Outlet, Navigate } from "react-router-dom";
+import { Outlet, Navigate, useLocation } from "react-router-dom";
 import { useState, useEffect } from "react";
 import { AppSidebar } from "./AppSidebar";
 import { AppTopBar } from "./AppTopBar";
@@ -10,8 +10,10 @@ export function AppLayout() {
   const [authLoading, setLoading] = useState(true);
   const [mobileOpen, setMobile]   = useState(false);
   const [unreadCount, setUnread]  = useState(0);
+  const [needsOnboarding, setNeedsOnboarding] = useState(false);
 
   const role = useSkryveRole(user?.id);
+  const location = useLocation();
 
   // ── Auth listener ────────────────────────────────────────────
   useEffect(() => {
@@ -24,6 +26,26 @@ export function AppLayout() {
     });
     return () => subscription.unsubscribe();
   }, []);
+
+  // ── Onboarding check ─────────────────────────────────────────
+  useEffect(() => {
+    if (!user?.id || role === "loading") return;
+    if (location.pathname.startsWith('/onboarding')) return;
+    if (role === "none") {
+      setNeedsOnboarding(true);
+      return;
+    }
+    const table = role === "client" ? "client_profiles" : "talent_profiles";
+    (supabase as any).from(table)
+      .select('onboarding_completed')
+      .eq('user_id', user.id)
+      .maybeSingle()
+      .then(({ data }: any) => {
+        if (data && data.onboarding_completed === false) {
+          setNeedsOnboarding(true);
+        }
+      });
+  }, [user?.id, role, location.pathname]);
 
   // ── Unread notifications count ────────────────────────────────
   useEffect(() => {
@@ -62,6 +84,10 @@ export function AppLayout() {
   }
 
   if (!user) return <Navigate to="/login" replace />;
+
+  if (needsOnboarding && !location.pathname.startsWith('/onboarding')) {
+    return <Navigate to="/onboarding" replace />;
+  }
 
   const userName   = user.user_metadata?.full_name || user.email || "";
   const userAvatar = user.user_metadata?.avatar_url;

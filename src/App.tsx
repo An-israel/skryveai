@@ -25,6 +25,11 @@ import PrivacyPolicy    from "./pages/PrivacyPolicy";
 import TermsOfService   from "./pages/TermsOfService";
 import NotFound         from "./pages/NotFound";
 
+// ── Onboarding pages ────────────────────────────────────────
+import OnboardingDispatcher from "./pages/onboarding/OnboardingDispatcher";
+import TalentOnboarding    from "./pages/onboarding/TalentOnboarding";
+import ClientOnboarding    from "./pages/onboarding/ClientOnboarding";
+
 // ── Authenticated pages ─────────────────────────────────────
 import Dashboard        from "./pages/Dashboard";
 import Profile          from "./pages/Profile";
@@ -131,6 +136,11 @@ export default function App() {
                 <Route path="/admin"               element={<Admin />} />
                 <Route path="/admin/skill-learning" element={<SkillLearningAnalytics />} />
               </Route>
+
+              {/* ── Onboarding — no sidebar layout ── */}
+              <Route path="/onboarding"         element={<OnboardingDispatcher />} />
+              <Route path="/onboarding/talent"  element={<TalentOnboarding />} />
+              <Route path="/onboarding/client"  element={<ClientOnboarding />} />
 
               {/* ── No layout ── */}
               <Route path="/payment/callback" element={<PaymentCallback />} />
