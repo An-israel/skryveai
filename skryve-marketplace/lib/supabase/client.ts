@@ -1,20 +1,15 @@
-// ⚠️  THIS IS A TYPESCRIPT FILE — paste it into your Next.js project at:
-//     lib/supabase/client.ts
-// Do NOT run it in the Supabase SQL editor.
+// lib/supabase/client.ts
+// Place this file at: src/lib/supabase/client.ts in your project
 //
-// Install deps first:
-//   npm install @supabase/ssr @supabase/supabase-js
+// Install first: npm install @supabase/supabase-js
+// Then add to your .env file:
+//   VITE_SUPABASE_URL=your-supabase-url
+//   VITE_SUPABASE_ANON_KEY=your-anon-key
 
-import { createBrowserClient } from '@supabase/ssr'
+import { createClient } from '@supabase/supabase-js'
 import type { Database } from '@/types/database'
 
-let client: ReturnType<typeof createBrowserClient<Database>> | null = null
-
-export function getSupabaseClient() {
-  if (client) return client
-  client = createBrowserClient<Database>(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-  )
-  return client
-}
+export const supabase = createClient<Database>(
+  import.meta.env.VITE_SUPABASE_URL,
+  import.meta.env.VITE_SUPABASE_ANON_KEY,
+)

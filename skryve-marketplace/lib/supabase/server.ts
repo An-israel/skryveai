@@ -1,15 +1,18 @@
-// ⚠️  THIS IS A TYPESCRIPT FILE — paste it into your Next.js project at:
-//     lib/supabase/server.ts
-// Do NOT run it in the Supabase SQL editor.
+// lib/supabase/server.ts
+// This file is only needed if you use Next.js (App Router).
+// If you're using Lovable / Vite / React — you DON'T need this file.
+// Just use the client.ts file instead everywhere.
 //
-// Install deps first:
-//   npm install @supabase/ssr @supabase/supabase-js
+// If you ARE on Next.js, install: npm install @supabase/ssr
+// and add to .env.local:
+//   NEXT_PUBLIC_SUPABASE_URL=your-supabase-url
+//   NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
+//   SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
 
 import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 import type { Database } from '@/types/database'
 
-// Use inside Server Components, Route Handlers, and Server Actions
 export async function createClient() {
   const cookieStore = await cookies()
   return createServerClient<Database>(
@@ -23,17 +26,13 @@ export async function createClient() {
             cookiesToSet.forEach(({ name, value, options }) =>
               cookieStore.set(name, value, options),
             )
-          } catch {
-            // setAll is called from a Server Component — cookies can only
-            // be set in Middleware or Route Handlers. Safe to ignore here.
-          }
+          } catch { /* safe to ignore in Server Components */ }
         },
       },
     },
   )
 }
 
-// Use when you need to bypass RLS (e.g. admin operations, cron jobs)
 export function createServiceClient() {
   return createServerClient<Database>(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
