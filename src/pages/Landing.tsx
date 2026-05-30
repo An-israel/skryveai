@@ -1,411 +1,582 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
-import { motion } from "framer-motion";
-import { Button } from "@/components/ui/button";
+import { motion, useScroll, useTransform } from "framer-motion";
 import {
-  Menu, X, Twitter, Linkedin, Instagram,
-  Briefcase, Store, CalendarDays, BookOpen,
-  Users, CheckCircle2, ArrowRight, Star, Quote,
+  Menu, X, ArrowRight, Twitter, Linkedin, Instagram,
+  Briefcase, Store, CalendarDays, BookOpen, FileText,
+  Zap, Users, Shield, ChevronRight,
 } from "lucide-react";
 
-const fadeUp = {
-  initial: { opacity: 0, y: 24 },
+/* ─── Animation presets ───────────────────────────────────── */
+const fadeUp = (delay = 0) => ({
+  initial: { opacity: 0, y: 20 },
   whileInView: { opacity: 1, y: 0 },
   viewport: { once: true },
-  transition: { duration: 0.5 },
-};
+  transition: { duration: 0.55, delay, ease: [0.22, 1, 0.36, 1] },
+});
 
-const navLinks = [
-  { label: "Features", href: "#features" },
-  { label: "Pricing", href: "/pricing" },
-  { label: "Blog", href: "/blog" },
-];
+/* ─── Navbar ──────────────────────────────────────────────── */
+function Navbar() {
+  const [open, setOpen] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
 
-const stats = [
-  { value: "10,000+", label: "Talents" },
-  { value: "2,000+", label: "Companies" },
-  { value: "50,000+", label: "Jobs Aggregated" },
-];
+  useEffect(() => {
+    const fn = () => setScrolled(window.scrollY > 24);
+    window.addEventListener("scroll", fn, { passive: true });
+    return () => window.removeEventListener("scroll", fn);
+  }, []);
 
-const talentSteps = [
-  { n: 1, title: "Sign Up", desc: "Create your free account in under 2 minutes." },
-  { n: 2, title: "Build Profile", desc: "Showcase your skills, portfolio, and experience." },
-  { n: 3, title: "Get Daily Jobs", desc: "Receive curated job matches from 10+ platforms." },
-  { n: 4, title: "Apply & Get Hired", desc: "Send proposals and land your next opportunity." },
-];
+  return (
+    <nav
+      className={`fixed top-0 inset-x-0 z-50 transition-all duration-300 ${
+        scrolled
+          ? "bg-[#09090b]/95 backdrop-blur-md border-b border-white/[0.06]"
+          : "bg-transparent"
+      }`}
+    >
+      <div className="max-w-6xl mx-auto px-5 flex items-center justify-between h-14">
+        {/* Logo */}
+        <Link to="/" className="flex items-center gap-2.5 shrink-0">
+          <img src="/logo.png" alt="Skryve" className="w-6 h-6 object-contain" />
+          <span className="font-bold text-[15px] text-white tracking-tight">Skryve</span>
+        </Link>
 
-const clientSteps = [
-  { n: 1, title: "Sign Up", desc: "Create a client account for free." },
-  { n: 2, title: "Post a Job", desc: "Describe what you need — it takes minutes." },
-  { n: 3, title: "Review Applicants", desc: "Browse profiles and AI-matched talent." },
-  { n: 4, title: "Hire & Pay", desc: "Hire securely and pay through the platform." },
-];
+        {/* Desktop nav */}
+        <div className="hidden md:flex items-center gap-7">
+          {[
+            { label: "Features", href: "#features" },
+            { label: "Pricing",  href: "/pricing"  },
+            { label: "Blog",     href: "/blog"     },
+            { label: "About",    href: "/about"    },
+          ].map(({ label, href }) => (
+            <Link
+              key={label}
+              to={href}
+              className="text-[13px] font-medium text-white/50 hover:text-white transition-colors"
+            >
+              {label}
+            </Link>
+          ))}
+        </div>
 
-const features = [
+        {/* Desktop CTAs */}
+        <div className="hidden md:flex items-center gap-2">
+          <Link
+            to="/login"
+            className="px-3.5 py-1.5 rounded-lg text-[13px] font-medium text-white/60 hover:text-white hover:bg-white/8 transition-all"
+          >
+            Sign in
+          </Link>
+          <Link
+            to="/signup"
+            className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-white text-[#09090b] text-[13px] font-semibold hover:bg-white/90 transition-all"
+          >
+            Get started <ArrowRight className="w-3.5 h-3.5" />
+          </Link>
+        </div>
+
+        {/* Mobile toggle */}
+        <button
+          className="md:hidden p-2 text-white/60 hover:text-white transition-colors"
+          onClick={() => setOpen((v) => !v)}
+        >
+          {open ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+        </button>
+      </div>
+
+      {/* Mobile menu */}
+      {open && (
+        <div className="md:hidden bg-[#09090b]/98 border-t border-white/[0.06] px-5 py-5 flex flex-col gap-4">
+          {[
+            { label: "Features", href: "#features" },
+            { label: "Pricing",  href: "/pricing"  },
+            { label: "Blog",     href: "/blog"     },
+          ].map(({ label, href }) => (
+            <Link
+              key={label}
+              to={href}
+              className="text-[14px] font-medium text-white/60 hover:text-white transition-colors"
+              onClick={() => setOpen(false)}
+            >
+              {label}
+            </Link>
+          ))}
+          <div className="flex flex-col gap-2 pt-3 border-t border-white/[0.06]">
+            <Link
+              to="/login"
+              className="text-center py-2 rounded-lg border border-white/[0.12] text-[13px] text-white/70"
+              onClick={() => setOpen(false)}
+            >
+              Sign in
+            </Link>
+            <Link
+              to="/signup"
+              className="text-center py-2 rounded-lg bg-white text-[#09090b] text-[13px] font-semibold"
+              onClick={() => setOpen(false)}
+            >
+              Get started free
+            </Link>
+          </div>
+        </div>
+      )}
+    </nav>
+  );
+}
+
+/* ─── Hero ────────────────────────────────────────────────── */
+function Hero() {
+  return (
+    <section className="relative min-h-screen flex flex-col items-center justify-center bg-[#09090b] overflow-hidden pt-14">
+
+      {/* Dot grid */}
+      <div
+        className="absolute inset-0 opacity-[0.4]"
+        style={{
+          backgroundImage: "radial-gradient(circle, rgba(255,255,255,0.09) 1px, transparent 1px)",
+          backgroundSize: "28px 28px",
+        }}
+      />
+
+      {/* Glow orbs */}
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[900px] h-[600px] rounded-full bg-[#2563EB]/10 blur-[140px] pointer-events-none" />
+      <div className="absolute top-1/4 right-1/4 w-[300px] h-[300px] rounded-full bg-purple-500/8 blur-[100px] pointer-events-none" />
+
+      <div className="relative z-10 max-w-5xl mx-auto px-5 text-center">
+
+        {/* Badge */}
+        <motion.div
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5 }}
+          className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full border border-white/[0.1] bg-white/[0.04] text-white/60 text-[12px] font-medium mb-8 backdrop-blur-sm"
+        >
+          <span className="w-1.5 h-1.5 rounded-full bg-[#2563EB] animate-pulse" />
+          Now live — the freelance OS for Africa
+          <ChevronRight className="w-3.5 h-3.5 opacity-50" />
+        </motion.div>
+
+        {/* Headline */}
+        <motion.h1
+          initial={{ opacity: 0, y: 24 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, delay: 0.08, ease: [0.22, 1, 0.36, 1] }}
+          className="text-5xl md:text-7xl lg:text-8xl font-extrabold text-white leading-[0.95] tracking-[-0.04em] mb-6"
+        >
+          The platform where<br />
+          <span
+            className="text-transparent"
+            style={{
+              backgroundImage: "linear-gradient(135deg, #3b82f6 0%, #6366f1 50%, #8b5cf6 100%)",
+              WebkitBackgroundClip: "text",
+              backgroundClip: "text",
+            }}
+          >
+            talent meets
+          </span>{" "}
+          <span className="text-white">opportunity</span>
+        </motion.h1>
+
+        {/* Sub */}
+        <motion.p
+          initial={{ opacity: 0, y: 16 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.55, delay: 0.18 }}
+          className="text-[17px] md:text-xl text-white/40 max-w-xl mx-auto mb-10 leading-relaxed"
+        >
+          Learn skills. Build your portfolio. Find clients. Get hired. One platform, zero friction.
+        </motion.p>
+
+        {/* CTAs */}
+        <motion.div
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.26 }}
+          className="flex flex-col sm:flex-row items-center justify-center gap-3"
+        >
+          <Link
+            to="/signup"
+            className="flex items-center gap-2 px-6 py-3 rounded-xl bg-white text-[#09090b] text-[14px] font-semibold hover:bg-white/90 transition-all shadow-lg shadow-white/10"
+          >
+            Start for free
+            <ArrowRight className="w-4 h-4" />
+          </Link>
+          <Link
+            to="/signup?role=client"
+            className="flex items-center gap-2 px-6 py-3 rounded-xl border border-white/[0.12] text-white/70 text-[14px] font-medium hover:border-white/25 hover:text-white transition-all bg-white/[0.03]"
+          >
+            Post a job
+          </Link>
+        </motion.div>
+
+        {/* Trust line */}
+        <motion.p
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.4, duration: 0.5 }}
+          className="mt-8 text-[12px] text-white/25"
+        >
+          Free to join · No credit card required · Cancel anytime
+        </motion.p>
+      </div>
+
+      {/* Bottom fade */}
+      <div className="absolute bottom-0 inset-x-0 h-32 bg-gradient-to-t from-[#09090b] to-transparent pointer-events-none" />
+    </section>
+  );
+}
+
+/* ─── Stats ───────────────────────────────────────────────── */
+function Stats() {
+  const items = [
+    { value: "10,000+", label: "Registered talents"    },
+    { value: "2,000+",  label: "Active companies"      },
+    { value: "50,000+", label: "Jobs aggregated"       },
+    { value: "98%",     label: "Satisfaction rate"     },
+  ];
+
+  return (
+    <section className="bg-[#09090b] border-y border-white/[0.06]">
+      <div className="max-w-6xl mx-auto grid grid-cols-2 md:grid-cols-4 divide-x divide-y md:divide-y-0 divide-white/[0.06]">
+        {items.map(({ value, label }, i) => (
+          <motion.div
+            key={label}
+            {...fadeUp(i * 0.06)}
+            className="px-8 py-10 text-center"
+          >
+            <p
+              className="text-3xl md:text-4xl font-extrabold text-white mb-1 font-mono tracking-tight"
+              style={{ fontVariantNumeric: "tabular-nums" }}
+            >
+              {value}
+            </p>
+            <p className="text-[12px] text-white/35 uppercase tracking-widest">{label}</p>
+          </motion.div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+/* ─── Features ────────────────────────────────────────────── */
+const FEATURES = [
   {
     icon: Briefcase,
     title: "Job Aggregator",
-    desc: "Jobs from 10+ platforms in one daily feed.",
-    color: "bg-blue-50 text-blue-600",
+    desc: "Jobs from Upwork, LinkedIn, Remote OK, Jobberman and more — delivered in one daily feed, scored to your profile.",
   },
   {
     icon: Store,
     title: "Marketplace",
-    desc: "Clients post. Talents apply. AI matches both.",
-    color: "bg-violet-50 text-violet-600",
+    desc: "Post a job as a client or browse and apply as talent. Built-in AI matching surfaces the right fit on both sides.",
   },
   {
     icon: CalendarDays,
     title: "Events Hub",
-    desc: "Discover webinars, workshops, and networking events.",
-    color: "bg-emerald-50 text-emerald-600",
+    desc: "Discover industry webinars, networking events, and workshops. RSVP, get reminders, connect with organisers.",
   },
   {
     icon: BookOpen,
-    title: "Learn + CV",
-    desc: "Learn a skill. Build a CV. Get hired.",
-    color: "bg-amber-50 text-amber-600",
+    title: "Learning Platform",
+    desc: "Structured courses with an AI coach, quizzes, and verifiable certificates you can share on your profile.",
+  },
+  {
+    icon: FileText,
+    title: "CV Builder",
+    desc: "Six ATS-optimised templates, AI-written summaries, one-click PDF export, and a live ATS score checker.",
+  },
+  {
+    icon: Shield,
+    title: "Secure Payments",
+    desc: "Milestone-based escrow via Paystack. Funds only release when work is approved — protecting both parties.",
   },
 ];
 
-const testimonials = [
-  {
-    name: "Amara O.",
-    role: "Freelance Designer",
-    quote: "Within two weeks of joining, I landed two clients through the marketplace. The job aggregator alone saved me hours every day.",
-  },
-  {
-    name: "David K.",
-    role: "Product Manager, TechCo",
-    quote: "Finding quality talent used to take us weeks. With Skryve we hired our UI designer in three days. The AI matching is genuinely impressive.",
-  },
-  {
-    name: "Chisom N.",
-    role: "Full-Stack Developer",
-    quote: "I finished the React course, added the certificate to my profile, and started getting inbound messages from clients. This platform is the real deal.",
-  },
-];
+function Features() {
+  return (
+    <section id="features" className="bg-[#09090b] py-24 md:py-32">
+      <div className="max-w-6xl mx-auto px-5">
 
-export default function Landing() {
-  const [mobileOpen, setMobileOpen] = useState(false);
+        <motion.div {...fadeUp()} className="mb-16 max-w-xl">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.15em] text-[#2563EB] mb-4">Platform</p>
+          <h2 className="text-4xl md:text-5xl font-extrabold text-white tracking-[-0.03em] leading-[1.05] mb-5">
+            Everything you need.<br />Nothing you don't.
+          </h2>
+          <p className="text-[15px] text-white/40 leading-relaxed">
+            Six purpose-built tools in one cohesive platform — no switching between apps.
+          </p>
+        </motion.div>
+
+        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-px bg-white/[0.06] rounded-2xl overflow-hidden border border-white/[0.06]">
+          {FEATURES.map(({ icon: Icon, title, desc }, i) => (
+            <motion.div
+              key={title}
+              {...fadeUp(i * 0.05)}
+              className="bg-[#09090b] p-7 hover:bg-white/[0.03] transition-colors group"
+            >
+              <div className="w-9 h-9 rounded-xl border border-white/[0.08] flex items-center justify-center mb-5 group-hover:border-[#2563EB]/40 transition-colors">
+                <Icon className="w-4.5 h-4.5 text-white/50 group-hover:text-[#2563EB] transition-colors" style={{ width: "18px", height: "18px" }} />
+              </div>
+              <h3 className="text-[15px] font-semibold text-white mb-2">{title}</h3>
+              <p className="text-[13px] text-white/40 leading-relaxed">{desc}</p>
+            </motion.div>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+/* ─── How It Works ────────────────────────────────────────── */
+function HowItWorks() {
+  const talentSteps = [
+    { n: "01", title: "Create your profile",     desc: "Set up in under 2 minutes. Add skills, rate, and portfolio." },
+    { n: "02", title: "Get curated job matches",  desc: "Daily digest from 10+ platforms, scored to your profile." },
+    { n: "03", title: "Apply with AI proposals",  desc: "One-click AI-drafted cover letters, tailored per job."   },
+    { n: "04", title: "Get hired & get paid",     desc: "Secure escrow payments. Milestone-based, always protected."  },
+  ];
+  const clientSteps = [
+    { n: "01", title: "Post your job",            desc: "Describe what you need — AI improves your description."    },
+    { n: "02", title: "Review AI-matched talent", desc: "Profiles scored and ranked for your requirements."         },
+    { n: "03", title: "Send an offer",            desc: "In-platform contracts, milestones, and messaging."         },
+    { n: "04", title: "Release payment",          desc: "Funds release once you approve the work. No risk."        },
+  ];
 
   return (
-    <div className="min-h-screen bg-white text-gray-900">
+    <section className="bg-[#09090b] py-24 border-t border-white/[0.06]">
+      <div className="max-w-6xl mx-auto px-5">
 
-      {/* ── Navbar ──────────────────────────────────────────── */}
-      <nav className="fixed top-0 inset-x-0 z-50 bg-white/90 backdrop-blur border-b border-gray-100">
-        <div className="container mx-auto px-4 flex items-center justify-between h-16">
-          <Link to="/" className="flex items-center gap-2 shrink-0">
-            <img src="/logo.png" alt="Skryve" className="w-8 h-8 object-contain" />
-            <span className="font-bold text-xl text-[#1E3A5F]">Skryve</span>
+        <motion.div {...fadeUp()} className="mb-16 text-center">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.15em] text-[#2563EB] mb-4">How it works</p>
+          <h2 className="text-4xl md:text-5xl font-extrabold text-white tracking-[-0.03em] leading-[1.05]">
+            Up and running in minutes
+          </h2>
+        </motion.div>
+
+        <div className="grid md:grid-cols-2 gap-6">
+          {/* Talent */}
+          <motion.div
+            {...fadeUp(0.05)}
+            className="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-8"
+          >
+            <div className="flex items-center gap-2.5 mb-8">
+              <div className="w-6 h-6 rounded-md bg-[#2563EB]/15 flex items-center justify-center">
+                <Users className="w-3.5 h-3.5 text-[#2563EB]" />
+              </div>
+              <span className="text-[13px] font-semibold text-white">For Talents</span>
+            </div>
+            <ol className="space-y-6">
+              {talentSteps.map(({ n, title, desc }) => (
+                <li key={n} className="flex items-start gap-4">
+                  <span className="font-mono text-[12px] font-semibold text-white/25 shrink-0 pt-0.5 w-6">{n}</span>
+                  <div>
+                    <p className="text-[14px] font-semibold text-white/90 mb-0.5">{title}</p>
+                    <p className="text-[13px] text-white/35 leading-relaxed">{desc}</p>
+                  </div>
+                </li>
+              ))}
+            </ol>
+          </motion.div>
+
+          {/* Client */}
+          <motion.div
+            {...fadeUp(0.1)}
+            className="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-8"
+          >
+            <div className="flex items-center gap-2.5 mb-8">
+              <div className="w-6 h-6 rounded-md bg-purple-500/15 flex items-center justify-center">
+                <Briefcase className="w-3.5 h-3.5 text-purple-400" />
+              </div>
+              <span className="text-[13px] font-semibold text-white">For Clients</span>
+            </div>
+            <ol className="space-y-6">
+              {clientSteps.map(({ n, title, desc }) => (
+                <li key={n} className="flex items-start gap-4">
+                  <span className="font-mono text-[12px] font-semibold text-white/25 shrink-0 pt-0.5 w-6">{n}</span>
+                  <div>
+                    <p className="text-[14px] font-semibold text-white/90 mb-0.5">{title}</p>
+                    <p className="text-[13px] text-white/35 leading-relaxed">{desc}</p>
+                  </div>
+                </li>
+              ))}
+            </ol>
+          </motion.div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+/* ─── Testimonials ────────────────────────────────────────── */
+const TESTIMONIALS = [
+  {
+    quote: "Within two weeks I landed two clients through the marketplace. The job aggregator alone saved me hours every day.",
+    name: "Amara O.",
+    role: "Freelance Designer",
+  },
+  {
+    quote: "Finding quality talent used to take us weeks. With Skryve we hired our UI designer in three days. The AI matching is impressive.",
+    name: "David K.",
+    role: "Product Manager, TechCo",
+  },
+  {
+    quote: "Finished the React course, got my certificate, and started getting inbound messages from clients. This platform is the real deal.",
+    name: "Chisom N.",
+    role: "Full-Stack Developer",
+  },
+];
+
+function Testimonials() {
+  return (
+    <section className="bg-[#09090b] py-24 border-t border-white/[0.06]">
+      <div className="max-w-6xl mx-auto px-5">
+
+        <motion.div {...fadeUp()} className="mb-14 text-center">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.15em] text-[#2563EB] mb-4">Testimonials</p>
+          <h2 className="text-4xl md:text-5xl font-extrabold text-white tracking-[-0.03em]">
+            Trusted by professionals
+          </h2>
+        </motion.div>
+
+        <div className="grid md:grid-cols-3 gap-4">
+          {TESTIMONIALS.map(({ quote, name, role }, i) => (
+            <motion.div
+              key={name}
+              {...fadeUp(i * 0.07)}
+              className="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-7 flex flex-col"
+            >
+              <p className="text-[14px] text-white/55 leading-relaxed flex-1 mb-6">
+                "{quote}"
+              </p>
+              <div className="flex items-center gap-3 pt-5 border-t border-white/[0.06]">
+                <div className="w-8 h-8 rounded-full bg-[#2563EB]/15 flex items-center justify-center text-[12px] font-bold text-[#2563EB]">
+                  {name[0]}
+                </div>
+                <div>
+                  <p className="text-[13px] font-semibold text-white">{name}</p>
+                  <p className="text-[11px] text-white/35">{role}</p>
+                </div>
+              </div>
+            </motion.div>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+/* ─── CTA ─────────────────────────────────────────────────── */
+function CTA() {
+  return (
+    <section className="bg-[#09090b] py-24 border-t border-white/[0.06]">
+      <div className="max-w-6xl mx-auto px-5">
+        <motion.div
+          {...fadeUp()}
+          className="relative rounded-3xl overflow-hidden border border-white/[0.08] p-14 md:p-20 text-center"
+          style={{
+            background: "radial-gradient(ellipse 80% 60% at 50% 0%, rgba(37,99,235,0.15) 0%, transparent 70%), #0d0d0d",
+          }}
+        >
+          {/* Dot grid inside */}
+          <div
+            className="absolute inset-0 opacity-20 pointer-events-none"
+            style={{
+              backgroundImage: "radial-gradient(circle, rgba(255,255,255,0.08) 1px, transparent 1px)",
+              backgroundSize: "24px 24px",
+            }}
+          />
+          <div className="relative z-10">
+            <h2 className="text-4xl md:text-5xl lg:text-6xl font-extrabold text-white tracking-[-0.04em] leading-[1.0] mb-5">
+              Ready to get started?<br />It's free.
+            </h2>
+            <p className="text-[16px] text-white/40 max-w-md mx-auto mb-10">
+              Join thousands of talents and clients building their futures on Skryve.
+            </p>
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
+              <Link
+                to="/signup"
+                className="flex items-center gap-2 px-7 py-3.5 rounded-xl bg-white text-[#09090b] text-[14px] font-bold hover:bg-white/90 transition-all shadow-lg"
+              >
+                Find work <ArrowRight className="w-4 h-4" />
+              </Link>
+              <Link
+                to="/signup?role=client"
+                className="flex items-center gap-2 px-7 py-3.5 rounded-xl border border-white/[0.15] text-white/70 text-[14px] font-medium hover:border-white/30 hover:text-white transition-all bg-white/[0.03]"
+              >
+                Hire talent
+              </Link>
+            </div>
+          </div>
+        </motion.div>
+      </div>
+    </section>
+  );
+}
+
+/* ─── Footer ──────────────────────────────────────────────── */
+function Footer() {
+  return (
+    <footer className="bg-[#09090b] border-t border-white/[0.06] py-12">
+      <div className="max-w-6xl mx-auto px-5">
+        <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-8 mb-10">
+          <Link to="/" className="flex items-center gap-2.5 shrink-0">
+            <img src="/logo.png" alt="Skryve" className="w-6 h-6 object-contain" />
+            <span className="font-bold text-[15px] text-white">Skryve</span>
           </Link>
 
-          <div className="hidden md:flex items-center gap-8">
-            {navLinks.map((l) => (
-              <Link
-                key={l.label}
-                to={l.href}
-                className="text-sm font-medium text-gray-600 hover:text-[#2563EB] transition-colors"
-              >
-                {l.label}
-              </Link>
+          <nav className="grid grid-cols-2 sm:grid-cols-3 gap-x-12 gap-y-3 text-[13px] text-white/35">
+            {[
+              { label: "About",          href: "/about"          },
+              { label: "Blog",           href: "/blog"           },
+              { label: "Pricing",        href: "/pricing"        },
+              { label: "Contact",        href: "/contact"        },
+              { label: "Privacy Policy", href: "/privacy-policy" },
+              { label: "Terms",          href: "/terms"          },
+            ].map(({ label, href }) => (
+              <Link key={label} to={href} className="hover:text-white transition-colors">{label}</Link>
             ))}
-          </div>
+          </nav>
 
-          <div className="hidden md:flex items-center gap-3">
-            <Button variant="ghost" size="sm" asChild>
-              <Link to="/login">Sign In</Link>
-            </Button>
-            <Button size="sm" className="bg-[#2563EB] hover:bg-[#1d4ed8] text-white" asChild>
-              <Link to="/signup">Get Started</Link>
-            </Button>
-          </div>
-
-          <button
-            className="md:hidden p-2 rounded-md text-gray-600"
-            onClick={() => setMobileOpen((v) => !v)}
-            aria-label="Toggle menu"
-          >
-            {mobileOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
-          </button>
-        </div>
-
-        {mobileOpen && (
-          <div className="md:hidden bg-white border-t border-gray-100 px-4 py-4 flex flex-col gap-4">
-            {navLinks.map((l) => (
-              <Link
-                key={l.label}
-                to={l.href}
-                className="text-sm font-medium text-gray-700"
-                onClick={() => setMobileOpen(false)}
-              >
-                {l.label}
-              </Link>
-            ))}
-            <div className="flex flex-col gap-2 pt-2 border-t border-gray-100">
-              <Button variant="outline" size="sm" asChild>
-                <Link to="/login" onClick={() => setMobileOpen(false)}>Sign In</Link>
-              </Button>
-              <Button size="sm" className="bg-[#2563EB] hover:bg-[#1d4ed8] text-white" asChild>
-                <Link to="/signup" onClick={() => setMobileOpen(false)}>Get Started</Link>
-              </Button>
-            </div>
-          </div>
-        )}
-      </nav>
-
-      {/* ── Hero ────────────────────────────────────────────── */}
-      <section className="relative bg-[#0B162B] pt-32 pb-24 overflow-hidden">
-        <div
-          className="absolute inset-0 opacity-[0.06]"
-          style={{
-            backgroundImage: "radial-gradient(circle, #fff 1px, transparent 1px)",
-            backgroundSize: "28px 28px",
-          }}
-        />
-        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[700px] h-[500px] rounded-full bg-[#2563EB]/20 blur-[120px] pointer-events-none" />
-        <div className="container mx-auto px-4 relative z-10 text-center">
-          <motion.div
-            initial={{ opacity: 0, y: 28 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6 }}
-          >
-            <span className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-semibold bg-white/10 text-white/80 border border-white/20 mb-6">
-              <Star className="w-3 h-3 fill-yellow-400 text-yellow-400" />
-              Built for the modern professional
-            </span>
-            <h1 className="text-4xl md:text-6xl lg:text-7xl font-extrabold text-white tracking-tight mb-6 leading-[1.1]">
-              The Platform Where<br />
-              <span className="text-[#2563EB]">Talent Meets Opportunity</span>
-            </h1>
-            <p className="text-lg md:text-xl text-white/70 max-w-2xl mx-auto mb-10 leading-relaxed">
-              Learn skills, build your portfolio, find clients, and get hired — all in one place.
-            </p>
-            <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-              <Button
-                size="lg"
-                className="bg-white text-[#1E3A5F] hover:bg-gray-100 font-bold px-8 rounded-full text-base"
-                asChild
-              >
-                <Link to="/signup">
-                  Get Started Free
-                  <ArrowRight className="w-5 h-5 ml-2" />
-                </Link>
-              </Button>
-              <Button
-                size="lg"
-                variant="outline"
-                className="border-white/40 text-white hover:bg-white/10 hover:text-white font-semibold px-8 rounded-full text-base bg-transparent"
-                asChild
-              >
-                <Link to="/signup?role=client">Post a Job</Link>
-              </Button>
-            </div>
-            <p className="mt-6 text-sm text-white/40 flex items-center justify-center gap-2">
-              <CheckCircle2 className="w-4 h-4 text-[#059669]" />
-              Free to join · No credit card required
-            </p>
-          </motion.div>
-        </div>
-      </section>
-
-      {/* ── Stats Bar ───────────────────────────────────────── */}
-      <section className="py-12 bg-gray-50 border-y border-gray-200">
-        <div className="container mx-auto px-4">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 text-center">
-            {stats.map((s, i) => (
-              <motion.div key={s.label} {...fadeUp} transition={{ delay: i * 0.1, duration: 0.5 }}>
-                <div className="text-4xl font-extrabold text-[#1E3A5F]">{s.value}</div>
-                <div className="text-sm text-gray-500 mt-1">{s.label}</div>
-              </motion.div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ── How It Works ────────────────────────────────────── */}
-      <section className="py-16 md:py-24">
-        <div className="container mx-auto px-4">
-          <motion.div {...fadeUp} className="text-center mb-14">
-            <h2 className="text-3xl md:text-4xl font-extrabold text-[#1E3A5F] mb-4">How It Works</h2>
-            <p className="text-gray-500 text-lg max-w-xl mx-auto">Simple steps to get started — whether you're a talent or a client.</p>
-          </motion.div>
-          <div className="grid md:grid-cols-2 gap-10 max-w-5xl mx-auto">
-            <motion.div {...fadeUp} className="bg-blue-50 rounded-2xl p-8">
-              <div className="flex items-center gap-3 mb-6">
-                <Users className="w-6 h-6 text-[#2563EB]" />
-                <h3 className="text-xl font-bold text-[#1E3A5F]">For Talents</h3>
-              </div>
-              <ol className="space-y-5">
-                {talentSteps.map((s) => (
-                  <li key={s.n} className="flex items-start gap-4">
-                    <span className="shrink-0 w-8 h-8 rounded-full bg-[#2563EB] text-white text-sm font-bold flex items-center justify-center">
-                      {s.n}
-                    </span>
-                    <div>
-                      <p className="font-semibold text-[#1E3A5F]">{s.title}</p>
-                      <p className="text-sm text-gray-500">{s.desc}</p>
-                    </div>
-                  </li>
-                ))}
-              </ol>
-            </motion.div>
-            <motion.div {...fadeUp} transition={{ delay: 0.1, duration: 0.5 }} className="bg-violet-50 rounded-2xl p-8">
-              <div className="flex items-center gap-3 mb-6">
-                <Briefcase className="w-6 h-6 text-violet-600" />
-                <h3 className="text-xl font-bold text-[#1E3A5F]">For Clients</h3>
-              </div>
-              <ol className="space-y-5">
-                {clientSteps.map((s) => (
-                  <li key={s.n} className="flex items-start gap-4">
-                    <span className="shrink-0 w-8 h-8 rounded-full bg-violet-600 text-white text-sm font-bold flex items-center justify-center">
-                      {s.n}
-                    </span>
-                    <div>
-                      <p className="font-semibold text-[#1E3A5F]">{s.title}</p>
-                      <p className="text-sm text-gray-500">{s.desc}</p>
-                    </div>
-                  </li>
-                ))}
-              </ol>
-            </motion.div>
-          </div>
-        </div>
-      </section>
-
-      {/* ── Features ────────────────────────────────────────── */}
-      <section id="features" className="py-16 md:py-24 bg-gray-50">
-        <div className="container mx-auto px-4">
-          <motion.div {...fadeUp} className="text-center mb-14">
-            <h2 className="text-3xl md:text-4xl font-extrabold text-[#1E3A5F] mb-4">Everything You Need</h2>
-            <p className="text-gray-500 text-lg max-w-xl mx-auto">Four powerful tools built into one platform.</p>
-          </motion.div>
-          <div className="grid sm:grid-cols-2 gap-6 max-w-4xl mx-auto">
-            {features.map((f, i) => (
-              <motion.div
-                key={f.title}
-                {...fadeUp}
-                transition={{ delay: i * 0.1, duration: 0.5 }}
-                className="bg-white rounded-2xl border border-gray-100 p-7 shadow-sm hover:shadow-md transition-shadow"
-              >
-                <div className={`w-12 h-12 rounded-xl flex items-center justify-center mb-5 ${f.color}`}>
-                  <f.icon className="w-6 h-6" />
-                </div>
-                <h3 className="text-lg font-bold text-[#1E3A5F] mb-2">{f.title}</h3>
-                <p className="text-gray-500 text-sm leading-relaxed">{f.desc}</p>
-              </motion.div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ── Social Proof ────────────────────────────────────── */}
-      <section className="py-16 md:py-24">
-        <div className="container mx-auto px-4">
-          <motion.div {...fadeUp} className="text-center mb-14">
-            <h2 className="text-3xl md:text-4xl font-extrabold text-[#1E3A5F] mb-4">Loved by Professionals</h2>
-            <p className="text-gray-500 text-lg max-w-xl mx-auto">Here's what our members say.</p>
-          </motion.div>
-          <div className="grid md:grid-cols-3 gap-6 max-w-5xl mx-auto">
-            {testimonials.map((t, i) => (
-              <motion.div
-                key={t.name}
-                {...fadeUp}
-                transition={{ delay: i * 0.12, duration: 0.5 }}
-                className="bg-white rounded-2xl border border-gray-100 p-7 shadow-sm"
-              >
-                <Quote className="w-6 h-6 text-[#2563EB] mb-4" />
-                <p className="text-gray-600 text-sm leading-relaxed mb-5">"{t.quote}"</p>
-                <div>
-                  <p className="font-semibold text-[#1E3A5F] text-sm">{t.name}</p>
-                  <p className="text-gray-400 text-xs">{t.role}</p>
-                </div>
-              </motion.div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ── CTA Banner ──────────────────────────────────────── */}
-      <section className="py-16 md:py-24 bg-[#1E3A5F]">
-        <div className="container mx-auto px-4 text-center">
-          <motion.div {...fadeUp}>
-            <h2 className="text-3xl md:text-4xl font-extrabold text-white mb-4">
-              Ready to get started? It's free.
-            </h2>
-            <p className="text-white/60 mb-10 text-lg max-w-xl mx-auto">
-              Join thousands of talents and clients already on Skryve.
-            </p>
-            <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-              <Button
-                size="lg"
-                className="bg-white text-[#1E3A5F] hover:bg-gray-100 font-bold px-8 rounded-full text-base"
-                asChild
-              >
-                <Link to="/signup">Find Work</Link>
-              </Button>
-              <Button
-                size="lg"
-                variant="outline"
-                className="border-white/40 text-white hover:bg-white/10 hover:text-white font-semibold px-8 rounded-full text-base bg-transparent"
-                asChild
-              >
-                <Link to="/signup?role=client">Hire Talent</Link>
-              </Button>
-            </div>
-          </motion.div>
-        </div>
-      </section>
-
-      {/* ── Footer ──────────────────────────────────────────── */}
-      <footer className="bg-white border-t border-gray-100 py-12">
-        <div className="container mx-auto px-4">
-          <div className="flex flex-col md:flex-row items-center justify-between gap-8">
-            <Link to="/" className="flex items-center gap-2">
-              <img src="/logo.png" alt="Skryve" className="w-8 h-8 object-contain" />
-              <span className="font-bold text-xl text-[#1E3A5F]">Skryve</span>
-            </Link>
-            <nav className="flex flex-wrap items-center justify-center gap-5 text-sm text-gray-500">
-              <Link to="/about" className="hover:text-[#2563EB] transition-colors">About</Link>
-              <Link to="/blog" className="hover:text-[#2563EB] transition-colors">Blog</Link>
-              <Link to="/pricing" className="hover:text-[#2563EB] transition-colors">Pricing</Link>
-              <Link to="/contact" className="hover:text-[#2563EB] transition-colors">Contact</Link>
-              <Link to="/privacy-policy" className="hover:text-[#2563EB] transition-colors">Privacy Policy</Link>
-              <Link to="/terms" className="hover:text-[#2563EB] transition-colors">Terms</Link>
-            </nav>
-            <div className="flex items-center gap-4">
+          <div className="flex items-center gap-4">
+            {[
+              { icon: Twitter,   href: "https://twitter.com",   label: "Twitter"   },
+              { icon: Linkedin,  href: "https://linkedin.com",  label: "LinkedIn"  },
+              { icon: Instagram, href: "https://instagram.com", label: "Instagram" },
+            ].map(({ icon: Icon, href, label }) => (
               <a
-                href="https://twitter.com"
+                key={label}
+                href={href}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-gray-400 hover:text-[#2563EB] transition-colors"
-                aria-label="Twitter"
+                aria-label={label}
+                className="text-white/25 hover:text-white/60 transition-colors"
               >
-                <Twitter className="w-5 h-5" />
+                <Icon className="w-4 h-4" />
               </a>
-              <a
-                href="https://linkedin.com"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-gray-400 hover:text-[#2563EB] transition-colors"
-                aria-label="LinkedIn"
-              >
-                <Linkedin className="w-5 h-5" />
-              </a>
-              <a
-                href="https://instagram.com"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-gray-400 hover:text-[#2563EB] transition-colors"
-                aria-label="Instagram"
-              >
-                <Instagram className="w-5 h-5" />
-              </a>
-            </div>
+            ))}
           </div>
-          <p className="text-center text-xs text-gray-400 mt-8">© 2026 Skryve. All rights reserved.</p>
         </div>
-      </footer>
+
+        <div className="border-t border-white/[0.06] pt-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-[12px] text-white/25">
+          <p>© {new Date().getFullYear()} Skryve. All rights reserved.</p>
+          <p>Built for the modern African professional.</p>
+        </div>
+      </div>
+    </footer>
+  );
+}
+
+/* ─── Page ────────────────────────────────────────────────── */
+export default function Landing() {
+  return (
+    <div className="min-h-screen bg-[#09090b]">
+      <Navbar />
+      <Hero />
+      <Stats />
+      <Features />
+      <HowItWorks />
+      <Testimonials />
+      <CTA />
+      <Footer />
     </div>
   );
 }

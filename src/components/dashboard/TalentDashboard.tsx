@@ -1,508 +1,400 @@
 import { useState, useEffect } from "react";
-import { Link, useNavigate } from "react-router-dom";
-import { formatDistanceToNow } from "date-fns";
+import { Link } from "react-router-dom";
+import { formatDistanceToNow, format } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import {
-  Briefcase, FileText, BookOpen, User, CheckCircle2, Circle,
-  ExternalLink, MessageSquare, CalendarDays, Zap, ChevronRight,
+  Briefcase, FileText, BookOpen, User, ArrowRight,
+  ExternalLink, CheckCircle2, Circle, Zap, TrendingUp,
+  MessageSquare, CalendarDays, ChevronRight,
 } from "lucide-react";
 
-const PLATFORM_COLORS: Record<string, string> = {
-  upwork:    "bg-green-500/10 text-green-500 border-green-500/30",
-  linkedin:  "bg-blue-500/10 text-blue-500 border-blue-500/30",
-  indeed:    "bg-orange-500/10 text-orange-500 border-orange-500/30",
-  remote_ok: "bg-purple-500/10 text-purple-500 border-purple-500/30",
-  jobberman: "bg-pink-500/10 text-pink-500 border-pink-500/30",
-  other:     "bg-muted text-muted-foreground border-border",
-};
-
-const STATUS_STYLES: Record<string, string> = {
-  applied:   "bg-muted text-muted-foreground",
-  replied:   "bg-blue-500/10 text-blue-500",
-  interview: "bg-yellow-500/10 text-yellow-500",
-  offer:     "bg-green-500/10 text-green-500",
-  rejected:  "bg-red-500/10 text-red-500",
-};
-
-function DashboardSkeleton() {
+/* ─── Skeleton ─────────────────────────────────────────── */
+export function DashboardSkeleton() {
   return (
-    <div className="space-y-6">
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {[...Array(3)].map((_, i) => (
-          <div key={i} className="h-48 bg-muted rounded-xl animate-pulse" />
-        ))}
+    <div className="space-y-8 animate-pulse">
+      <div className="h-6 w-48 bg-muted rounded" />
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-px bg-border rounded-xl overflow-hidden">
+        {[...Array(4)].map((_, i) => <div key={i} className="h-20 bg-card" />)}
+      </div>
+      <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
+        <div className="lg:col-span-3 h-80 bg-card rounded-xl border border-border" />
+        <div className="lg:col-span-2 h-80 bg-card rounded-xl border border-border" />
       </div>
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        {[...Array(3)].map((_, i) => (
-          <div key={i} className="h-40 bg-muted rounded-xl animate-pulse" />
-        ))}
+        {[...Array(3)].map((_, i) => <div key={i} className="h-48 bg-card rounded-xl border border-border" />)}
       </div>
-      <div className="h-24 bg-muted rounded-xl animate-pulse" />
     </div>
   );
 }
 
-function ProfileCompletionCard({ userId }: { userId: string }) {
-  const [items, setItems] = useState({
-    photo: false,
-    bio: false,
-    skill: false,
-    rate: false,
-    cv: false,
-  });
-  const [loading, setLoading] = useState(true);
+/* ─── Stat Bar ──────────────────────────────────────────── */
+function StatBar({ userId }: { userId: string }) {
+  const [stats, setStats] = useState({ jobs: 0, apps: 0, projects: 0, cvs: 0 });
 
   useEffect(() => {
     (async () => {
-      const { data: profile } = await (supabase as any)
-        .from("talent_profiles")
-        .select("full_name, bio, profile_photo_url, primary_skill, hourly_rate")
-        .eq("user_id", userId)
-        .maybeSingle();
-
-      const { data: cv } = await (supabase as any)
-        .from("skryve_cvs")
-        .select("id")
-        .eq("user_id", userId)
-        .maybeSingle();
-
-      setItems({
-        photo: !!profile?.profile_photo_url,
-        bio:   !!profile?.bio,
-        skill: !!profile?.primary_skill,
-        rate:  !!profile?.hourly_rate,
-        cv:    !!cv,
-      });
-      setLoading(false);
+      const [{ count: jobs }, { count: apps }, { count: projects }, { count: cvs }] = await Promise.all([
+        (supabase as any).from("aggregated_jobs").select("id", { count: "exact", head: true }).eq("is_active", true),
+        (supabase as any).from("job_applications").select("id", { count: "exact", head: true }).eq("user_id", userId),
+        (supabase as any).from("projects").select("id", { count: "exact", head: true }).eq("talent_id", userId).neq("status", "completed"),
+        (supabase as any).from("skryve_cvs").select("id", { count: "exact", head: true }).eq("user_id", userId),
+      ]);
+      setStats({ jobs: jobs ?? 0, apps: apps ?? 0, projects: projects ?? 0, cvs: cvs ?? 0 });
     })();
   }, [userId]);
 
-  const checks = [
-    { key: "photo", label: "Profile photo",    href: "/profile" },
-    { key: "bio",   label: "Bio written",       href: "/profile" },
-    { key: "skill", label: "Primary skill set", href: "/profile" },
-    { key: "rate",  label: "Hourly rate set",   href: "/profile" },
-    { key: "cv",    label: "CV built",           href: "/cv-builder" },
-  ] as const;
-
-  const completed = Object.values(items).filter(Boolean).length;
-  const pct = (completed / 5) * 100;
-  const radius = 36;
-  const circ = 2 * Math.PI * radius;
-  const offset = circ - (pct / 100) * circ;
-
-  if (loading) return <div className="h-full bg-muted rounded-xl animate-pulse" />;
-
-  return (
-    <Card className="h-full">
-      <CardHeader className="pb-2">
-        <CardTitle className="font-display text-base font-bold">Profile Strength</CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        <div className="flex items-center gap-4">
-          <svg width="88" height="88" viewBox="0 0 88 88">
-            <circle cx="44" cy="44" r={radius} fill="none" stroke="hsl(var(--muted))" strokeWidth="8" />
-            <circle
-              cx="44" cy="44" r={radius} fill="none"
-              stroke="hsl(var(--primary))" strokeWidth="8"
-              strokeDasharray={circ} strokeDashoffset={offset}
-              strokeLinecap="round"
-              transform="rotate(-90 44 44)"
-              style={{ transition: "stroke-dashoffset 0.5s ease" }}
-            />
-            <text x="44" y="48" textAnchor="middle" fontSize="16" fontWeight="700" fill="currentColor">
-              {Math.round(pct)}%
-            </text>
-          </svg>
-          <div className="flex-1 space-y-1.5">
-            {checks.map(({ key, label, href }) => {
-              const done = items[key];
-              return (
-                <div key={key} className="flex items-center gap-2 text-sm">
-                  {done ? (
-                    <CheckCircle2 className="w-4 h-4 text-green-500 shrink-0" />
-                  ) : (
-                    <Circle className="w-4 h-4 text-muted-foreground shrink-0" />
-                  )}
-                  {done ? (
-                    <span className="text-muted-foreground line-through">{label}</span>
-                  ) : (
-                    <Link to={href} className="text-foreground hover:underline hover:text-primary">
-                      {label}
-                    </Link>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-        </div>
-        <Button asChild size="sm" className="w-full">
-          <Link to="/profile">Complete your profile</Link>
-        </Button>
-      </CardContent>
-    </Card>
-  );
-}
-
-function DailyJobsWidget() {
-  const [jobs, setJobs] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    (async () => {
-      const { data } = await (supabase as any)
-        .from("aggregated_jobs")
-        .select("id, title, platform, budget, external_url, posted_at")
-        .eq("is_active", true)
-        .order("posted_at", { ascending: false })
-        .limit(5);
-      setJobs(data || []);
-      setLoading(false);
-    })();
-  }, []);
-
-  const today = new Date().toLocaleDateString("en-US", {
-    weekday: "long", month: "long", day: "numeric",
-  });
-
-  if (loading) return <div className="h-full bg-muted rounded-xl animate-pulse" />;
-
-  return (
-    <Card className="h-full">
-      <CardHeader className="pb-2">
-        <div className="flex items-center justify-between">
-          <CardTitle className="font-display text-base font-bold">
-            Your Jobs Today — {today}
-          </CardTitle>
-          <Button asChild variant="ghost" size="sm">
-            <Link to="/jobs">View All <ChevronRight className="w-4 h-4 ml-1" /></Link>
-          </Button>
-        </div>
-      </CardHeader>
-      <CardContent>
-        {jobs.length === 0 ? (
-          <div className="text-center py-8 space-y-3">
-            <Briefcase className="w-10 h-10 text-muted-foreground mx-auto" />
-            <p className="text-sm text-muted-foreground">No jobs found today. Check back tomorrow!</p>
-            <Button asChild size="sm" variant="outline">
-              <Link to="/jobs">Find Jobs</Link>
-            </Button>
-          </div>
-        ) : (
-          <div className="space-y-2">
-            {jobs.map((job) => {
-              const platformKey = (job.platform || "other").toLowerCase().replace(/[^a-z_]/g, "_");
-              const colorClass = PLATFORM_COLORS[platformKey] || PLATFORM_COLORS.other;
-              return (
-                <div key={job.id} className="flex items-center justify-between p-2.5 rounded-lg border bg-card hover:bg-accent/50 transition-colors">
-                  <div className="flex-1 min-w-0 mr-3">
-                    <p className="text-sm font-medium truncate">{job.title}</p>
-                    <div className="flex items-center gap-2 mt-1">
-                      <Badge variant="outline" className={`text-[10px] px-1.5 py-0 h-4 ${colorClass}`}>
-                        {job.platform}
-                      </Badge>
-                      {job.budget && (
-                        <span className="text-xs text-muted-foreground">{job.budget}</span>
-                      )}
-                    </div>
-                  </div>
-                  <a
-                    href={job.external_url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="shrink-0"
-                  >
-                    <Button size="sm" variant="outline" className="h-7 text-xs gap-1">
-                      Apply <ExternalLink className="w-3 h-3" />
-                    </Button>
-                  </a>
-                </div>
-              );
-            })}
-          </div>
-        )}
-      </CardContent>
-    </Card>
-  );
-}
-
-function ApplicationsWidget({ userId }: { userId: string }) {
-  const [apps, setApps] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    (async () => {
-      const { data } = await (supabase as any)
-        .from("job_applications")
-        .select("id, status, created_at, role_title, company_name")
-        .eq("user_id", userId)
-        .order("created_at", { ascending: false })
-        .limit(3);
-      setApps(data || []);
-      setLoading(false);
-    })();
-  }, [userId]);
-
-  if (loading) return <div className="h-full bg-muted rounded-xl animate-pulse" />;
-
-  return (
-    <Card className="h-full">
-      <CardHeader className="pb-2">
-        <div className="flex items-center justify-between">
-          <CardTitle className="font-display text-base font-bold">My Applications</CardTitle>
-          <Button asChild variant="ghost" size="sm">
-            <Link to="/applications"><ChevronRight className="w-4 h-4" /></Link>
-          </Button>
-        </div>
-      </CardHeader>
-      <CardContent>
-        {apps.length === 0 ? (
-          <div className="text-center py-6 space-y-3">
-            <FileText className="w-8 h-8 text-muted-foreground mx-auto" />
-            <p className="text-sm text-muted-foreground">No applications yet</p>
-            <Button asChild size="sm" variant="outline">
-              <Link to="/jobs">Browse Jobs</Link>
-            </Button>
-          </div>
-        ) : (
-          <div className="space-y-2">
-            {apps.map((app) => (
-              <div key={app.id} className="flex items-center justify-between gap-2">
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium truncate">{app.role_title}</p>
-                  <p className="text-xs text-muted-foreground">{app.company_name}</p>
-                </div>
-                <div className="flex flex-col items-end gap-1 shrink-0">
-                  <Badge className={`text-[10px] px-1.5 py-0 h-4 ${STATUS_STYLES[app.status] || STATUS_STYLES.applied}`}>
-                    {app.status}
-                  </Badge>
-                  <span className="text-[10px] text-muted-foreground">
-                    {formatDistanceToNow(new Date(app.created_at), { addSuffix: true })}
-                  </span>
-                </div>
-              </div>
-            ))}
-            <Button asChild variant="ghost" size="sm" className="w-full mt-2">
-              <Link to="/applications">View All Applications</Link>
-            </Button>
-          </div>
-        )}
-      </CardContent>
-    </Card>
-  );
-}
-
-function MessagesWidget({ userId }: { userId: string }) {
-  const [convos, setConvos] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    (async () => {
-      const { data: talentProfile } = await (supabase as any)
-        .from("talent_profiles")
-        .select("id")
-        .eq("user_id", userId)
-        .maybeSingle();
-
-      if (!talentProfile) { setLoading(false); return; }
-
-      const { data } = await (supabase as any)
-        .from("marketplace_conversations")
-        .select("id, last_message_at, marketplace_messages(content, sent_at, sender_id, is_read)")
-        .eq("talent_id", talentProfile.id)
-        .order("last_message_at", { ascending: false })
-        .limit(3);
-
-      setConvos(data || []);
-      setLoading(false);
-    })();
-  }, [userId]);
-
-  if (loading) return <div className="h-full bg-muted rounded-xl animate-pulse" />;
-
-  return (
-    <Card className="h-full">
-      <CardHeader className="pb-2">
-        <div className="flex items-center justify-between">
-          <CardTitle className="font-display text-base font-bold">Messages</CardTitle>
-          <Button asChild variant="ghost" size="sm">
-            <Link to="/messages"><ChevronRight className="w-4 h-4" /></Link>
-          </Button>
-        </div>
-      </CardHeader>
-      <CardContent>
-        {convos.length === 0 ? (
-          <div className="text-center py-6 space-y-3">
-            <MessageSquare className="w-8 h-8 text-muted-foreground mx-auto" />
-            <p className="text-sm text-muted-foreground">No messages yet</p>
-          </div>
-        ) : (
-          <div className="space-y-2">
-            {convos.map((c) => {
-              const msgs: any[] = c.marketplace_messages || [];
-              const last = msgs.sort((a: any, b: any) =>
-                new Date(b.sent_at).getTime() - new Date(a.sent_at).getTime()
-              )[0];
-              const unread = msgs.filter((m: any) => !m.is_read && m.sender_id !== userId).length;
-              return (
-                <Link key={c.id} to={`/messages/${c.id}`} className="flex items-start gap-2 p-2 rounded-lg hover:bg-accent/50 transition-colors">
-                  <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
-                    <User className="w-4 h-4 text-primary" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-xs text-muted-foreground truncate">{last?.content || "No messages"}</p>
-                    {last?.sent_at && (
-                      <p className="text-[10px] text-muted-foreground">
-                        {formatDistanceToNow(new Date(last.sent_at), { addSuffix: true })}
-                      </p>
-                    )}
-                  </div>
-                  {unread > 0 && (
-                    <Badge className="shrink-0 h-4 w-4 p-0 flex items-center justify-center text-[10px] rounded-full">
-                      {unread}
-                    </Badge>
-                  )}
-                </Link>
-              );
-            })}
-            <Button asChild variant="ghost" size="sm" className="w-full mt-1">
-              <Link to="/messages">Open Messages</Link>
-            </Button>
-          </div>
-        )}
-      </CardContent>
-    </Card>
-  );
-}
-
-function EventsWidget({ userId }: { userId: string }) {
-  const [events, setEvents] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    (async () => {
-      const { data } = await (supabase as any)
-        .from("events")
-        .select("id, title, date_time, format, banner_url")
-        .gte("date_time", new Date().toISOString())
-        .order("date_time", { ascending: true })
-        .limit(3);
-      setEvents(data || []);
-      setLoading(false);
-    })();
-  }, [userId]);
-
-  if (loading) return <div className="h-full bg-muted rounded-xl animate-pulse" />;
-
-  return (
-    <Card className="h-full">
-      <CardHeader className="pb-2">
-        <div className="flex items-center justify-between">
-          <CardTitle className="font-display text-base font-bold">Upcoming Events</CardTitle>
-          <Button asChild variant="ghost" size="sm">
-            <Link to="/events"><ChevronRight className="w-4 h-4" /></Link>
-          </Button>
-        </div>
-      </CardHeader>
-      <CardContent>
-        {events.length === 0 ? (
-          <div className="text-center py-6 space-y-3">
-            <CalendarDays className="w-8 h-8 text-muted-foreground mx-auto" />
-            <p className="text-sm text-muted-foreground">No upcoming events</p>
-            <Button asChild size="sm" variant="outline">
-              <Link to="/events">Browse Events</Link>
-            </Button>
-          </div>
-        ) : (
-          <div className="space-y-2">
-            {events.map((ev) => {
-              const isOnline = ["webinar", "online", "virtual"].some(k => ev.format?.toLowerCase().includes(k));
-              return (
-                <Link key={ev.id} to={`/events/${ev.id}`} className="flex items-start gap-2 p-2 rounded-lg hover:bg-accent/50 transition-colors">
-                  <div className="w-8 h-8 rounded bg-primary/10 flex items-center justify-center shrink-0">
-                    <CalendarDays className="w-4 h-4 text-primary" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium truncate">{ev.title}</p>
-                    <div className="flex items-center gap-2 mt-0.5">
-                      <span className="text-xs text-muted-foreground">
-                        {new Date(ev.date_time).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
-                      </span>
-                      <Badge variant="outline" className={`text-[10px] px-1.5 py-0 h-4 ${isOnline ? "border-blue-500/30 text-blue-500" : "border-green-500/30 text-green-500"}`}>
-                        {isOnline ? "Online" : "In-Person"}
-                      </Badge>
-                    </div>
-                  </div>
-                </Link>
-              );
-            })}
-            <Button asChild variant="ghost" size="sm" className="w-full mt-1">
-              <Link to="/events">Browse Events</Link>
-            </Button>
-          </div>
-        )}
-      </CardContent>
-    </Card>
-  );
-}
-
-function QuickActionsBar() {
-  const actions = [
-    { label: "Find Jobs",     icon: Briefcase,    to: "/jobs"        },
-    { label: "Build CV",      icon: FileText,     to: "/cv-builder"  },
-    { label: "Learn a Skill", icon: BookOpen,     to: "/learn"       },
-    { label: "Edit Profile",  icon: User,         to: "/profile"     },
+  const items = [
+    { label: "Open Jobs",    value: stats.jobs,     to: "/jobs"         },
+    { label: "Applications", value: stats.apps,     to: "/applications" },
+    { label: "Projects",     value: stats.projects, to: "/projects"     },
+    { label: "CVs Built",    value: stats.cvs,      to: "/cv-builder"   },
   ];
 
   return (
-    <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-      {actions.map(({ label, icon: Icon, to }) => (
-        <Link key={label} to={to}>
-          <Card className="cursor-pointer hover:border-primary/50 hover:bg-accent/30 transition-all">
-            <CardContent className="flex flex-col items-center justify-center py-4 gap-2">
-              <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
-                <Icon className="w-5 h-5 text-primary" />
-              </div>
-              <span className="text-sm font-medium text-center">{label}</span>
-            </CardContent>
-          </Card>
+    <div className="grid grid-cols-2 md:grid-cols-4 gap-px bg-border rounded-xl overflow-hidden border border-border">
+      {items.map(({ label, value, to }) => (
+        <Link
+          key={label}
+          to={to}
+          className="bg-card px-5 py-4 hover:bg-muted/40 transition-colors group"
+        >
+          <p className="text-[11px] font-medium text-muted-foreground uppercase tracking-widest mb-1">{label}</p>
+          <p className="font-mono text-2xl font-semibold text-foreground group-hover:text-primary transition-colors">
+            {value.toLocaleString()}
+          </p>
         </Link>
       ))}
     </div>
   );
 }
 
-export function TalentDashboard({ user }: { user: any }) {
+/* ─── Jobs Feed ─────────────────────────────────────────── */
+function JobsFeed() {
+  const [jobs, setJobs] = useState<any[]>([]);
+
+  useEffect(() => {
+    (supabase as any)
+      .from("aggregated_jobs")
+      .select("id, title, platform, budget, external_url, posted_at, location")
+      .eq("is_active", true)
+      .order("posted_at", { ascending: false })
+      .limit(6)
+      .then(({ data }: any) => setJobs(data || []));
+  }, []);
+
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="font-display text-2xl md:text-3xl font-extrabold tracking-tight">
-          Welcome back, {user?.user_metadata?.full_name?.split(" ")[0] || "there"} 👋
-        </h1>
-        <p className="text-sm text-muted-foreground mt-1">
-          Your freelance dashboard — find work, grow your career.
-        </p>
+    <div className="border border-border rounded-xl bg-card overflow-hidden">
+      <div className="flex items-center justify-between px-5 py-3.5 border-b border-border">
+        <span className="text-[13px] font-semibold text-foreground">Latest Jobs</span>
+        <Link
+          to="/jobs"
+          className="flex items-center gap-1 text-[12px] text-muted-foreground hover:text-foreground transition-colors"
+        >
+          View all <ArrowRight className="w-3 h-3" />
+        </Link>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <ProfileCompletionCard userId={user.id} />
-        <div className="lg:col-span-2">
-          <DailyJobsWidget />
+      {jobs.length === 0 ? (
+        <div className="flex flex-col items-center justify-center py-14 gap-3 text-muted-foreground">
+          <Briefcase className="w-8 h-8 opacity-30" />
+          <p className="text-[13px]">No jobs yet — check back soon</p>
         </div>
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <ApplicationsWidget userId={user.id} />
-        <MessagesWidget userId={user.id} />
-        <EventsWidget userId={user.id} />
-      </div>
-
-      <QuickActionsBar />
+      ) : (
+        <div className="divide-y divide-border">
+          {jobs.map((job) => (
+            <div key={job.id} className="flex items-center gap-4 px-5 py-3 hover:bg-muted/30 transition-colors group">
+              <div className="flex-1 min-w-0">
+                <p className="text-[13px] font-medium text-foreground truncate">{job.title}</p>
+                <div className="flex items-center gap-2.5 mt-0.5">
+                  <span className="text-[11px] text-muted-foreground capitalize">{job.platform}</span>
+                  {job.budget && (
+                    <>
+                      <span className="text-muted-foreground/30">·</span>
+                      <span className="text-[11px] text-muted-foreground">{job.budget}</span>
+                    </>
+                  )}
+                  {job.location && (
+                    <>
+                      <span className="text-muted-foreground/30">·</span>
+                      <span className="text-[11px] text-muted-foreground">{job.location}</span>
+                    </>
+                  )}
+                </div>
+              </div>
+              <div className="flex items-center gap-2 shrink-0">
+                <span className="text-[11px] text-muted-foreground hidden sm:block">
+                  {job.posted_at ? formatDistanceToNow(new Date(job.posted_at), { addSuffix: true }) : ""}
+                </span>
+                <a
+                  href={job.external_url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-1 px-3 py-1 rounded-md border border-border bg-background text-[12px] font-medium text-foreground hover:border-primary/50 hover:text-primary transition-all"
+                >
+                  Apply <ExternalLink className="w-3 h-3" />
+                </a>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
 
-export { DashboardSkeleton };
+/* ─── Profile Completion ────────────────────────────────── */
+function ProfileStrength({ userId }: { userId: string }) {
+  const [items, setItems] = useState({ photo: false, bio: false, skill: false, rate: false, cv: false });
+
+  useEffect(() => {
+    (async () => {
+      const { data: p } = await (supabase as any)
+        .from("talent_profiles")
+        .select("bio, profile_photo_url, primary_skill, hourly_rate")
+        .eq("user_id", userId)
+        .maybeSingle();
+      const { data: cv } = await (supabase as any)
+        .from("skryve_cvs")
+        .select("id").eq("user_id", userId).maybeSingle();
+      setItems({
+        photo: !!p?.profile_photo_url, bio: !!p?.bio,
+        skill: !!p?.primary_skill, rate: !!p?.hourly_rate, cv: !!cv,
+      });
+    })();
+  }, [userId]);
+
+  const checks = [
+    { key: "photo" as const, label: "Profile photo",   href: "/profile" },
+    { key: "bio"   as const, label: "Write a bio",     href: "/profile" },
+    { key: "skill" as const, label: "Set primary skill", href: "/profile" },
+    { key: "rate"  as const, label: "Set hourly rate", href: "/profile" },
+    { key: "cv"    as const, label: "Build a CV",      href: "/cv-builder" },
+  ];
+
+  const done = Object.values(items).filter(Boolean).length;
+  const pct  = Math.round((done / 5) * 100);
+
+  return (
+    <div className="border border-border rounded-xl bg-card overflow-hidden">
+      <div className="px-5 py-3.5 border-b border-border flex items-center justify-between">
+        <span className="text-[13px] font-semibold text-foreground">Profile strength</span>
+        <span className="font-mono text-[13px] text-primary">{pct}%</span>
+      </div>
+
+      {/* Progress bar */}
+      <div className="h-px bg-border mx-5">
+        <div
+          className="h-px bg-primary transition-all duration-700"
+          style={{ width: `${pct}%` }}
+        />
+      </div>
+
+      <div className="px-5 py-3 space-y-0.5">
+        {checks.map(({ key, label, href }) => (
+          <div key={key} className="flex items-center gap-2.5 py-1.5">
+            {items[key]
+              ? <CheckCircle2 className="w-3.5 h-3.5 text-primary shrink-0" />
+              : <Circle className="w-3.5 h-3.5 text-muted-foreground/40 shrink-0" />
+            }
+            {items[key]
+              ? <span className="text-[13px] text-muted-foreground line-through">{label}</span>
+              : <Link to={href} className="text-[13px] text-foreground hover:text-primary transition-colors">{label}</Link>
+            }
+          </div>
+        ))}
+      </div>
+
+      <div className="px-5 pb-4">
+        <Link
+          to="/profile"
+          className="flex items-center justify-center gap-1.5 w-full py-1.5 rounded-lg border border-border text-[13px] font-medium text-foreground hover:border-primary/50 hover:text-primary transition-all"
+        >
+          Complete profile <ArrowRight className="w-3.5 h-3.5" />
+        </Link>
+      </div>
+    </div>
+  );
+}
+
+/* ─── Recent Applications ───────────────────────────────── */
+function RecentApplications({ userId }: { userId: string }) {
+  const [apps, setApps] = useState<any[]>([]);
+
+  useEffect(() => {
+    (supabase as any)
+      .from("job_applications")
+      .select("id, status, created_at, role_title, company_name")
+      .eq("user_id", userId)
+      .order("created_at", { ascending: false })
+      .limit(4)
+      .then(({ data }: any) => setApps(data || []));
+  }, [userId]);
+
+  const STATUS_DOT: Record<string, string> = {
+    applied:   "bg-muted-foreground/40",
+    replied:   "bg-blue-500",
+    interview: "bg-yellow-500",
+    offer:     "bg-primary",
+    rejected:  "bg-destructive",
+  };
+
+  return (
+    <div className="border border-border rounded-xl bg-card overflow-hidden">
+      <div className="flex items-center justify-between px-5 py-3.5 border-b border-border">
+        <span className="text-[13px] font-semibold text-foreground">Applications</span>
+        <Link to="/applications" className="flex items-center gap-1 text-[12px] text-muted-foreground hover:text-foreground transition-colors">
+          All <ArrowRight className="w-3 h-3" />
+        </Link>
+      </div>
+
+      {apps.length === 0 ? (
+        <div className="flex flex-col items-center justify-center py-10 gap-2 text-muted-foreground">
+          <FileText className="w-7 h-7 opacity-30" />
+          <p className="text-[13px]">No applications yet</p>
+          <Link to="/jobs" className="text-[12px] text-primary hover:underline">Browse jobs →</Link>
+        </div>
+      ) : (
+        <div className="divide-y divide-border">
+          {apps.map((app) => (
+            <div key={app.id} className="flex items-center gap-3 px-5 py-3">
+              <div className={`w-1.5 h-1.5 rounded-full shrink-0 ${STATUS_DOT[app.status] || STATUS_DOT.applied}`} />
+              <div className="flex-1 min-w-0">
+                <p className="text-[13px] font-medium text-foreground truncate">{app.role_title || "Untitled Role"}</p>
+                <p className="text-[11px] text-muted-foreground">{app.company_name}</p>
+              </div>
+              <span className="text-[11px] text-muted-foreground shrink-0 capitalize">{app.status}</span>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ─── Quick Actions ─────────────────────────────────────── */
+function QuickActions() {
+  const links = [
+    { label: "Find Jobs",       sub: "Browse curated listings",  icon: Briefcase,   to: "/jobs"        },
+    { label: "Build CV",        sub: "AI-powered templates",     icon: FileText,    to: "/cv-builder"  },
+    { label: "Learn a Skill",   sub: "Grow your expertise",      icon: BookOpen,    to: "/learn"       },
+    { label: "Edit Profile",    sub: "Increase visibility",      icon: User,        to: "/profile"     },
+  ];
+
+  return (
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+      {links.map(({ label, sub, icon: Icon, to }) => (
+        <Link
+          key={label}
+          to={to}
+          className="flex items-start gap-3 p-4 rounded-xl border border-border bg-card hover:border-primary/30 hover:bg-muted/30 transition-all group"
+        >
+          <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center shrink-0 group-hover:bg-primary/15 transition-colors">
+            <Icon className="w-4 h-4 text-primary" />
+          </div>
+          <div className="min-w-0">
+            <p className="text-[13px] font-semibold text-foreground">{label}</p>
+            <p className="text-[11px] text-muted-foreground mt-0.5">{sub}</p>
+          </div>
+        </Link>
+      ))}
+    </div>
+  );
+}
+
+/* ─── Upcoming Events ───────────────────────────────────── */
+function UpcomingEvents() {
+  const [events, setEvents] = useState<any[]>([]);
+
+  useEffect(() => {
+    (supabase as any)
+      .from("events")
+      .select("id, title, date_time, format")
+      .gte("date_time", new Date().toISOString())
+      .order("date_time", { ascending: true })
+      .limit(3)
+      .then(({ data }: any) => setEvents(data || []));
+  }, []);
+
+  return (
+    <div className="border border-border rounded-xl bg-card overflow-hidden">
+      <div className="flex items-center justify-between px-5 py-3.5 border-b border-border">
+        <span className="text-[13px] font-semibold text-foreground">Events</span>
+        <Link to="/events" className="flex items-center gap-1 text-[12px] text-muted-foreground hover:text-foreground transition-colors">
+          All <ArrowRight className="w-3 h-3" />
+        </Link>
+      </div>
+
+      {events.length === 0 ? (
+        <div className="flex flex-col items-center justify-center py-10 gap-2 text-muted-foreground">
+          <CalendarDays className="w-7 h-7 opacity-30" />
+          <p className="text-[13px]">No upcoming events</p>
+        </div>
+      ) : (
+        <div className="divide-y divide-border">
+          {events.map((ev) => (
+            <Link key={ev.id} to={`/events/${ev.id}`} className="flex items-center gap-3 px-5 py-3 hover:bg-muted/30 transition-colors">
+              <div className="w-9 text-center shrink-0">
+                <p className="text-[10px] text-muted-foreground uppercase leading-none">{format(new Date(ev.date_time), "MMM")}</p>
+                <p className="text-lg font-bold text-foreground leading-tight">{format(new Date(ev.date_time), "d")}</p>
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-[13px] font-medium text-foreground truncate">{ev.title}</p>
+                <p className="text-[11px] text-muted-foreground capitalize">{ev.format}</p>
+              </div>
+              <ChevronRight className="w-3.5 h-3.5 text-muted-foreground/40 shrink-0" />
+            </Link>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ─── Root ──────────────────────────────────────────────── */
+export function TalentDashboard({ user }: { user: any }) {
+  const firstName = user?.user_metadata?.full_name?.split(" ")[0] || "there";
+  const timeOfDay = (() => {
+    const h = new Date().getHours();
+    if (h < 12) return "Good morning";
+    if (h < 17) return "Good afternoon";
+    return "Good evening";
+  })();
+
+  return (
+    <div className="space-y-6 max-w-6xl">
+
+      {/* Header */}
+      <div>
+        <h1 className="text-xl font-semibold text-foreground tracking-tight">
+          {timeOfDay}, {firstName}
+        </h1>
+        <p className="text-[13px] text-muted-foreground mt-0.5">
+          {new Date().toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" })}
+        </p>
+      </div>
+
+      {/* Stat row */}
+      <StatBar userId={user.id} />
+
+      {/* Main two-col */}
+      <div className="grid grid-cols-1 lg:grid-cols-5 gap-4">
+        <div className="lg:col-span-3">
+          <JobsFeed />
+        </div>
+        <div className="lg:col-span-2 space-y-4">
+          <ProfileStrength userId={user.id} />
+        </div>
+      </div>
+
+      {/* Bottom row */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <RecentApplications userId={user.id} />
+        <UpcomingEvents />
+      </div>
+
+      {/* Quick actions */}
+      <QuickActions />
+
+    </div>
+  );
+}
