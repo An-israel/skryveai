@@ -1,327 +1,362 @@
 import { useState, useEffect } from "react";
-import { Link, useNavigate } from "react-router-dom";
-import { formatDistanceToNow, differenceInDays } from "date-fns";
+import { Link } from "react-router-dom";
+import { formatDistanceToNow, differenceInDays, format } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Briefcase, Users, CalendarDays, ChevronRight, User, MessageSquare } from "lucide-react";
+import {
+  Briefcase, Users, CalendarDays, ArrowRight,
+  MessageSquare, FolderOpen, User, ChevronRight, Plus,
+} from "lucide-react";
 
+/* ─── Skeleton ─────────────────────────────────────────── */
 export function DashboardSkeleton() {
   return (
-    <div className="space-y-6">
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {[...Array(3)].map((_, i) => (
-          <div key={i} className="h-48 bg-muted rounded-xl animate-pulse" />
-        ))}
+    <div className="space-y-8 animate-pulse">
+      <div className="h-6 w-48 bg-muted rounded" />
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-px bg-border rounded-xl overflow-hidden">
+        {[...Array(4)].map((_, i) => <div key={i} className="h-20 bg-card" />)}
       </div>
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        {[...Array(3)].map((_, i) => (
-          <div key={i} className="h-40 bg-muted rounded-xl animate-pulse" />
-        ))}
+      <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
+        <div className="lg:col-span-3 h-72 bg-card rounded-xl border border-border" />
+        <div className="lg:col-span-2 h-72 bg-card rounded-xl border border-border" />
       </div>
     </div>
   );
 }
 
-function ActiveJobsWidget({ jobs }: { jobs: any[] }) {
-  return (
-    <Card className="h-full">
-      <CardHeader className="pb-2">
-        <div className="flex items-center justify-between">
-          <CardTitle className="font-display text-base font-bold">Active Job Posts</CardTitle>
-          <Badge variant="secondary">{jobs.length}</Badge>
-        </div>
-      </CardHeader>
-      <CardContent className="space-y-3">
-        {jobs.length === 0 ? (
-          <div className="text-center py-6 space-y-3">
-            <Briefcase className="w-8 h-8 text-muted-foreground mx-auto" />
-            <p className="text-sm text-muted-foreground">No active jobs yet</p>
-          </div>
-        ) : (
-          <div className="space-y-2">
-            {jobs.map((job) => {
-              const daysLeft = job.deadline
-                ? differenceInDays(new Date(job.deadline), new Date())
-                : null;
-              return (
-                <div key={job.id} className="p-2.5 rounded-lg border bg-card">
-                  <p className="text-sm font-medium truncate">{job.title}</p>
-                  <div className="flex items-center justify-between mt-1">
-                    <span className="text-xs text-muted-foreground">
-                      {job.applicant_count || 0} applicants
-                    </span>
-                    {daysLeft !== null && (
-                      <span className={`text-xs ${daysLeft <= 3 ? "text-red-500" : "text-muted-foreground"}`}>
-                        {daysLeft > 0 ? `${daysLeft}d left` : "Expired"}
-                      </span>
-                    )}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        )}
-        <div className="flex gap-2 pt-2">
-          <Button asChild variant="outline" size="sm" className="flex-1">
-            <Link to="/marketplace/my-jobs">View All My Jobs</Link>
-          </Button>
-          <Button asChild size="sm" className="flex-1">
-            <Link to="/marketplace/post">Post New Job</Link>
-          </Button>
-        </div>
-      </CardContent>
-    </Card>
-  );
-}
+/* ─── Stat Bar ──────────────────────────────────────────── */
+function StatBar({ clientId }: { clientId: string }) {
+  const [stats, setStats] = useState({ jobs: 0, apps: 0, projects: 0, talent: 0 });
 
-function NewApplicationsWidget({ count }: { count: number }) {
-  return (
-    <Card className="h-full">
-      <CardHeader className="pb-2">
-        <CardTitle className="font-display text-base font-bold">Applications</CardTitle>
-      </CardHeader>
-      <CardContent className="flex flex-col items-center justify-center py-4 space-y-2">
-        <span className="text-5xl font-bold text-primary">{count}</span>
-        <p className="text-sm font-medium">New Applications</p>
-        <p className="text-xs text-muted-foreground">Waiting for your review</p>
-        <Button asChild size="sm" className="mt-2">
-          <Link to="/applications">Review Applications</Link>
-        </Button>
-      </CardContent>
-    </Card>
-  );
-}
+  useEffect(() => {
+    (async () => {
+      const [{ count: jobs }, { count: apps }, { count: projects }] = await Promise.all([
+        (supabase as any).from("job_posts").select("id", { count: "exact", head: true }).eq("client_id", clientId).eq("status", "active"),
+        (supabase as any).from("job_applications").select("id", { count: "exact", head: true }).eq("status", "pending"),
+        (supabase as any).from("projects").select("id", { count: "exact", head: true }).eq("client_id", clientId).neq("status", "completed"),
+      ]);
+      setStats({ jobs: jobs ?? 0, apps: apps ?? 0, projects: projects ?? 0, talent: 0 });
+    })();
+  }, [clientId]);
 
-function ActiveProjectsWidget({ projects }: { projects: any[] }) {
-  const STATUS_CLASSES: Record<string, string> = {
-    active: "bg-blue-500/10 text-blue-600",
-    pending_acceptance: "bg-amber-500/10 text-amber-600",
-    completed: "bg-green-500/10 text-green-600",
-  };
-
-  return (
-    <Card className="h-full">
-      <CardHeader className="pb-2">
-        <CardTitle className="font-display text-base font-bold">Active Projects</CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-2">
-        {projects.length === 0 ? (
-          <p className="text-sm text-muted-foreground text-center py-4">No active projects</p>
-        ) : (
-          projects.map((proj) => {
-            const talentName = proj.talent_profiles?.full_name;
-            const daysLeft = proj.deadline
-              ? differenceInDays(new Date(proj.deadline), new Date())
-              : null;
-            return (
-              <div key={proj.id} className="p-2 rounded-lg border bg-card">
-                <div className="flex items-center justify-between">
-                  <p className="text-sm font-medium truncate flex-1 mr-2">{proj.title || "Untitled"}</p>
-                  <Badge
-                    variant="outline"
-                    className={`text-[10px] px-1.5 py-0 h-4 shrink-0 ${STATUS_CLASSES[proj.status] || ""}`}
-                  >
-                    {proj.status}
-                  </Badge>
-                </div>
-                <div className="flex items-center justify-between mt-1">
-                  {talentName && (
-                    <span className="text-xs text-muted-foreground truncate">{talentName}</span>
-                  )}
-                  {daysLeft !== null && (
-                    <span className={`text-xs ${daysLeft <= 3 ? "text-red-500" : "text-muted-foreground"}`}>
-                      {daysLeft > 0 ? `${daysLeft}d left` : "Overdue"}
-                    </span>
-                  )}
-                </div>
-              </div>
-            );
-          })
-        )}
-        <Button asChild variant="ghost" size="sm" className="w-full">
-          <Link to="/projects">View All Projects <ChevronRight className="w-4 h-4 ml-1" /></Link>
-        </Button>
-      </CardContent>
-    </Card>
-  );
-}
-
-function MessagesWidget({ conversations, userId }: { conversations: any[]; userId: string }) {
-  return (
-    <Card className="h-full">
-      <CardHeader className="pb-2">
-        <div className="flex items-center justify-between">
-          <CardTitle className="font-display text-base font-bold">Messages</CardTitle>
-          <Button asChild variant="ghost" size="sm">
-            <Link to="/messages"><ChevronRight className="w-4 h-4" /></Link>
-          </Button>
-        </div>
-      </CardHeader>
-      <CardContent>
-        {conversations.length === 0 ? (
-          <div className="text-center py-6 space-y-3">
-            <MessageSquare className="w-8 h-8 text-muted-foreground mx-auto" />
-            <p className="text-sm text-muted-foreground">No messages yet</p>
-          </div>
-        ) : (
-          <div className="space-y-2">
-            {conversations.map((c) => {
-              const msgs: any[] = c.marketplace_messages || [];
-              const last = msgs.sort((a: any, b: any) =>
-                new Date(b.created_at || b.sent_at).getTime() - new Date(a.created_at || a.sent_at).getTime()
-              )[0];
-              const unread = msgs.filter((m: any) => !m.is_read && m.sender_id !== userId).length;
-              return (
-                <Link
-                  key={c.id}
-                  to={`/messages/${c.id}`}
-                  className="flex items-start gap-2 p-2 rounded-lg hover:bg-accent/50 transition-colors"
-                >
-                  <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
-                    <User className="w-4 h-4 text-primary" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-xs text-muted-foreground truncate">{last?.content || "No messages"}</p>
-                    {(last?.created_at || last?.sent_at) && (
-                      <p className="text-[10px] text-muted-foreground">
-                        {formatDistanceToNow(new Date(last.created_at || last.sent_at), { addSuffix: true })}
-                      </p>
-                    )}
-                  </div>
-                  {unread > 0 && (
-                    <Badge className="shrink-0 h-4 w-4 p-0 flex items-center justify-center text-[10px] rounded-full">
-                      {unread}
-                    </Badge>
-                  )}
-                </Link>
-              );
-            })}
-            <Button asChild variant="ghost" size="sm" className="w-full mt-1">
-              <Link to="/messages">Open Messages</Link>
-            </Button>
-          </div>
-        )}
-      </CardContent>
-    </Card>
-  );
-}
-
-function QuickActionsWidget() {
-  const navigate = useNavigate();
-  const actions = [
-    { label: "Post a Job", icon: Briefcase, to: "/marketplace/post" },
-    { label: "Browse Talent", icon: Users, to: "/talent" },
-    { label: "Explore Events", icon: CalendarDays, to: "/events" },
+  const items = [
+    { label: "Active Jobs",     value: stats.jobs,     to: "/marketplace/my-jobs" },
+    { label: "New Applications",value: stats.apps,     to: "/applications"        },
+    { label: "Active Projects", value: stats.projects, to: "/projects"            },
+    { label: "Browse Talent",   value: null,           to: "/talent"              },
   ];
 
   return (
-    <Card className="h-full">
-      <CardHeader className="pb-2">
-        <CardTitle className="font-display text-base font-bold">Quick Actions</CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-2">
-        {actions.map(({ label, icon: Icon, to }) => (
-          <button
-            key={label}
-            onClick={() => navigate(to)}
-            className="w-full flex items-center gap-3 p-3 rounded-lg border bg-card hover:border-primary/50 hover:bg-accent/30 transition-all text-left"
-          >
-            <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
-              <Icon className="w-4 h-4 text-primary" />
-            </div>
-            <span className="text-sm font-medium">{label}</span>
-          </button>
-        ))}
-      </CardContent>
-    </Card>
+    <div className="grid grid-cols-2 md:grid-cols-4 gap-px bg-border rounded-xl overflow-hidden border border-border">
+      {items.map(({ label, value, to }) => (
+        <Link
+          key={label}
+          to={to}
+          className="bg-card px-5 py-4 hover:bg-muted/40 transition-colors group"
+        >
+          <p className="text-[11px] font-medium text-muted-foreground uppercase tracking-widest mb-1">{label}</p>
+          {value !== null
+            ? <p className="font-mono text-2xl font-semibold text-foreground group-hover:text-primary transition-colors">{value.toLocaleString()}</p>
+            : <p className="text-[13px] text-muted-foreground group-hover:text-primary transition-colors flex items-center gap-1 mt-1">Explore <ArrowRight className="w-3 h-3" /></p>
+          }
+        </Link>
+      ))}
+    </div>
   );
 }
 
+/* ─── Active Job Posts ──────────────────────────────────── */
+function JobPosts({ clientId }: { clientId: string }) {
+  const [jobs, setJobs] = useState<any[]>([]);
+
+  useEffect(() => {
+    (supabase as any)
+      .from("job_posts")
+      .select("id, title, applicant_count, deadline, created_at, status")
+      .eq("client_id", clientId)
+      .order("created_at", { ascending: false })
+      .limit(5)
+      .then(({ data }: any) => setJobs(data || []));
+  }, [clientId]);
+
+  return (
+    <div className="border border-border rounded-xl bg-card overflow-hidden">
+      <div className="flex items-center justify-between px-5 py-3.5 border-b border-border">
+        <span className="text-[13px] font-semibold text-foreground">Job Posts</span>
+        <div className="flex items-center gap-3">
+          <Link to="/marketplace/my-jobs" className="flex items-center gap-1 text-[12px] text-muted-foreground hover:text-foreground transition-colors">
+            Manage <ArrowRight className="w-3 h-3" />
+          </Link>
+          <Link
+            to="/marketplace/post"
+            className="flex items-center gap-1 px-2.5 py-1 rounded-md bg-primary text-primary-foreground text-[12px] font-medium hover:bg-primary/90 transition-colors"
+          >
+            <Plus className="w-3 h-3" /> Post
+          </Link>
+        </div>
+      </div>
+
+      {jobs.length === 0 ? (
+        <div className="flex flex-col items-center justify-center py-14 gap-3 text-muted-foreground">
+          <Briefcase className="w-8 h-8 opacity-30" />
+          <p className="text-[13px]">No job posts yet</p>
+          <Link to="/marketplace/post" className="text-[12px] text-primary hover:underline">Post your first job →</Link>
+        </div>
+      ) : (
+        <div className="divide-y divide-border">
+          {jobs.map((job) => {
+            const daysLeft = job.deadline
+              ? differenceInDays(new Date(job.deadline), new Date())
+              : null;
+            return (
+              <div key={job.id} className="flex items-center gap-4 px-5 py-3 hover:bg-muted/30 transition-colors">
+                <div className="flex-1 min-w-0">
+                  <p className="text-[13px] font-medium text-foreground truncate">{job.title}</p>
+                  <div className="flex items-center gap-2.5 mt-0.5">
+                    <span className="text-[11px] text-muted-foreground">{job.applicant_count || 0} applicants</span>
+                    {daysLeft !== null && (
+                      <>
+                        <span className="text-muted-foreground/30">·</span>
+                        <span className={`text-[11px] ${daysLeft <= 3 ? "text-destructive" : "text-muted-foreground"}`}>
+                          {daysLeft > 0 ? `${daysLeft}d left` : "Expired"}
+                        </span>
+                      </>
+                    )}
+                  </div>
+                </div>
+                <div className={`px-2 py-0.5 rounded-full text-[10px] font-medium shrink-0 ${
+                  job.status === "active" ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground"
+                }`}>
+                  {job.status}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ─── Active Projects ───────────────────────────────────── */
+function ActiveProjects({ clientId }: { clientId: string }) {
+  const [projects, setProjects] = useState<any[]>([]);
+
+  useEffect(() => {
+    (supabase as any)
+      .from("projects")
+      .select("id, title, status, deadline, talent_profiles(full_name)")
+      .eq("client_id", clientId)
+      .neq("status", "completed")
+      .order("created_at", { ascending: false })
+      .limit(4)
+      .then(({ data }: any) => setProjects(data || []));
+  }, [clientId]);
+
+  const STATUS_COLOR: Record<string, string> = {
+    active:             "text-primary",
+    pending_acceptance: "text-yellow-500",
+    in_review:          "text-blue-500",
+  };
+
+  return (
+    <div className="border border-border rounded-xl bg-card overflow-hidden">
+      <div className="flex items-center justify-between px-5 py-3.5 border-b border-border">
+        <span className="text-[13px] font-semibold text-foreground">Projects</span>
+        <Link to="/projects" className="flex items-center gap-1 text-[12px] text-muted-foreground hover:text-foreground transition-colors">
+          All <ArrowRight className="w-3 h-3" />
+        </Link>
+      </div>
+
+      {projects.length === 0 ? (
+        <div className="flex flex-col items-center justify-center py-10 gap-2 text-muted-foreground">
+          <FolderOpen className="w-7 h-7 opacity-30" />
+          <p className="text-[13px]">No active projects</p>
+        </div>
+      ) : (
+        <div className="divide-y divide-border">
+          {projects.map((p) => {
+            const daysLeft = p.deadline
+              ? differenceInDays(new Date(p.deadline), new Date())
+              : null;
+            return (
+              <Link key={p.id} to={`/projects/${p.id}`} className="flex items-center gap-3 px-5 py-3 hover:bg-muted/30 transition-colors">
+                <div className="flex-1 min-w-0">
+                  <p className="text-[13px] font-medium text-foreground truncate">{p.title || "Untitled"}</p>
+                  <p className="text-[11px] text-muted-foreground">{p.talent_profiles?.full_name || "—"}</p>
+                </div>
+                <div className="text-right shrink-0">
+                  <p className={`text-[11px] font-medium capitalize ${STATUS_COLOR[p.status] || "text-muted-foreground"}`}>{p.status?.replace(/_/g, " ")}</p>
+                  {daysLeft !== null && (
+                    <p className={`text-[10px] ${daysLeft <= 3 ? "text-destructive" : "text-muted-foreground"}`}>
+                      {daysLeft > 0 ? `${daysLeft}d left` : "Overdue"}
+                    </p>
+                  )}
+                </div>
+              </Link>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ─── Recent Messages ───────────────────────────────────── */
+function RecentMessages({ clientId, userId }: { clientId: string; userId: string }) {
+  const [convos, setConvos] = useState<any[]>([]);
+
+  useEffect(() => {
+    (supabase as any)
+      .from("marketplace_conversations")
+      .select("id, last_message_at, marketplace_messages(content, sender_id, created_at, is_read)")
+      .eq("client_id", clientId)
+      .order("last_message_at", { ascending: false })
+      .limit(3)
+      .then(({ data }: any) => setConvos(data || []));
+  }, [clientId]);
+
+  return (
+    <div className="border border-border rounded-xl bg-card overflow-hidden">
+      <div className="flex items-center justify-between px-5 py-3.5 border-b border-border">
+        <span className="text-[13px] font-semibold text-foreground">Messages</span>
+        <Link to="/messages" className="flex items-center gap-1 text-[12px] text-muted-foreground hover:text-foreground transition-colors">
+          All <ArrowRight className="w-3 h-3" />
+        </Link>
+      </div>
+
+      {convos.length === 0 ? (
+        <div className="flex flex-col items-center justify-center py-10 gap-2 text-muted-foreground">
+          <MessageSquare className="w-7 h-7 opacity-30" />
+          <p className="text-[13px]">No messages yet</p>
+        </div>
+      ) : (
+        <div className="divide-y divide-border">
+          {convos.map((c) => {
+            const msgs: any[] = c.marketplace_messages || [];
+            const last = [...msgs].sort((a, b) =>
+              new Date(b.created_at || b.sent_at).getTime() - new Date(a.created_at || a.sent_at).getTime()
+            )[0];
+            const unread = msgs.filter((m) => !m.is_read && m.sender_id !== userId).length;
+            return (
+              <Link key={c.id} to={`/messages/${c.id}`} className="flex items-center gap-3 px-5 py-3 hover:bg-muted/30 transition-colors">
+                <div className="w-7 h-7 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                  <User className="w-3.5 h-3.5 text-primary" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-[13px] text-foreground truncate">{last?.content || "No messages"}</p>
+                  <p className="text-[11px] text-muted-foreground">
+                    {last?.created_at ? formatDistanceToNow(new Date(last.created_at), { addSuffix: true }) : ""}
+                  </p>
+                </div>
+                {unread > 0 && (
+                  <span className="flex h-4 min-w-[16px] items-center justify-center rounded-full bg-primary text-primary-foreground text-[9px] font-bold px-1 shrink-0">
+                    {unread}
+                  </span>
+                )}
+              </Link>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ─── Quick Actions ─────────────────────────────────────── */
+function QuickActions() {
+  const links = [
+    { label: "Post a Job",    sub: "Find the right talent",    icon: Briefcase,   to: "/marketplace/post" },
+    { label: "Browse Talent", sub: "Explore verified profiles", icon: Users,       to: "/talent"           },
+    { label: "Explore Events",sub: "Network & learn",           icon: CalendarDays,to: "/events"           },
+  ];
+
+  return (
+    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+      {links.map(({ label, sub, icon: Icon, to }) => (
+        <Link
+          key={label}
+          to={to}
+          className="flex items-start gap-3 p-4 rounded-xl border border-border bg-card hover:border-primary/30 hover:bg-muted/30 transition-all group"
+        >
+          <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center shrink-0 group-hover:bg-primary/15 transition-colors">
+            <Icon className="w-4 h-4 text-primary" />
+          </div>
+          <div className="min-w-0">
+            <p className="text-[13px] font-semibold text-foreground">{label}</p>
+            <p className="text-[11px] text-muted-foreground mt-0.5">{sub}</p>
+          </div>
+        </Link>
+      ))}
+    </div>
+  );
+}
+
+/* ─── Root ──────────────────────────────────────────────── */
 export function ClientDashboard({ user }: { user: any }) {
-  const [activeJobs, setActiveJobs] = useState<any[]>([]);
-  const [newAppsCount, setNewAppsCount] = useState(0);
-  const [activeProjects, setActiveProjects] = useState<any[]>([]);
-  const [conversations, setConversations] = useState<any[]>([]);
+  const [clientId, setClientId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     if (!user) return;
-    (async () => {
-      const { data: clientProfile } = await (supabase as any)
-        .from("client_profiles")
-        .select("id")
-        .eq("user_id", user.id)
-        .single();
-
-      if (!clientProfile) { setLoading(false); return; }
-
-      const { data: jobs } = await (supabase as any)
-        .from("job_posts")
-        .select("id, title, applicant_count, deadline, created_at")
-        .eq("client_id", clientProfile.id)
-        .eq("status", "active")
-        .order("created_at", { ascending: false })
-        .limit(3);
-      setActiveJobs(jobs || []);
-
-      if (jobs && jobs.length > 0) {
-        const jobIds = jobs.map((j: any) => j.id);
-        const { count } = await (supabase as any)
-          .from("job_applications")
-          .select("id", { count: "exact", head: true })
-          .in("marketplace_job_id", jobIds)
-          .eq("status", "pending");
-        setNewAppsCount(count || 0);
-      }
-
-      const { data: projects } = await (supabase as any)
-        .from("projects")
-        .select("id, title, status, deadline, talent_profiles(full_name)")
-        .eq("client_id", clientProfile.id)
-        .neq("status", "completed")
-        .order("created_at", { ascending: false })
-        .limit(3);
-      setActiveProjects(projects || []);
-
-      const { data: convos } = await (supabase as any)
-        .from("marketplace_conversations")
-        .select("id, last_message_at, marketplace_messages(content, sender_id, created_at, is_read)")
-        .eq("client_id", clientProfile.id)
-        .order("last_message_at", { ascending: false })
-        .limit(3);
-      setConversations(convos || []);
-
-      setLoading(false);
-    })();
+    (supabase as any)
+      .from("client_profiles")
+      .select("id")
+      .eq("user_id", user.id)
+      .maybeSingle()
+      .then(({ data }: any) => {
+        setClientId(data?.id ?? null);
+        setLoading(false);
+      });
   }, [user]);
+
+  const firstName = user?.user_metadata?.full_name?.split(" ")[0] || "there";
+  const timeOfDay = (() => {
+    const h = new Date().getHours();
+    if (h < 12) return "Good morning";
+    if (h < 17) return "Good afternoon";
+    return "Good evening";
+  })();
 
   if (loading) return <DashboardSkeleton />;
 
+  if (!clientId) return (
+    <div className="flex flex-col items-center justify-center py-20 text-muted-foreground gap-2">
+      <p className="text-[13px]">Profile not found. Please complete onboarding.</p>
+    </div>
+  );
+
   return (
-    <div className="space-y-6">
-      <div className="mb-6">
-        <h1 className="font-display text-2xl font-bold">
-          Welcome back, {user?.user_metadata?.full_name?.split(" ")[0] || "there"} 👋
+    <div className="space-y-6 max-w-6xl">
+
+      {/* Header */}
+      <div>
+        <h1 className="text-xl font-semibold text-foreground tracking-tight">
+          {timeOfDay}, {firstName}
         </h1>
-        <p className="text-muted-foreground text-sm mt-1">Manage your jobs, projects, and talent.</p>
+        <p className="text-[13px] text-muted-foreground mt-0.5">
+          {new Date().toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" })}
+        </p>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <ActiveJobsWidget jobs={activeJobs} />
-        <div className="lg:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-6">
-          <NewApplicationsWidget count={newAppsCount} />
-          <ActiveProjectsWidget projects={activeProjects} />
+      {/* Stat row */}
+      <StatBar clientId={clientId} />
+
+      {/* Main two-col */}
+      <div className="grid grid-cols-1 lg:grid-cols-5 gap-4">
+        <div className="lg:col-span-3">
+          <JobPosts clientId={clientId} />
+        </div>
+        <div className="lg:col-span-2 space-y-4">
+          <ActiveProjects clientId={clientId} />
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2">
-          <MessagesWidget conversations={conversations} userId={user.id} />
-        </div>
-        <QuickActionsWidget />
-      </div>
+      {/* Messages */}
+      <RecentMessages clientId={clientId} userId={user.id} />
+
+      {/* Quick actions */}
+      <QuickActions />
+
     </div>
   );
 }
