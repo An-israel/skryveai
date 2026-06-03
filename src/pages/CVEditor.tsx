@@ -6,7 +6,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Badge } from "@/components/ui/badge";
 import {
   Dialog,
   DialogContent,
@@ -180,6 +179,16 @@ const TEMPLATES = [
   { id: "professional", label: "Professional", desc: "Traditional corporate, centered", color: "#374151" },
   { id: "bold", label: "Bold", desc: "Dark header, strong typography", color: "#1E3A5F" },
 ];
+
+// ─── Section Label ─────────────────────────────────────────────────────────────
+
+function SectionLabel({ children }: { children: React.ReactNode }) {
+  return (
+    <span className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground mb-3 block">
+      {children}
+    </span>
+  );
+}
 
 // ─── Main Component ───────────────────────────────────────────────────────────
 
@@ -570,7 +579,7 @@ export default function CVEditor() {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-screen">
-        <Loader2 className="w-8 h-8 animate-spin text-[#2563EB]" />
+        <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
       </div>
     );
   }
@@ -578,18 +587,21 @@ export default function CVEditor() {
   // ─── Render ──────────────────────────────────────────────────────────────────
 
   return (
-    <div className="flex flex-col h-screen overflow-hidden">
+    <div className="flex flex-col h-screen overflow-hidden bg-background">
       {/* Top bar */}
-      <div className="flex items-center gap-3 px-4 py-2 border-b bg-background shrink-0 flex-wrap">
-        <Button variant="ghost" size="sm" onClick={() => navigate("/cv-builder")} className="mr-1">
+      <div className="flex items-center gap-3 px-5 py-3 border-b border-border bg-card shrink-0 flex-wrap">
+        <button
+          className="h-8 w-8 rounded-lg flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors"
+          onClick={() => navigate("/cv-builder")}
+        >
           <ArrowLeft className="w-4 h-4" />
-        </Button>
+        </button>
 
         {/* Inline title */}
         {editingTitle ? (
           <input
             ref={titleInputRef}
-            className="text-base font-semibold border-b border-[#2563EB] outline-none bg-transparent min-w-[120px] max-w-[220px]"
+            className="text-[14px] font-semibold border-b border-primary outline-none bg-transparent min-w-[120px] max-w-[220px] text-foreground"
             value={cvData.title}
             onChange={e => setCvData(prev => ({ ...prev, title: e.target.value }))}
             onBlur={() => setEditingTitle(false)}
@@ -598,7 +610,7 @@ export default function CVEditor() {
           />
         ) : (
           <span
-            className="text-base font-semibold cursor-pointer hover:text-[#2563EB] transition-colors"
+            className="text-[14px] font-semibold cursor-pointer hover:text-primary transition-colors text-foreground"
             onClick={() => { setEditingTitle(true); setTimeout(() => titleInputRef.current?.select(), 0); }}
             title="Click to rename"
           >
@@ -608,515 +620,469 @@ export default function CVEditor() {
 
         <div className="flex-1" />
 
-        <Button variant="outline" size="sm" onClick={() => setShowTemplateModal(true)}>
-          Change Template
-        </Button>
-        <Button variant="outline" size="sm" onClick={() => setShowATSModal(true)}>
-          ATS Score: <span className={`ml-1 font-bold ${atsResult.total >= 70 ? "text-[#059669]" : "text-amber-500"}`}>{atsResult.total}</span>
-        </Button>
-        <Button
-          variant="outline"
-          size="sm"
+        <button
+          className="px-3 py-1.5 rounded-lg border border-border text-[13px] text-muted-foreground hover:text-foreground hover:border-foreground/30 transition-colors"
+          onClick={() => setShowTemplateModal(true)}
+        >
+          Template
+        </button>
+        <button
+          className="px-3 py-1.5 rounded-lg border border-border text-[13px] text-muted-foreground hover:text-foreground hover:border-foreground/30 transition-colors"
+          onClick={() => setShowATSModal(true)}
+        >
+          ATS: <span className={`ml-1 font-bold ${atsResult.total >= 70 ? "text-primary" : "text-amber-500"}`}>{atsResult.total}</span>
+        </button>
+        <button
+          className="px-3 py-1.5 rounded-lg border border-border text-[13px] text-muted-foreground hover:text-foreground hover:border-foreground/30 disabled:opacity-50 flex items-center gap-1.5 transition-colors"
           disabled={saving || !dbId}
           onClick={() => saveDraft(true)}
         >
-          {saving ? <Loader2 className="w-3 h-3 animate-spin mr-1" /> : <Save className="w-3 h-3 mr-1" />}
+          {saving ? <Loader2 className="w-3 h-3 animate-spin" /> : <Save className="w-3 h-3" />}
           Save
-        </Button>
-        <Button
-          size="sm"
-          className="bg-[#2563EB] hover:bg-[#1d4ed8]"
+        </button>
+        <button
+          className="px-4 py-1.5 rounded-lg bg-primary text-primary-foreground text-[13px] font-semibold hover:bg-primary/90 disabled:opacity-50 flex items-center gap-1.5 transition-colors"
           onClick={downloadPDF}
           disabled={!dbId}
         >
-          <Download className="w-3 h-3 mr-1" />
+          <Download className="w-3 h-3" />
           PDF
-        </Button>
-        <Button
-          size="sm"
-          variant="outline"
+        </button>
+        <button
+          className="px-3 py-1.5 rounded-lg border border-border text-[13px] text-muted-foreground hover:text-foreground hover:border-foreground/30 flex items-center gap-1.5 transition-colors"
           onClick={() => toast({ title: "DOCX download coming soon!" })}
         >
-          <FileDown className="w-3 h-3 mr-1" />
+          <FileDown className="w-3 h-3" />
           DOCX
-        </Button>
+        </button>
       </div>
 
       {/* Main panels */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-0 flex-1 overflow-hidden">
 
         {/* ── Left: Form ──────────────────────────────────────────────────────── */}
-        <div className="overflow-y-auto p-6 space-y-8 border-r">
+        <div className="overflow-y-auto p-6 space-y-8 border-r border-border">
 
           {/* Section 1: Personal Info */}
           <section>
-            <h3 className="text-lg font-semibold mb-4 text-[#1E3A5F] dark:text-blue-300">Personal Info</h3>
-            <div className="grid grid-cols-2 gap-3">
-              <div className="col-span-2 space-y-1">
-                <Label>Full Name</Label>
-                <Input
-                  value={cvData.personal_info.fullName}
-                  onChange={e => setCvData(prev => ({ ...prev, personal_info: { ...prev.personal_info, fullName: e.target.value } }))}
-                  placeholder="Jane Doe"
-                />
-              </div>
-              <div className="col-span-2 space-y-1">
-                <Label>Professional Title</Label>
-                <Input
-                  value={cvData.personal_info.title}
-                  onChange={e => setCvData(prev => ({ ...prev, personal_info: { ...prev.personal_info, title: e.target.value } }))}
-                  placeholder="Senior Product Designer"
-                />
-              </div>
-              <div className="space-y-1">
-                <Label>Email</Label>
-                <Input
-                  type="email"
-                  value={cvData.personal_info.email}
-                  onChange={e => setCvData(prev => ({ ...prev, personal_info: { ...prev.personal_info, email: e.target.value } }))}
-                  placeholder="jane@example.com"
-                />
-              </div>
-              <div className="space-y-1">
-                <Label>Phone</Label>
-                <Input
-                  value={cvData.personal_info.phone}
-                  onChange={e => setCvData(prev => ({ ...prev, personal_info: { ...prev.personal_info, phone: e.target.value } }))}
-                  placeholder="+1-234-567-8900"
-                />
-              </div>
-              <div className="col-span-2 space-y-1">
-                <Label>Location</Label>
-                <Input
-                  value={cvData.personal_info.location}
-                  onChange={e => setCvData(prev => ({ ...prev, personal_info: { ...prev.personal_info, location: e.target.value } }))}
-                  placeholder="Lagos, Nigeria"
-                />
-              </div>
-              <div className="space-y-1">
-                <Label>LinkedIn URL</Label>
-                <Input
-                  value={cvData.personal_info.linkedin}
-                  onChange={e => setCvData(prev => ({ ...prev, personal_info: { ...prev.personal_info, linkedin: e.target.value } }))}
-                  placeholder="linkedin.com/in/janedoe"
-                />
-              </div>
-              <div className="space-y-1">
-                <Label>GitHub URL</Label>
-                <Input
-                  value={cvData.personal_info.github}
-                  onChange={e => setCvData(prev => ({ ...prev, personal_info: { ...prev.personal_info, github: e.target.value } }))}
-                  placeholder="github.com/janedoe"
-                />
-              </div>
-              <div className="col-span-2 space-y-1">
-                <Label>Website</Label>
-                <Input
-                  value={cvData.personal_info.website}
-                  onChange={e => setCvData(prev => ({ ...prev, personal_info: { ...prev.personal_info, website: e.target.value } }))}
-                  placeholder="https://janedoe.com"
-                />
-              </div>
-              <div className="col-span-2 space-y-1">
-                <Label>Profile Photo URL</Label>
-                <Input
-                  value={cvData.personal_info.photoUrl}
-                  onChange={e => setCvData(prev => ({ ...prev, personal_info: { ...prev.personal_info, photoUrl: e.target.value } }))}
-                  placeholder="https://example.com/photo.jpg"
-                />
+            <SectionLabel>Personal Info</SectionLabel>
+            <div className="border border-border rounded-xl bg-card overflow-hidden">
+              <div className="px-5 py-5 grid grid-cols-2 gap-3">
+                <div className="col-span-2 space-y-1.5">
+                  <label className="text-[12px] font-medium text-muted-foreground uppercase tracking-wider mb-1.5 block">Full Name</label>
+                  <Input
+                    value={cvData.personal_info.fullName}
+                    onChange={e => setCvData(prev => ({ ...prev, personal_info: { ...prev.personal_info, fullName: e.target.value } }))}
+                    placeholder="Jane Doe"
+                  />
+                </div>
+                <div className="col-span-2 space-y-1.5">
+                  <label className="text-[12px] font-medium text-muted-foreground uppercase tracking-wider mb-1.5 block">Professional Title</label>
+                  <Input
+                    value={cvData.personal_info.title}
+                    onChange={e => setCvData(prev => ({ ...prev, personal_info: { ...prev.personal_info, title: e.target.value } }))}
+                    placeholder="Senior Product Designer"
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-[12px] font-medium text-muted-foreground uppercase tracking-wider mb-1.5 block">Email</label>
+                  <Input
+                    type="email"
+                    value={cvData.personal_info.email}
+                    onChange={e => setCvData(prev => ({ ...prev, personal_info: { ...prev.personal_info, email: e.target.value } }))}
+                    placeholder="jane@example.com"
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-[12px] font-medium text-muted-foreground uppercase tracking-wider mb-1.5 block">Phone</label>
+                  <Input
+                    value={cvData.personal_info.phone}
+                    onChange={e => setCvData(prev => ({ ...prev, personal_info: { ...prev.personal_info, phone: e.target.value } }))}
+                    placeholder="+1-234-567-8900"
+                  />
+                </div>
+                <div className="col-span-2 space-y-1.5">
+                  <label className="text-[12px] font-medium text-muted-foreground uppercase tracking-wider mb-1.5 block">Location</label>
+                  <Input
+                    value={cvData.personal_info.location}
+                    onChange={e => setCvData(prev => ({ ...prev, personal_info: { ...prev.personal_info, location: e.target.value } }))}
+                    placeholder="Lagos, Nigeria"
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-[12px] font-medium text-muted-foreground uppercase tracking-wider mb-1.5 block">LinkedIn URL</label>
+                  <Input
+                    value={cvData.personal_info.linkedin}
+                    onChange={e => setCvData(prev => ({ ...prev, personal_info: { ...prev.personal_info, linkedin: e.target.value } }))}
+                    placeholder="linkedin.com/in/janedoe"
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-[12px] font-medium text-muted-foreground uppercase tracking-wider mb-1.5 block">GitHub URL</label>
+                  <Input
+                    value={cvData.personal_info.github}
+                    onChange={e => setCvData(prev => ({ ...prev, personal_info: { ...prev.personal_info, github: e.target.value } }))}
+                    placeholder="github.com/janedoe"
+                  />
+                </div>
+                <div className="col-span-2 space-y-1.5">
+                  <label className="text-[12px] font-medium text-muted-foreground uppercase tracking-wider mb-1.5 block">Website</label>
+                  <Input
+                    value={cvData.personal_info.website}
+                    onChange={e => setCvData(prev => ({ ...prev, personal_info: { ...prev.personal_info, website: e.target.value } }))}
+                    placeholder="https://janedoe.com"
+                  />
+                </div>
+                <div className="col-span-2 space-y-1.5">
+                  <label className="text-[12px] font-medium text-muted-foreground uppercase tracking-wider mb-1.5 block">Profile Photo URL</label>
+                  <Input
+                    value={cvData.personal_info.photoUrl}
+                    onChange={e => setCvData(prev => ({ ...prev, personal_info: { ...prev.personal_info, photoUrl: e.target.value } }))}
+                    placeholder="https://example.com/photo.jpg"
+                  />
+                </div>
               </div>
             </div>
           </section>
-
-          <Separator />
 
           {/* Section 2: Professional Summary */}
           <section>
             <div className="flex items-center justify-between mb-3">
-              <h3 className="text-lg font-semibold text-[#1E3A5F] dark:text-blue-300">Professional Summary</h3>
-              <Button size="sm" variant="outline" onClick={openAISummary} className="gap-1">
-                <Sparkles className="w-3 h-3 text-[#2563EB]" />
+              <SectionLabel>Professional Summary</SectionLabel>
+              <button
+                className="text-[12px] text-muted-foreground hover:text-foreground flex items-center gap-1 transition-colors"
+                onClick={openAISummary}
+              >
+                <Sparkles className="w-3 h-3 text-primary" />
                 AI Write
-              </Button>
+              </button>
             </div>
-            <Textarea
-              value={cvData.summary}
-              onChange={e => {
-                if (e.target.value.length <= 400) {
-                  setCvData(prev => ({ ...prev, summary: e.target.value }));
-                }
-              }}
-              placeholder="Write a compelling professional summary..."
-              className="min-h-[120px] resize-none"
-            />
-            <p className="text-xs text-muted-foreground mt-1 text-right">{cvData.summary.length}/400</p>
+            <div className="border border-border rounded-xl bg-card overflow-hidden">
+              <div className="px-5 py-5">
+                <Textarea
+                  value={cvData.summary}
+                  onChange={e => {
+                    if (e.target.value.length <= 400) {
+                      setCvData(prev => ({ ...prev, summary: e.target.value }));
+                    }
+                  }}
+                  placeholder="Write a compelling professional summary..."
+                  className="min-h-[120px] resize-none text-[13px]"
+                />
+                <p className="text-[12px] text-muted-foreground mt-2 text-right">{cvData.summary.length}/400</p>
+              </div>
+            </div>
           </section>
-
-          <Separator />
 
           {/* Section 3: Work Experience */}
           <section>
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-semibold text-[#1E3A5F] dark:text-blue-300">Work Experience</h3>
-              <Button
-                size="sm"
-                variant="outline"
+            <div className="flex items-center justify-between mb-3">
+              <SectionLabel>Work Experience</SectionLabel>
+              <button
+                className="text-[12px] text-muted-foreground hover:text-foreground flex items-center gap-1 transition-colors"
                 onClick={() => setCvData(prev => ({ ...prev, experiences: [...prev.experiences, defaultExperience()] }))}
               >
-                <Plus className="w-3 h-3 mr-1" /> Add Experience
-              </Button>
+                <Plus className="w-3 h-3" /> Add
+              </button>
             </div>
 
             {cvData.experiences.map((exp, i) => (
-              <div key={i} className="mb-6 border rounded-lg p-4 relative">
-                <div className="flex items-center justify-between mb-3">
-                  <Badge variant="secondary">Experience {i + 1}</Badge>
+              <div key={i} className="border border-border rounded-xl bg-card overflow-hidden mb-4">
+                <div className="px-5 py-3.5 border-b border-border flex items-center justify-between">
+                  <span className="text-[13px] font-semibold text-foreground">Experience {i + 1}</span>
                   <div className="flex gap-1">
-                    <Button
-                      size="sm" variant="ghost"
+                    <button
+                      className="h-7 w-7 rounded-md flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted/50 disabled:opacity-40 transition-colors"
                       disabled={i === 0}
                       onClick={() => moveExperience(i, "up")}
                     >
-                      <ChevronUp className="w-3 h-3" />
-                    </Button>
-                    <Button
-                      size="sm" variant="ghost"
+                      <ChevronUp className="w-3.5 h-3.5" />
+                    </button>
+                    <button
+                      className="h-7 w-7 rounded-md flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted/50 disabled:opacity-40 transition-colors"
                       disabled={i === cvData.experiences.length - 1}
                       onClick={() => moveExperience(i, "down")}
                     >
-                      <ChevronDown className="w-3 h-3" />
-                    </Button>
+                      <ChevronDown className="w-3.5 h-3.5" />
+                    </button>
                     {cvData.experiences.length > 1 && (
-                      <Button
-                        size="sm" variant="ghost"
-                        className="text-destructive"
+                      <button
+                        className="h-7 w-7 rounded-md flex items-center justify-center text-muted-foreground hover:text-destructive hover:bg-muted/50 transition-colors"
                         onClick={() => setCvData(prev => ({ ...prev, experiences: prev.experiences.filter((_, j) => j !== i) }))}
                       >
-                        <Trash2 className="w-3 h-3" />
-                      </Button>
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
                     )}
                   </div>
                 </div>
-
-                <div className="grid grid-cols-2 gap-3 mb-3">
-                  <div className="space-y-1">
-                    <Label>Job Title *</Label>
-                    <Input
-                      value={exp.jobTitle}
-                      onChange={e => updateExperience(i, "jobTitle", e.target.value)}
-                      placeholder="Senior Designer"
-                    />
-                  </div>
-                  <div className="space-y-1">
-                    <Label>Company *</Label>
-                    <Input
-                      value={exp.company}
-                      onChange={e => updateExperience(i, "company", e.target.value)}
-                      placeholder="Acme Inc."
-                    />
-                  </div>
-                  <div className="space-y-1">
-                    <Label>Location</Label>
-                    <Input
-                      value={exp.location}
-                      onChange={e => updateExperience(i, "location", e.target.value)}
-                      placeholder="Lagos, Nigeria"
-                    />
-                  </div>
-                  <div className="space-y-1">
-                    <Label>Start Date</Label>
-                    <Input
-                      value={exp.startDate}
-                      onChange={e => updateExperience(i, "startDate", e.target.value)}
-                      placeholder="Jan 2022"
-                    />
-                  </div>
-                  <div className="space-y-1">
-                    <Label>End Date</Label>
-                    <Input
-                      value={exp.endDate}
-                      disabled={exp.isPresent}
-                      onChange={e => updateExperience(i, "endDate", e.target.value)}
-                      placeholder="Dec 2023"
-                    />
-                  </div>
-                  <div className="flex items-center gap-2 pt-5">
-                    <Checkbox
-                      id={`present-${i}`}
-                      checked={exp.isPresent}
-                      onCheckedChange={checked => updateExperience(i, "isPresent", !!checked)}
-                    />
-                    <Label htmlFor={`present-${i}`} className="cursor-pointer">Currently working here</Label>
-                  </div>
-                </div>
-
-                {/* Bullets */}
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <Label>Description (bullets)</Label>
-                    <Button size="sm" variant="outline" onClick={() => openAIBullets(i)} className="gap-1 text-xs">
-                      <Sparkles className="w-3 h-3 text-[#2563EB]" />
-                      AI Improve
-                    </Button>
-                  </div>
-                  {exp.bullets.map((bullet, bi) => (
-                    <div key={bi} className="flex gap-2">
-                      <span className="text-muted-foreground pt-2 text-xs">•</span>
-                      <Input
-                        value={bullet}
-                        onChange={e => {
-                          const newBullets = [...exp.bullets];
-                          newBullets[bi] = e.target.value;
-                          updateExperience(i, "bullets", newBullets);
-                        }}
-                        placeholder="Led a team of 5 engineers to deliver..."
-                        className="flex-1"
-                      />
-                      {exp.bullets.length > 1 && (
-                        <Button
-                          size="sm" variant="ghost"
-                          onClick={() => updateExperience(i, "bullets", exp.bullets.filter((_, j) => j !== bi))}
-                        >
-                          <X className="w-3 h-3" />
-                        </Button>
-                      )}
+                <div className="px-5 py-5">
+                  <div className="grid grid-cols-2 gap-3 mb-4">
+                    <div className="space-y-1.5">
+                      <label className="text-[12px] font-medium text-muted-foreground uppercase tracking-wider mb-1.5 block">Job Title *</label>
+                      <Input value={exp.jobTitle} onChange={e => updateExperience(i, "jobTitle", e.target.value)} placeholder="Senior Designer" />
                     </div>
-                  ))}
-                  <Button
-                    size="sm" variant="ghost"
-                    onClick={() => updateExperience(i, "bullets", [...exp.bullets, ""])}
-                  >
-                    <Plus className="w-3 h-3 mr-1" /> Add bullet
-                  </Button>
+                    <div className="space-y-1.5">
+                      <label className="text-[12px] font-medium text-muted-foreground uppercase tracking-wider mb-1.5 block">Company *</label>
+                      <Input value={exp.company} onChange={e => updateExperience(i, "company", e.target.value)} placeholder="Acme Inc." />
+                    </div>
+                    <div className="space-y-1.5">
+                      <label className="text-[12px] font-medium text-muted-foreground uppercase tracking-wider mb-1.5 block">Location</label>
+                      <Input value={exp.location} onChange={e => updateExperience(i, "location", e.target.value)} placeholder="Lagos, Nigeria" />
+                    </div>
+                    <div className="space-y-1.5">
+                      <label className="text-[12px] font-medium text-muted-foreground uppercase tracking-wider mb-1.5 block">Start Date</label>
+                      <Input value={exp.startDate} onChange={e => updateExperience(i, "startDate", e.target.value)} placeholder="Jan 2022" />
+                    </div>
+                    <div className="space-y-1.5">
+                      <label className="text-[12px] font-medium text-muted-foreground uppercase tracking-wider mb-1.5 block">End Date</label>
+                      <Input value={exp.endDate} disabled={exp.isPresent} onChange={e => updateExperience(i, "endDate", e.target.value)} placeholder="Dec 2023" />
+                    </div>
+                    <div className="flex items-center gap-2 pt-5">
+                      <Checkbox
+                        id={`present-${i}`}
+                        checked={exp.isPresent}
+                        onCheckedChange={checked => updateExperience(i, "isPresent", !!checked)}
+                      />
+                      <Label htmlFor={`present-${i}`} className="cursor-pointer text-[13px]">Currently working here</Label>
+                    </div>
+                  </div>
+
+                  {/* Bullets */}
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <label className="text-[12px] font-medium text-muted-foreground uppercase tracking-wider block">Description (bullets)</label>
+                      <button
+                        className="text-[12px] text-muted-foreground hover:text-foreground flex items-center gap-1 transition-colors"
+                        onClick={() => openAIBullets(i)}
+                      >
+                        <Sparkles className="w-3 h-3 text-primary" />
+                        AI Improve
+                      </button>
+                    </div>
+                    {exp.bullets.map((bullet, bi) => (
+                      <div key={bi} className="flex gap-2">
+                        <span className="text-muted-foreground pt-2 text-xs">•</span>
+                        <Input
+                          value={bullet}
+                          onChange={e => {
+                            const newBullets = [...exp.bullets];
+                            newBullets[bi] = e.target.value;
+                            updateExperience(i, "bullets", newBullets);
+                          }}
+                          placeholder="Led a team of 5 engineers to deliver..."
+                          className="flex-1 text-[13px]"
+                        />
+                        {exp.bullets.length > 1 && (
+                          <button
+                            className="h-8 w-8 rounded-md flex items-center justify-center text-muted-foreground hover:text-destructive transition-colors"
+                            onClick={() => updateExperience(i, "bullets", exp.bullets.filter((_, j) => j !== bi))}
+                          >
+                            <X className="w-3.5 h-3.5" />
+                          </button>
+                        )}
+                      </div>
+                    ))}
+                    <button
+                      className="text-[12px] text-muted-foreground hover:text-foreground flex items-center gap-1 transition-colors"
+                      onClick={() => updateExperience(i, "bullets", [...exp.bullets, ""])}
+                    >
+                      <Plus className="w-3 h-3" /> Add bullet
+                    </button>
+                  </div>
                 </div>
               </div>
             ))}
           </section>
-
-          <Separator />
 
           {/* Section 4: Education */}
           <section>
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-semibold text-[#1E3A5F] dark:text-blue-300">Education</h3>
-              <Button
-                size="sm" variant="outline"
+            <div className="flex items-center justify-between mb-3">
+              <SectionLabel>Education</SectionLabel>
+              <button
+                className="text-[12px] text-muted-foreground hover:text-foreground flex items-center gap-1 transition-colors"
                 onClick={() => setCvData(prev => ({ ...prev, education: [...prev.education, defaultEducation()] }))}
               >
-                <Plus className="w-3 h-3 mr-1" /> Add Education
-              </Button>
+                <Plus className="w-3 h-3" /> Add
+              </button>
             </div>
 
             {cvData.education.map((edu, i) => (
-              <div key={i} className="mb-4 border rounded-lg p-4">
-                <div className="flex justify-between items-center mb-3">
-                  <Badge variant="secondary">Education {i + 1}</Badge>
+              <div key={i} className="border border-border rounded-xl bg-card overflow-hidden mb-4">
+                <div className="px-5 py-3.5 border-b border-border flex items-center justify-between">
+                  <span className="text-[13px] font-semibold text-foreground">Education {i + 1}</span>
                   {cvData.education.length > 1 && (
-                    <Button
-                      size="sm" variant="ghost" className="text-destructive"
+                    <button
+                      className="h-7 w-7 rounded-md flex items-center justify-center text-muted-foreground hover:text-destructive hover:bg-muted/50 transition-colors"
                       onClick={() => setCvData(prev => ({ ...prev, education: prev.education.filter((_, j) => j !== i) }))}
                     >
-                      <Trash2 className="w-3 h-3" />
-                    </Button>
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
                   )}
                 </div>
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="col-span-2 space-y-1">
-                    <Label>Degree *</Label>
-                    <Input
-                      value={edu.degree}
-                      onChange={e => setCvData(prev => ({ ...prev, education: prev.education.map((x, j) => j === i ? { ...x, degree: e.target.value } : x) }))}
-                      placeholder="B.Sc. Computer Science"
-                    />
+                <div className="px-5 py-5 grid grid-cols-2 gap-3">
+                  <div className="col-span-2 space-y-1.5">
+                    <label className="text-[12px] font-medium text-muted-foreground uppercase tracking-wider mb-1.5 block">Degree *</label>
+                    <Input value={edu.degree} onChange={e => setCvData(prev => ({ ...prev, education: prev.education.map((x, j) => j === i ? { ...x, degree: e.target.value } : x) }))} placeholder="B.Sc. Computer Science" />
                   </div>
-                  <div className="col-span-2 space-y-1">
-                    <Label>School / University *</Label>
-                    <Input
-                      value={edu.school}
-                      onChange={e => setCvData(prev => ({ ...prev, education: prev.education.map((x, j) => j === i ? { ...x, school: e.target.value } : x) }))}
-                      placeholder="University of Lagos"
-                    />
+                  <div className="col-span-2 space-y-1.5">
+                    <label className="text-[12px] font-medium text-muted-foreground uppercase tracking-wider mb-1.5 block">School / University *</label>
+                    <Input value={edu.school} onChange={e => setCvData(prev => ({ ...prev, education: prev.education.map((x, j) => j === i ? { ...x, school: e.target.value } : x) }))} placeholder="University of Lagos" />
                   </div>
-                  <div className="space-y-1">
-                    <Label>Year Graduated</Label>
-                    <Input
-                      value={edu.year}
-                      onChange={e => setCvData(prev => ({ ...prev, education: prev.education.map((x, j) => j === i ? { ...x, year: e.target.value } : x) }))}
-                      placeholder="2020"
-                    />
+                  <div className="space-y-1.5">
+                    <label className="text-[12px] font-medium text-muted-foreground uppercase tracking-wider mb-1.5 block">Year Graduated</label>
+                    <Input value={edu.year} onChange={e => setCvData(prev => ({ ...prev, education: prev.education.map((x, j) => j === i ? { ...x, year: e.target.value } : x) }))} placeholder="2020" />
                   </div>
-                  <div className="space-y-1">
-                    <Label>Grade / GPA</Label>
-                    <Input
-                      value={edu.grade}
-                      onChange={e => setCvData(prev => ({ ...prev, education: prev.education.map((x, j) => j === i ? { ...x, grade: e.target.value } : x) }))}
-                      placeholder="3.8 / 4.0"
-                    />
+                  <div className="space-y-1.5">
+                    <label className="text-[12px] font-medium text-muted-foreground uppercase tracking-wider mb-1.5 block">Grade / GPA</label>
+                    <Input value={edu.grade} onChange={e => setCvData(prev => ({ ...prev, education: prev.education.map((x, j) => j === i ? { ...x, grade: e.target.value } : x) }))} placeholder="3.8 / 4.0" />
                   </div>
                 </div>
               </div>
             ))}
           </section>
-
-          <Separator />
 
           {/* Section 5: Skills */}
           <section>
             <div className="flex items-center justify-between mb-3">
-              <h3 className="text-lg font-semibold text-[#1E3A5F] dark:text-blue-300">Skills</h3>
-              <Button size="sm" variant="outline" onClick={importProfileSkills}>
+              <SectionLabel>Skills</SectionLabel>
+              <button
+                className="text-[12px] text-muted-foreground hover:text-foreground transition-colors"
+                onClick={importProfileSkills}
+              >
                 Import from Profile
-              </Button>
+              </button>
             </div>
-            <div className="flex flex-wrap gap-2 mb-3 min-h-[36px]">
-              {cvData.skills.map(skill => (
-                <span key={skill} className="flex items-center gap-1 bg-[#2563EB]/10 text-[#2563EB] border border-[#2563EB]/30 px-2 py-0.5 rounded-full text-xs">
-                  {skill}
-                  <button onClick={() => removeSkill(skill)} className="hover:text-red-500 transition-colors">
-                    <X className="w-2.5 h-2.5" />
+            <div className="border border-border rounded-xl bg-card overflow-hidden">
+              <div className="px-5 py-5">
+                <div className="flex flex-wrap gap-2 mb-3 min-h-[36px]">
+                  {cvData.skills.map(skill => (
+                    <span key={skill} className="flex items-center gap-1 text-[11px] px-2 py-0.5 bg-primary/10 text-primary rounded-md border border-primary/20">
+                      {skill}
+                      <button onClick={() => removeSkill(skill)} className="hover:text-destructive transition-colors">
+                        <X className="w-2.5 h-2.5" />
+                      </button>
+                    </span>
+                  ))}
+                </div>
+                <div className="flex gap-2">
+                  <Input
+                    value={skillInput}
+                    onChange={e => setSkillInput(e.target.value)}
+                    onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); addSkill(skillInput); } }}
+                    placeholder="Type a skill and press Enter"
+                    className="text-[13px]"
+                  />
+                  <button
+                    className="h-9 w-9 rounded-lg border border-border flex items-center justify-center text-muted-foreground hover:text-foreground hover:border-foreground/30 transition-colors"
+                    onClick={() => addSkill(skillInput)}
+                  >
+                    <Plus className="w-3.5 h-3.5" />
                   </button>
-                </span>
-              ))}
-            </div>
-            <div className="flex gap-2">
-              <Input
-                value={skillInput}
-                onChange={e => setSkillInput(e.target.value)}
-                onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); addSkill(skillInput); } }}
-                placeholder="Type a skill and press Enter"
-              />
-              <Button size="sm" variant="outline" onClick={() => addSkill(skillInput)}>
-                <Plus className="w-3 h-3" />
-              </Button>
+                </div>
+              </div>
             </div>
           </section>
 
-          <Separator />
-
           {/* Section 6: Certifications */}
           <section>
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-semibold text-[#1E3A5F] dark:text-blue-300">Certifications</h3>
-              <div className="flex gap-2">
-                <Button size="sm" variant="outline" onClick={openSkryveImport}>
+            <div className="flex items-center justify-between mb-3">
+              <SectionLabel>Certifications</SectionLabel>
+              <div className="flex gap-3">
+                <button
+                  className="text-[12px] text-muted-foreground hover:text-foreground transition-colors"
+                  onClick={openSkryveImport}
+                >
                   Import from Skryve
-                </Button>
-                <Button
-                  size="sm" variant="outline"
+                </button>
+                <button
+                  className="text-[12px] text-muted-foreground hover:text-foreground flex items-center gap-1 transition-colors"
                   onClick={() => setCvData(prev => ({ ...prev, certifications: [...prev.certifications, defaultCertification()] }))}
                 >
-                  <Plus className="w-3 h-3 mr-1" /> Add
-                </Button>
+                  <Plus className="w-3 h-3" /> Add
+                </button>
               </div>
             </div>
 
             {cvData.certifications.map((cert, i) => (
-              <div key={i} className="mb-3 border rounded-lg p-3">
-                <div className="flex justify-between items-center mb-2">
-                  <Badge variant="secondary" className="text-xs">Cert {i + 1}</Badge>
-                  <Button
-                    size="sm" variant="ghost" className="text-destructive"
+              <div key={i} className="border border-border rounded-xl bg-card overflow-hidden mb-3">
+                <div className="px-5 py-3.5 border-b border-border flex items-center justify-between">
+                  <span className="text-[13px] font-semibold text-foreground">Cert {i + 1}</span>
+                  <button
+                    className="h-7 w-7 rounded-md flex items-center justify-center text-muted-foreground hover:text-destructive transition-colors"
                     onClick={() => setCvData(prev => ({ ...prev, certifications: prev.certifications.filter((_, j) => j !== i) }))}
                   >
-                    <Trash2 className="w-3 h-3" />
-                  </Button>
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </button>
                 </div>
-                <div className="grid grid-cols-3 gap-2">
-                  <div className="col-span-3 space-y-1">
-                    <Label>Name *</Label>
-                    <Input
-                      value={cert.name}
-                      onChange={e => setCvData(prev => ({ ...prev, certifications: prev.certifications.map((x, j) => j === i ? { ...x, name: e.target.value } : x) }))}
-                      placeholder="Google UX Design Certificate"
-                    />
+                <div className="px-5 py-4 grid grid-cols-3 gap-3">
+                  <div className="col-span-3 space-y-1.5">
+                    <label className="text-[12px] font-medium text-muted-foreground uppercase tracking-wider mb-1.5 block">Name *</label>
+                    <Input value={cert.name} onChange={e => setCvData(prev => ({ ...prev, certifications: prev.certifications.map((x, j) => j === i ? { ...x, name: e.target.value } : x) }))} placeholder="Google UX Design Certificate" />
                   </div>
-                  <div className="col-span-2 space-y-1">
-                    <Label>Issuer</Label>
-                    <Input
-                      value={cert.issuer}
-                      onChange={e => setCvData(prev => ({ ...prev, certifications: prev.certifications.map((x, j) => j === i ? { ...x, issuer: e.target.value } : x) }))}
-                      placeholder="Google / Coursera"
-                    />
+                  <div className="col-span-2 space-y-1.5">
+                    <label className="text-[12px] font-medium text-muted-foreground uppercase tracking-wider mb-1.5 block">Issuer</label>
+                    <Input value={cert.issuer} onChange={e => setCvData(prev => ({ ...prev, certifications: prev.certifications.map((x, j) => j === i ? { ...x, issuer: e.target.value } : x) }))} placeholder="Google / Coursera" />
                   </div>
-                  <div className="space-y-1">
-                    <Label>Year</Label>
-                    <Input
-                      value={cert.year}
-                      onChange={e => setCvData(prev => ({ ...prev, certifications: prev.certifications.map((x, j) => j === i ? { ...x, year: e.target.value } : x) }))}
-                      placeholder="2023"
-                    />
+                  <div className="space-y-1.5">
+                    <label className="text-[12px] font-medium text-muted-foreground uppercase tracking-wider mb-1.5 block">Year</label>
+                    <Input value={cert.year} onChange={e => setCvData(prev => ({ ...prev, certifications: prev.certifications.map((x, j) => j === i ? { ...x, year: e.target.value } : x) }))} placeholder="2023" />
                   </div>
                 </div>
               </div>
             ))}
           </section>
 
-          <Separator />
-
           {/* Section 7: Projects */}
           <section>
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-semibold text-[#1E3A5F] dark:text-blue-300">Projects</h3>
-              <Button
-                size="sm" variant="outline"
+            <div className="flex items-center justify-between mb-3">
+              <SectionLabel>Projects</SectionLabel>
+              <button
+                className="text-[12px] text-muted-foreground hover:text-foreground flex items-center gap-1 transition-colors"
                 onClick={() => setCvData(prev => ({ ...prev, projects: [...prev.projects, defaultProject()] }))}
               >
-                <Plus className="w-3 h-3 mr-1" /> Add Project
-              </Button>
+                <Plus className="w-3 h-3" /> Add
+              </button>
             </div>
 
+            {cvData.projects.length === 0 && (
+              <p className="text-[13px] text-muted-foreground text-center py-4">No projects added yet.</p>
+            )}
+
             {cvData.projects.map((proj, i) => (
-              <div key={i} className="mb-3 border rounded-lg p-3">
-                <div className="flex justify-between items-center mb-2">
-                  <Badge variant="secondary" className="text-xs">Project {i + 1}</Badge>
-                  <Button
-                    size="sm" variant="ghost" className="text-destructive"
+              <div key={i} className="border border-border rounded-xl bg-card overflow-hidden mb-3">
+                <div className="px-5 py-3.5 border-b border-border flex items-center justify-between">
+                  <span className="text-[13px] font-semibold text-foreground">Project {i + 1}</span>
+                  <button
+                    className="h-7 w-7 rounded-md flex items-center justify-center text-muted-foreground hover:text-destructive transition-colors"
                     onClick={() => setCvData(prev => ({ ...prev, projects: prev.projects.filter((_, j) => j !== i) }))}
                   >
-                    <Trash2 className="w-3 h-3" />
-                  </Button>
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </button>
                 </div>
-                <div className="space-y-2">
-                  <div className="space-y-1">
-                    <Label>Project Name *</Label>
-                    <Input
-                      value={proj.name}
-                      onChange={e => setCvData(prev => ({ ...prev, projects: prev.projects.map((x, j) => j === i ? { ...x, name: e.target.value } : x) }))}
-                      placeholder="E-commerce Platform"
-                    />
+                <div className="px-5 py-4 space-y-3">
+                  <div className="space-y-1.5">
+                    <label className="text-[12px] font-medium text-muted-foreground uppercase tracking-wider mb-1.5 block">Project Name *</label>
+                    <Input value={proj.name} onChange={e => setCvData(prev => ({ ...prev, projects: prev.projects.map((x, j) => j === i ? { ...x, name: e.target.value } : x) }))} placeholder="E-commerce Platform" />
                   </div>
-                  <div className="space-y-1">
-                    <Label>Description</Label>
-                    <Textarea
-                      value={proj.description}
-                      onChange={e => setCvData(prev => ({ ...prev, projects: prev.projects.map((x, j) => j === i ? { ...x, description: e.target.value } : x) }))}
-                      placeholder="Built a full-stack e-commerce platform with React and Node.js..."
-                      className="min-h-[70px] resize-none"
-                    />
+                  <div className="space-y-1.5">
+                    <label className="text-[12px] font-medium text-muted-foreground uppercase tracking-wider mb-1.5 block">Description</label>
+                    <Textarea value={proj.description} onChange={e => setCvData(prev => ({ ...prev, projects: prev.projects.map((x, j) => j === i ? { ...x, description: e.target.value } : x) }))} placeholder="Built a full-stack e-commerce platform with React and Node.js..." className="min-h-[70px] resize-none text-[13px]" />
                   </div>
-                  <div className="space-y-1">
-                    <Label>URL</Label>
-                    <Input
-                      value={proj.url}
-                      onChange={e => setCvData(prev => ({ ...prev, projects: prev.projects.map((x, j) => j === i ? { ...x, url: e.target.value } : x) }))}
-                      placeholder="https://github.com/janedoe/project"
-                    />
+                  <div className="space-y-1.5">
+                    <label className="text-[12px] font-medium text-muted-foreground uppercase tracking-wider mb-1.5 block">URL</label>
+                    <Input value={proj.url} onChange={e => setCvData(prev => ({ ...prev, projects: prev.projects.map((x, j) => j === i ? { ...x, url: e.target.value } : x) }))} placeholder="https://github.com/janedoe/project" />
                   </div>
                 </div>
               </div>
             ))}
-
-            {cvData.projects.length === 0 && (
-              <p className="text-sm text-muted-foreground text-center py-4">No projects added yet.</p>
-            )}
           </section>
         </div>
 
         {/* ── Right: Preview ───────────────────────────────────────────────── */}
-        <div className="overflow-y-auto bg-gray-100 dark:bg-gray-900 hidden lg:block">
-          <div className="p-4">
-            <p className="text-xs text-muted-foreground text-center mb-3">Live Preview — {cvData.template_name} template</p>
-            <div className="max-w-[680px] mx-auto shadow-lg">
+        <div className="overflow-y-auto bg-muted/30 hidden lg:block">
+          <div className="p-6">
+            <p className="text-[12px] text-muted-foreground text-center mb-4">Live Preview — {cvData.template_name} template</p>
+            <div className="max-w-[680px] mx-auto shadow-xl rounded-lg overflow-hidden">
               <CVPreview data={previewData} template={cvData.template_name} />
             </div>
           </div>
@@ -1133,17 +1099,20 @@ export default function CVEditor() {
             </DialogDescription>
           </DialogHeader>
           <div className="flex flex-col gap-3 mt-2">
-            <Button
-              className="bg-[#2563EB] hover:bg-[#1d4ed8]"
+            <button
+              className="px-5 py-2.5 rounded-lg bg-primary text-primary-foreground text-[13px] font-semibold hover:bg-primary/90 disabled:opacity-50 flex items-center justify-center gap-2 transition-colors"
               onClick={() => handleImportProfile(true)}
               disabled={!talentProfile}
             >
-              <Check className="w-4 h-4 mr-2" />
+              <Check className="w-4 h-4" />
               Yes, Import from Profile
-            </Button>
-            <Button variant="outline" onClick={() => handleImportProfile(false)}>
+            </button>
+            <button
+              className="px-5 py-2.5 rounded-lg border border-border text-[13px] text-muted-foreground hover:text-foreground hover:border-foreground/30 transition-colors"
+              onClick={() => handleImportProfile(false)}
+            >
               Start from Scratch
-            </Button>
+            </button>
           </div>
         </DialogContent>
       </Dialog>
@@ -1163,23 +1132,22 @@ export default function CVEditor() {
                   setCvData(prev => ({ ...prev, template_name: tpl.id }));
                   setShowTemplateModal(false);
                 }}
-                className={`p-4 rounded-lg border-2 text-left transition-all hover:shadow-md ${
-                  cvData.template_name === tpl.id ? "border-[#2563EB] bg-[#2563EB]/5" : "border-border hover:border-[#2563EB]/50"
+                className={`p-4 rounded-xl border-2 text-left transition-all ${
+                  cvData.template_name === tpl.id ? "border-primary bg-primary/5" : "border-border hover:border-primary/40"
                 }`}
               >
-                {/* Visual preview stub */}
-                <div className="h-20 rounded mb-2 overflow-hidden" style={{ backgroundColor: tpl.color + "15" }}>
+                <div className="h-16 rounded-lg mb-3 overflow-hidden" style={{ backgroundColor: tpl.color + "15" }}>
                   <div className="p-2">
                     <div className="h-2 rounded mb-1" style={{ backgroundColor: tpl.color, width: "60%" }} />
                     <div className="h-1.5 rounded mb-2" style={{ backgroundColor: tpl.color, width: "40%", opacity: 0.6 }} />
-                    <div className="h-1 bg-gray-300 rounded mb-1 w-full" />
-                    <div className="h-1 bg-gray-300 rounded w-5/6" />
+                    <div className="h-1 bg-border rounded mb-1 w-full" />
+                    <div className="h-1 bg-border rounded w-5/6" />
                   </div>
                 </div>
-                <p className="font-semibold text-sm">{tpl.label}</p>
-                <p className="text-xs text-muted-foreground">{tpl.desc}</p>
+                <p className="text-[13px] font-semibold text-foreground">{tpl.label}</p>
+                <p className="text-[12px] text-muted-foreground">{tpl.desc}</p>
                 {cvData.template_name === tpl.id && (
-                  <span className="text-xs text-[#2563EB] font-medium">Selected</span>
+                  <span className="text-[12px] text-primary font-medium">Selected</span>
                 )}
               </button>
             ))}
@@ -1195,9 +1163,8 @@ export default function CVEditor() {
             <DialogDescription>How well your CV will perform with Applicant Tracking Systems.</DialogDescription>
           </DialogHeader>
           <div className="flex flex-col items-center py-4">
-            {/* SVG ring */}
             <svg width="120" height="120" viewBox="0 0 120 120">
-              <circle cx="60" cy="60" r="50" fill="none" stroke="#e5e7eb" strokeWidth="10" />
+              <circle cx="60" cy="60" r="50" fill="none" stroke="hsl(var(--border))" strokeWidth="10" />
               <circle
                 cx="60" cy="60" r="50"
                 fill="none"
@@ -1207,40 +1174,30 @@ export default function CVEditor() {
                 strokeLinecap="round"
                 transform="rotate(-90 60 60)"
               />
-              <text x="60" y="65" textAnchor="middle" className="text-2xl font-bold" style={{ fontSize: "24px", fontWeight: "bold", fill: atsResult.total >= 70 ? "#059669" : "#f59e0b" }}>
+              <text x="60" y="65" textAnchor="middle" style={{ fontSize: "24px", fontWeight: "bold", fill: atsResult.total >= 70 ? "#059669" : "#f59e0b" }}>
                 {atsResult.total}
               </text>
             </svg>
-            <p className="text-sm text-muted-foreground mt-1">out of 100</p>
-            <Badge className={`mt-2 ${atsResult.total >= 70 ? "bg-[#059669]" : atsResult.total >= 50 ? "bg-amber-500" : "bg-red-500"}`}>
+            <p className="text-[12px] text-muted-foreground mt-1">out of 100</p>
+            <span className={`mt-2 text-[12px] px-3 py-1 rounded-full font-semibold ${atsResult.total >= 70 ? "bg-primary/10 text-primary" : atsResult.total >= 50 ? "bg-amber-500/10 text-amber-600" : "bg-destructive/10 text-destructive"}`}>
               {atsResult.total >= 70 ? "ATS Ready" : atsResult.total >= 50 ? "Needs Work" : "Poor"}
-            </Badge>
+            </span>
           </div>
           <div className="space-y-2 mt-2">
             {atsResult.criteria.map((c, i) => (
               <div key={i} className="flex items-start gap-2">
                 {c.met
-                  ? <Check className="w-4 h-4 text-[#059669] shrink-0 mt-0.5" />
+                  ? <Check className="w-4 h-4 text-primary shrink-0 mt-0.5" />
                   : <AlertCircle className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" />
                 }
                 <div>
-                  <p className="text-sm">{c.label}</p>
-                  {!c.met && c.tip && <p className="text-xs text-muted-foreground">{c.tip}</p>}
+                  <p className="text-[13px] text-foreground">{c.label}</p>
+                  {!c.met && c.tip && <p className="text-[12px] text-muted-foreground">{c.tip}</p>}
                 </div>
-                <span className="ml-auto text-xs font-medium text-muted-foreground">+{c.points}pts</span>
+                <span className="ml-auto text-[12px] font-medium text-muted-foreground">+{c.points}pts</span>
               </div>
             ))}
           </div>
-          {atsResult.total < 70 && (
-            <div className="mt-4 p-3 bg-amber-50 dark:bg-amber-900/20 rounded-lg border border-amber-200 dark:border-amber-800">
-              <p className="text-xs font-semibold text-amber-700 dark:text-amber-400 mb-1">Tips to improve:</p>
-              <ul className="text-xs text-amber-600 dark:text-amber-300 space-y-1 list-disc list-inside">
-                {atsResult.criteria.filter(c => !c.met && c.tip).map((c, i) => (
-                  <li key={i}>{c.tip}</li>
-                ))}
-              </ul>
-            </div>
-          )}
         </DialogContent>
       </Dialog>
 
@@ -1254,18 +1211,14 @@ export default function CVEditor() {
             {aiGenerating ? (
               <div className="flex items-center gap-2 text-muted-foreground">
                 <Loader2 className="w-4 h-4 animate-spin" />
-                <span>Generating with AI...</span>
+                <span className="text-[13px]">Generating with AI...</span>
               </div>
             ) : (
               <div className="space-y-4">
-                <Textarea
-                  value={aiSummaryText}
-                  onChange={e => setAiSummaryText(e.target.value)}
-                  className="min-h-[150px] resize-none"
-                />
+                <Textarea value={aiSummaryText} onChange={e => setAiSummaryText(e.target.value)} className="min-h-[150px] resize-none text-[13px]" />
                 <div className="flex gap-2">
-                  <Button
-                    className="flex-1 bg-[#2563EB] hover:bg-[#1d4ed8]"
+                  <button
+                    className="flex-1 px-5 py-2.5 rounded-lg bg-primary text-primary-foreground text-[13px] font-semibold hover:bg-primary/90 transition-colors"
                     onClick={() => {
                       setCvData(prev => ({ ...prev, summary: aiSummaryText }));
                       setShowAISummarySheet(false);
@@ -1273,14 +1226,14 @@ export default function CVEditor() {
                     }}
                   >
                     Use This
-                  </Button>
-                  <Button
-                    variant="outline"
+                  </button>
+                  <button
+                    className="px-5 py-2.5 rounded-lg border border-border text-[13px] text-muted-foreground hover:text-foreground hover:border-foreground/30 disabled:opacity-50 transition-colors"
                     onClick={() => generateAISummary("regenerate_summary")}
                     disabled={aiGenerating}
                   >
                     Regenerate
-                  </Button>
+                  </button>
                 </div>
               </div>
             )}
@@ -1298,32 +1251,26 @@ export default function CVEditor() {
             {aiGenerating ? (
               <div className="flex items-center gap-2 text-muted-foreground">
                 <Loader2 className="w-4 h-4 animate-spin" />
-                <span>Improving your bullets with AI...</span>
+                <span className="text-[13px]">Improving your bullets with AI...</span>
               </div>
             ) : (
               <div className="space-y-4">
-                <div className="text-xs text-muted-foreground mb-2">
-                  Review and edit the improved bullets below:
-                </div>
-                <Textarea
-                  value={aiBulletsText}
-                  onChange={e => setAiBulletsText(e.target.value)}
-                  className="min-h-[200px] resize-none font-mono text-xs"
-                />
+                <p className="text-[12px] text-muted-foreground">Review and edit the improved bullets below:</p>
+                <Textarea value={aiBulletsText} onChange={e => setAiBulletsText(e.target.value)} className="min-h-[200px] resize-none font-mono text-[12px]" />
                 <div className="flex gap-2">
-                  <Button
-                    className="flex-1 bg-[#2563EB] hover:bg-[#1d4ed8]"
+                  <button
+                    className="flex-1 px-5 py-2.5 rounded-lg bg-primary text-primary-foreground text-[13px] font-semibold hover:bg-primary/90 transition-colors"
                     onClick={useAIBullets}
                   >
                     Use These
-                  </Button>
-                  <Button
-                    variant="outline"
+                  </button>
+                  <button
+                    className="px-5 py-2.5 rounded-lg border border-border text-[13px] text-muted-foreground hover:text-foreground hover:border-foreground/30 disabled:opacity-50 transition-colors"
                     onClick={() => improveBullets(aiBulletsExpIndex)}
                     disabled={aiGenerating}
                   >
                     Regenerate
-                  </Button>
+                  </button>
                 </div>
               </div>
             )}
@@ -1336,16 +1283,14 @@ export default function CVEditor() {
         <DialogContent className="max-w-sm">
           <DialogHeader>
             <DialogTitle>Import Skryve Certificates</DialogTitle>
-            <DialogDescription>
-              Select certificates from your Skryve learning history.
-            </DialogDescription>
+            <DialogDescription>Select certificates from your Skryve learning history.</DialogDescription>
           </DialogHeader>
           {skryveCerts.length === 0 ? (
-            <p className="text-sm text-muted-foreground py-4 text-center">No certificates found on your account.</p>
+            <p className="text-[13px] text-muted-foreground py-4 text-center">No certificates found on your account.</p>
           ) : (
-            <div className="space-y-2 mt-2 max-h-60 overflow-y-auto">
+            <div className="space-y-1 mt-2 max-h-60 overflow-y-auto">
               {skryveCerts.map((cert, i) => (
-                <label key={cert.id} className="flex items-center gap-3 cursor-pointer p-2 rounded hover:bg-muted">
+                <label key={cert.id} className="flex items-center gap-3 cursor-pointer px-3 py-2.5 rounded-lg hover:bg-muted/50 transition-colors">
                   <Checkbox
                     checked={cert.checked}
                     onCheckedChange={checked => {
@@ -1353,22 +1298,27 @@ export default function CVEditor() {
                     }}
                   />
                   <div>
-                    <p className="text-sm font-medium">{cert.name}</p>
-                    <p className="text-xs text-muted-foreground">{cert.issuer}</p>
+                    <p className="text-[13px] font-medium text-foreground">{cert.name}</p>
+                    <p className="text-[12px] text-muted-foreground">{cert.issuer}</p>
                   </div>
                 </label>
               ))}
             </div>
           )}
           <div className="flex gap-2 mt-4">
-            <Button
-              className="flex-1 bg-[#2563EB] hover:bg-[#1d4ed8]"
+            <button
+              className="flex-1 px-5 py-2.5 rounded-lg bg-primary text-primary-foreground text-[13px] font-semibold hover:bg-primary/90 disabled:opacity-50 transition-colors"
               onClick={importSkryveCerts}
               disabled={!skryveCerts.some(c => c.checked)}
             >
               Import Selected
-            </Button>
-            <Button variant="outline" onClick={() => setShowSkryveImportDialog(false)}>Cancel</Button>
+            </button>
+            <button
+              className="px-5 py-2.5 rounded-lg border border-border text-[13px] text-muted-foreground hover:text-foreground hover:border-foreground/30 transition-colors"
+              onClick={() => setShowSkryveImportDialog(false)}
+            >
+              Cancel
+            </button>
           </div>
         </DialogContent>
       </Dialog>

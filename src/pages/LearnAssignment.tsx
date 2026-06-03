@@ -2,10 +2,7 @@ import { useEffect, useState, useRef, useCallback } from "react";
 import { useNavigate, useParams, Link } from "react-router-dom";
 import ReactMarkdown from "react-markdown";
 import { supabase } from "@/integrations/supabase/client";
-import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Progress } from "@/components/ui/progress";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import {
@@ -462,23 +459,23 @@ export default function LearnAssignment() {
     >
       {/* ── LEFT SIDEBAR ── */}
       {sidebarOpen && (
-        <aside className="hidden lg:flex flex-col w-72 border-r bg-background overflow-y-auto flex-shrink-0">
-          <div className="p-4 border-b flex-shrink-0">
+        <aside className="hidden lg:flex flex-col w-72 border-r border-border bg-card overflow-y-auto flex-shrink-0">
+          <div className="px-5 py-3.5 border-b border-border flex-shrink-0">
             <Link
               to={`/learn/${courseId}`}
-              className="text-sm font-semibold line-clamp-2 hover:text-[#2563EB] transition-colors"
+              className="text-[13px] font-semibold text-foreground line-clamp-2 hover:text-primary transition-colors"
             >
               {courseTitle}
             </Link>
           </div>
-          <div className="flex-1 overflow-y-auto p-2">
+          <div className="flex-1 overflow-y-auto p-3">
             {moduleGroups.map((mod) => {
               const modLessons = sortedLessons.filter(
                 (l) => (l.module_name ?? "Course Content") === mod
               );
               return (
-                <div key={mod} className="mb-4">
-                  <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide px-2 mb-1">
+                <div key={mod} className="mb-5">
+                  <p className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground mb-2 px-2">
                     {mod}
                   </p>
                   <ul className="space-y-0.5">
@@ -490,12 +487,12 @@ export default function LearnAssignment() {
                       return (
                         <li key={lesson.id}>
                           <button
-                            className={`w-full text-left flex items-center gap-2 px-2 py-2 rounded-md text-sm transition-colors ${
+                            className={`w-full text-left flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-[13px] transition-colors ${
                               isCurrent
-                                ? "bg-[#2563EB]/10 text-[#2563EB]"
+                                ? "bg-primary/10 text-primary font-medium"
                                 : accessible
-                                ? "hover:bg-muted"
-                                : "opacity-50 cursor-not-allowed"
+                                ? "hover:bg-muted/50 text-foreground"
+                                : "opacity-40 cursor-not-allowed text-muted-foreground"
                             }`}
                             onClick={() => {
                               if (accessible) navigate(`/learn/${courseId}/${lesson.id}`);
@@ -503,11 +500,11 @@ export default function LearnAssignment() {
                             disabled={!accessible}
                           >
                             {done ? (
-                              <CheckCircle className="h-4 w-4 text-[#059669] flex-shrink-0" />
+                              <CheckCircle className="h-3.5 w-3.5 text-primary flex-shrink-0" />
                             ) : isCurrent ? (
-                              <PlayCircle className="h-4 w-4 text-[#2563EB] flex-shrink-0" />
+                              <PlayCircle className="h-3.5 w-3.5 text-primary flex-shrink-0" />
                             ) : (
-                              <Lock className="h-4 w-4 text-muted-foreground/40 flex-shrink-0" />
+                              <Lock className="h-3.5 w-3.5 text-muted-foreground/40 flex-shrink-0" />
                             )}
                             <span className="flex-1 line-clamp-1">{lesson.title}</span>
                           </button>
@@ -519,24 +516,27 @@ export default function LearnAssignment() {
               );
             })}
           </div>
-          <div className="p-4 border-t flex-shrink-0">
-            <div className="flex items-center justify-between text-xs text-muted-foreground mb-1.5">
+          <div className="px-5 py-4 border-t border-border flex-shrink-0">
+            <div className="flex items-center justify-between text-[12px] text-muted-foreground mb-2">
               <span>Progress</span>
-              <span>{progress}%</span>
+              <span className="font-medium text-foreground">{progress}%</span>
             </div>
-            <Progress value={progress} className="h-1.5" />
+            <div className="h-1 bg-border rounded-full">
+              <div
+                className="h-full bg-primary rounded-full transition-all"
+                style={{ width: `${progress}%` }}
+              />
+            </div>
           </div>
         </aside>
       )}
 
       {/* ── MAIN CONTENT ── */}
-      <main className="flex-1 overflow-y-auto">
-        {/* Toggle sidebar + lesson title */}
-        <div className="flex items-center gap-2 p-3 border-b bg-background sticky top-0 z-10">
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-7 w-7 hidden lg:flex"
+      <main className="flex-1 overflow-y-auto bg-background">
+        {/* Top bar */}
+        <div className="flex items-center gap-2 px-4 py-3 border-b border-border bg-card sticky top-0 z-10">
+          <button
+            className="h-7 w-7 hidden lg:flex items-center justify-center rounded-md hover:bg-muted/50 text-muted-foreground hover:text-foreground transition-colors"
             onClick={() => setSidebarOpen(!sidebarOpen)}
           >
             {sidebarOpen ? (
@@ -544,28 +544,28 @@ export default function LearnAssignment() {
             ) : (
               <PanelLeftOpen className="h-4 w-4" />
             )}
-          </Button>
-          <Button variant="ghost" size="sm" asChild>
-            <Link to={`/learn/${courseId}`}>
-              <ArrowLeft className="h-4 w-4 mr-1" />
-              <span className="hidden sm:inline">Back</span>
-            </Link>
-          </Button>
-          <div className="flex-1 min-w-0">
-            <p className="text-xs text-muted-foreground truncate">
+          </button>
+          <Link
+            to={`/learn/${courseId}`}
+            className="flex items-center gap-1.5 text-[13px] text-muted-foreground hover:text-foreground transition-colors"
+          >
+            <ArrowLeft className="h-3.5 w-3.5" />
+            <span className="hidden sm:inline">Back</span>
+          </Link>
+          <div className="flex-1 min-w-0 ml-1">
+            <p className="text-[11px] text-muted-foreground truncate">
               {currentLesson.module_name ?? "Course Content"}
             </p>
-            <h1 className="text-sm font-semibold truncate">{currentLesson.title}</h1>
+            <h1 className="text-[14px] font-medium text-foreground truncate">{currentLesson.title}</h1>
           </div>
           {isCompleted && (
-            <Badge className="bg-[#059669] text-white border-0 text-xs hidden sm:flex">
+            <span className="hidden sm:flex items-center gap-1.5 text-[12px] text-primary font-medium">
+              <CheckCircle className="h-3.5 w-3.5" />
               Completed
-            </Badge>
+            </span>
           )}
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-7 w-7 hidden lg:flex"
+          <button
+            className="h-7 w-7 hidden lg:flex items-center justify-center rounded-md hover:bg-muted/50 text-muted-foreground hover:text-foreground transition-colors"
             onClick={() => setAiPanelOpen(!aiPanelOpen)}
           >
             {aiPanelOpen ? (
@@ -573,15 +573,15 @@ export default function LearnAssignment() {
             ) : (
               <PanelRightOpen className="h-4 w-4" />
             )}
-          </Button>
+          </button>
         </div>
 
-        <div className="p-4 md:p-6 max-w-3xl mx-auto">
+        <div className="p-5 md:p-7 max-w-3xl mx-auto">
           {/* ── Video content ── */}
           {currentLesson.content_type === "video" && currentLesson.content_url && (
             <div className="mb-6">
               {isEmbedUrl(currentLesson.content_url) ? (
-                <div className="relative pt-[56.25%] rounded-lg overflow-hidden bg-black">
+                <div className="relative pt-[56.25%] rounded-xl overflow-hidden bg-black">
                   <iframe
                     className="absolute inset-0 w-full h-full"
                     src={toEmbedUrl(currentLesson.content_url)}
@@ -591,7 +591,7 @@ export default function LearnAssignment() {
                   />
                 </div>
               ) : (
-                <div className="relative rounded-lg overflow-hidden bg-black">
+                <div className="relative rounded-xl overflow-hidden bg-black">
                   <video
                     ref={videoRef}
                     src={currentLesson.content_url}
@@ -604,14 +604,13 @@ export default function LearnAssignment() {
                       if (!completedLessonIds.has(lessonId ?? "")) void markComplete();
                     }}
                   />
-                  {/* Custom controls */}
-                  <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-3">
-                    <Progress value={watchPercent} className="h-1 mb-2" />
+                  <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-4">
+                    <div className="h-1 bg-border/40 rounded-full mb-3">
+                      <div className="h-full bg-primary rounded-full transition-all" style={{ width: `${watchPercent}%` }} />
+                    </div>
                     <div className="flex items-center gap-2">
-                      <Button
-                        size="icon"
-                        variant="ghost"
-                        className="h-7 w-7 text-white hover:bg-white/20"
+                      <button
+                        className="h-7 w-7 text-white hover:bg-white/20 rounded-md flex items-center justify-center transition-colors"
                         onClick={() => {
                           if (videoRef.current) {
                             if (isPlaying) videoRef.current.pause();
@@ -624,7 +623,7 @@ export default function LearnAssignment() {
                         ) : (
                           <Play className="h-4 w-4" />
                         )}
-                      </Button>
+                      </button>
                       <Volume2 className="h-3 w-3 text-white/70" />
                       <input
                         type="range"
@@ -654,14 +653,12 @@ export default function LearnAssignment() {
                           </option>
                         ))}
                       </select>
-                      <Button
-                        size="icon"
-                        variant="ghost"
-                        className="h-7 w-7 text-white hover:bg-white/20 ml-auto"
+                      <button
+                        className="h-7 w-7 text-white hover:bg-white/20 rounded-md flex items-center justify-center transition-colors ml-auto"
                         onClick={() => videoRef.current?.requestFullscreen()}
                       >
                         <Maximize className="h-3 w-3" />
-                      </Button>
+                      </button>
                     </div>
                   </div>
                 </div>
@@ -672,10 +669,8 @@ export default function LearnAssignment() {
           {/* ── Text content ── */}
           {currentLesson.content_type === "text" && currentLesson.content_body && (
             <div className="mb-6">
-              <div className="flex items-center gap-2 mb-3 text-xs text-muted-foreground">
-                <span>
-                  Estimated read time: {estimatedReadTime(currentLesson.content_body)} min
-                </span>
+              <div className="flex items-center gap-2 mb-4 text-[12px] text-muted-foreground">
+                <span>Estimated read time: {estimatedReadTime(currentLesson.content_body)} min</span>
               </div>
               <div className="prose prose-sm dark:prose-invert max-w-none">
                 <ReactMarkdown>{currentLesson.content_body}</ReactMarkdown>
@@ -684,101 +679,106 @@ export default function LearnAssignment() {
           )}
 
           {/* ── Mark Complete button ── */}
-          {!isCompleted && (
-            <Button
-              className="mb-6"
+          {!isCompleted ? (
+            <button
+              className="mb-6 px-5 py-2.5 rounded-lg bg-primary text-primary-foreground text-[13px] font-semibold hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 transition-colors"
               onClick={() => void markComplete()}
               disabled={!enrollment}
             >
-              <CheckCircle className="h-4 w-4 mr-2" />
-              Mark as Complete
-            </Button>
-          )}
-          {isCompleted && (
-            <div className="flex items-center gap-2 text-[#059669] text-sm mb-6">
               <CheckCircle className="h-4 w-4" />
-              Lesson completed!
+              Mark as Complete
+            </button>
+          ) : (
+            <div className="flex items-center gap-2 text-primary text-[13px] font-medium mb-6">
+              <CheckCircle className="h-4 w-4" />
+              Lesson completed
             </div>
           )}
 
           {/* ── Notes ── */}
           {enrollment && (
-            <Card className="p-4 mb-6">
-              <h3 className="font-semibold text-sm mb-2">My Notes</h3>
-              <Textarea
-                value={lessonNote}
-                onChange={(e) => handleNoteChange(e.target.value)}
-                onBlur={() => void saveNote(lessonNote)}
-                placeholder="Take notes for this lesson…"
-                className="min-h-[100px] text-sm"
-              />
-              <p className="text-xs text-muted-foreground mt-1">
-                Auto-saved
-              </p>
-            </Card>
+            <div className="border border-border rounded-xl bg-card overflow-hidden mb-6">
+              <div className="px-5 py-3.5 border-b border-border">
+                <h3 className="text-[13px] font-semibold text-foreground">My Notes</h3>
+              </div>
+              <div className="px-5 py-5">
+                <Textarea
+                  value={lessonNote}
+                  onChange={(e) => handleNoteChange(e.target.value)}
+                  onBlur={() => void saveNote(lessonNote)}
+                  placeholder="Take notes for this lesson…"
+                  className="min-h-[100px] text-[13px] resize-none"
+                />
+                <p className="text-[12px] text-muted-foreground mt-2">Auto-saved</p>
+              </div>
+            </div>
           )}
 
           {/* ── Attachments ── */}
           {currentLesson.attachments?.length > 0 && (
-            <Card className="p-4 mb-6">
-              <h3 className="font-semibold text-sm mb-2">Downloads</h3>
-              <ul className="space-y-1">
-                {currentLesson.attachments.map((att, i) => (
-                  <li key={i}>
-                    <a
-                      href={att.url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex items-center gap-2 text-sm text-[#2563EB] hover:underline"
-                    >
-                      <Download className="h-4 w-4" />
-                      {att.name}
-                    </a>
-                  </li>
-                ))}
-              </ul>
-            </Card>
+            <div className="border border-border rounded-xl bg-card overflow-hidden mb-6">
+              <div className="px-5 py-3.5 border-b border-border">
+                <h3 className="text-[13px] font-semibold text-foreground">Downloads</h3>
+              </div>
+              <div className="px-5 py-5">
+                <ul className="space-y-2">
+                  {currentLesson.attachments.map((att, i) => (
+                    <li key={i}>
+                      <a
+                        href={att.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center gap-2 text-[13px] text-primary hover:underline"
+                      >
+                        <Download className="h-3.5 w-3.5" />
+                        {att.name}
+                      </a>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </div>
           )}
 
           {/* ── Navigation ── */}
-          <div className="flex items-center justify-between pt-4 border-t">
-            <Button
-              variant="outline"
+          <div className="flex items-center justify-between pt-5 border-t border-border">
+            <button
+              className="px-5 py-2.5 rounded-lg border border-border text-[13px] text-muted-foreground hover:text-foreground hover:border-foreground/30 disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-1.5 transition-colors"
               onClick={() => navigate_lesson("prev")}
               disabled={!prevLesson}
             >
-              <ChevronLeft className="h-4 w-4 mr-1" />
+              <ChevronLeft className="h-4 w-4" />
               Previous
-            </Button>
-            <Button
-              variant="outline"
+            </button>
+            <button
+              className="px-5 py-2.5 rounded-lg border border-border text-[13px] text-muted-foreground hover:text-foreground hover:border-foreground/30 disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-1.5 transition-colors"
               onClick={() => navigate_lesson("next")}
               disabled={!nextLesson}
             >
               Next
-              <ChevronRight className="h-4 w-4 ml-1" />
-            </Button>
+              <ChevronRight className="h-4 w-4" />
+            </button>
           </div>
         </div>
       </main>
 
       {/* ── RIGHT AI COACH PANEL ── */}
       {aiPanelOpen && (
-        <aside className="hidden lg:flex flex-col w-80 border-l bg-background flex-shrink-0 overflow-hidden">
+        <aside className="hidden lg:flex flex-col w-80 border-l border-border bg-card flex-shrink-0 overflow-hidden">
           {/* Header */}
-          <div className="p-4 border-b flex-shrink-0 flex items-center gap-2">
-            <Brain className="h-4 w-4 text-[#2563EB]" />
-            <h3 className="font-semibold text-sm">AI Coach</h3>
+          <div className="px-5 py-3.5 border-b border-border flex-shrink-0 flex items-center gap-2">
+            <Brain className="h-4 w-4 text-primary" />
+            <h3 className="text-[13px] font-semibold text-foreground">AI Coach</h3>
           </div>
 
           {/* Messages */}
-          <div className="flex-1 overflow-y-auto p-3 space-y-3">
+          <div className="flex-1 overflow-y-auto p-4 space-y-3">
             {messages.map((m, i) => (
               <div
                 key={i}
-                className={`rounded-lg px-3 py-2 text-sm break-words ${
+                className={`rounded-xl px-3.5 py-2.5 text-[13px] break-words ${
                   m.role === "user"
-                    ? "bg-[#2563EB] text-white ml-6"
+                    ? "bg-primary text-primary-foreground ml-6"
                     : "bg-muted mr-6"
                 }`}
               >
@@ -792,7 +792,7 @@ export default function LearnAssignment() {
               </div>
             ))}
             {aiLoading && (
-              <div className="bg-muted rounded-lg px-3 py-2 mr-6">
+              <div className="bg-muted rounded-xl px-3.5 py-2.5 mr-6">
                 <div className="flex gap-1 items-center">
                   <div className="h-1.5 w-1.5 bg-muted-foreground rounded-full animate-bounce [animation-delay:0ms]" />
                   <div className="h-1.5 w-1.5 bg-muted-foreground rounded-full animate-bounce [animation-delay:150ms]" />
@@ -804,8 +804,8 @@ export default function LearnAssignment() {
           </div>
 
           {/* Quick prompts */}
-          <div className="p-3 border-t flex-shrink-0">
-            <div className="flex flex-wrap gap-1.5 mb-2">
+          <div className="p-4 border-t border-border flex-shrink-0">
+            <div className="flex flex-wrap gap-1.5 mb-3">
               {[
                 "Explain this again",
                 "Give me an example",
@@ -814,7 +814,7 @@ export default function LearnAssignment() {
               ].map((prompt) => (
                 <button
                   key={prompt}
-                  className="text-[11px] px-2 py-1 rounded-full bg-muted hover:bg-muted/80 border text-muted-foreground transition-colors"
+                  className="text-[11px] px-2 py-0.5 bg-muted text-muted-foreground rounded-md hover:bg-muted/80 hover:text-foreground transition-colors disabled:opacity-50"
                   onClick={() => void sendAiMessage(prompt)}
                   disabled={aiLoading}
                 >
@@ -829,7 +829,7 @@ export default function LearnAssignment() {
                 value={aiInput}
                 onChange={(e) => setAiInput(e.target.value)}
                 placeholder="Ask anything…"
-                className="min-h-[40px] max-h-24 resize-none text-sm"
+                className="min-h-[40px] max-h-24 resize-none text-[13px]"
                 onKeyDown={(e) => {
                   if (e.key === "Enter" && !e.shiftKey) {
                     e.preventDefault();
@@ -838,8 +838,8 @@ export default function LearnAssignment() {
                 }}
                 disabled={aiLoading}
               />
-              <Button
-                size="icon"
+              <button
+                className="px-3 py-2 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center"
                 onClick={() => void sendAiMessage()}
                 disabled={aiLoading || !aiInput.trim()}
               >
@@ -848,7 +848,7 @@ export default function LearnAssignment() {
                 ) : (
                   <Send className="h-4 w-4" />
                 )}
-              </Button>
+              </button>
             </div>
           </div>
         </aside>
