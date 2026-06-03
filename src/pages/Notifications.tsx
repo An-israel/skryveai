@@ -1,10 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
-import { motion } from "framer-motion";
 import { formatDistanceToNow } from "date-fns";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Bell,
   Briefcase,
@@ -20,15 +16,7 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
-type NotifType =
-  | "jobs"
-  | "applications"
-  | "messages"
-  | "offers"
-  | "projects"
-  | "events"
-  | "learning"
-  | "system";
+// ── Types ──────────────────────────────────────────────────────────────────────
 
 interface Notification {
   id: string;
@@ -40,44 +28,51 @@ interface Notification {
   created_at: string;
 }
 
-const TABS: { value: string; label: string }[] = [
-  { value: "all", label: "All" },
-  { value: "jobs", label: "Jobs" },
+// ── Constants ──────────────────────────────────────────────────────────────────
+
+const TABS = [
+  { value: "all",          label: "All"          },
+  { value: "jobs",         label: "Jobs"         },
   { value: "applications", label: "Applications" },
-  { value: "messages", label: "Messages" },
-  { value: "offers", label: "Offers" },
-  { value: "projects", label: "Projects" },
-  { value: "events", label: "Events" },
-  { value: "learning", label: "Learning" },
-  { value: "system", label: "System" },
+  { value: "messages",     label: "Messages"     },
+  { value: "offers",       label: "Offers"       },
+  { value: "projects",     label: "Projects"     },
+  { value: "events",       label: "Events"       },
+  { value: "learning",     label: "Learning"     },
+  { value: "system",       label: "System"       },
 ];
 
-function notifIcon(type: string) {
+const PAGE_SIZE = 20;
+
+// ── Icon helper ────────────────────────────────────────────────────────────────
+
+function NotifIcon({ type }: { type: string }) {
   switch (type) {
     case "jobs":
-      return <Briefcase className="w-5 h-5 text-blue-600" />;
+      return <Briefcase className="w-4 h-4 text-blue-500" />;
     case "applications":
-      return <FileText className="w-5 h-5 text-purple-600" />;
+      return <FileText className="w-4 h-4 text-purple-500" />;
     case "messages":
-      return <MessageSquare className="w-5 h-5 text-green-600" />;
+      return <MessageSquare className="w-4 h-4 text-emerald-500" />;
     case "offers":
-      return <DollarSign className="w-5 h-5 text-yellow-600" />;
+      return <DollarSign className="w-4 h-4 text-amber-500" />;
     case "projects":
-      return <FolderOpen className="w-5 h-5 text-orange-600" />;
+      return <FolderOpen className="w-4 h-4 text-orange-500" />;
     case "events":
-      return <CalendarDays className="w-5 h-5 text-pink-600" />;
+      return <CalendarDays className="w-4 h-4 text-pink-500" />;
     case "learning":
-      return <BookOpen className="w-5 h-5 text-teal-600" />;
+      return <BookOpen className="w-4 h-4 text-teal-500" />;
     default:
-      return <Bell className="w-5 h-5 text-muted-foreground" />;
+      return <Bell className="w-4 h-4 text-muted-foreground" />;
   }
 }
 
-const PAGE_SIZE = 20;
+// ── Main Component ─────────────────────────────────────────────────────────────
 
 export default function Notifications() {
   const navigate = useNavigate();
   const { toast } = useToast();
+
   const [userId, setUserId] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState("all");
   const [notifications, setNotifications] = useState<Notification[]>([]);
@@ -87,12 +82,16 @@ export default function Notifications() {
   const [page, setPage] = useState(0);
   const [markingAll, setMarkingAll] = useState(false);
 
+  // ── Auth ───────────────────────────────────────────────────────────────────────
+
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => {
       if (data.user) setUserId(data.user.id);
       else navigate("/login");
     });
   }, [navigate]);
+
+  // ── Fetch ──────────────────────────────────────────────────────────────────────
 
   const fetchNotifications = useCallback(
     async (pageNum: number, tab: string, append = false) => {
@@ -110,9 +109,7 @@ export default function Notifications() {
         .order("created_at", { ascending: false })
         .range(from, to);
 
-      if (tab !== "all") {
-        query = query.eq("type", tab);
-      }
+      if (tab !== "all") query = query.eq("type", tab);
 
       const { data, error } = await query;
 
@@ -136,7 +133,8 @@ export default function Notifications() {
     fetchNotifications(0, activeTab);
   }, [userId, activeTab, fetchNotifications]);
 
-  // Realtime subscription
+  // ── Realtime ───────────────────────────────────────────────────────────────────
+
   useEffect(() => {
     if (!userId) return;
 
@@ -163,6 +161,8 @@ export default function Notifications() {
       supabase.removeChannel(channel);
     };
   }, [userId, activeTab]);
+
+  // ── Actions ────────────────────────────────────────────────────────────────────
 
   const markAsRead = async (notif: Notification) => {
     if (!notif.is_read) {
@@ -198,108 +198,138 @@ export default function Notifications() {
 
   const unreadCount = notifications.filter((n) => !n.is_read).length;
 
+  // ── Render ─────────────────────────────────────────────────────────────────────
+
   return (
-    <div className="max-w-3xl mx-auto px-4 py-6">
-      <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}>
-        {/* Header */}
-        <div className="flex items-center justify-between mb-6">
-          <div className="flex items-center gap-3">
-            <h1 className="text-2xl font-bold">Notifications</h1>
+    <div className="max-w-3xl mx-auto px-4 py-8">
+      {/* Page header */}
+      <div className="flex items-start justify-between mb-8 gap-3">
+        <div>
+          <div className="flex items-center gap-2">
+            <h1 className="text-xl font-semibold text-foreground tracking-tight">Notifications</h1>
             {unreadCount > 0 && (
-              <Badge className="bg-blue-600 text-white">{unreadCount}</Badge>
+              <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-primary text-primary-foreground text-[11px] font-bold">
+                {unreadCount > 9 ? "9+" : unreadCount}
+              </span>
             )}
           </div>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={markAllAsRead}
-            disabled={markingAll || unreadCount === 0}
-            className="gap-2"
-          >
-            {markingAll ? (
-              <Loader2 className="w-4 h-4 animate-spin" />
-            ) : (
-              <CheckCheck className="w-4 h-4" />
-            )}
-            Mark all as read
-          </Button>
+          <p className="text-[13px] text-muted-foreground mt-0.5">
+            Stay up to date with your activity
+          </p>
         </div>
+        <button
+          onClick={markAllAsRead}
+          disabled={markingAll || unreadCount === 0}
+          className="flex items-center gap-2 px-4 py-2 rounded-lg border border-border text-[13px] font-medium text-muted-foreground hover:text-foreground hover:bg-muted/50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors shrink-0"
+        >
+          {markingAll ? (
+            <Loader2 className="w-3.5 h-3.5 animate-spin" />
+          ) : (
+            <CheckCheck className="w-3.5 h-3.5" />
+          )}
+          Mark all read
+        </button>
+      </div>
 
-        {/* Tabs */}
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="mb-4">
-          <TabsList className="flex-wrap h-auto gap-1 p-1">
+      {/* Panel */}
+      <div className="border border-border rounded-xl bg-card overflow-hidden">
+        {/* Tab bar */}
+        <div className="px-4 pt-3 border-b border-border overflow-x-auto">
+          <div className="flex items-center gap-0.5 pb-px min-w-max">
             {TABS.map((tab) => (
-              <TabsTrigger key={tab.value} value={tab.value} className="text-xs">
+              <button
+                key={tab.value}
+                onClick={() => setActiveTab(tab.value)}
+                className={`px-3 py-2 rounded-t-md text-[12px] font-medium transition-colors whitespace-nowrap border-b-2 -mb-px ${
+                  activeTab === tab.value
+                    ? "border-primary text-foreground"
+                    : "border-transparent text-muted-foreground hover:text-foreground"
+                }`}
+              >
                 {tab.label}
-              </TabsTrigger>
+              </button>
             ))}
-          </TabsList>
-        </Tabs>
+          </div>
+        </div>
 
         {/* Content */}
         {loading ? (
           <div className="flex justify-center py-16">
-            <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
+            <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
           </div>
         ) : notifications.length === 0 ? (
-          <div className="text-center py-20">
-            <Bell className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
-            <p className="text-lg font-medium text-foreground">No notifications yet</p>
-            <p className="text-sm text-muted-foreground mt-1">
-              We'll let you know when something happens.
-            </p>
+          <div className="flex flex-col items-center justify-center py-20 gap-3">
+            <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center">
+              <Bell className="w-5 h-5 text-muted-foreground" />
+            </div>
+            <div className="text-center">
+              <p className="text-[14px] font-medium text-foreground">No notifications yet</p>
+              <p className="text-[13px] text-muted-foreground mt-0.5">
+                We'll let you know when something happens.
+              </p>
+            </div>
           </div>
         ) : (
-          <div className="space-y-1">
+          <div className="divide-y divide-border">
             {notifications.map((notif) => (
               <div
                 key={notif.id}
                 onClick={() => markAsRead(notif)}
-                className={`flex items-start gap-4 p-4 rounded-xl cursor-pointer transition-colors hover:bg-muted/50 ${
-                  !notif.is_read ? "bg-blue-50/50 dark:bg-blue-950/20" : ""
+                className={`flex items-start gap-3 px-5 py-3.5 cursor-pointer hover:bg-muted/30 transition-colors ${
+                  !notif.is_read ? "bg-primary/[0.02]" : ""
                 }`}
               >
-                <div className="mt-0.5 shrink-0 w-9 h-9 rounded-full bg-muted flex items-center justify-center">
-                  {notifIcon(notif.type)}
+                {/* Unread dot */}
+                <div className="mt-1.5 shrink-0 w-1.5 h-1.5 flex items-center justify-center">
+                  {!notif.is_read ? (
+                    <span className="w-1.5 h-1.5 rounded-full bg-primary block" />
+                  ) : (
+                    <span className="w-1.5 h-1.5 block" />
+                  )}
                 </div>
+
+                {/* Icon */}
+                <div className="mt-0.5 shrink-0 w-7 h-7 rounded-lg bg-muted flex items-center justify-center">
+                  <NotifIcon type={notif.type} />
+                </div>
+
+                {/* Body */}
                 <div className="flex-1 min-w-0">
-                  <p className="font-medium text-sm text-foreground leading-snug">
+                  <p className="text-[13px] font-medium text-foreground leading-snug">
                     {notif.title}
                   </p>
                   {notif.body && (
-                    <p className="text-sm text-muted-foreground mt-0.5 line-clamp-2">
+                    <p className="text-[12px] text-muted-foreground mt-0.5 line-clamp-2">
                       {notif.body}
                     </p>
                   )}
-                  <p className="text-xs text-muted-foreground mt-1">
-                    {formatDistanceToNow(new Date(notif.created_at), {
-                      addSuffix: true,
-                    })}
-                  </p>
                 </div>
-                {!notif.is_read && (
-                  <div className="mt-2 shrink-0 w-2.5 h-2.5 rounded-full bg-blue-600" />
-                )}
+
+                {/* Time */}
+                <p className="text-[11px] text-muted-foreground shrink-0 mt-0.5">
+                  {formatDistanceToNow(new Date(notif.created_at), { addSuffix: true })}
+                </p>
               </div>
             ))}
           </div>
         )}
 
+        {/* Load more */}
         {hasMore && !loading && (
-          <div className="mt-4 flex justify-center">
-            <Button
-              variant="outline"
+          <div className="px-5 py-3.5 border-t border-border flex justify-center">
+            <button
               onClick={loadMore}
               disabled={loadingMore}
+              className="flex items-center gap-2 text-[13px] text-muted-foreground hover:text-foreground transition-colors disabled:opacity-50"
             >
               {loadingMore ? (
-                <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                <Loader2 className="w-3.5 h-3.5 animate-spin" />
               ) : null}
               Load more
-            </Button>
+            </button>
           </div>
         )}
-      </motion.div>
+      </div>
     </div>
   );
 }

@@ -1,14 +1,11 @@
 import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { SEOHead } from "@/components/SEOHead";
-import { motion } from "framer-motion";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Check, Crown, Loader2, Users, Zap, Star } from "lucide-react";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+
+// ── Types ──────────────────────────────────────────────────────────────────────
 
 interface PlanPricing {
   amount: number;
@@ -22,13 +19,112 @@ interface PricingData {
   symbol: string;
   currencyName: string;
   plans: {
-    basic: { monthly: PlanPricing };
-    popular: { monthly: PlanPricing; yearly: PlanPricing };
-    unlimited: { monthly: PlanPricing };
+    basic:      { monthly: PlanPricing };
+    popular:    { monthly: PlanPricing; yearly: PlanPricing };
+    unlimited:  { monthly: PlanPricing };
     team_basic: { monthly: PlanPricing; yearly: PlanPricing };
-    team_pro: { monthly: PlanPricing; yearly: PlanPricing };
+    team_pro:   { monthly: PlanPricing; yearly: PlanPricing };
   };
 }
+
+// ── Individual plan definitions ────────────────────────────────────────────────
+
+const INDIVIDUAL_PLANS = [
+  {
+    id: "basic",
+    name: "Basic",
+    sub: "For freelancers just starting out",
+    featured: false,
+    credits: "50 credits/month · up to 250 emails/month",
+    features: [
+      "AI-powered business discovery",
+      "Find Clients mode only",
+      "Automated website analysis",
+      "Personalized pitch generation",
+      "Email sending & tracking",
+    ],
+    cta: "Get Started",
+  },
+  {
+    id: "popular",
+    name: "Popular",
+    sub: "Full access to all tools",
+    featured: true,
+    badge: "Most Popular",
+    credits: "100 credits/month · up to 500 emails/month",
+    features: [
+      "AI-powered business discovery",
+      "All campaign modes",
+      "Find Clients + Pitch a Client",
+      "Find Investors mode",
+      "Automated website analysis",
+      "Personalized pitch generation",
+      "Email sending & tracking",
+      "Reply detection",
+      "Campaign analytics",
+      "Auto follow-up emails",
+      "Auto-Pilot Mode",
+    ],
+    cta: "Subscribe Monthly",
+    ctaYearly: "Subscribe Yearly",
+  },
+  {
+    id: "unlimited",
+    name: "Unlimited",
+    sub: "No limits, ever",
+    featured: false,
+    badge: "Unlimited",
+    credits: "Unlimited credits",
+    features: [
+      "Everything in Popular",
+      "Unlimited credits",
+      "Auto-Pilot Mode",
+      "Priority support",
+      "All future features",
+      "No campaign limits",
+    ],
+    cta: "Go Unlimited",
+  },
+];
+
+const TEAM_PLANS = [
+  {
+    id: "team_basic",
+    name: "Basic Team",
+    sub: "For small agencies",
+    featured: false,
+    features: [
+      "Team of up to 7 members",
+      "300 credits/month shared",
+      "Up to 1,500 emails/month",
+      "5 expertise profiles",
+      "All campaign modes",
+      "Invite team via email",
+      "Shared campaign analytics",
+      "Auto follow-up emails",
+    ],
+  },
+  {
+    id: "team_pro",
+    name: "Pro Team",
+    sub: "For growing agencies",
+    featured: true,
+    badge: "Best for Agencies",
+    features: [
+      "Team of up to 15 members",
+      "500 credits/month shared",
+      "Up to 2,500 emails/month",
+      "12 expertise profiles",
+      "All campaign modes",
+      "Invite team via email",
+      "Shared campaign analytics",
+      "Priority support",
+      "Auto follow-up emails",
+    ],
+  },
+];
+
+// ── Main Component ─────────────────────────────────────────────────────────────
 
 export default function Pricing() {
   const [pricing, setPricing] = useState<PricingData | null>(null);
@@ -101,268 +197,316 @@ export default function Pricing() {
     }
   };
 
+  const p = pricing?.plans;
+
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      <div className="min-h-screen bg-[#09090b] flex items-center justify-center">
+        <Loader2 className="w-7 h-7 animate-spin text-white/30" />
       </div>
     );
   }
 
-  const p = pricing?.plans;
-
   return (
-    <div className="min-h-screen bg-gradient-subtle py-8 sm:py-12 px-4">
+    <div className="min-h-screen bg-[#09090b] py-20 px-4">
       <SEOHead
         title="SkryveAI Pricing — Affordable AI Outreach, CV Builder & LinkedIn Tools"
         description="Simple, transparent pricing for SkryveAI. Start with a free 7-day trial. AI cold outreach, CV builder, ATS checker, and LinkedIn analyzer — all in one affordable plan."
         canonical="https://skryveai.com/pricing"
         keywords="SkryveAI pricing, AI outreach pricing, cold email tool pricing, CV builder pricing, ATS checker free trial"
       />
+
       <div className="max-w-6xl mx-auto">
-        <Link to="/" className="flex items-center justify-center gap-2 mb-8 sm:mb-12">
+
+        {/* Logo */}
+        <Link to="/" className="flex items-center justify-center gap-2 mb-16">
           <img src="/logo.png" alt="SkryveAI logo" className="w-8 h-8 object-contain" />
-          <span className="font-bold text-2xl sm:text-3xl" style={{ color: '#0B162B' }}>SkryveAI</span>
+          <span className="font-bold text-2xl text-white">SkryveAI</span>
         </Link>
 
-        <div className="text-center mb-8">
-          <h1 className="text-2xl sm:text-4xl font-bold mb-3">Simple, Transparent Pricing</h1>
-          <p className="text-base sm:text-xl text-muted-foreground">
-            Start with a free trial. No credit card required.
+        {/* Heading */}
+        <div className="text-center mb-12">
+          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-white/[0.08] bg-white/[0.03] text-white/50 text-[12px] font-medium mb-6">
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 block" />
+            Showing prices in {pricing?.currencyName || "your local currency"}
+          </div>
+          <h1 className="text-4xl sm:text-5xl font-bold text-white leading-tight tracking-tight mb-4">
+            Simple, transparent<br className="hidden sm:block" /> pricing
+          </h1>
+          <p className="text-[16px] text-white/50 max-w-md mx-auto">
+            Start with a 7-day free trial. No credit card required. Cancel anytime.
           </p>
-          <Badge variant="secondary" className="mt-3">
-            Showing prices in {pricing?.currencyName || "your currency"}
-          </Badge>
         </div>
 
         {/* Tab switcher */}
-        <div className="flex justify-center mb-8">
-          <Tabs value={tab} onValueChange={(v) => setTab(v as any)}>
-            <TabsList className="grid grid-cols-2 w-64">
-              <TabsTrigger value="individual">Individual</TabsTrigger>
-              <TabsTrigger value="teams" className="gap-1">
-                <Users className="w-3.5 h-3.5" />
-                Teams
-              </TabsTrigger>
-            </TabsList>
-          </Tabs>
+        <div className="flex justify-center mb-12">
+          <div className="flex items-center gap-1 p-1 rounded-xl border border-white/[0.08] bg-white/[0.02]">
+            <button
+              onClick={() => setTab("individual")}
+              className={`px-5 py-2 rounded-lg text-[13px] font-medium transition-colors ${
+                tab === "individual"
+                  ? "bg-white/[0.08] text-white"
+                  : "text-white/40 hover:text-white/70"
+              }`}
+            >
+              Individual
+            </button>
+            <button
+              onClick={() => setTab("teams")}
+              className={`flex items-center gap-1.5 px-5 py-2 rounded-lg text-[13px] font-medium transition-colors ${
+                tab === "teams"
+                  ? "bg-white/[0.08] text-white"
+                  : "text-white/40 hover:text-white/70"
+              }`}
+            >
+              <Users className="w-3.5 h-3.5" />
+              Teams
+            </button>
+          </div>
         </div>
 
-        {tab === "individual" ? (
-          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+        {/* ── Individual Plans ── */}
+        {tab === "individual" && (
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {/* Basic */}
-            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}>
-              <Card className="relative h-full">
-                <CardHeader>
-                  <CardTitle className="text-lg sm:text-xl">Basic</CardTitle>
-                  <CardDescription>For freelancers just starting out</CardDescription>
-                  <div className="mt-4">
-                    <span className="text-3xl sm:text-4xl font-bold">{p?.basic.monthly.display || "₦5,000"}</span>
-                    <span className="text-muted-foreground">/month</span>
-                  </div>
-                  <p className="text-xs text-muted-foreground mt-1">50 credits/month • Up to 250 emails/month</p>
-                </CardHeader>
-                <CardContent>
-                  <ul className="space-y-2.5 mb-6">
-                    {["AI-powered business discovery", "Find Clients mode only", "Automated website analysis", "Personalized pitch generation", "Email sending & tracking"].map(f => (
-                      <li key={f} className="flex items-start gap-2">
-                        <Check className="w-4 h-4 text-primary mt-0.5 shrink-0" />
-                        <span className="text-sm">{f}</span>
-                      </li>
-                    ))}
-                  </ul>
-                  <Button onClick={() => handleSubscribe("basic")} className="w-full" variant="outline" disabled={!!processingPlan}>
-                    {processingPlan === "basic" && <Loader2 className="w-4 h-4 animate-spin mr-2" />}
-                    Get Started
-                  </Button>
-                </CardContent>
-              </Card>
-            </motion.div>
+            <div className="border border-white/[0.08] rounded-2xl bg-white/[0.03] p-8 flex flex-col">
+              <div className="mb-6">
+                <p className="text-[15px] font-semibold text-white mb-1">
+                  {INDIVIDUAL_PLANS[0].name}
+                </p>
+                <p className="text-[13px] text-white/40">{INDIVIDUAL_PLANS[0].sub}</p>
+              </div>
+              <div className="mb-2">
+                <span className="text-4xl font-bold text-white">
+                  {p?.basic.monthly.display || "₦5,000"}
+                </span>
+                <span className="text-white/40 text-[14px] ml-1">/month</span>
+              </div>
+              <p className="text-[12px] text-white/30 mb-8">{INDIVIDUAL_PLANS[0].credits}</p>
+              <ul className="space-y-3 mb-8 flex-1">
+                {INDIVIDUAL_PLANS[0].features.map((f) => (
+                  <li key={f} className="flex items-start gap-2.5">
+                    <Check className="w-4 h-4 text-white/40 shrink-0 mt-0.5" />
+                    <span className="text-[14px] text-white/70">{f}</span>
+                  </li>
+                ))}
+              </ul>
+              <button
+                onClick={() => handleSubscribe("basic")}
+                disabled={!!processingPlan}
+                className="w-full py-3 rounded-xl border border-white/[0.1] text-white/70 text-[14px] font-medium hover:bg-white/[0.05] hover:text-white disabled:opacity-40 transition-colors flex items-center justify-center gap-2"
+              >
+                {processingPlan === "basic" && <Loader2 className="w-4 h-4 animate-spin" />}
+                {INDIVIDUAL_PLANS[0].cta}
+              </button>
+            </div>
 
-            {/* Popular (Monthly/Yearly) */}
-            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
-              <Card className="relative h-full border-primary shadow-lg">
-                <div className="absolute -top-3 left-1/2 -translate-x-1/2">
-                  <Badge className="bg-primary gap-1"><Star className="w-3 h-3" /> Most Popular</Badge>
-                </div>
-                <CardHeader>
-                  <CardTitle className="text-lg sm:text-xl">Popular</CardTitle>
-                  <CardDescription>Full access to all tools</CardDescription>
-                  <div className="mt-4">
-                    <span className="text-3xl sm:text-4xl font-bold">{p?.popular.monthly.display || "₦7,000"}</span>
-                    <span className="text-muted-foreground">/month</span>
-                  </div>
-                  <p className="text-xs text-muted-foreground mt-1">100 credits/month • Up to 500 emails/month</p>
-                  {p?.popular.yearly && (
-                    <p className="text-xs text-primary font-medium mt-1">
-                      or {p.popular.yearly.display}/year — save {p.popular.yearly.savings}%
-                    </p>
-                  )}
-                </CardHeader>
-                <CardContent>
-                  <ul className="space-y-2.5 mb-6">
-                    {["AI-powered business discovery", "All campaign modes", "Find Clients + Pitch a Client", "Find Investors mode", "Automated website analysis", "Personalized pitch generation", "Email sending & tracking", "Reply detection", "Campaign analytics", "Auto follow-up emails", "⚡ Auto-Pilot Mode"].map(f => (
-                      <li key={f} className="flex items-start gap-2">
-                        <Check className="w-4 h-4 text-primary mt-0.5 shrink-0" />
-                        <span className="text-sm">{f}</span>
-                      </li>
-                    ))}
-                  </ul>
-                  <div className="space-y-2">
-                    <Button onClick={() => handleSubscribe("monthly")} className="w-full" disabled={!!processingPlan}>
-                      {processingPlan === "monthly" && <Loader2 className="w-4 h-4 animate-spin mr-2" />}
-                      Subscribe Monthly
-                    </Button>
-                    <Button onClick={() => handleSubscribe("yearly")} className="w-full" variant="outline" disabled={!!processingPlan}>
-                      {processingPlan === "yearly" && <Loader2 className="w-4 h-4 animate-spin mr-2" />}
-                      Subscribe Yearly (Save {p?.popular.yearly?.savings || 12}%)
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            </motion.div>
+            {/* Popular (featured) */}
+            <div className="border border-[#2563EB]/40 rounded-2xl bg-[#2563EB]/5 p-8 flex flex-col relative">
+              <div className="absolute -top-3.5 left-1/2 -translate-x-1/2">
+                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#2563EB] text-white text-[11px] font-semibold">
+                  <Star className="w-3 h-3" />
+                  Most Popular
+                </span>
+              </div>
+              <div className="mb-6">
+                <p className="text-[15px] font-semibold text-white mb-1">
+                  {INDIVIDUAL_PLANS[1].name}
+                </p>
+                <p className="text-[13px] text-white/40">{INDIVIDUAL_PLANS[1].sub}</p>
+              </div>
+              <div className="mb-2">
+                <span className="text-4xl font-bold text-white">
+                  {p?.popular.monthly.display || "₦7,000"}
+                </span>
+                <span className="text-white/40 text-[14px] ml-1">/month</span>
+              </div>
+              <p className="text-[12px] text-white/30 mb-1">{INDIVIDUAL_PLANS[1].credits}</p>
+              {p?.popular.yearly && (
+                <p className="text-[12px] text-[#60a5fa] mb-8">
+                  or {p.popular.yearly.display}/year — save {p.popular.yearly.savings}%
+                </p>
+              )}
+              {!p?.popular.yearly && <div className="mb-8" />}
+              <ul className="space-y-3 mb-8 flex-1">
+                {INDIVIDUAL_PLANS[1].features.map((f) => (
+                  <li key={f} className="flex items-start gap-2.5">
+                    <Check className="w-4 h-4 text-[#60a5fa] shrink-0 mt-0.5" />
+                    <span className="text-[14px] text-white/70">{f}</span>
+                  </li>
+                ))}
+              </ul>
+              <div className="space-y-2">
+                <button
+                  onClick={() => handleSubscribe("monthly")}
+                  disabled={!!processingPlan}
+                  className="w-full py-3 rounded-xl bg-white text-[#09090b] font-bold text-[14px] hover:bg-white/90 disabled:opacity-40 transition-colors flex items-center justify-center gap-2"
+                >
+                  {processingPlan === "monthly" && <Loader2 className="w-4 h-4 animate-spin" />}
+                  Subscribe Monthly
+                </button>
+                <button
+                  onClick={() => handleSubscribe("yearly")}
+                  disabled={!!processingPlan}
+                  className="w-full py-3 rounded-xl border border-white/[0.1] text-white/70 text-[14px] font-medium hover:bg-white/[0.05] hover:text-white disabled:opacity-40 transition-colors flex items-center justify-center gap-2"
+                >
+                  {processingPlan === "yearly" && <Loader2 className="w-4 h-4 animate-spin" />}
+                  Subscribe Yearly (Save {p?.popular.yearly?.savings || 12}%)
+                </button>
+              </div>
+            </div>
 
             {/* Unlimited */}
-            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}>
-              <Card className="relative h-full bg-gradient-to-br from-card to-accent/10">
-                <div className="absolute -top-3 left-1/2 -translate-x-1/2">
-                  <Badge variant="secondary" className="gap-1"><Zap className="w-3 h-3" /> Unlimited</Badge>
-                </div>
-                <CardHeader>
-                  <CardTitle className="text-lg sm:text-xl">Unlimited</CardTitle>
-                  <CardDescription>No limits, ever</CardDescription>
-                  <div className="mt-4">
-                    <span className="text-3xl sm:text-4xl font-bold">{p?.unlimited.monthly.display || "₦15,000"}</span>
-                    <span className="text-muted-foreground">/month</span>
-                  </div>
-                  <p className="text-xs text-muted-foreground mt-1">Unlimited credits</p>
-                </CardHeader>
-                <CardContent>
-                  <ul className="space-y-2.5 mb-6">
-                    {["Everything in Popular", "Unlimited credits", "⚡ Auto-Pilot Mode", "Priority support", "All future features", "No campaign limits"].map(f => (
-                      <li key={f} className="flex items-start gap-2">
-                        <Check className="w-4 h-4 text-primary mt-0.5 shrink-0" />
-                        <span className="text-sm">{f}</span>
-                      </li>
-                    ))}
-                  </ul>
-                  <Button onClick={() => handleSubscribe("unlimited")} className="w-full bg-gradient-accent" disabled={!!processingPlan}>
-                    {processingPlan === "unlimited" && <Loader2 className="w-4 h-4 animate-spin mr-2" />}
-                    Go Unlimited
-                  </Button>
-                </CardContent>
-              </Card>
-            </motion.div>
-          </div>
-        ) : (
-          /* Teams Tab */
-          <div className="grid sm:grid-cols-2 gap-4 sm:gap-6 max-w-4xl mx-auto">
-            {/* Team Basic */}
-            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}>
-              <Card className="relative h-full">
-                <CardHeader>
-                  <CardTitle className="text-lg sm:text-xl flex items-center gap-2">
-                    <Users className="w-5 h-5" /> Basic Team
-                  </CardTitle>
-                  <CardDescription>For small agencies</CardDescription>
-                  <div className="mt-4">
-                    <span className="text-3xl sm:text-4xl font-bold">{p?.team_basic.monthly.display || "₦18,000"}</span>
-                    <span className="text-muted-foreground">/month</span>
-                  </div>
-                  {p?.team_basic.yearly && (
-                    <p className="text-xs text-primary font-medium mt-1">
-                      or {p.team_basic.yearly.display}/year — save {p.team_basic.yearly.savings}%
-                    </p>
-                  )}
-                </CardHeader>
-                <CardContent>
-                  <ul className="space-y-2.5 mb-6">
-                    {[
-                      "Team of up to 7 members",
-                      "300 credits/month shared",
-                      "Up to 1,500 emails/month",
-                      "5 expertise profiles",
-                      "All campaign modes",
-                      "Invite team via email",
-                      "Shared campaign analytics",
-                      "Auto follow-up emails",
-                    ].map(f => (
-                      <li key={f} className="flex items-start gap-2">
-                        <Check className="w-4 h-4 text-primary mt-0.5 shrink-0" />
-                        <span className="text-sm">{f}</span>
-                      </li>
-                    ))}
-                  </ul>
-                  <div className="space-y-2">
-                    <Button onClick={() => handleSubscribe("team_basic")} className="w-full" disabled={!!processingPlan}>
-                      {processingPlan === "team_basic" && <Loader2 className="w-4 h-4 animate-spin mr-2" />}
-                      Subscribe Monthly
-                    </Button>
-                    <Button onClick={() => handleSubscribe("team_basic")} className="w-full" variant="outline" disabled={!!processingPlan}>
-                      Subscribe Yearly (Save {p?.team_basic.yearly?.savings || 15}%)
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            </motion.div>
-
-            {/* Team Pro */}
-            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
-              <Card className="relative h-full border-primary shadow-lg">
-                <div className="absolute -top-3 left-1/2 -translate-x-1/2">
-                  <Badge className="bg-primary gap-1"><Crown className="w-3 h-3" /> Best for Agencies</Badge>
-                </div>
-                <CardHeader>
-                  <CardTitle className="text-lg sm:text-xl flex items-center gap-2">
-                    <Users className="w-5 h-5" /> Pro Team
-                  </CardTitle>
-                  <CardDescription>For growing agencies</CardDescription>
-                  <div className="mt-4">
-                    <span className="text-3xl sm:text-4xl font-bold">{p?.team_pro.monthly.display || "₦30,000"}</span>
-                    <span className="text-muted-foreground">/month</span>
-                  </div>
-                  {p?.team_pro.yearly && (
-                    <p className="text-xs text-primary font-medium mt-1">
-                      or {p.team_pro.yearly.display}/year — save {p.team_pro.yearly.savings}%
-                    </p>
-                  )}
-                </CardHeader>
-                <CardContent>
-                  <ul className="space-y-2.5 mb-6">
-                    {[
-                      "Team of up to 15 members",
-                      "500 credits/month shared",
-                      "Up to 2,500 emails/month",
-                      "12 expertise profiles",
-                      "All campaign modes",
-                      "Invite team via email",
-                      "Shared campaign analytics",
-                      "Priority support",
-                      "Auto follow-up emails",
-                    ].map(f => (
-                      <li key={f} className="flex items-start gap-2">
-                        <Check className="w-4 h-4 text-primary mt-0.5 shrink-0" />
-                        <span className="text-sm">{f}</span>
-                      </li>
-                    ))}
-                  </ul>
-                  <div className="space-y-2">
-                    <Button onClick={() => handleSubscribe("team_pro")} className="w-full" disabled={!!processingPlan}>
-                      {processingPlan === "team_pro" && <Loader2 className="w-4 h-4 animate-spin mr-2" />}
-                      Subscribe Monthly
-                    </Button>
-                    <Button onClick={() => handleSubscribe("team_pro")} className="w-full" variant="outline" disabled={!!processingPlan}>
-                      Subscribe Yearly (Save {p?.team_pro.yearly?.savings || 17}%)
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            </motion.div>
+            <div className="border border-white/[0.08] rounded-2xl bg-white/[0.03] p-8 flex flex-col relative">
+              <div className="absolute -top-3.5 left-1/2 -translate-x-1/2">
+                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full border border-white/[0.12] bg-white/[0.06] text-white/70 text-[11px] font-semibold">
+                  <Zap className="w-3 h-3" />
+                  Unlimited
+                </span>
+              </div>
+              <div className="mb-6">
+                <p className="text-[15px] font-semibold text-white mb-1">
+                  {INDIVIDUAL_PLANS[2].name}
+                </p>
+                <p className="text-[13px] text-white/40">{INDIVIDUAL_PLANS[2].sub}</p>
+              </div>
+              <div className="mb-2">
+                <span className="text-4xl font-bold text-white">
+                  {p?.unlimited.monthly.display || "₦15,000"}
+                </span>
+                <span className="text-white/40 text-[14px] ml-1">/month</span>
+              </div>
+              <p className="text-[12px] text-white/30 mb-8">{INDIVIDUAL_PLANS[2].credits}</p>
+              <ul className="space-y-3 mb-8 flex-1">
+                {INDIVIDUAL_PLANS[2].features.map((f) => (
+                  <li key={f} className="flex items-start gap-2.5">
+                    <Check className="w-4 h-4 text-white/40 shrink-0 mt-0.5" />
+                    <span className="text-[14px] text-white/70">{f}</span>
+                  </li>
+                ))}
+              </ul>
+              <button
+                onClick={() => handleSubscribe("unlimited")}
+                disabled={!!processingPlan}
+                className="w-full py-3 rounded-xl border border-white/[0.1] text-white/70 text-[14px] font-medium hover:bg-white/[0.05] hover:text-white disabled:opacity-40 transition-colors flex items-center justify-center gap-2"
+              >
+                {processingPlan === "unlimited" && <Loader2 className="w-4 h-4 animate-spin" />}
+                Go Unlimited
+              </button>
+            </div>
           </div>
         )}
 
-        <p className="text-center text-sm text-muted-foreground mt-8">
-          All plans include a 7-day free trial. Cancel anytime.
+        {/* ── Team Plans ── */}
+        {tab === "teams" && (
+          <div className="grid sm:grid-cols-2 gap-4 max-w-3xl mx-auto">
+            {/* Team Basic */}
+            <div className="border border-white/[0.08] rounded-2xl bg-white/[0.03] p-8 flex flex-col">
+              <div className="mb-6">
+                <div className="flex items-center gap-2 mb-1">
+                  <Users className="w-4 h-4 text-white/50" />
+                  <p className="text-[15px] font-semibold text-white">{TEAM_PLANS[0].name}</p>
+                </div>
+                <p className="text-[13px] text-white/40">{TEAM_PLANS[0].sub}</p>
+              </div>
+              <div className="mb-2">
+                <span className="text-4xl font-bold text-white">
+                  {p?.team_basic.monthly.display || "₦18,000"}
+                </span>
+                <span className="text-white/40 text-[14px] ml-1">/month</span>
+              </div>
+              {p?.team_basic.yearly && (
+                <p className="text-[12px] text-[#60a5fa] mb-8">
+                  or {p.team_basic.yearly.display}/year — save {p.team_basic.yearly.savings}%
+                </p>
+              )}
+              {!p?.team_basic.yearly && <div className="mb-8" />}
+              <ul className="space-y-3 mb-8 flex-1">
+                {TEAM_PLANS[0].features.map((f) => (
+                  <li key={f} className="flex items-start gap-2.5">
+                    <Check className="w-4 h-4 text-white/40 shrink-0 mt-0.5" />
+                    <span className="text-[14px] text-white/70">{f}</span>
+                  </li>
+                ))}
+              </ul>
+              <div className="space-y-2">
+                <button
+                  onClick={() => handleSubscribe("team_basic")}
+                  disabled={!!processingPlan}
+                  className="w-full py-3 rounded-xl border border-white/[0.1] text-white/70 text-[14px] font-medium hover:bg-white/[0.05] hover:text-white disabled:opacity-40 transition-colors flex items-center justify-center gap-2"
+                >
+                  {processingPlan === "team_basic" && <Loader2 className="w-4 h-4 animate-spin" />}
+                  Subscribe Monthly
+                </button>
+                <button
+                  onClick={() => handleSubscribe("team_basic")}
+                  disabled={!!processingPlan}
+                  className="w-full py-3 rounded-xl border border-white/[0.06] text-white/40 text-[14px] font-medium hover:bg-white/[0.05] hover:text-white/70 disabled:opacity-40 transition-colors flex items-center justify-center gap-2"
+                >
+                  Subscribe Yearly (Save {p?.team_basic.yearly?.savings || 15}%)
+                </button>
+              </div>
+            </div>
+
+            {/* Team Pro (featured) */}
+            <div className="border border-[#2563EB]/40 rounded-2xl bg-[#2563EB]/5 p-8 flex flex-col relative">
+              <div className="absolute -top-3.5 left-1/2 -translate-x-1/2">
+                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#2563EB] text-white text-[11px] font-semibold">
+                  <Crown className="w-3 h-3" />
+                  Best for Agencies
+                </span>
+              </div>
+              <div className="mb-6">
+                <div className="flex items-center gap-2 mb-1">
+                  <Users className="w-4 h-4 text-white/50" />
+                  <p className="text-[15px] font-semibold text-white">{TEAM_PLANS[1].name}</p>
+                </div>
+                <p className="text-[13px] text-white/40">{TEAM_PLANS[1].sub}</p>
+              </div>
+              <div className="mb-2">
+                <span className="text-4xl font-bold text-white">
+                  {p?.team_pro.monthly.display || "₦30,000"}
+                </span>
+                <span className="text-white/40 text-[14px] ml-1">/month</span>
+              </div>
+              {p?.team_pro.yearly && (
+                <p className="text-[12px] text-[#60a5fa] mb-8">
+                  or {p.team_pro.yearly.display}/year — save {p.team_pro.yearly.savings}%
+                </p>
+              )}
+              {!p?.team_pro.yearly && <div className="mb-8" />}
+              <ul className="space-y-3 mb-8 flex-1">
+                {TEAM_PLANS[1].features.map((f) => (
+                  <li key={f} className="flex items-start gap-2.5">
+                    <Check className="w-4 h-4 text-[#60a5fa] shrink-0 mt-0.5" />
+                    <span className="text-[14px] text-white/70">{f}</span>
+                  </li>
+                ))}
+              </ul>
+              <div className="space-y-2">
+                <button
+                  onClick={() => handleSubscribe("team_pro")}
+                  disabled={!!processingPlan}
+                  className="w-full py-3 rounded-xl bg-white text-[#09090b] font-bold text-[14px] hover:bg-white/90 disabled:opacity-40 transition-colors flex items-center justify-center gap-2"
+                >
+                  {processingPlan === "team_pro" && <Loader2 className="w-4 h-4 animate-spin" />}
+                  Subscribe Monthly
+                </button>
+                <button
+                  onClick={() => handleSubscribe("team_pro")}
+                  disabled={!!processingPlan}
+                  className="w-full py-3 rounded-xl border border-white/[0.1] text-white/70 text-[14px] font-medium hover:bg-white/[0.05] hover:text-white disabled:opacity-40 transition-colors flex items-center justify-center gap-2"
+                >
+                  Subscribe Yearly (Save {p?.team_pro.yearly?.savings || 17}%)
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Footer note */}
+        <p className="text-center text-[13px] text-white/30 mt-12">
+          All plans include a 7-day free trial. Cancel anytime. No credit card required.
         </p>
       </div>
     </div>
