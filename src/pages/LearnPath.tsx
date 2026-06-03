@@ -1,17 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useParams, Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { Card } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Progress } from "@/components/ui/progress";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
-} from "@/components/ui/accordion";
 import { useToast } from "@/hooks/use-toast";
 import { formatDistanceToNow } from "date-fns";
 import {
@@ -28,6 +18,9 @@ import {
   Award,
   Briefcase,
   ExternalLink,
+  GraduationCap,
+  ChevronDown,
+  ChevronRight,
 } from "lucide-react";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -93,28 +86,137 @@ interface AggJob {
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
-function StarRating({ rating }: { rating: number }) {
+const CATEGORY_GRADIENTS: Record<string, string> = {
+  "Web Design": "from-blue-500 to-cyan-400",
+  "Graphic Design": "from-pink-500 to-purple-400",
+  Copywriting: "from-orange-400 to-yellow-300",
+  "Video Editing": "from-red-500 to-pink-400",
+  "Social Media": "from-violet-500 to-purple-400",
+  "UI/UX": "from-indigo-500 to-blue-400",
+  SEO: "from-green-500 to-emerald-400",
+  "Digital Marketing": "from-teal-500 to-cyan-400",
+  Coding: "from-slate-600 to-blue-500",
+  "Data Analysis": "from-amber-500 to-orange-400",
+  "AI & Automation": "from-purple-600 to-indigo-500",
+  "Virtual Assistance": "from-rose-400 to-pink-300",
+  "Content Writing": "from-lime-500 to-green-400",
+};
+
+function getThumbnailGradient(category: string | null) {
+  if (!category) return "from-[#2563EB] to-[#1E3A5F]";
+  return CATEGORY_GRADIENTS[category] ?? "from-[#2563EB] to-[#1E3A5F]";
+}
+
+function MiniStars({ rating, size = "sm" }: { rating: number; size?: "sm" | "md" }) {
+  const cls = size === "md" ? "h-4 w-4" : "h-3 w-3";
   return (
     <div className="flex items-center gap-0.5">
       {[1, 2, 3, 4, 5].map((s) => (
         <Star
           key={s}
-          className={`h-4 w-4 ${s <= Math.round(rating) ? "fill-yellow-400 text-yellow-400" : "text-muted-foreground/30"}`}
+          className={`${cls} ${s <= Math.round(rating) ? "fill-yellow-400 text-yellow-400" : "text-muted-foreground/20"}`}
         />
       ))}
     </div>
   );
 }
 
-function SmallStars({ rating }: { rating: number }) {
+// ─── ModuleAccordion ──────────────────────────────────────────────────────────
+
+function ModuleAccordion({
+  moduleName,
+  lessons,
+  isEnrolled,
+  courseId,
+  defaultOpen,
+  onLessonClick,
+}: {
+  moduleName: string;
+  lessons: Lesson[];
+  isEnrolled: boolean;
+  courseId: string;
+  defaultOpen: boolean;
+  onLessonClick: (lesson: Lesson) => void;
+}) {
+  const [open, setOpen] = useState(defaultOpen);
+  const totalMin = lessons.reduce((sum, l) => sum + (l.duration_minutes ?? 0), 0);
+
   return (
-    <div className="flex items-center gap-0.5">
-      {[1, 2, 3, 4, 5].map((s) => (
-        <Star
-          key={s}
-          className={`h-3 w-3 ${s <= Math.round(rating) ? "fill-yellow-400 text-yellow-400" : "text-muted-foreground/30"}`}
-        />
-      ))}
+    <div className="border border-border rounded-xl bg-card overflow-hidden">
+      <button
+        className="w-full px-5 py-3.5 flex items-center justify-between hover:bg-muted/30 transition-colors"
+        onClick={() => setOpen(!open)}
+      >
+        <div className="flex items-center gap-3 min-w-0">
+          <span className="text-[13px] font-semibold text-foreground text-left">{moduleName}</span>
+        </div>
+        <div className="flex items-center gap-3 flex-shrink-0 ml-4">
+          <span className="text-[12px] text-muted-foreground">
+            {lessons.length} lesson{lessons.length !== 1 ? "s" : ""}
+            {totalMin > 0 && ` · ${totalMin} min`}
+          </span>
+          <ChevronDown
+            className={`h-4 w-4 text-muted-foreground transition-transform ${open ? "rotate-180" : ""}`}
+          />
+        </div>
+      </button>
+
+      {open && (
+        <div className="divide-y divide-border border-t border-border">
+          {lessons.map((lesson) => {
+            const canAccess = isEnrolled || lesson.is_free_preview;
+            return (
+              <button
+                key={lesson.id}
+                className={`w-full text-left flex items-center gap-3 px-5 py-3.5 transition-colors ${
+                  canAccess
+                    ? "hover:bg-muted/30 cursor-pointer"
+                    : "opacity-50 cursor-not-allowed"
+                }`}
+                onClick={() => {
+                  if (canAccess) onLessonClick(lesson);
+                }}
+                disabled={!canAccess}
+              >
+                {/* Status icon */}
+                <div className="flex-shrink-0">
+                  {canAccess ? (
+                    <div className="w-1.5 h-1.5 rounded-full bg-primary" />
+                  ) : (
+                    <Lock className="h-3.5 w-3.5 text-muted-foreground" />
+                  )}
+                </div>
+
+                {/* Icon */}
+                <div className="flex-shrink-0">
+                  {canAccess ? (
+                    <PlayCircle className="h-4 w-4 text-primary/60" />
+                  ) : (
+                    <PlayCircle className="h-4 w-4 text-muted-foreground/30" />
+                  )}
+                </div>
+
+                <span className="flex-1 text-[14px] font-medium text-foreground text-left leading-snug">
+                  {lesson.title}
+                </span>
+
+                <div className="flex items-center gap-2 flex-shrink-0">
+                  {lesson.is_free_preview && (
+                    <span className="text-[11px] px-2 py-0.5 bg-emerald-500/10 text-emerald-500 rounded-md">
+                      Preview
+                    </span>
+                  )}
+                  {lesson.duration_minutes && (
+                    <span className="text-[12px] text-muted-foreground">
+                      {lesson.duration_minutes} min
+                    </span>
+                  )}
+                </div>
+              </button>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }
@@ -231,7 +333,7 @@ export default function LearnPath() {
     return reviews.filter((r) => r.rating === star).length;
   }
 
-  // ── Navigate to first incomplete lesson ──────────────────────────────────
+  // ── Navigate to first lesson ──────────────────────────────────────────────
 
   function continueLesson() {
     if (lessons.length > 0) {
@@ -291,7 +393,6 @@ export default function LearnPath() {
       ref: `course_${courseId}_${Date.now()}`,
       metadata: { course_id: courseId, user_id: userId },
       callback: async () => {
-        // On success: create enrollment
         if (talentProfile) {
           try {
             const { data } = await (supabase as any)
@@ -324,7 +425,7 @@ export default function LearnPath() {
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
-        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
       </div>
     );
   }
@@ -333,163 +434,176 @@ export default function LearnPath() {
 
   const overallRating = course.avg_rating ?? 0;
   const isEnrolled = !!enrollment;
+  const progress = enrollment?.progress_percent ?? 0;
 
   return (
-    <div className="max-w-7xl mx-auto px-4 pb-12 pt-2">
+    <div className="max-w-7xl mx-auto px-4 pb-16 pt-4">
+
       {/* Back */}
-      <Button variant="ghost" size="sm" asChild className="mb-4 -ml-2">
-        <Link to="/learn">
-          <ArrowLeft className="h-4 w-4 mr-1" /> Back to courses
-        </Link>
-      </Button>
+      <Link
+        to="/learn"
+        className="inline-flex items-center gap-1.5 text-[13px] text-muted-foreground hover:text-foreground transition-colors mb-6"
+      >
+        <ArrowLeft className="h-3.5 w-3.5" />
+        Back to courses
+      </Link>
 
       <div className="lg:grid lg:grid-cols-3 lg:gap-8">
-        {/* ── LEFT COLUMN (2/3) ── */}
-        <div className="lg:col-span-2 space-y-8">
-          {/* Header */}
-          <div>
-            <div className="flex flex-wrap gap-2 mb-3">
-              {course.skill_category && (
-                <Badge variant="secondary">{course.skill_category}</Badge>
-              )}
-              {course.level && (
-                <Badge variant="outline" className="capitalize">
-                  {course.level === "expert" ? "Advanced" : course.level}
-                </Badge>
-              )}
-            </div>
-            <h1 className="text-2xl md:text-3xl font-bold mb-3">{course.title}</h1>
-            {course.description && (
-              <p className="text-muted-foreground">{course.description}</p>
-            )}
-          </div>
 
-          {/* Stats row */}
-          <div className="flex flex-wrap gap-6 text-sm">
-            <div className="flex items-center gap-1.5">
-              <Users className="h-4 w-4 text-muted-foreground" />
-              <span>{course.enrolled_count.toLocaleString()} students</span>
+        {/* ── LEFT COLUMN ── */}
+        <div className="lg:col-span-2 space-y-6">
+
+          {/* Course header banner */}
+          <div className="border border-border rounded-xl bg-card overflow-hidden">
+            <div className="aspect-video relative overflow-hidden">
+              {course.thumbnail_url ? (
+                <img
+                  src={course.thumbnail_url}
+                  alt={course.title}
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                <div
+                  className={`w-full h-full bg-gradient-to-br ${getThumbnailGradient(course.skill_category)} flex items-center justify-center`}
+                >
+                  <GraduationCap className="h-16 w-16 text-white/30" />
+                </div>
+              )}
             </div>
-            {overallRating > 0 && (
-              <div className="flex items-center gap-1.5">
-                <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
-                <span>{overallRating.toFixed(1)} ({course.review_count} reviews)</span>
+
+            <div className="px-5 py-5">
+              {/* Chips */}
+              <div className="flex items-center gap-2 mb-3 flex-wrap">
+                {course.skill_category && (
+                  <span className="text-[11px] px-2 py-0.5 bg-muted text-muted-foreground rounded-md">
+                    {course.skill_category}
+                  </span>
+                )}
+                {course.level && (
+                  <span className="text-[11px] px-2 py-0.5 bg-muted text-muted-foreground rounded-md capitalize">
+                    {course.level === "expert" ? "Advanced" : course.level}
+                  </span>
+                )}
               </div>
-            )}
-            <div className="flex items-center gap-1.5">
-              <BookOpen className="h-4 w-4 text-muted-foreground" />
-              <span>{course.lesson_count} lessons</span>
+
+              <h1 className="text-xl font-semibold text-foreground leading-snug mb-2">
+                {course.title}
+              </h1>
+
+              {course.description && (
+                <p className="text-[13px] text-muted-foreground leading-relaxed mb-4">
+                  {course.description}
+                </p>
+              )}
+
+              {/* Stats row */}
+              <div className="flex flex-wrap items-center gap-4 text-[12px] text-muted-foreground">
+                {course.enrolled_count > 0 && (
+                  <span className="flex items-center gap-1.5">
+                    <Users className="h-3.5 w-3.5" />
+                    {course.enrolled_count.toLocaleString()} students
+                  </span>
+                )}
+                {overallRating > 0 && (
+                  <span className="flex items-center gap-1.5">
+                    <MiniStars rating={overallRating} />
+                    <span>{overallRating.toFixed(1)}</span>
+                    {course.review_count > 0 && (
+                      <span className="text-muted-foreground/60">({course.review_count})</span>
+                    )}
+                  </span>
+                )}
+                {course.lesson_count > 0 && (
+                  <span className="flex items-center gap-1.5">
+                    <BookOpen className="h-3.5 w-3.5" />
+                    {course.lesson_count} lessons
+                  </span>
+                )}
+                {course.duration_hours && (
+                  <span className="flex items-center gap-1.5">
+                    <Clock className="h-3.5 w-3.5" />
+                    {course.duration_hours}h total
+                  </span>
+                )}
+              </div>
             </div>
-            {course.duration_hours && (
-              <div className="flex items-center gap-1.5">
-                <Clock className="h-4 w-4 text-muted-foreground" />
-                <span>{course.duration_hours}h total</span>
-              </div>
-            )}
           </div>
 
           {/* What You'll Learn */}
           {course.what_you_will_learn.length > 0 && (
-            <Card className="p-6">
-              <h2 className="font-bold text-lg mb-4">What You Will Learn</h2>
-              <ul className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                {course.what_you_will_learn.map((item, i) => (
-                  <li key={i} className="flex items-start gap-2 text-sm">
-                    <CheckCircle className="h-4 w-4 text-[#059669] mt-0.5 flex-shrink-0" />
-                    <span>{item}</span>
-                  </li>
-                ))}
-              </ul>
-            </Card>
+            <div className="border border-border rounded-xl bg-card overflow-hidden">
+              <div className="px-5 py-3.5 border-b border-border">
+                <span className="text-[13px] font-semibold text-foreground">
+                  What You Will Learn
+                </span>
+              </div>
+              <div className="px-5 py-5">
+                <ul className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  {course.what_you_will_learn.map((item, i) => (
+                    <li key={i} className="flex items-start gap-2.5">
+                      <CheckCircle className="h-3.5 w-3.5 text-emerald-500 mt-0.5 flex-shrink-0" />
+                      <span className="text-[13px] text-foreground leading-snug">{item}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </div>
           )}
 
           {/* Curriculum */}
           <div>
-            <h2 className="font-bold text-lg mb-4">Curriculum</h2>
+            <div className="flex items-center justify-between mb-3">
+              <p className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">
+                Curriculum
+              </p>
+              <span className="text-[12px] text-muted-foreground">
+                {lessons.length} lesson{lessons.length !== 1 ? "s" : ""}
+                {course.duration_hours ? ` · ${course.duration_hours}h` : ""}
+              </span>
+            </div>
+
             {lessons.length === 0 ? (
-              <p className="text-muted-foreground text-sm">No lessons yet.</p>
+              <div className="border border-border rounded-xl bg-card px-5 py-10 text-center">
+                <p className="text-[13px] text-muted-foreground">No lessons yet.</p>
+              </div>
             ) : (
-              <Accordion type="multiple" defaultValue={modules.slice(0, 1)}>
-                {modules.map((mod) => {
-                  const modLessons = lessonsByModule[mod] || [];
-                  const totalMin = modLessons.reduce(
-                    (sum, l) => sum + (l.duration_minutes ?? 0),
-                    0
-                  );
-                  return (
-                    <AccordionItem key={mod} value={mod}>
-                      <AccordionTrigger className="hover:no-underline">
-                        <div className="flex items-center justify-between w-full pr-2">
-                          <span className="font-medium text-left">{mod}</span>
-                          <span className="text-xs text-muted-foreground ml-4 flex-shrink-0">
-                            {modLessons.length} lessons
-                            {totalMin > 0 && ` · ${totalMin} min`}
-                          </span>
-                        </div>
-                      </AccordionTrigger>
-                      <AccordionContent>
-                        <ul className="space-y-1 py-1">
-                          {modLessons.map((lesson) => {
-                            const canAccess = isEnrolled || lesson.is_free_preview;
-                            return (
-                              <li key={lesson.id}>
-                                <button
-                                  className={`w-full text-left flex items-center gap-3 px-3 py-2.5 rounded-md text-sm transition-colors ${
-                                    canAccess
-                                      ? "hover:bg-muted cursor-pointer"
-                                      : "opacity-60 cursor-not-allowed"
-                                  }`}
-                                  onClick={() => {
-                                    if (canAccess) navigate(`/learn/${courseId}/${lesson.id}`);
-                                  }}
-                                  disabled={!canAccess}
-                                >
-                                  {canAccess ? (
-                                    <PlayCircle className="h-4 w-4 text-[#2563EB] flex-shrink-0" />
-                                  ) : (
-                                    <Lock className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-                                  )}
-                                  <span className="flex-1">{lesson.title}</span>
-                                  <div className="flex items-center gap-2 flex-shrink-0">
-                                    {lesson.is_free_preview && (
-                                      <Badge variant="outline" className="text-[10px] text-[#059669] border-[#059669]/30">
-                                        Preview
-                                      </Badge>
-                                    )}
-                                    {lesson.duration_minutes && (
-                                      <span className="text-xs text-muted-foreground">
-                                        {lesson.duration_minutes} min
-                                      </span>
-                                    )}
-                                  </div>
-                                </button>
-                              </li>
-                            );
-                          })}
-                        </ul>
-                      </AccordionContent>
-                    </AccordionItem>
-                  );
-                })}
-              </Accordion>
+              <div className="space-y-2">
+                {modules.map((mod, idx) => (
+                  <ModuleAccordion
+                    key={mod}
+                    moduleName={mod}
+                    lessons={lessonsByModule[mod] || []}
+                    isEnrolled={isEnrolled}
+                    courseId={courseId!}
+                    defaultOpen={idx === 0}
+                    onLessonClick={(lesson) => navigate(`/learn/${courseId}/${lesson.id}`)}
+                  />
+                ))}
+              </div>
             )}
           </div>
 
           {/* Instructor */}
           {course.instructor_name && (
-            <div>
-              <h2 className="font-bold text-lg mb-4">Your Instructor</h2>
-              <div className="flex items-start gap-4">
-                <Avatar className="h-16 w-16 flex-shrink-0">
+            <div className="border border-border rounded-xl bg-card overflow-hidden">
+              <div className="px-5 py-3.5 border-b border-border">
+                <span className="text-[13px] font-semibold text-foreground">Your Instructor</span>
+              </div>
+              <div className="px-5 py-5 flex items-start gap-4">
+                <Avatar className="h-14 w-14 flex-shrink-0">
                   <AvatarImage src={course.instructor_photo_url ?? undefined} />
-                  <AvatarFallback className="text-lg">
+                  <AvatarFallback className="text-base bg-muted text-foreground">
                     {course.instructor_name[0]}
                   </AvatarFallback>
                 </Avatar>
-                <div>
-                  <h3 className="font-semibold">{course.instructor_name}</h3>
+                <div className="min-w-0">
+                  <p className="text-[14px] font-medium text-foreground mb-1">
+                    {course.instructor_name}
+                  </p>
                   {course.instructor_bio && (
-                    <p className="text-sm text-muted-foreground mt-1">{course.instructor_bio}</p>
+                    <p className="text-[13px] text-muted-foreground leading-relaxed">
+                      {course.instructor_bio}
+                    </p>
                   )}
                 </div>
               </div>
@@ -498,88 +612,113 @@ export default function LearnPath() {
 
           {/* Reviews */}
           {reviews.length > 0 && (
-            <div>
-              <h2 className="font-bold text-lg mb-4">Student Reviews</h2>
-              {/* Rating summary */}
-              <div className="flex items-center gap-6 mb-6">
-                <div className="text-center">
-                  <div className="text-5xl font-bold text-[#2563EB]">
-                    {overallRating.toFixed(1)}
-                  </div>
-                  <StarRating rating={overallRating} />
-                  <p className="text-xs text-muted-foreground mt-1">
-                    {course.review_count} reviews
-                  </p>
-                </div>
-                <div className="flex-1 space-y-1.5">
-                  {[5, 4, 3, 2, 1].map((star) => {
-                    const count = ratingCount(star);
-                    const pct = reviews.length > 0 ? (count / reviews.length) * 100 : 0;
-                    return (
-                      <div key={star} className="flex items-center gap-2 text-sm">
-                        <span className="w-3 text-right">{star}</span>
-                        <Star className="h-3 w-3 fill-yellow-400 text-yellow-400" />
-                        <Progress value={pct} className="h-2 flex-1" />
-                        <span className="w-6 text-xs text-muted-foreground">{count}</span>
-                      </div>
-                    );
-                  })}
-                </div>
+            <div className="border border-border rounded-xl bg-card overflow-hidden">
+              <div className="px-5 py-3.5 border-b border-border flex items-center justify-between">
+                <span className="text-[13px] font-semibold text-foreground">Student Reviews</span>
+                <span className="text-[11px] px-2 py-0.5 bg-muted text-muted-foreground rounded-md">
+                  {course.review_count}
+                </span>
               </div>
-
-              {/* Individual reviews */}
-              <div className="space-y-4">
-                {reviews.map((r) => (
-                  <div key={r.id} className="flex gap-3">
-                    <Avatar className="h-9 w-9 flex-shrink-0">
-                      <AvatarFallback>
-                        {r.talent_id?.slice(0, 1).toUpperCase() ?? "U"}
-                      </AvatarFallback>
-                    </Avatar>
-                    <div>
-                      <div className="flex items-center gap-2 mb-1">
-                        <SmallStars rating={r.rating} />
-                        <span className="text-xs text-muted-foreground">
-                          {formatDistanceToNow(new Date(r.created_at), { addSuffix: true })}
-                        </span>
-                      </div>
-                      {r.review && (
-                        <p className="text-sm text-muted-foreground">{r.review}</p>
-                      )}
+              <div className="px-5 py-5">
+                {/* Rating summary */}
+                <div className="flex items-start gap-6 mb-6">
+                  <div className="text-center flex-shrink-0">
+                    <div className="font-mono text-4xl font-semibold text-foreground mb-1">
+                      {overallRating.toFixed(1)}
                     </div>
+                    <MiniStars rating={overallRating} size="md" />
+                    <p className="text-[11px] text-muted-foreground mt-1">
+                      {course.review_count} review{course.review_count !== 1 ? "s" : ""}
+                    </p>
                   </div>
-                ))}
+                  <div className="flex-1 space-y-1.5">
+                    {[5, 4, 3, 2, 1].map((star) => {
+                      const count = ratingCount(star);
+                      const pct = reviews.length > 0 ? (count / reviews.length) * 100 : 0;
+                      return (
+                        <div key={star} className="flex items-center gap-2">
+                          <span className="text-[12px] text-muted-foreground w-3 text-right">
+                            {star}
+                          </span>
+                          <Star className="h-3 w-3 fill-yellow-400 text-yellow-400 flex-shrink-0" />
+                          <div className="h-1 bg-border rounded-full flex-1">
+                            <div
+                              className="h-full bg-yellow-400 rounded-full transition-all"
+                              style={{ width: `${pct}%` }}
+                            />
+                          </div>
+                          <span className="text-[12px] text-muted-foreground w-4">{count}</span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Individual reviews */}
+                <div className="divide-y divide-border">
+                  {reviews.map((r) => (
+                    <div key={r.id} className="py-4 first:pt-0 last:pb-0 flex gap-3">
+                      <Avatar className="h-8 w-8 flex-shrink-0">
+                        <AvatarFallback className="text-[11px] bg-muted text-muted-foreground">
+                          {r.talent_id?.slice(0, 1).toUpperCase() ?? "U"}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-1.5">
+                          <MiniStars rating={r.rating} />
+                          <span className="text-[12px] text-muted-foreground">
+                            {formatDistanceToNow(new Date(r.created_at), { addSuffix: true })}
+                          </span>
+                        </div>
+                        {r.review && (
+                          <p className="text-[13px] text-muted-foreground leading-relaxed">
+                            {r.review}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
               </div>
             </div>
           )}
         </div>
 
-        {/* ── RIGHT STICKY CARD ── */}
-        <div className="mt-8 lg:mt-0">
+        {/* ── RIGHT SIDEBAR ── */}
+        <div className="mt-6 lg:mt-0">
           <div className="lg:sticky lg:top-6 space-y-4">
-            <Card className="overflow-hidden">
-              {/* Course thumbnail */}
-              <div className="h-48 overflow-hidden">
-                {course.thumbnail_url ? (
-                  <img
-                    src={course.thumbnail_url}
-                    alt={course.title}
-                    className="w-full h-full object-cover"
-                  />
-                ) : (
-                  <div className="w-full h-full bg-gradient-to-br from-[#2563EB] to-[#1E3A5F] flex items-center justify-center">
-                    <BookOpen className="h-16 w-16 text-white/40" />
-                  </div>
-                )}
-              </div>
 
-              <div className="p-5">
+            {/* Enroll card */}
+            <div className="border border-border rounded-xl bg-card overflow-hidden">
+              {/* Progress bar (enrolled) */}
+              {isEnrolled && (
+                <div className="px-5 py-3.5 border-b border-border">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-[12px] text-muted-foreground">Your progress</span>
+                    <span className="text-[12px] font-medium text-foreground">{progress}%</span>
+                  </div>
+                  <div className="h-1 bg-border rounded-full">
+                    <div
+                      className="h-full bg-primary rounded-full transition-all"
+                      style={{ width: `${progress}%` }}
+                    />
+                  </div>
+                  {progress === 100 && (
+                    <div className="flex items-center gap-1.5 mt-2">
+                      <div className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                      <span className="text-[12px] text-emerald-500 font-medium">Completed</span>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              <div className="px-5 py-5">
                 {/* Price */}
                 <div className="mb-4">
                   {course.price === 0 ? (
-                    <span className="text-2xl font-bold text-[#059669]">Free</span>
+                    <span className="font-mono text-2xl font-semibold text-emerald-500">Free</span>
                   ) : (
-                    <span className="text-2xl font-bold">
+                    <span className="font-mono text-2xl font-semibold text-foreground">
                       ₦{course.price.toLocaleString()}
                     </span>
                   )}
@@ -587,89 +726,120 @@ export default function LearnPath() {
 
                 {/* Enroll / Continue button */}
                 {isEnrolled ? (
-                  <Button className="w-full" onClick={continueLesson}>
-                    Continue Learning →
-                  </Button>
+                  <button
+                    className="w-full px-5 py-2.5 rounded-lg bg-primary text-primary-foreground text-[13px] font-semibold hover:bg-primary/90 transition-colors flex items-center justify-center gap-2"
+                    onClick={continueLesson}
+                  >
+                    Continue Learning
+                    <ChevronRight className="h-4 w-4" />
+                  </button>
                 ) : course.price === 0 ? (
-                  <Button
-                    className="w-full"
+                  <button
+                    className="w-full px-5 py-2.5 rounded-lg bg-primary text-primary-foreground text-[13px] font-semibold hover:bg-primary/90 transition-colors flex items-center justify-center gap-2 disabled:opacity-60"
                     onClick={handleEnrollFree}
                     disabled={enrolling}
                   >
-                    {enrolling ? (
-                      <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                    ) : null}
-                    Enroll Free
-                  </Button>
+                    {enrolling && <Loader2 className="h-4 w-4 animate-spin" />}
+                    Enroll for Free
+                  </button>
                 ) : (
-                  <Button
-                    className="w-full"
+                  <button
+                    className="w-full px-5 py-2.5 rounded-lg bg-primary text-primary-foreground text-[13px] font-semibold hover:bg-primary/90 transition-colors flex items-center justify-center gap-2 disabled:opacity-60"
                     onClick={handleEnrollPaid}
                     disabled={enrolling}
                   >
-                    {enrolling ? (
-                      <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                    ) : null}
+                    {enrolling && <Loader2 className="h-4 w-4 animate-spin" />}
                     Enroll — ₦{course.price.toLocaleString()}
-                  </Button>
+                  </button>
                 )}
 
                 {/* Perks */}
-                <ul className="mt-4 space-y-2">
-                  <li className="flex items-center gap-2 text-sm">
-                    <Shield className="h-4 w-4 text-[#059669]" />
-                    Full Lifetime Access
-                  </li>
-                  <li className="flex items-center gap-2 text-sm">
-                    <Award className="h-4 w-4 text-[#059669]" />
-                    Certificate of Completion
-                  </li>
+                <div className="mt-4 space-y-2.5">
+                  <div className="flex items-center gap-2.5">
+                    <Shield className="h-3.5 w-3.5 text-emerald-500 flex-shrink-0" />
+                    <span className="text-[12px] text-muted-foreground">Full Lifetime Access</span>
+                  </div>
+                  <div className="flex items-center gap-2.5">
+                    <Award className="h-3.5 w-3.5 text-emerald-500 flex-shrink-0" />
+                    <span className="text-[12px] text-muted-foreground">Certificate of Completion</span>
+                  </div>
                   {course.lesson_count > 0 && (
-                    <li className="flex items-center gap-2 text-sm">
-                      <BookOpen className="h-4 w-4 text-[#059669]" />
-                      {course.lesson_count} lessons
-                      {course.duration_hours ? ` · ${course.duration_hours}h` : ""}
-                    </li>
+                    <div className="flex items-center gap-2.5">
+                      <BookOpen className="h-3.5 w-3.5 text-emerald-500 flex-shrink-0" />
+                      <span className="text-[12px] text-muted-foreground">
+                        {course.lesson_count} lessons
+                        {course.duration_hours ? ` · ${course.duration_hours}h` : ""}
+                      </span>
+                    </div>
                   )}
-                </ul>
+                </div>
               </div>
-            </Card>
+            </div>
+
+            {/* Course stats panel */}
+            <div className="border border-border rounded-xl bg-card overflow-hidden">
+              <div className="grid grid-cols-2 divide-x divide-y divide-border">
+                {[
+                  { label: "Students", value: course.enrolled_count.toLocaleString() },
+                  { label: "Lessons", value: String(course.lesson_count) },
+                  { label: "Duration", value: course.duration_hours ? `${course.duration_hours}h` : "—" },
+                  {
+                    label: "Rating",
+                    value: overallRating > 0 ? overallRating.toFixed(1) : "—",
+                  },
+                ].map(({ label, value }) => (
+                  <div key={label} className="px-4 py-4">
+                    <div className="font-mono text-base font-semibold text-foreground">{value}</div>
+                    <div className="text-[11px] uppercase tracking-widest text-muted-foreground mt-0.5">
+                      {label}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
 
             {/* Related jobs */}
             {relatedJobs.length > 0 && (
-              <Card className="p-4">
-                <div className="flex items-center gap-2 mb-3">
-                  <Briefcase className="h-4 w-4 text-[#2563EB]" />
-                  <h3 className="font-semibold text-sm">Jobs after this course</h3>
+              <div className="border border-border rounded-xl bg-card overflow-hidden">
+                <div className="px-5 py-3.5 border-b border-border flex items-center gap-2">
+                  <Briefcase className="h-3.5 w-3.5 text-muted-foreground" />
+                  <span className="text-[13px] font-semibold text-foreground">
+                    Jobs after this course
+                  </span>
                 </div>
-                <div className="space-y-2">
+                <div className="divide-y divide-border">
                   {relatedJobs.map((job) => (
                     <div
                       key={job.id}
-                      className="flex items-center gap-2 p-2 rounded-md hover:bg-muted transition-colors"
+                      className="px-5 py-3.5 flex items-center gap-3 hover:bg-muted/30 transition-colors"
                     >
-                      <Avatar className="h-8 w-8 flex-shrink-0">
+                      <Avatar className="h-7 w-7 flex-shrink-0">
                         <AvatarImage src={job.company_logo_url ?? undefined} />
-                        <AvatarFallback className="text-xs">
+                        <AvatarFallback className="text-[11px] bg-muted text-muted-foreground">
                           {job.company_name?.[0] ?? "J"}
                         </AvatarFallback>
                       </Avatar>
                       <div className="min-w-0 flex-1">
-                        <p className="text-xs font-medium truncate">{job.title}</p>
-                        <p className="text-xs text-muted-foreground truncate">
+                        <p className="text-[13px] font-medium text-foreground truncate">
+                          {job.title}
+                        </p>
+                        <p className="text-[12px] text-muted-foreground truncate">
                           {job.company_name}
                         </p>
                       </div>
                     </div>
                   ))}
                 </div>
-                <Link
-                  to={`/jobs?skill=${encodeURIComponent(course.skill_category ?? "")}`}
-                  className="flex items-center gap-1 text-xs text-[#2563EB] hover:underline mt-3"
-                >
-                  View all jobs <ExternalLink className="h-3 w-3" />
-                </Link>
-              </Card>
+                <div className="px-5 py-3 border-t border-border">
+                  <Link
+                    to={`/jobs?skill=${encodeURIComponent(course.skill_category ?? "")}`}
+                    className="flex items-center gap-1 text-[12px] text-primary hover:underline"
+                  >
+                    View all jobs
+                    <ExternalLink className="h-3 w-3" />
+                  </Link>
+                </div>
+              </div>
             )}
           </div>
         </div>
