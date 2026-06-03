@@ -2,43 +2,21 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { formatDistanceToNow, differenceInDays } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
-import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Progress } from "@/components/ui/progress";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
-import { FolderOpen, Building2, Star } from "lucide-react";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { FolderOpen, Building2, Star, ChevronDown, ChevronUp } from "lucide-react";
 
-function EmptyProjectsState() {
-  const navigate = useNavigate();
-  return (
-    <div className="flex flex-col items-center justify-center py-20 text-center">
-      <FolderOpen className="w-12 h-12 text-muted-foreground mb-4" />
-      <h3 className="text-lg font-semibold mb-2">No active projects yet</h3>
-      <p className="text-muted-foreground mb-6 max-w-sm">
-        Browse the marketplace to find your first project
-      </p>
-      <Button onClick={() => navigate("/marketplace")}>Browse Marketplace</Button>
-    </div>
-  );
-}
+const STATUS_DOT: Record<string, { color: string; label: string }> = {
+  active:          { color: "bg-blue-500",   label: "Active" },
+  awaiting_review: { color: "bg-amber-500",  label: "Awaiting Review" },
+  completed:       { color: "bg-green-500",  label: "Complete" },
+};
 
-function StatusBadge({ status }: { status: string }) {
-  const map: Record<string, { label: string; className: string }> = {
-    active: { label: "Active", className: "bg-blue-500/10 text-blue-600 border-blue-500/20" },
-    awaiting_review: { label: "Awaiting Review", className: "bg-amber-500/10 text-amber-600 border-amber-500/20" },
-    completed: { label: "Complete", className: "bg-green-500/10 text-green-600 border-green-500/20" },
-  };
-  const s = map[status] || { label: status, className: "" };
-  return <Badge variant="outline" className={s.className}>{s.label}</Badge>;
-}
-
-function PaymentBadge({ status }: { status: string }) {
-  if (status === "released") return <Badge variant="outline" className="bg-green-500/10 text-green-600 border-green-500/20">Released</Badge>;
-  if (status === "in_escrow") return <Badge variant="outline" className="bg-blue-500/10 text-blue-600 border-blue-500/20">In Escrow</Badge>;
-  return <Badge variant="outline" className="text-muted-foreground">Pending</Badge>;
-}
+const PAYMENT_CHIP: Record<string, { bg: string; text: string; label: string }> = {
+  released: { bg: "bg-green-500/10", text: "text-green-600", label: "Released" },
+  in_escrow: { bg: "bg-blue-500/10", text: "text-blue-600",  label: "In Escrow" },
+  pending:   { bg: "bg-muted",       text: "text-muted-foreground", label: "Pending" },
+};
 
 function formatCurrency(amount: number | null, currency = "NGN") {
   if (!amount) return "—";
@@ -51,7 +29,24 @@ function isOverdue(deadline: string | null) {
   return new Date(deadline) < new Date();
 }
 
-function ProjectCard({ project }: { project: any }) {
+function EmptyProjectsState() {
+  const navigate = useNavigate();
+  return (
+    <div className="text-center py-20">
+      <FolderOpen className="w-10 h-10 opacity-20 mx-auto mb-3" />
+      <p className="text-[14px] font-medium text-foreground mb-1">No active projects yet</p>
+      <p className="text-[13px] text-muted-foreground mb-4">Browse the marketplace to find your first project</p>
+      <button
+        className="px-4 py-2 rounded-lg bg-primary text-primary-foreground text-[13px] font-medium hover:bg-primary/90 transition-colors"
+        onClick={() => navigate("/marketplace")}
+      >
+        Browse Marketplace
+      </button>
+    </div>
+  );
+}
+
+function ProjectRow({ project }: { project: any }) {
   const navigate = useNavigate();
   const total = project.project_milestones?.length || 0;
   const completedCount = project.project_milestones?.filter((m: any) => m.status === "completed").length || 0;
@@ -65,131 +60,152 @@ function ProjectCard({ project }: { project: any }) {
     ? differenceInDays(new Date(project.deadline), new Date())
     : null;
 
+  const statusInfo = STATUS_DOT[project.status] || { color: "bg-muted-foreground", label: project.status };
+  const paymentKey = project.payment_status || "pending";
+  const paymentInfo = PAYMENT_CHIP[paymentKey] || PAYMENT_CHIP.pending;
+
   return (
-    <Card
-      className="cursor-pointer hover:border-primary/50 transition-colors"
+    <div
+      className="px-5 py-3.5 hover:bg-muted/30 transition-colors cursor-pointer"
       onClick={() => navigate(`/projects/${project.id}`)}
     >
-      <CardContent className="pt-5 pb-5">
-        <div className="flex items-start justify-between mb-3">
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-full bg-muted flex items-center justify-center overflow-hidden shrink-0">
-              {logoUrl ? (
-                <img src={logoUrl} className="w-full h-full object-cover" alt={companyName} />
-              ) : (
-                <span className="text-sm font-bold">{(companyName || "C")[0]}</span>
+      <div className="flex items-start gap-3">
+        {/* Avatar */}
+        <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center overflow-hidden shrink-0 mt-0.5 border border-border">
+          {logoUrl ? (
+            <img src={logoUrl} className="w-full h-full object-cover" alt={companyName} />
+          ) : (
+            <span className="text-[11px] font-bold text-muted-foreground">{(companyName || "C")[0]}</span>
+          )}
+        </div>
+
+        {/* Main content */}
+        <div className="flex-1 min-w-0">
+          <div className="flex items-start justify-between gap-4 mb-1.5">
+            <div className="min-w-0">
+              <p className="text-[14px] font-medium text-foreground truncate">{jobTitle}</p>
+              {companyName && (
+                <p className="text-[12px] text-muted-foreground">{companyName}</p>
               )}
             </div>
-            <div>
-              <p className="font-semibold text-sm leading-tight">{jobTitle}</p>
-              {companyName && <p className="text-xs text-muted-foreground">{companyName}</p>}
+            {/* Status dot + text */}
+            <div className="flex items-center gap-1.5 shrink-0">
+              <span className={`w-1.5 h-1.5 rounded-full ${statusInfo.color}`} />
+              <span className="text-[12px] text-muted-foreground">{statusInfo.label}</span>
             </div>
           </div>
-          <StatusBadge status={project.status} />
-        </div>
 
-        <div className="grid grid-cols-2 gap-3 text-xs mb-3">
-          <div>
-            <span className="text-muted-foreground">Rate: </span>
-            <span className="font-medium">{formatCurrency(project.total_amount, project.currency)}</span>
-          </div>
-          <div>
-            <span className="text-muted-foreground">Started: </span>
-            <span className="font-medium">
-              {formatDistanceToNow(new Date(project.created_at), { addSuffix: true })}
+          {/* Meta row */}
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[12px] text-muted-foreground mb-2">
+            <span>{formatCurrency(project.total_amount, project.currency)}</span>
+            <span className="opacity-40">·</span>
+            <span>Started {formatDistanceToNow(new Date(project.created_at), { addSuffix: true })}</span>
+            {daysUntilDeadline !== null && (
+              <>
+                <span className="opacity-40">·</span>
+                <span className={isOverdue(project.deadline) ? "text-red-500" : ""}>
+                  {isOverdue(project.deadline)
+                    ? `${Math.abs(daysUntilDeadline)}d overdue`
+                    : `${daysUntilDeadline}d left`}
+                </span>
+              </>
+            )}
+            <span className="opacity-40">·</span>
+            <span className={`text-[11px] px-2 py-0.5 rounded-md ${paymentInfo.bg} ${paymentInfo.text}`}>
+              {paymentInfo.label}
             </span>
           </div>
-          <div>
-            <span className="text-muted-foreground">Deadline: </span>
-            {daysUntilDeadline !== null ? (
-              <span className={`font-medium ${isOverdue(project.deadline) ? "text-red-500" : ""}`}>
-                {isOverdue(project.deadline)
-                  ? `${Math.abs(daysUntilDeadline)}d overdue`
-                  : `${daysUntilDeadline}d remaining`}
-              </span>
-            ) : (
-              <span className="font-medium text-muted-foreground">—</span>
-            )}
-          </div>
-          <div className="flex items-center gap-1">
-            <span className="text-muted-foreground">Payment: </span>
-            <PaymentBadge status={project.payment_status || "pending"} />
-          </div>
-        </div>
 
-        {total > 0 && (
-          <div>
-            <div className="flex items-center justify-between text-xs mb-1">
-              <span className="text-muted-foreground">Milestones</span>
-              <span className="font-medium">{completedCount}/{total} complete</span>
+          {/* Milestone progress bar */}
+          {total > 0 && (
+            <div className="flex items-center gap-2">
+              <div className="flex-1 h-1 rounded-full bg-muted overflow-hidden">
+                <div
+                  className="h-full rounded-full bg-primary transition-all"
+                  style={{ width: `${pct}%` }}
+                />
+              </div>
+              <span className="text-[11px] text-muted-foreground shrink-0">
+                {completedCount}/{total}
+              </span>
             </div>
-            <Progress value={pct} className="h-1.5" />
-          </div>
-        )}
-      </CardContent>
-    </Card>
+          )}
+        </div>
+      </div>
+    </div>
   );
 }
 
-function CompletedProjectCard({ project }: { project: any }) {
+function CompletedProjectRow({ project }: { project: any }) {
   const [expanded, setExpanded] = useState(false);
   const jobTitle = project.marketplace_jobs?.title || project.title || "Untitled Project";
   const companyName = project.client_profiles?.company_name;
 
   return (
-    <Card className="cursor-pointer" onClick={() => setExpanded(v => !v)}>
-      <CardContent className="pt-4 pb-4">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center">
-              <Building2 className="w-4 h-4 text-muted-foreground" />
-            </div>
-            <div>
-              <p className="font-semibold text-sm">{jobTitle}</p>
-              {companyName && <p className="text-xs text-muted-foreground">{companyName}</p>}
-            </div>
+    <div>
+      <div
+        className="px-5 py-3.5 hover:bg-muted/30 transition-colors cursor-pointer flex items-center justify-between gap-4"
+        onClick={() => setExpanded(v => !v)}
+      >
+        <div className="flex items-center gap-3 min-w-0">
+          <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center shrink-0 border border-border">
+            <Building2 className="w-3.5 h-3.5 text-muted-foreground" />
           </div>
-          <div className="flex items-center gap-3 text-sm">
-            <span className="font-medium">{formatCurrency(project.total_amount, project.currency)}</span>
-            <Badge variant="outline" className="bg-green-500/10 text-green-600 border-green-500/20 text-xs">
-              Complete
-            </Badge>
+          <div className="min-w-0">
+            <p className="text-[14px] font-medium text-foreground truncate">{jobTitle}</p>
+            {companyName && (
+              <p className="text-[12px] text-muted-foreground">
+                {companyName}
+                {project.completed_at && (
+                  <span className="ml-2 opacity-60">
+                    · Completed {formatDistanceToNow(new Date(project.completed_at), { addSuffix: true })}
+                  </span>
+                )}
+              </p>
+            )}
           </div>
         </div>
+        <div className="flex items-center gap-3 shrink-0">
+          <span className="text-[13px] font-medium text-foreground">
+            {formatCurrency(project.total_amount, project.currency)}
+          </span>
+          <span className="text-[11px] px-2 py-0.5 bg-green-500/10 text-green-600 rounded-md">Complete</span>
+          {expanded ? (
+            <ChevronUp className="w-4 h-4 text-muted-foreground" />
+          ) : (
+            <ChevronDown className="w-4 h-4 text-muted-foreground" />
+          )}
+        </div>
+      </div>
 
-        {project.completed_at && (
-          <p className="text-xs text-muted-foreground mt-2">
-            Completed {formatDistanceToNow(new Date(project.completed_at), { addSuffix: true })}
-          </p>
-        )}
-
-        {expanded && (
-          <div className="mt-4 pt-4 border-t space-y-3">
+      {expanded && (
+        <div className="px-5 pb-4 border-t border-border">
+          <div className="pt-4 space-y-3">
             {project.project_deliverables?.length > 0 && (
               <div>
-                <p className="text-xs font-semibold mb-2 text-muted-foreground uppercase tracking-wide">
+                <p className="text-[12px] font-medium text-muted-foreground uppercase tracking-wider mb-2">
                   Deliverables ({project.project_deliverables.length})
                 </p>
-                <div className="space-y-1">
+                <div className="divide-y divide-border border border-border rounded-lg overflow-hidden">
                   {project.project_deliverables.map((d: any) => (
-                    <div key={d.id} className="flex items-center justify-between text-xs">
+                    <div key={d.id} className="flex items-center justify-between px-3 py-2 text-[12px]">
                       <span className="truncate text-muted-foreground">{d.file_name || d.external_url || "Deliverable"}</span>
-                      <Badge variant="secondary" className="text-xs ml-2 shrink-0">{d.status}</Badge>
+                      <span className="text-[11px] px-2 py-0.5 bg-muted text-muted-foreground rounded-md ml-2 shrink-0">{d.status}</span>
                     </div>
                   ))}
                 </div>
               </div>
             )}
             {project.talent_review_submitted && (
-              <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                <Star className="w-3 h-3 fill-amber-400 text-amber-400" />
+              <div className="flex items-center gap-1.5 text-[12px] text-muted-foreground">
+                <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
                 <span>Review submitted</span>
               </div>
             )}
           </div>
-        )}
-      </CardContent>
-    </Card>
+        </div>
+      )}
+    </div>
   );
 }
 
@@ -240,51 +256,76 @@ export default function Projects() {
     return (
       <div className="space-y-4">
         <Skeleton className="h-8 w-40" />
-        <div className="grid gap-4 md:grid-cols-2">
-          {[1, 2, 3, 4].map(i => <Skeleton key={i} className="h-40 rounded-lg" />)}
+        <div className="border border-border rounded-xl overflow-hidden">
+          {[1, 2, 3, 4].map(i => (
+            <div key={i} className="px-5 py-3.5 border-b border-border last:border-b-0">
+              <Skeleton className="h-4 w-48 mb-2" />
+              <Skeleton className="h-3 w-64" />
+            </div>
+          ))}
         </div>
       </div>
     );
   }
 
   return (
-    <div>
-      <div className="flex items-center justify-between mb-6">
-        <h1 className="font-display text-2xl font-bold">My Projects</h1>
+    <div className="space-y-6">
+      {/* Header */}
+      <div>
+        <h1 className="text-xl font-semibold text-foreground tracking-tight">My Projects</h1>
+        <p className="text-[13px] text-muted-foreground mt-0.5">Track active and completed client work</p>
       </div>
 
       <Tabs value={tab} onValueChange={(v) => setTab(v as "active" | "completed")}>
-        <TabsList className="mb-6">
+        <TabsList>
           <TabsTrigger value="active">
             Active
-            <Badge className="ml-1.5 py-0 px-1.5 text-xs">{activeProjects.length}</Badge>
+            <span className="ml-1.5 text-[11px] px-1.5 py-0.5 bg-muted text-muted-foreground rounded-md leading-none">
+              {activeProjects.length}
+            </span>
           </TabsTrigger>
           <TabsTrigger value="completed">
             Completed
-            <Badge variant="secondary" className="ml-1.5 py-0 px-1.5 text-xs">{completedProjects.length}</Badge>
+            <span className="ml-1.5 text-[11px] px-1.5 py-0.5 bg-muted text-muted-foreground rounded-md leading-none">
+              {completedProjects.length}
+            </span>
           </TabsTrigger>
         </TabsList>
 
-        <TabsContent value="active">
+        <TabsContent value="active" className="mt-4">
           {activeProjects.length === 0 ? (
             <EmptyProjectsState />
           ) : (
-            <div className="grid gap-4 md:grid-cols-2">
-              {activeProjects.map(project => (
-                <ProjectCard key={project.id} project={project} />
-              ))}
+            <div className="border border-border rounded-xl bg-card overflow-hidden">
+              <div className="px-5 py-3.5 border-b border-border">
+                <span className="text-[13px] font-semibold text-foreground">Active Projects</span>
+              </div>
+              <div className="divide-y divide-border">
+                {activeProjects.map(project => (
+                  <ProjectRow key={project.id} project={project} />
+                ))}
+              </div>
             </div>
           )}
         </TabsContent>
 
-        <TabsContent value="completed">
+        <TabsContent value="completed" className="mt-4">
           {completedProjects.length === 0 ? (
-            <div className="text-center py-16 text-muted-foreground">No completed projects yet.</div>
+            <div className="text-center py-16">
+              <FolderOpen className="w-10 h-10 opacity-20 mx-auto mb-3" />
+              <p className="text-[14px] font-medium text-foreground mb-1">No completed projects yet</p>
+              <p className="text-[13px] text-muted-foreground">Finished projects will appear here.</p>
+            </div>
           ) : (
-            <div className="space-y-4">
-              {completedProjects.map(project => (
-                <CompletedProjectCard key={project.id} project={project} />
-              ))}
+            <div className="border border-border rounded-xl bg-card overflow-hidden">
+              <div className="px-5 py-3.5 border-b border-border">
+                <span className="text-[13px] font-semibold text-foreground">Completed Projects</span>
+              </div>
+              <div className="divide-y divide-border">
+                {completedProjects.map(project => (
+                  <CompletedProjectRow key={project.id} project={project} />
+                ))}
+              </div>
             </div>
           )}
         </TabsContent>
