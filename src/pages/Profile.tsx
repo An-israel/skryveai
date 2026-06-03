@@ -2,10 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { SearchableMultiSelect } from "@/components/ui/searchable-multi-select";
@@ -198,9 +195,10 @@ export default function Profile() {
 
   return (
     <div className="max-w-2xl mx-auto space-y-6">
+      {/* Page header */}
       <div>
-        <h1 className="font-display text-2xl font-extrabold tracking-tight">Edit Profile</h1>
-        <p className="text-sm text-muted-foreground mt-1">Keep your profile up to date to attract more clients.</p>
+        <h1 className="text-xl font-semibold text-foreground tracking-tight">Edit Profile</h1>
+        <p className="text-[13px] text-muted-foreground mt-0.5">Keep your profile up to date to attract more clients.</p>
       </div>
 
       <Tabs defaultValue="basic">
@@ -210,39 +208,44 @@ export default function Profile() {
           <TabsTrigger value="links">Links</TabsTrigger>
         </TabsList>
 
+        {/* ── Basic Info ── */}
         <TabsContent value="basic" className="mt-4">
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-base">Basic Information</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-5">
-              <div className="flex flex-col items-center gap-3">
+          <div className="border border-border rounded-xl bg-card overflow-hidden">
+            <div className="px-5 py-3.5 border-b border-border">
+              <span className="text-[13px] font-semibold text-foreground">Basic Information</span>
+            </div>
+            <div className="px-5 py-5 space-y-5">
+
+              {/* Avatar upload */}
+              <div className="flex flex-col items-center gap-2">
                 <div
                   onClick={() => fileInputRef.current?.click()}
-                  className="relative w-24 h-24 rounded-full border-2 border-dashed border-border cursor-pointer hover:border-primary transition-colors flex items-center justify-center overflow-hidden bg-muted"
+                  className="w-20 h-20 rounded-full border border-border cursor-pointer flex items-center justify-center overflow-hidden bg-muted hover:border-primary/50 transition-colors relative mx-auto"
                 >
                   {tab1.profilePhotoUrl ? (
                     <img src={tab1.profilePhotoUrl} alt="Avatar" className="w-full h-full object-cover" />
                   ) : (
-                    <User className="w-10 h-10 text-muted-foreground" />
+                    <User className="w-8 h-8 text-muted-foreground" />
                   )}
                   <div className="absolute inset-0 bg-black/40 opacity-0 hover:opacity-100 transition-opacity flex items-center justify-center rounded-full">
-                    <Upload className="w-5 h-5 text-white" />
+                    <Upload className="w-4 h-4 text-white" />
                   </div>
                 </div>
-                <p className="text-xs text-muted-foreground">
+                <p className="text-[12px] text-muted-foreground">
                   {uploading ? "Uploading..." : "Click to upload photo"}
                 </p>
                 <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleAvatarChange} />
               </div>
 
               <div className="space-y-1.5">
-                <Label>Full Name</Label>
+                <p className="text-[12px] font-medium text-muted-foreground uppercase tracking-wider mb-1.5">Full Name</p>
                 <Input value={tab1.fullName} onChange={e => setTab1(p => ({ ...p, fullName: e.target.value }))} placeholder="Your full name" />
               </div>
 
               <div className="space-y-1.5">
-                <Label>Professional Tagline <span className="text-muted-foreground text-xs">(max 100)</span></Label>
+                <p className="text-[12px] font-medium text-muted-foreground uppercase tracking-wider mb-1.5">
+                  Professional Tagline <span className="normal-case text-[11px]">(max 100)</span>
+                </p>
                 <Input
                   value={tab1.tagline}
                   maxLength={100}
@@ -252,12 +255,14 @@ export default function Profile() {
               </div>
 
               <div className="space-y-1.5">
-                <Label>Location</Label>
+                <p className="text-[12px] font-medium text-muted-foreground uppercase tracking-wider mb-1.5">Location</p>
                 <Input value={tab1.location} onChange={e => setTab1(p => ({ ...p, location: e.target.value }))} placeholder="City, Country" />
               </div>
 
               <div className="space-y-1.5">
-                <Label>Bio <span className="text-muted-foreground text-xs">({tab1.bio.length}/500)</span></Label>
+                <p className="text-[12px] font-medium text-muted-foreground uppercase tracking-wider mb-1.5">
+                  Bio <span className="normal-case text-[11px]">({tab1.bio.length}/500)</span>
+                </p>
                 <Textarea
                   value={tab1.bio}
                   maxLength={500}
@@ -268,7 +273,7 @@ export default function Profile() {
               </div>
 
               <div className="space-y-1.5">
-                <Label>Languages Spoken</Label>
+                <p className="text-[12px] font-medium text-muted-foreground uppercase tracking-wider mb-1.5">Languages Spoken</p>
                 <SearchableMultiSelect
                   options={LANGUAGES}
                   selected={tab1.languages}
@@ -278,15 +283,17 @@ export default function Profile() {
               </div>
 
               <div className="space-y-2">
-                <Label>Availability Status</Label>
+                <p className="text-[12px] font-medium text-muted-foreground uppercase tracking-wider mb-1.5">Availability Status</p>
                 <div className="flex gap-2 flex-wrap">
                   {AVAILABILITY_OPTIONS.map(({ value, label, icon: Icon, color }) => (
                     <button
                       key={value}
                       type="button"
                       onClick={() => setTab1(p => ({ ...p, availability: value }))}
-                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-sm font-medium transition-all ${
-                        tab1.availability === value ? color : "border-border text-muted-foreground hover:border-primary/50"
+                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-[13px] font-medium transition-all ${
+                        tab1.availability === value
+                          ? color
+                          : "border-border text-muted-foreground hover:border-primary/50"
                       }`}
                     >
                       <Icon className="w-4 h-4" />
@@ -296,21 +303,27 @@ export default function Profile() {
                 </div>
               </div>
 
-              <Button onClick={saveBasicInfo} disabled={saving} className="w-full">
+              <button
+                onClick={saveBasicInfo}
+                disabled={saving}
+                className="w-full px-4 py-2 rounded-lg bg-primary text-primary-foreground text-[13px] font-medium hover:bg-primary/90 transition-colors disabled:opacity-60"
+              >
                 {saving ? "Saving..." : "Save Changes"}
-              </Button>
-            </CardContent>
-          </Card>
+              </button>
+            </div>
+          </div>
         </TabsContent>
 
+        {/* ── Skills & Experience ── */}
         <TabsContent value="skills" className="mt-4">
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-base">Skills & Experience</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-5">
+          <div className="border border-border rounded-xl bg-card overflow-hidden">
+            <div className="px-5 py-3.5 border-b border-border">
+              <span className="text-[13px] font-semibold text-foreground">Skills & Experience</span>
+            </div>
+            <div className="px-5 py-5 space-y-5">
+
               <div className="space-y-1.5">
-                <Label>Primary Skill</Label>
+                <p className="text-[12px] font-medium text-muted-foreground uppercase tracking-wider mb-1.5">Primary Skill</p>
                 <Select value={tab2.primarySkill} onValueChange={v => setTab2(p => ({ ...p, primarySkill: v }))}>
                   <SelectTrigger>
                     <SelectValue placeholder="Select your main skill" />
@@ -324,7 +337,9 @@ export default function Profile() {
               </div>
 
               <div className="space-y-1.5">
-                <Label>Secondary Skills <span className="text-muted-foreground text-xs">(max 5)</span></Label>
+                <p className="text-[12px] font-medium text-muted-foreground uppercase tracking-wider mb-1.5">
+                  Secondary Skills <span className="normal-case text-[11px]">(max 5)</span>
+                </p>
                 <SearchableMultiSelect
                   options={ALL_SKILLS.filter(s => s !== tab2.primarySkill)}
                   selected={tab2.secondarySkills}
@@ -334,7 +349,7 @@ export default function Profile() {
               </div>
 
               <div className="space-y-2">
-                <Label>Experience Level</Label>
+                <p className="text-[12px] font-medium text-muted-foreground uppercase tracking-wider mb-1.5">Experience Level</p>
                 <RadioGroup
                   value={tab2.experienceLevel}
                   onValueChange={v => setTab2(p => ({ ...p, experienceLevel: v }))}
@@ -354,15 +369,15 @@ export default function Profile() {
                       }`}
                     >
                       <RadioGroupItem value={value} className="sr-only" />
-                      <span className="font-medium text-sm">{label}</span>
-                      <span className="text-xs text-muted-foreground">{desc}</span>
+                      <span className="text-[14px] font-medium text-foreground">{label}</span>
+                      <span className="text-[12px] text-muted-foreground">{desc}</span>
                     </label>
                   ))}
                 </RadioGroup>
               </div>
 
               <div className="space-y-1.5">
-                <Label>Hourly Rate</Label>
+                <p className="text-[12px] font-medium text-muted-foreground uppercase tracking-wider mb-1.5">Hourly Rate</p>
                 <div className="flex gap-2">
                   <Select value={tab2.rateCurrency} onValueChange={v => setTab2(p => ({ ...p, rateCurrency: v }))}>
                     <SelectTrigger className="w-24">
@@ -383,21 +398,27 @@ export default function Profile() {
                 </div>
               </div>
 
-              <Button onClick={saveSkillsExperience} disabled={saving} className="w-full">
+              <button
+                onClick={saveSkillsExperience}
+                disabled={saving}
+                className="w-full px-4 py-2 rounded-lg bg-primary text-primary-foreground text-[13px] font-medium hover:bg-primary/90 transition-colors disabled:opacity-60"
+              >
                 {saving ? "Saving..." : "Save Changes"}
-              </Button>
-            </CardContent>
-          </Card>
+              </button>
+            </div>
+          </div>
         </TabsContent>
 
+        {/* ── Links ── */}
         <TabsContent value="links" className="mt-4">
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-base">Social Links</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-5">
+          <div className="border border-border rounded-xl bg-card overflow-hidden">
+            <div className="px-5 py-3.5 border-b border-border">
+              <span className="text-[13px] font-semibold text-foreground">Social Links</span>
+            </div>
+            <div className="px-5 py-5 space-y-5">
+
               <div className="space-y-1.5">
-                <Label>LinkedIn URL</Label>
+                <p className="text-[12px] font-medium text-muted-foreground uppercase tracking-wider mb-1.5">LinkedIn URL</p>
                 <Input
                   value={tab3.linkedin}
                   onChange={e => setTab3(p => ({ ...p, linkedin: e.target.value }))}
@@ -405,8 +426,9 @@ export default function Profile() {
                   type="url"
                 />
               </div>
+
               <div className="space-y-1.5">
-                <Label>Twitter / X URL</Label>
+                <p className="text-[12px] font-medium text-muted-foreground uppercase tracking-wider mb-1.5">Twitter / X URL</p>
                 <Input
                   value={tab3.twitter}
                   onChange={e => setTab3(p => ({ ...p, twitter: e.target.value }))}
@@ -414,8 +436,9 @@ export default function Profile() {
                   type="url"
                 />
               </div>
+
               <div className="space-y-1.5">
-                <Label>GitHub URL</Label>
+                <p className="text-[12px] font-medium text-muted-foreground uppercase tracking-wider mb-1.5">GitHub URL</p>
                 <Input
                   value={tab3.github}
                   onChange={e => setTab3(p => ({ ...p, github: e.target.value }))}
@@ -423,8 +446,9 @@ export default function Profile() {
                   type="url"
                 />
               </div>
+
               <div className="space-y-1.5">
-                <Label>Personal Website URL</Label>
+                <p className="text-[12px] font-medium text-muted-foreground uppercase tracking-wider mb-1.5">Personal Website URL</p>
                 <Input
                   value={tab3.website}
                   onChange={e => setTab3(p => ({ ...p, website: e.target.value }))}
@@ -432,11 +456,16 @@ export default function Profile() {
                   type="url"
                 />
               </div>
-              <Button onClick={saveLinks} disabled={saving} className="w-full">
+
+              <button
+                onClick={saveLinks}
+                disabled={saving}
+                className="w-full px-4 py-2 rounded-lg bg-primary text-primary-foreground text-[13px] font-medium hover:bg-primary/90 transition-colors disabled:opacity-60"
+              >
                 {saving ? "Saving..." : "Save Changes"}
-              </Button>
-            </CardContent>
-          </Card>
+              </button>
+            </div>
+          </div>
         </TabsContent>
       </Tabs>
     </div>
