@@ -255,12 +255,22 @@ export default function Projects() {
   if (loading) {
     return (
       <div className="space-y-4">
-        <Skeleton className="h-8 w-40" />
-        <div className="border border-border rounded-xl overflow-hidden">
+        <div>
+          <Skeleton className="h-6 w-36 mb-1.5" />
+          <Skeleton className="h-4 w-56" />
+        </div>
+        <div className="border border-border rounded-xl bg-card overflow-hidden">
+          <div className="px-5 py-3.5 border-b border-border">
+            <Skeleton className="h-4 w-32" />
+          </div>
           {[1, 2, 3, 4].map(i => (
-            <div key={i} className="px-5 py-3.5 border-b border-border last:border-b-0">
-              <Skeleton className="h-4 w-48 mb-2" />
-              <Skeleton className="h-3 w-64" />
+            <div key={i} className="px-5 py-3.5 border-b border-border last:border-b-0 flex items-start gap-3">
+              <Skeleton className="w-8 h-8 rounded-full shrink-0" />
+              <div className="flex-1 space-y-2">
+                <Skeleton className="h-4 w-48" />
+                <Skeleton className="h-3 w-64" />
+                <Skeleton className="h-1.5 w-full rounded-full" />
+              </div>
             </div>
           ))}
         </div>
@@ -270,7 +280,7 @@ export default function Projects() {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
+      {/* Page header */}
       <div>
         <h1 className="text-xl font-semibold text-foreground tracking-tight">My Projects</h1>
         <p className="text-[13px] text-muted-foreground mt-0.5">Track active and completed client work</p>
@@ -297,8 +307,9 @@ export default function Projects() {
             <EmptyProjectsState />
           ) : (
             <div className="border border-border rounded-xl bg-card overflow-hidden">
-              <div className="px-5 py-3.5 border-b border-border">
+              <div className="px-5 py-3.5 border-b border-border flex items-center justify-between">
                 <span className="text-[13px] font-semibold text-foreground">Active Projects</span>
+                <span className="text-[12px] text-muted-foreground">{activeProjects.length} project{activeProjects.length !== 1 ? "s" : ""}</span>
               </div>
               <div className="divide-y divide-border">
                 {activeProjects.map(project => (
@@ -318,8 +329,9 @@ export default function Projects() {
             </div>
           ) : (
             <div className="border border-border rounded-xl bg-card overflow-hidden">
-              <div className="px-5 py-3.5 border-b border-border">
+              <div className="px-5 py-3.5 border-b border-border flex items-center justify-between">
                 <span className="text-[13px] font-semibold text-foreground">Completed Projects</span>
+                <span className="text-[12px] text-muted-foreground">{completedProjects.length} project{completedProjects.length !== 1 ? "s" : ""}</span>
               </div>
               <div className="divide-y divide-border">
                 {completedProjects.map(project => (

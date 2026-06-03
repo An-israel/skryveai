@@ -86,11 +86,11 @@ const CURRENCIES = ["USD","EUR","GBP","NGN","CAD","AUD","GHS","KES","ZAR"];
 type Section = "account" | "notifications" | "privacy" | "job-preferences" | "danger";
 
 const NAV_ITEMS: { value: Section; label: string; icon: React.ReactNode }[] = [
-  { value: "account", label: "Account", icon: <User className="w-4 h-4" /> },
-  { value: "notifications", label: "Notifications", icon: <Bell className="w-4 h-4" /> },
-  { value: "privacy", label: "Privacy", icon: <Shield className="w-4 h-4" /> },
-  { value: "job-preferences", label: "Job Preferences", icon: <Briefcase className="w-4 h-4" /> },
-  { value: "danger", label: "Danger Zone", icon: <AlertTriangle className="w-4 h-4 text-destructive" /> },
+  { value: "account",          label: "Account",         icon: <User className="w-4 h-4" /> },
+  { value: "notifications",    label: "Notifications",   icon: <Bell className="w-4 h-4" /> },
+  { value: "privacy",          label: "Privacy",         icon: <Shield className="w-4 h-4" /> },
+  { value: "job-preferences",  label: "Job Preferences", icon: <Briefcase className="w-4 h-4" /> },
+  { value: "danger",           label: "Danger Zone",     icon: <AlertTriangle className="w-4 h-4 text-destructive" /> },
 ];
 
 // ── Shared panel primitives ────────────────────────────────────────────────────
@@ -103,11 +103,14 @@ function Panel({ children }: { children: React.ReactNode }) {
   );
 }
 
-function PanelHeader({ title, sub }: { title: string; sub?: string }) {
+function PanelHeader({ title, sub, action }: { title: string; sub?: string; action?: React.ReactNode }) {
   return (
-    <div className="px-5 py-3.5 border-b border-border">
-      <p className="text-[13px] font-semibold text-foreground">{title}</p>
-      {sub && <p className="text-[11px] text-muted-foreground mt-0.5">{sub}</p>}
+    <div className="px-5 py-3.5 border-b border-border flex items-start justify-between gap-3">
+      <div>
+        <p className="text-[13px] font-semibold text-foreground">{title}</p>
+        {sub && <p className="text-[11px] text-muted-foreground mt-0.5">{sub}</p>}
+      </div>
+      {action && <div className="shrink-0">{action}</div>}
     </div>
   );
 }
@@ -260,15 +263,15 @@ export default function Settings() {
         setTalentId(talent.id);
         setUsername(talent.username || "");
         setNotifPrefs({
-          notif_email_jobs: talent.notif_email_jobs ?? true,
-          notif_email_apps: talent.notif_email_apps ?? true,
-          notif_email_messages: talent.notif_email_messages ?? true,
-          notif_email_offers: talent.notif_email_offers ?? true,
-          notif_email_projects: talent.notif_email_projects ?? true,
-          notif_email_events: talent.notif_email_events ?? true,
-          notif_email_learning: talent.notif_email_learning ?? true,
+          notif_email_jobs:      talent.notif_email_jobs      ?? true,
+          notif_email_apps:      talent.notif_email_apps      ?? true,
+          notif_email_messages:  talent.notif_email_messages  ?? true,
+          notif_email_offers:    talent.notif_email_offers    ?? true,
+          notif_email_projects:  talent.notif_email_projects  ?? true,
+          notif_email_events:    talent.notif_email_events    ?? true,
+          notif_email_learning:  talent.notif_email_learning  ?? true,
           notif_email_marketing: talent.notif_email_marketing ?? false,
-          notif_push_enabled: talent.notif_push_enabled ?? true,
+          notif_push_enabled:    talent.notif_push_enabled    ?? true,
         });
         setProfileVisibility(talent.profile_visibility || "public");
         setWhoCanMessage(talent.who_can_message || "everyone");
@@ -446,7 +449,9 @@ export default function Settings() {
       {/* Page header */}
       <div className="mb-8">
         <h1 className="text-xl font-semibold text-foreground tracking-tight">Settings</h1>
-        <p className="text-[13px] text-muted-foreground mt-0.5">Manage your account, preferences, and privacy</p>
+        <p className="text-[13px] text-muted-foreground mt-0.5">
+          Manage your account, preferences, and privacy
+        </p>
       </div>
 
       <div className="flex gap-8 lg:items-start">
@@ -494,7 +499,6 @@ export default function Settings() {
           {/* ── Account ── */}
           {activeSection === "account" && (
             <div>
-              {/* Email */}
               <Panel>
                 <PanelHeader title="Email Address" sub="Your sign-in email address" />
                 <PanelBody>
@@ -516,7 +520,6 @@ export default function Settings() {
                 </PanelBody>
               </Panel>
 
-              {/* Username */}
               <Panel>
                 <PanelHeader title="Username" sub="Your public username on Skryve" />
                 <PanelBody>
@@ -537,7 +540,6 @@ export default function Settings() {
                 </PanelBody>
               </Panel>
 
-              {/* Password */}
               <Panel>
                 <PanelHeader title="Change Password" sub="Update your account password" />
                 <PanelBody>
@@ -587,18 +589,21 @@ export default function Settings() {
           {activeSection === "notifications" && (
             <div>
               <Panel>
-                <PanelHeader title="Email Notifications" sub="Choose which emails you want to receive" />
+                <PanelHeader
+                  title="Email Notifications"
+                  sub="Choose which emails you want to receive"
+                />
                 <div className="px-5 divide-y divide-border">
                   {(
                     [
-                      ["notif_email_jobs", "New job matches", "Get notified when new jobs match your profile"],
-                      ["notif_email_apps", "Application updates", "Status changes on your applications"],
-                      ["notif_email_messages", "New messages", "When someone sends you a message"],
-                      ["notif_email_offers", "Offers", "When you receive a job offer"],
-                      ["notif_email_projects", "Project updates", "Updates on active projects"],
-                      ["notif_email_events", "Event reminders", "Upcoming events and webinars"],
-                      ["notif_email_learning", "Learning updates", "New courses and learning content"],
-                      ["notif_email_marketing", "Marketing & tips", "Product news and tips from Skryve"],
+                      ["notif_email_jobs",      "New job matches",     "Get notified when new jobs match your profile"],
+                      ["notif_email_apps",      "Application updates", "Status changes on your applications"],
+                      ["notif_email_messages",  "New messages",        "When someone sends you a message"],
+                      ["notif_email_offers",    "Offers",              "When you receive a job offer"],
+                      ["notif_email_projects",  "Project updates",     "Updates on active projects"],
+                      ["notif_email_events",    "Event reminders",     "Upcoming events and webinars"],
+                      ["notif_email_learning",  "Learning updates",    "New courses and learning content"],
+                      ["notif_email_marketing", "Marketing & tips",    "Product news and tips from Skryve"],
                     ] as [keyof typeof notifPrefs, string, string][]
                   ).map(([key, label, sub]) => (
                     <Row key={key}>
@@ -618,7 +623,10 @@ export default function Settings() {
                 <PanelHeader title="Push Notifications" sub="Browser and device notifications" />
                 <div className="px-5 divide-y divide-border">
                   <Row>
-                    <RowLabel label="Enable push notifications" sub="Receive browser and device push notifications" />
+                    <RowLabel
+                      label="Enable push notifications"
+                      sub="Receive browser and device push notifications"
+                    />
                     <Switch
                       checked={notifPrefs.notif_push_enabled}
                       onCheckedChange={(v) =>
@@ -642,7 +650,10 @@ export default function Settings() {
           {activeSection === "privacy" && (
             <div>
               <Panel>
-                <PanelHeader title="Privacy Settings" sub="Control who can see your profile and contact you" />
+                <PanelHeader
+                  title="Privacy Settings"
+                  sub="Control who can see your profile and contact you"
+                />
                 <PanelBody>
                   <div>
                     <FormLabel>Profile visibility</FormLabel>
@@ -745,7 +756,10 @@ export default function Settings() {
               </Panel>
 
               <Panel>
-                <PanelHeader title="Skills of Interest" sub="Select up to 10 skills you want to work with" />
+                <PanelHeader
+                  title="Skills of Interest"
+                  sub={`Select up to 10 skills you want to work with (${jpSkills.length}/10)`}
+                />
                 <PanelBody>
                   {jpSkills.length > 0 && (
                     <div className="flex flex-wrap gap-1.5">
@@ -795,12 +809,14 @@ export default function Settings() {
           {activeSection === "danger" && (
             <div>
               <div className="border border-destructive/30 rounded-xl bg-card overflow-hidden mb-4">
-                <div className="px-5 py-3.5 border-b border-destructive/20 bg-destructive/5">
-                  <div className="flex items-center gap-2">
-                    <AlertTriangle className="w-4 h-4 text-destructive" />
+                <div className="px-5 py-3.5 border-b border-destructive/20 bg-destructive/5 flex items-start gap-2">
+                  <AlertTriangle className="w-4 h-4 text-destructive mt-0.5 shrink-0" />
+                  <div>
                     <p className="text-[13px] font-semibold text-destructive">Danger Zone</p>
+                    <p className="text-[11px] text-muted-foreground mt-0.5">
+                      These actions are irreversible. Proceed with caution.
+                    </p>
                   </div>
-                  <p className="text-[11px] text-muted-foreground mt-0.5">These actions are irreversible. Proceed with caution.</p>
                 </div>
                 <div className="px-5 py-4 space-y-4">
                   <div>
@@ -850,6 +866,7 @@ export default function Settings() {
               </AlertDialog>
             </div>
           )}
+
         </div>
       </div>
     </div>
