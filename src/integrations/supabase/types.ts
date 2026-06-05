@@ -124,6 +124,179 @@ export type Database = {
         }
         Relationships: []
       }
+      aggregated_jobs: {
+        Row: {
+          budget: string | null
+          description: string | null
+          external_id: string
+          external_url: string
+          id: string
+          is_active: boolean
+          job_type: string | null
+          location: string | null
+          platform: Database["public"]["Enums"]["skryve_agg_platform"]
+          posted_at: string | null
+          scraped_at: string
+          skill_tags: string[]
+          title: string
+        }
+        Insert: {
+          budget?: string | null
+          description?: string | null
+          external_id: string
+          external_url: string
+          id?: string
+          is_active?: boolean
+          job_type?: string | null
+          location?: string | null
+          platform: Database["public"]["Enums"]["skryve_agg_platform"]
+          posted_at?: string | null
+          scraped_at?: string
+          skill_tags?: string[]
+          title: string
+        }
+        Update: {
+          budget?: string | null
+          description?: string | null
+          external_id?: string
+          external_url?: string
+          id?: string
+          is_active?: boolean
+          job_type?: string | null
+          location?: string | null
+          platform?: Database["public"]["Enums"]["skryve_agg_platform"]
+          posted_at?: string | null
+          scraped_at?: string
+          skill_tags?: string[]
+          title?: string
+        }
+        Relationships: []
+      }
+      app_config: {
+        Row: {
+          key: string
+          updated_at: string | null
+          value: string
+        }
+        Insert: {
+          key: string
+          updated_at?: string | null
+          value: string
+        }
+        Update: {
+          key?: string
+          updated_at?: string | null
+          value?: string
+        }
+        Relationships: []
+      }
+      applications: {
+        Row: {
+          created_at: string
+          estimated_timeline: string | null
+          id: string
+          job_id: string
+          portfolio_samples: string[]
+          proposal_text: string | null
+          proposed_rate: number | null
+          status: Database["public"]["Enums"]["skryve_app_status"]
+          talent_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          estimated_timeline?: string | null
+          id?: string
+          job_id: string
+          portfolio_samples?: string[]
+          proposal_text?: string | null
+          proposed_rate?: number | null
+          status?: Database["public"]["Enums"]["skryve_app_status"]
+          talent_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          estimated_timeline?: string | null
+          id?: string
+          job_id?: string
+          portfolio_samples?: string[]
+          proposal_text?: string | null
+          proposed_rate?: number | null
+          status?: Database["public"]["Enums"]["skryve_app_status"]
+          talent_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "applications_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "job_posts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "applications_talent_id_fkey"
+            columns: ["talent_id"]
+            isOneToOne: false
+            referencedRelation: "talent_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      applications_tracker: {
+        Row: {
+          applied_at: string
+          created_at: string
+          external_url: string | null
+          follow_up_date: string | null
+          id: string
+          job_title: string
+          notes: string | null
+          platform: string | null
+          proposal_sent: boolean
+          status: Database["public"]["Enums"]["skryve_app_status"]
+          talent_id: string
+          updated_at: string
+        }
+        Insert: {
+          applied_at?: string
+          created_at?: string
+          external_url?: string | null
+          follow_up_date?: string | null
+          id?: string
+          job_title: string
+          notes?: string | null
+          platform?: string | null
+          proposal_sent?: boolean
+          status?: Database["public"]["Enums"]["skryve_app_status"]
+          talent_id: string
+          updated_at?: string
+        }
+        Update: {
+          applied_at?: string
+          created_at?: string
+          external_url?: string | null
+          follow_up_date?: string | null
+          id?: string
+          job_title?: string
+          notes?: string | null
+          platform?: string | null
+          proposal_sent?: boolean
+          status?: Database["public"]["Enums"]["skryve_app_status"]
+          talent_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "applications_tracker_talent_id_fkey"
+            columns: ["talent_id"]
+            isOneToOne: false
+            referencedRelation: "talent_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       autopilot_activity: {
         Row: {
           business_location: string | null
@@ -482,6 +655,45 @@ export type Database = {
         }
         Relationships: []
       }
+      certificates: {
+        Row: {
+          certificate_url: string | null
+          course_id: string
+          id: string
+          issued_at: string
+          talent_id: string
+        }
+        Insert: {
+          certificate_url?: string | null
+          course_id: string
+          id?: string
+          issued_at?: string
+          talent_id: string
+        }
+        Update: {
+          certificate_url?: string | null
+          course_id?: string
+          id?: string
+          issued_at?: string
+          talent_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "certificates_course_id_fkey"
+            columns: ["course_id"]
+            isOneToOne: false
+            referencedRelation: "courses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "certificates_talent_id_fkey"
+            columns: ["talent_id"]
+            isOneToOne: false
+            referencedRelation: "talent_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       chat_conversations: {
         Row: {
           created_at: string | null
@@ -549,6 +761,69 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      client_profiles: {
+        Row: {
+          company_name: string | null
+          created_at: string
+          hiring_categories: string[] | null
+          id: string
+          industry: string | null
+          is_verified: boolean
+          location: string | null
+          logo_url: string | null
+          onboarding_completed: boolean | null
+          onboarding_step: number | null
+          rating_avg: number | null
+          team_size: string | null
+          total_hires: number
+          total_reviews: number
+          typical_budget: string | null
+          updated_at: string
+          user_id: string
+          website: string | null
+        }
+        Insert: {
+          company_name?: string | null
+          created_at?: string
+          hiring_categories?: string[] | null
+          id?: string
+          industry?: string | null
+          is_verified?: boolean
+          location?: string | null
+          logo_url?: string | null
+          onboarding_completed?: boolean | null
+          onboarding_step?: number | null
+          rating_avg?: number | null
+          team_size?: string | null
+          total_hires?: number
+          total_reviews?: number
+          typical_budget?: string | null
+          updated_at?: string
+          user_id: string
+          website?: string | null
+        }
+        Update: {
+          company_name?: string | null
+          created_at?: string
+          hiring_categories?: string[] | null
+          id?: string
+          industry?: string | null
+          is_verified?: boolean
+          location?: string | null
+          logo_url?: string | null
+          onboarding_completed?: boolean | null
+          onboarding_step?: number | null
+          rating_avg?: number | null
+          team_size?: string | null
+          total_hires?: number
+          total_reviews?: number
+          typical_budget?: string | null
+          updated_at?: string
+          user_id?: string
+          website?: string | null
+        }
+        Relationships: []
       }
       cms_images: {
         Row: {
@@ -696,6 +971,104 @@ export type Database = {
         }
         Relationships: []
       }
+      course_lessons: {
+        Row: {
+          content_type: Database["public"]["Enums"]["skryve_content_type"]
+          content_url: string | null
+          course_id: string
+          created_at: string
+          duration_minutes: number | null
+          id: string
+          is_free_preview: boolean
+          module_name: string | null
+          order_index: number
+          title: string
+        }
+        Insert: {
+          content_type?: Database["public"]["Enums"]["skryve_content_type"]
+          content_url?: string | null
+          course_id: string
+          created_at?: string
+          duration_minutes?: number | null
+          id?: string
+          is_free_preview?: boolean
+          module_name?: string | null
+          order_index?: number
+          title: string
+        }
+        Update: {
+          content_type?: Database["public"]["Enums"]["skryve_content_type"]
+          content_url?: string | null
+          course_id?: string
+          created_at?: string
+          duration_minutes?: number | null
+          id?: string
+          is_free_preview?: boolean
+          module_name?: string | null
+          order_index?: number
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "course_lessons_course_id_fkey"
+            columns: ["course_id"]
+            isOneToOne: false
+            referencedRelation: "courses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      courses: {
+        Row: {
+          avg_rating: number | null
+          created_at: string
+          description: string | null
+          duration_hours: number | null
+          enrolled_count: number
+          id: string
+          is_published: boolean
+          lesson_count: number
+          level: Database["public"]["Enums"]["skryve_experience_level"] | null
+          price: number
+          skill_category: string | null
+          thumbnail_url: string | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          avg_rating?: number | null
+          created_at?: string
+          description?: string | null
+          duration_hours?: number | null
+          enrolled_count?: number
+          id?: string
+          is_published?: boolean
+          lesson_count?: number
+          level?: Database["public"]["Enums"]["skryve_experience_level"] | null
+          price?: number
+          skill_category?: string | null
+          thumbnail_url?: string | null
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          avg_rating?: number | null
+          created_at?: string
+          description?: string | null
+          duration_hours?: number | null
+          enrolled_count?: number
+          id?: string
+          is_published?: boolean
+          lesson_count?: number
+          level?: Database["public"]["Enums"]["skryve_experience_level"] | null
+          price?: number
+          skill_category?: string | null
+          thumbnail_url?: string | null
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       daily_email_log: {
         Row: {
           created_at: string
@@ -716,6 +1089,54 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      deliverables: {
+        Row: {
+          file_url: string | null
+          id: string
+          note: string | null
+          project_id: string
+          reviewed_at: string | null
+          status: Database["public"]["Enums"]["skryve_deliverable_status"]
+          submitted_at: string
+          talent_id: string
+        }
+        Insert: {
+          file_url?: string | null
+          id?: string
+          note?: string | null
+          project_id: string
+          reviewed_at?: string | null
+          status?: Database["public"]["Enums"]["skryve_deliverable_status"]
+          submitted_at?: string
+          talent_id: string
+        }
+        Update: {
+          file_url?: string | null
+          id?: string
+          note?: string | null
+          project_id?: string
+          reviewed_at?: string | null
+          status?: Database["public"]["Enums"]["skryve_deliverable_status"]
+          submitted_at?: string
+          talent_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "deliverables_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "deliverables_talent_id_fkey"
+            columns: ["talent_id"]
+            isOneToOne: false
+            referencedRelation: "talent_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       email_finder_jobs: {
         Row: {
@@ -1088,6 +1509,152 @@ export type Database = {
           },
         ]
       }
+      enrollments: {
+        Row: {
+          completed_at: string | null
+          course_id: string
+          created_at: string
+          id: string
+          payment_status: Database["public"]["Enums"]["skryve_payment_status"]
+          progress_percent: number
+          talent_id: string
+        }
+        Insert: {
+          completed_at?: string | null
+          course_id: string
+          created_at?: string
+          id?: string
+          payment_status?: Database["public"]["Enums"]["skryve_payment_status"]
+          progress_percent?: number
+          talent_id: string
+        }
+        Update: {
+          completed_at?: string | null
+          course_id?: string
+          created_at?: string
+          id?: string
+          payment_status?: Database["public"]["Enums"]["skryve_payment_status"]
+          progress_percent?: number
+          talent_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "enrollments_course_id_fkey"
+            columns: ["course_id"]
+            isOneToOne: false
+            referencedRelation: "courses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "enrollments_talent_id_fkey"
+            columns: ["talent_id"]
+            isOneToOne: false
+            referencedRelation: "talent_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      event_rsvps: {
+        Row: {
+          event_id: string
+          id: string
+          payment_status: Database["public"]["Enums"]["skryve_payment_status"]
+          registered_at: string
+          user_id: string
+        }
+        Insert: {
+          event_id: string
+          id?: string
+          payment_status?: Database["public"]["Enums"]["skryve_payment_status"]
+          registered_at?: string
+          user_id: string
+        }
+        Update: {
+          event_id?: string
+          id?: string
+          payment_status?: Database["public"]["Enums"]["skryve_payment_status"]
+          registered_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "event_rsvps_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      events: {
+        Row: {
+          attendee_count: number
+          banner_url: string | null
+          created_at: string
+          date_time: string
+          description: string | null
+          duration_minutes: number | null
+          event_link: string | null
+          format: Database["public"]["Enums"]["skryve_event_format"]
+          id: string
+          location_address: string | null
+          max_attendees: number | null
+          niche_category: string | null
+          organizer_id: string
+          platform_name: string | null
+          price_type: Database["public"]["Enums"]["skryve_price_type"]
+          status: Database["public"]["Enums"]["skryve_event_status"]
+          ticket_price: number | null
+          timezone: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          attendee_count?: number
+          banner_url?: string | null
+          created_at?: string
+          date_time: string
+          description?: string | null
+          duration_minutes?: number | null
+          event_link?: string | null
+          format?: Database["public"]["Enums"]["skryve_event_format"]
+          id?: string
+          location_address?: string | null
+          max_attendees?: number | null
+          niche_category?: string | null
+          organizer_id: string
+          platform_name?: string | null
+          price_type?: Database["public"]["Enums"]["skryve_price_type"]
+          status?: Database["public"]["Enums"]["skryve_event_status"]
+          ticket_price?: number | null
+          timezone?: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          attendee_count?: number
+          banner_url?: string | null
+          created_at?: string
+          date_time?: string
+          description?: string | null
+          duration_minutes?: number | null
+          event_link?: string | null
+          format?: Database["public"]["Enums"]["skryve_event_format"]
+          id?: string
+          location_address?: string | null
+          max_attendees?: number | null
+          niche_category?: string | null
+          organizer_id?: string
+          platform_name?: string | null
+          price_type?: Database["public"]["Enums"]["skryve_price_type"]
+          status?: Database["public"]["Enums"]["skryve_event_status"]
+          ticket_price?: number | null
+          timezone?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       gmail_tokens: {
         Row: {
           access_token: string
@@ -1120,6 +1687,142 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      job_posts: {
+        Row: {
+          applicant_count: number
+          budget_max: number | null
+          budget_min: number | null
+          budget_type: Database["public"]["Enums"]["skryve_budget_type"]
+          client_id: string
+          created_at: string
+          deadline: string | null
+          description: string
+          duration: string | null
+          id: string
+          job_type: Database["public"]["Enums"]["skryve_job_type"]
+          location_type: Database["public"]["Enums"]["skryve_location_type"]
+          required_skills: string[]
+          skill_category: string | null
+          status: Database["public"]["Enums"]["skryve_job_status"]
+          title: string
+          updated_at: string
+          views: number
+        }
+        Insert: {
+          applicant_count?: number
+          budget_max?: number | null
+          budget_min?: number | null
+          budget_type?: Database["public"]["Enums"]["skryve_budget_type"]
+          client_id: string
+          created_at?: string
+          deadline?: string | null
+          description: string
+          duration?: string | null
+          id?: string
+          job_type?: Database["public"]["Enums"]["skryve_job_type"]
+          location_type?: Database["public"]["Enums"]["skryve_location_type"]
+          required_skills?: string[]
+          skill_category?: string | null
+          status?: Database["public"]["Enums"]["skryve_job_status"]
+          title: string
+          updated_at?: string
+          views?: number
+        }
+        Update: {
+          applicant_count?: number
+          budget_max?: number | null
+          budget_min?: number | null
+          budget_type?: Database["public"]["Enums"]["skryve_budget_type"]
+          client_id?: string
+          created_at?: string
+          deadline?: string | null
+          description?: string
+          duration?: string | null
+          id?: string
+          job_type?: Database["public"]["Enums"]["skryve_job_type"]
+          location_type?: Database["public"]["Enums"]["skryve_location_type"]
+          required_skills?: string[]
+          skill_category?: string | null
+          status?: Database["public"]["Enums"]["skryve_job_status"]
+          title?: string
+          updated_at?: string
+          views?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "job_posts_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "client_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      job_preferences: {
+        Row: {
+          budget_min: number | null
+          created_at: string
+          digest_enabled: boolean
+          experience_level:
+            | Database["public"]["Enums"]["skryve_experience_level"]
+            | null
+          id: string
+          job_types: string[]
+          location_preference:
+            | Database["public"]["Enums"]["skryve_location_type"]
+            | null
+          preferred_platforms: string[]
+          primary_skill: string | null
+          secondary_skills: string[]
+          talent_id: string
+          updated_at: string
+        }
+        Insert: {
+          budget_min?: number | null
+          created_at?: string
+          digest_enabled?: boolean
+          experience_level?:
+            | Database["public"]["Enums"]["skryve_experience_level"]
+            | null
+          id?: string
+          job_types?: string[]
+          location_preference?:
+            | Database["public"]["Enums"]["skryve_location_type"]
+            | null
+          preferred_platforms?: string[]
+          primary_skill?: string | null
+          secondary_skills?: string[]
+          talent_id: string
+          updated_at?: string
+        }
+        Update: {
+          budget_min?: number | null
+          created_at?: string
+          digest_enabled?: boolean
+          experience_level?:
+            | Database["public"]["Enums"]["skryve_experience_level"]
+            | null
+          id?: string
+          job_types?: string[]
+          location_preference?:
+            | Database["public"]["Enums"]["skryve_location_type"]
+            | null
+          preferred_platforms?: string[]
+          primary_skill?: string | null
+          secondary_skills?: string[]
+          talent_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "job_preferences_talent_id_fkey"
+            columns: ["talent_id"]
+            isOneToOne: true
+            referencedRelation: "talent_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       learning_achievements: {
         Row: {
@@ -1463,6 +2166,45 @@ export type Database = {
           },
         ]
       }
+      lesson_progress: {
+        Row: {
+          completed_at: string | null
+          enrollment_id: string
+          id: string
+          is_completed: boolean
+          lesson_id: string
+        }
+        Insert: {
+          completed_at?: string | null
+          enrollment_id: string
+          id?: string
+          is_completed?: boolean
+          lesson_id: string
+        }
+        Update: {
+          completed_at?: string | null
+          enrollment_id?: string
+          id?: string
+          is_completed?: boolean
+          lesson_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lesson_progress_enrollment_id_fkey"
+            columns: ["enrollment_id"]
+            isOneToOne: false
+            referencedRelation: "enrollments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lesson_progress_lesson_id_fkey"
+            columns: ["lesson_id"]
+            isOneToOne: false
+            referencedRelation: "course_lessons"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       lesson_video_status: {
         Row: {
           checked_at: string
@@ -1486,6 +2228,93 @@ export type Database = {
           url?: string
         }
         Relationships: []
+      }
+      marketplace_conversations: {
+        Row: {
+          client_id: string
+          created_at: string
+          id: string
+          job_id: string | null
+          last_message_at: string | null
+          talent_id: string
+        }
+        Insert: {
+          client_id: string
+          created_at?: string
+          id?: string
+          job_id?: string | null
+          last_message_at?: string | null
+          talent_id: string
+        }
+        Update: {
+          client_id?: string
+          created_at?: string
+          id?: string
+          job_id?: string | null
+          last_message_at?: string | null
+          talent_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "marketplace_conversations_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "client_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "marketplace_conversations_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "job_posts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "marketplace_conversations_talent_id_fkey"
+            columns: ["talent_id"]
+            isOneToOne: false
+            referencedRelation: "talent_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      marketplace_messages: {
+        Row: {
+          attachment_url: string | null
+          content: string
+          conversation_id: string
+          id: string
+          is_read: boolean
+          sender_id: string
+          sent_at: string
+        }
+        Insert: {
+          attachment_url?: string | null
+          content: string
+          conversation_id: string
+          id?: string
+          is_read?: boolean
+          sender_id: string
+          sent_at?: string
+        }
+        Update: {
+          attachment_url?: string | null
+          content?: string
+          conversation_id?: string
+          id?: string
+          is_read?: boolean
+          sender_id?: string
+          sent_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "marketplace_messages_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "marketplace_conversations"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       notifications: {
         Row: {
@@ -1519,6 +2348,76 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      offers: {
+        Row: {
+          client_id: string
+          created_at: string
+          expires_at: string | null
+          id: string
+          job_id: string | null
+          milestones: Json
+          rate: number | null
+          scope: string | null
+          status: Database["public"]["Enums"]["skryve_offer_status"]
+          talent_id: string
+          terms: string | null
+          timeline: string | null
+          updated_at: string
+        }
+        Insert: {
+          client_id: string
+          created_at?: string
+          expires_at?: string | null
+          id?: string
+          job_id?: string | null
+          milestones?: Json
+          rate?: number | null
+          scope?: string | null
+          status?: Database["public"]["Enums"]["skryve_offer_status"]
+          talent_id: string
+          terms?: string | null
+          timeline?: string | null
+          updated_at?: string
+        }
+        Update: {
+          client_id?: string
+          created_at?: string
+          expires_at?: string | null
+          id?: string
+          job_id?: string | null
+          milestones?: Json
+          rate?: number | null
+          scope?: string | null
+          status?: Database["public"]["Enums"]["skryve_offer_status"]
+          talent_id?: string
+          terms?: string | null
+          timeline?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "offers_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "client_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "offers_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "job_posts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "offers_talent_id_fkey"
+            columns: ["talent_id"]
+            isOneToOne: false
+            referencedRelation: "talent_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       payment_history: {
         Row: {
@@ -1605,6 +2504,50 @@ export type Database = {
           },
         ]
       }
+      portfolio_items: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          image_url: string | null
+          is_featured: boolean
+          project_url: string | null
+          skill_category: string | null
+          talent_id: string
+          title: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          image_url?: string | null
+          is_featured?: boolean
+          project_url?: string | null
+          skill_category?: string | null
+          talent_id: string
+          title: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          image_url?: string | null
+          is_featured?: boolean
+          project_url?: string | null
+          skill_category?: string | null
+          talent_id?: string
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "portfolio_items_talent_id_fkey"
+            columns: ["talent_id"]
+            isOneToOne: false
+            referencedRelation: "talent_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -1667,6 +2610,74 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      projects: {
+        Row: {
+          client_id: string
+          completed_at: string | null
+          created_at: string
+          id: string
+          job_id: string | null
+          offer_id: string | null
+          started_at: string | null
+          status: Database["public"]["Enums"]["skryve_project_status"]
+          talent_id: string
+          updated_at: string
+        }
+        Insert: {
+          client_id: string
+          completed_at?: string | null
+          created_at?: string
+          id?: string
+          job_id?: string | null
+          offer_id?: string | null
+          started_at?: string | null
+          status?: Database["public"]["Enums"]["skryve_project_status"]
+          talent_id: string
+          updated_at?: string
+        }
+        Update: {
+          client_id?: string
+          completed_at?: string | null
+          created_at?: string
+          id?: string
+          job_id?: string | null
+          offer_id?: string | null
+          started_at?: string | null
+          status?: Database["public"]["Enums"]["skryve_project_status"]
+          talent_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "projects_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "client_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "projects_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "job_posts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "projects_offer_id_fkey"
+            columns: ["offer_id"]
+            isOneToOne: true
+            referencedRelation: "offers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "projects_talent_id_fkey"
+            columns: ["talent_id"]
+            isOneToOne: false
+            referencedRelation: "talent_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       push_config: {
         Row: {
@@ -1761,6 +2772,93 @@ export type Database = {
         }
         Relationships: []
       }
+      reviews: {
+        Row: {
+          created_at: string
+          id: string
+          project_id: string
+          rating: number
+          review_text: string | null
+          reviewee_id: string
+          reviewer_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          project_id: string
+          rating: number
+          review_text?: string | null
+          reviewee_id: string
+          reviewer_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          project_id?: string
+          rating?: number
+          review_text?: string | null
+          reviewee_id?: string
+          reviewer_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reviews_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      saved_jobs: {
+        Row: {
+          agg_job_id: string | null
+          id: string
+          job_id: string | null
+          saved_at: string
+          source: Database["public"]["Enums"]["skryve_job_source"]
+          talent_id: string
+        }
+        Insert: {
+          agg_job_id?: string | null
+          id?: string
+          job_id?: string | null
+          saved_at?: string
+          source?: Database["public"]["Enums"]["skryve_job_source"]
+          talent_id: string
+        }
+        Update: {
+          agg_job_id?: string | null
+          id?: string
+          job_id?: string | null
+          saved_at?: string
+          source?: Database["public"]["Enums"]["skryve_job_source"]
+          talent_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "saved_jobs_agg_job_id_fkey"
+            columns: ["agg_job_id"]
+            isOneToOne: false
+            referencedRelation: "aggregated_jobs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "saved_jobs_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "job_posts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "saved_jobs_talent_id_fkey"
+            columns: ["talent_id"]
+            isOneToOne: false
+            referencedRelation: "talent_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       signup_ips: {
         Row: {
           created_at: string
@@ -1808,6 +2906,65 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      skryve_cvs: {
+        Row: {
+          certifications: Json
+          created_at: string
+          education: Json
+          experiences: Json
+          id: string
+          last_downloaded_at: string | null
+          personal_info: Json
+          projects: Json
+          skills: Json
+          summary: string | null
+          talent_id: string
+          template_name: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          certifications?: Json
+          created_at?: string
+          education?: Json
+          experiences?: Json
+          id?: string
+          last_downloaded_at?: string | null
+          personal_info?: Json
+          projects?: Json
+          skills?: Json
+          summary?: string | null
+          talent_id: string
+          template_name?: string
+          title?: string
+          updated_at?: string
+        }
+        Update: {
+          certifications?: Json
+          created_at?: string
+          education?: Json
+          experiences?: Json
+          id?: string
+          last_downloaded_at?: string | null
+          personal_info?: Json
+          projects?: Json
+          skills?: Json
+          summary?: string | null
+          talent_id?: string
+          template_name?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "skryve_cvs_talent_id_fkey"
+            columns: ["talent_id"]
+            isOneToOne: false
+            referencedRelation: "talent_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       smart_find_signals: {
         Row: {
@@ -1993,6 +3150,93 @@ export type Database = {
           reminder_sent?: boolean | null
           status?: Database["public"]["Enums"]["subscription_status"]
           trial_ends_at?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      talent_profiles: {
+        Row: {
+          availability_status: Database["public"]["Enums"]["skryve_availability"]
+          bio: string | null
+          completed_projects_count: number
+          created_at: string
+          experience_level:
+            | Database["public"]["Enums"]["skryve_experience_level"]
+            | null
+          full_name: string | null
+          hourly_rate: number | null
+          id: string
+          is_verified: boolean
+          languages: string[]
+          location: string | null
+          onboarding_completed: boolean | null
+          onboarding_step: number | null
+          primary_skill: string | null
+          profile_photo_url: string | null
+          profile_views: number
+          rate_currency: string | null
+          rating_avg: number | null
+          secondary_skills: string[]
+          social_links: Json
+          tagline: string | null
+          total_reviews: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          availability_status?: Database["public"]["Enums"]["skryve_availability"]
+          bio?: string | null
+          completed_projects_count?: number
+          created_at?: string
+          experience_level?:
+            | Database["public"]["Enums"]["skryve_experience_level"]
+            | null
+          full_name?: string | null
+          hourly_rate?: number | null
+          id?: string
+          is_verified?: boolean
+          languages?: string[]
+          location?: string | null
+          onboarding_completed?: boolean | null
+          onboarding_step?: number | null
+          primary_skill?: string | null
+          profile_photo_url?: string | null
+          profile_views?: number
+          rate_currency?: string | null
+          rating_avg?: number | null
+          secondary_skills?: string[]
+          social_links?: Json
+          tagline?: string | null
+          total_reviews?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          availability_status?: Database["public"]["Enums"]["skryve_availability"]
+          bio?: string | null
+          completed_projects_count?: number
+          created_at?: string
+          experience_level?:
+            | Database["public"]["Enums"]["skryve_experience_level"]
+            | null
+          full_name?: string | null
+          hourly_rate?: number | null
+          id?: string
+          is_verified?: boolean
+          languages?: string[]
+          location?: string | null
+          onboarding_completed?: boolean | null
+          onboarding_step?: number | null
+          primary_skill?: string | null
+          profile_photo_url?: string | null
+          profile_views?: number
+          rate_currency?: string | null
+          rating_avg?: number | null
+          secondary_skills?: string[]
+          social_links?: Json
+          tagline?: string | null
+          total_reviews?: number
           updated_at?: string
           user_id?: string
         }
@@ -2470,9 +3714,55 @@ export type Database = {
         Args: { _team_id: string; _user_id: string }
         Returns: boolean
       }
+      show_limit: { Args: never; Returns: number }
+      show_trgm: { Args: { "": string }; Returns: string[] }
     }
     Enums: {
       app_role: "super_admin" | "content_editor" | "support_agent" | "staff"
+      skryve_agg_platform:
+        | "upwork"
+        | "linkedin"
+        | "indeed"
+        | "jobberman"
+        | "freelancer"
+        | "remoteok"
+        | "wellfound"
+        | "glassdoor"
+        | "toptal"
+        | "fiverr"
+      skryve_app_status:
+        | "pending"
+        | "viewed"
+        | "shortlisted"
+        | "interview"
+        | "hired"
+        | "rejected"
+      skryve_availability: "available" | "busy" | "not_available"
+      skryve_budget_type: "fixed" | "hourly"
+      skryve_content_type: "video" | "text"
+      skryve_deliverable_status: "pending" | "approved" | "revision_requested"
+      skryve_event_format:
+        | "webinar"
+        | "workshop"
+        | "conference"
+        | "meetup"
+        | "hackathon"
+      skryve_event_status: "draft" | "published" | "cancelled"
+      skryve_experience_level: "entry" | "mid" | "senior" | "expert"
+      skryve_job_source: "marketplace" | "aggregated"
+      skryve_job_status: "draft" | "active" | "paused" | "closed"
+      skryve_job_type: "gig" | "contract" | "long_term"
+      skryve_location_type: "remote" | "onsite" | "hybrid"
+      skryve_offer_status:
+        | "pending"
+        | "accepted"
+        | "declined"
+        | "countered"
+        | "expired"
+      skryve_payment_status: "pending" | "paid" | "failed" | "refunded"
+      skryve_price_type: "free" | "paid"
+      skryve_project_status: "active" | "completed" | "disputed" | "cancelled"
+      skryve_user_role: "talent" | "client" | "admin"
       subscription_plan: "monthly" | "yearly" | "lifetime"
       subscription_status: "trial" | "active" | "expired" | "cancelled"
     }
@@ -2603,6 +3893,54 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["super_admin", "content_editor", "support_agent", "staff"],
+      skryve_agg_platform: [
+        "upwork",
+        "linkedin",
+        "indeed",
+        "jobberman",
+        "freelancer",
+        "remoteok",
+        "wellfound",
+        "glassdoor",
+        "toptal",
+        "fiverr",
+      ],
+      skryve_app_status: [
+        "pending",
+        "viewed",
+        "shortlisted",
+        "interview",
+        "hired",
+        "rejected",
+      ],
+      skryve_availability: ["available", "busy", "not_available"],
+      skryve_budget_type: ["fixed", "hourly"],
+      skryve_content_type: ["video", "text"],
+      skryve_deliverable_status: ["pending", "approved", "revision_requested"],
+      skryve_event_format: [
+        "webinar",
+        "workshop",
+        "conference",
+        "meetup",
+        "hackathon",
+      ],
+      skryve_event_status: ["draft", "published", "cancelled"],
+      skryve_experience_level: ["entry", "mid", "senior", "expert"],
+      skryve_job_source: ["marketplace", "aggregated"],
+      skryve_job_status: ["draft", "active", "paused", "closed"],
+      skryve_job_type: ["gig", "contract", "long_term"],
+      skryve_location_type: ["remote", "onsite", "hybrid"],
+      skryve_offer_status: [
+        "pending",
+        "accepted",
+        "declined",
+        "countered",
+        "expired",
+      ],
+      skryve_payment_status: ["pending", "paid", "failed", "refunded"],
+      skryve_price_type: ["free", "paid"],
+      skryve_project_status: ["active", "completed", "disputed", "cancelled"],
+      skryve_user_role: ["talent", "client", "admin"],
       subscription_plan: ["monthly", "yearly", "lifetime"],
       subscription_status: ["trial", "active", "expired", "cancelled"],
     },
