@@ -2,8 +2,12 @@ import { useState, useEffect } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
+import { Card, CardContent } from "@/components/ui/card";
 import {
   Select,
   SelectContent,
@@ -33,44 +37,35 @@ const SKILL_CATEGORIES = [
 
 const CURRENCIES = ["NGN", "USD", "GBP", "EUR"];
 
-const TOTAL_STEPS = 3;
-const STEP_LABELS = ["Job Details", "Budget & Timeline", "Preview & Publish"];
-
 function StepIndicator({ step }: { step: number }) {
-  const pct = Math.round((step / TOTAL_STEPS) * 100);
+  const steps = ["Job Details", "Budget & Timeline", "Preview & Publish"];
   return (
-    <div className="mb-6 space-y-2">
-      <div className="flex items-center justify-between">
-        <span className="text-[11px] font-mono text-muted-foreground">
-          Step {step} of {TOTAL_STEPS} — {STEP_LABELS[step - 1]}
-        </span>
-        <span className="text-[11px] font-mono text-muted-foreground">{pct}%</span>
-      </div>
-      <div className="h-px w-full bg-border overflow-hidden">
-        <div
-          className="h-full bg-foreground transition-all duration-300"
-          style={{ width: `${pct}%` }}
-        />
-      </div>
-    </div>
-  );
-}
-
-function FieldLabel({ children }: { children: React.ReactNode }) {
-  return (
-    <label className="text-[12px] font-medium text-muted-foreground uppercase tracking-wider mb-1.5 block">
-      {children}
-    </label>
-  );
-}
-
-function Panel({ title, children }: { title: string; children: React.ReactNode }) {
-  return (
-    <div className="border border-border rounded-xl bg-card overflow-hidden">
-      <div className="px-5 py-3.5 border-b border-border">
-        <span className="text-[13px] font-semibold text-foreground">{title}</span>
-      </div>
-      <div className="px-5 py-5 space-y-5">{children}</div>
+    <div className="flex items-center gap-2 mb-8">
+      {steps.map((label, i) => (
+        <div key={label} className="flex items-center gap-2">
+          <div
+            className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold transition-colors ${
+              i + 1 === step
+                ? "bg-primary text-primary-foreground"
+                : i + 1 < step
+                ? "bg-green-500 text-white"
+                : "bg-muted text-muted-foreground"
+            }`}
+          >
+            {i + 1 < step ? "✓" : i + 1}
+          </div>
+          <span
+            className={`text-sm hidden md:inline ${
+              i + 1 === step ? "font-medium" : "text-muted-foreground"
+            }`}
+          >
+            {label}
+          </span>
+          {i < steps.length - 1 && (
+            <ChevronRight className="w-4 h-4 text-muted-foreground mx-1" />
+          )}
+        </div>
+      ))}
     </div>
   );
 }
@@ -236,525 +231,449 @@ export default function PostJob() {
       ? !!form.budgetMin
       : !!form.budgetMin && !!form.budgetMax;
 
-  const currencySymbol = form.currency === "NGN" ? "₦" : form.currency === "USD" ? "$" : form.currency;
-
   return (
     <div className="max-w-2xl mx-auto">
-      {/* Page header */}
       <div className="mb-6">
-        <h1 className="text-[18px] font-semibold text-foreground tracking-tight">
-          {editId ? "Edit Job Post" : "Post a Job"}
-        </h1>
-        <p className="text-[13px] text-muted-foreground mt-0.5">
-          Find the perfect talent for your project.
-        </p>
+        <h1 className="font-display text-2xl font-bold">Post a Job</h1>
+        <p className="text-muted-foreground text-sm mt-1">Find the perfect talent for your project.</p>
       </div>
 
       <StepIndicator step={step} />
 
-      {/* ── Step 1: Job Details ── */}
       {step === 1 && (
-        <div className="space-y-4">
-          <Panel title="Job Details">
-            {/* Title */}
-            <div>
-              <FieldLabel>
-                Job Title <span className="text-destructive normal-case">*</span>
-              </FieldLabel>
-              <div className="relative">
-                <Input
-                  value={form.title}
-                  onChange={(e) => setForm((f) => ({ ...f, title: e.target.value.slice(0, 80) }))}
-                  placeholder="e.g. React Developer for E-commerce Site"
-                  maxLength={80}
-                  className="h-9 text-[13px] pr-12"
-                />
-                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[11px] text-muted-foreground">
-                  {form.title.length}/80
-                </span>
-              </div>
-            </div>
-
-            {/* Skill Category */}
-            <div>
-              <FieldLabel>
-                Skill Category <span className="text-destructive normal-case">*</span>
-              </FieldLabel>
-              <Select
-                value={form.skillCategory}
-                onValueChange={(val) => setForm((f) => ({ ...f, skillCategory: val }))}
-              >
-                <SelectTrigger className="h-9 text-[13px]">
-                  <SelectValue placeholder="Select a category…" />
-                </SelectTrigger>
-                <SelectContent>
-                  {SKILL_CATEGORIES.map((cat) => (
-                    <SelectItem key={cat} value={cat} className="text-[13px]">
-                      {cat}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            {/* Job Type */}
-            <div>
-              <FieldLabel>Job Type</FieldLabel>
-              <div className="grid grid-cols-3 gap-2">
-                {(
-                  [
-                    { value: "gig", label: "One-time Gig" },
-                    { value: "contract", label: "Short Contract", sub: "1–4 wks" },
-                    { value: "longterm", label: "Long-term", sub: "1+ month" },
-                  ] as const
-                ).map(({ value, label, sub }) => (
-                  <button
-                    key={value}
-                    type="button"
-                    onClick={() => setForm((f) => ({ ...f, jobType: value }))}
-                    className={`p-3 rounded-lg border text-left transition-colors ${
-                      form.jobType === value
-                        ? "border-foreground/40 bg-foreground/5"
-                        : "border-border hover:border-border/80"
-                    }`}
-                  >
-                    <p className="text-[13px] font-medium text-foreground">{label}</p>
-                    {sub && <p className="text-[11px] text-muted-foreground mt-0.5">{sub}</p>}
-                  </button>
-                ))}
-              </div>
-            </div>
-          </Panel>
-
-          <Panel title="Description">
-            {/* Description textarea + AI improve */}
-            <div>
-              <FieldLabel>
-                Job Description <span className="text-destructive normal-case">*</span>
-                <span className="text-muted-foreground font-normal normal-case ml-1">(min 100 chars)</span>
-              </FieldLabel>
-              <Textarea
-                rows={8}
-                value={form.description}
-                onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
-                placeholder="Describe the project, goals, deliverables, and any specific requirements…"
-                className="text-[13px] resize-none"
+        <div className="space-y-6">
+          <div>
+            <Label htmlFor="title">
+              Job Title <span className="text-destructive">*</span>
+            </Label>
+            <div className="relative mt-1">
+              <Input
+                id="title"
+                value={form.title}
+                onChange={(e) => setForm((f) => ({ ...f, title: e.target.value.slice(0, 80) }))}
+                placeholder="e.g. React Developer for E-commerce Site"
+                maxLength={80}
               />
-              <div className="flex items-center justify-between mt-2">
-                <span className="text-[11px] font-mono text-muted-foreground">
-                  {form.description.length} chars
-                </span>
+              <span className="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">
+                {form.title.length}/80
+              </span>
+            </div>
+          </div>
+
+          <div>
+            <Label>
+              Skill Category <span className="text-destructive">*</span>
+            </Label>
+            <Select
+              value={form.skillCategory}
+              onValueChange={(val) => setForm((f) => ({ ...f, skillCategory: val }))}
+            >
+              <SelectTrigger className="mt-1">
+                <SelectValue placeholder="Select a category..." />
+              </SelectTrigger>
+              <SelectContent>
+                {SKILL_CATEGORIES.map((cat) => (
+                  <SelectItem key={cat} value={cat}>
+                    {cat}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div>
+            <Label>Job Type</Label>
+            <div className="grid grid-cols-3 gap-3 mt-1">
+              {(
+                [
+                  { value: "gig", label: "One-time Gig", sub: "" },
+                  { value: "contract", label: "Short Contract", sub: "1–4 wks" },
+                  { value: "longterm", label: "Long-term", sub: "1+ month" },
+                ] as const
+              ).map(({ value, label, sub }) => (
                 <button
+                  key={value}
                   type="button"
-                  onClick={handleImproveDesc}
-                  disabled={improvingDesc || form.description.trim().length < 50}
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-md border border-border text-[12px] text-muted-foreground hover:text-foreground hover:border-foreground/30 disabled:opacity-40 transition-colors"
+                  onClick={() => setForm((f) => ({ ...f, jobType: value }))}
+                  className={`p-3 rounded-lg border text-left transition-colors ${
+                    form.jobType === value
+                      ? "border-primary bg-primary/5"
+                      : "border-border hover:border-primary/50"
+                  }`}
                 >
-                  {improvingDesc ? (
-                    <Loader2 className="w-3 h-3 animate-spin" />
-                  ) : (
-                    <Sparkles className="w-3 h-3" />
-                  )}
-                  AI Improve
+                  <p className="text-sm font-medium">{label}</p>
+                  {sub && <p className="text-xs text-muted-foreground">{sub}</p>}
                 </button>
+              ))}
+            </div>
+          </div>
+
+          <div>
+            <Label htmlFor="description">
+              Job Description <span className="text-destructive">*</span>
+              <span className="text-muted-foreground font-normal ml-1">(min 100 chars)</span>
+            </Label>
+            <Textarea
+              id="description"
+              className="mt-1"
+              rows={8}
+              value={form.description}
+              onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
+              placeholder="Describe the project, goals, deliverables, and any specific requirements..."
+            />
+            <div className="flex items-center justify-between mt-1">
+              <span className="text-xs text-muted-foreground">{form.description.length} chars</span>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleImproveDesc}
+                disabled={improvingDesc || form.description.trim().length < 50}
+                className="gap-1"
+              >
+                {improvingDesc ? (
+                  <Loader2 className="w-3 h-3 animate-spin" />
+                ) : (
+                  <Sparkles className="w-3 h-3" />
+                )}
+                AI Improve
+              </Button>
+            </div>
+
+            {showDiff && improvedDesc && (
+              <div className="mt-3 space-y-3">
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <p className="text-xs font-semibold text-muted-foreground mb-1">Original</p>
+                    <div className="p-3 rounded-lg bg-muted text-sm text-muted-foreground whitespace-pre-wrap text-xs max-h-40 overflow-y-auto">
+                      {form.description}
+                    </div>
+                  </div>
+                  <div>
+                    <p className="text-xs font-semibold text-blue-600 mb-1">AI Improved</p>
+                    <div className="p-3 rounded-lg bg-blue-500/5 border border-blue-500/20 text-sm whitespace-pre-wrap text-xs max-h-40 overflow-y-auto">
+                      {improvedDesc}
+                    </div>
+                  </div>
+                </div>
+                <div className="flex gap-2">
+                  <Button
+                    size="sm"
+                    onClick={() => {
+                      setForm((f) => ({ ...f, description: improvedDesc }));
+                      setShowDiff(false);
+                      setImprovedDesc(null);
+                    }}
+                  >
+                    Use AI Version
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => {
+                      setShowDiff(false);
+                      setImprovedDesc(null);
+                    }}
+                  >
+                    Keep Original
+                  </Button>
+                </div>
               </div>
+            )}
+          </div>
 
-              {showDiff && improvedDesc && (
-                <div className="mt-4 space-y-3 border border-border rounded-lg overflow-hidden">
-                  <div className="grid grid-cols-2 divide-x divide-border">
-                    <div className="p-3">
-                      <p className="text-[11px] font-mono text-muted-foreground mb-2">Original</p>
-                      <div className="text-[12px] text-muted-foreground whitespace-pre-wrap max-h-36 overflow-y-auto leading-relaxed">
-                        {form.description}
-                      </div>
-                    </div>
-                    <div className="p-3">
-                      <p className="text-[11px] font-mono text-blue-500 mb-2">AI Improved</p>
-                      <div className="text-[12px] whitespace-pre-wrap max-h-36 overflow-y-auto leading-relaxed">
-                        {improvedDesc}
-                      </div>
-                    </div>
-                  </div>
-                  <div className="flex gap-2 px-3 pb-3">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setForm((f) => ({ ...f, description: improvedDesc }));
-                        setShowDiff(false);
-                        setImprovedDesc(null);
-                      }}
-                      className="px-4 py-1.5 rounded-md bg-primary text-primary-foreground text-[12px] font-semibold hover:bg-primary/90"
-                    >
-                      Use AI Version
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setShowDiff(false);
-                        setImprovedDesc(null);
-                      }}
-                      className="px-4 py-1.5 rounded-md border border-border text-[12px] text-muted-foreground hover:text-foreground hover:border-foreground/30"
-                    >
-                      Keep Original
-                    </button>
-                  </div>
-                </div>
-              )}
+          <div>
+            <Label>Required Skills (max 10)</Label>
+            <div className="flex flex-wrap gap-2 mt-1 mb-2">
+              {form.requiredSkills.map((skill) => (
+                <Badge key={skill} variant="secondary" className="gap-1">
+                  {skill}
+                  <button
+                    type="button"
+                    onClick={() => removeSkill(skill)}
+                    className="hover:text-destructive"
+                  >
+                    <X className="w-3 h-3" />
+                  </button>
+                </Badge>
+              ))}
             </div>
-
-            {/* Required Skills */}
-            <div>
-              <FieldLabel>
-                Required Skills{" "}
-                <span className="normal-case font-normal text-muted-foreground">(max 10)</span>
-              </FieldLabel>
-              {form.requiredSkills.length > 0 && (
-                <div className="flex flex-wrap gap-1.5 mb-2">
-                  {form.requiredSkills.map((skill) => (
-                    <span
-                      key={skill}
-                      className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-muted text-[12px] text-muted-foreground"
-                    >
-                      {skill}
-                      <button
-                        type="button"
-                        onClick={() => removeSkill(skill)}
-                        className="hover:text-foreground transition-colors"
-                      >
-                        <X className="w-3 h-3" />
-                      </button>
-                    </span>
-                  ))}
-                </div>
-              )}
-              {form.requiredSkills.length < 10 && (
-                <Input
-                  className="h-9 text-[13px]"
-                  placeholder="Type skill and press Enter or comma"
-                  value={skillInput}
-                  onChange={(e) => setSkillInput(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter" || e.key === ",") {
-                      e.preventDefault();
-                      addSkill(skillInput);
-                    }
-                  }}
-                  onBlur={() => skillInput.trim() && addSkill(skillInput)}
-                />
-              )}
-            </div>
-          </Panel>
+            {form.requiredSkills.length < 10 && (
+              <Input
+                placeholder="Type skill and press Enter or comma"
+                value={skillInput}
+                onChange={(e) => setSkillInput(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === ",") {
+                    e.preventDefault();
+                    addSkill(skillInput);
+                  }
+                }}
+                onBlur={() => skillInput.trim() && addSkill(skillInput)}
+              />
+            )}
+          </div>
 
           <div className="flex justify-end">
-            <button
-              type="button"
+            <Button
               onClick={() => setStep(2)}
               disabled={!canProceedStep1}
-              className="inline-flex items-center gap-1.5 px-5 py-2.5 rounded-lg bg-primary text-primary-foreground text-[13px] font-semibold hover:bg-primary/90 disabled:opacity-40 transition-colors"
+              className="gap-1"
             >
               Next: Budget & Timeline <ChevronRight className="w-4 h-4" />
-            </button>
+            </Button>
           </div>
         </div>
       )}
 
-      {/* ── Step 2: Budget & Timeline ── */}
       {step === 2 && (
-        <div className="space-y-4">
-          <Panel title="Budget">
-            {/* Budget Type toggle */}
-            <div>
-              <FieldLabel>Budget Type</FieldLabel>
-              <div className="grid grid-cols-2 gap-2">
-                {(
-                  [
-                    { value: "fixed", label: "Fixed Price" },
-                    { value: "hourly", label: "Hourly Rate" },
-                  ] as const
-                ).map(({ value, label }) => (
-                  <button
-                    key={value}
-                    type="button"
-                    onClick={() => setForm((f) => ({ ...f, budgetType: value }))}
-                    className={`p-3 rounded-lg border text-left transition-colors ${
-                      form.budgetType === value
-                        ? "border-foreground/40 bg-foreground/5"
-                        : "border-border hover:border-border/80"
-                    }`}
-                  >
-                    <p className="text-[13px] font-medium text-foreground">{label}</p>
-                  </button>
-                ))}
-              </div>
+        <div className="space-y-6">
+          <div>
+            <Label>Budget Type</Label>
+            <div className="grid grid-cols-2 gap-3 mt-1">
+              {(
+                [
+                  { value: "fixed", label: "Fixed Price" },
+                  { value: "hourly", label: "Hourly Rate" },
+                ] as const
+              ).map(({ value, label }) => (
+                <button
+                  key={value}
+                  type="button"
+                  onClick={() => setForm((f) => ({ ...f, budgetType: value }))}
+                  className={`p-3 rounded-lg border text-left transition-colors ${
+                    form.budgetType === value
+                      ? "border-primary bg-primary/5"
+                      : "border-border hover:border-primary/50"
+                  }`}
+                >
+                  <p className="text-sm font-medium">{label}</p>
+                </button>
+              ))}
             </div>
+          </div>
 
+          <div className="grid grid-cols-2 gap-4">
             {form.budgetType === "fixed" ? (
-              <div>
-                <FieldLabel>Fixed Price</FieldLabel>
+              <div className="col-span-2">
+                <Label>Fixed Price</Label>
                 <Input
                   type="number"
-                  className="h-9 text-[13px]"
+                  className="mt-1"
                   placeholder="e.g. 150000"
                   value={form.budgetMin}
                   onChange={(e) => setForm((f) => ({ ...f, budgetMin: e.target.value }))}
                 />
               </div>
             ) : (
-              <div className="grid grid-cols-2 gap-4">
+              <>
                 <div>
-                  <FieldLabel>Min Rate (per hour)</FieldLabel>
+                  <Label>Min Rate (per hour)</Label>
                   <Input
                     type="number"
-                    className="h-9 text-[13px]"
+                    className="mt-1"
                     placeholder="e.g. 5000"
                     value={form.budgetMin}
                     onChange={(e) => setForm((f) => ({ ...f, budgetMin: e.target.value }))}
                   />
                 </div>
                 <div>
-                  <FieldLabel>Max Rate (per hour)</FieldLabel>
+                  <Label>Max Rate (per hour)</Label>
                   <Input
                     type="number"
-                    className="h-9 text-[13px]"
+                    className="mt-1"
                     placeholder="e.g. 15000"
                     value={form.budgetMax}
                     onChange={(e) => setForm((f) => ({ ...f, budgetMax: e.target.value }))}
                   />
                 </div>
-              </div>
+              </>
             )}
+          </div>
 
-            <div>
-              <FieldLabel>Currency</FieldLabel>
-              <Select
-                value={form.currency}
-                onValueChange={(val) => setForm((f) => ({ ...f, currency: val }))}
-              >
-                <SelectTrigger className="h-9 text-[13px]">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {CURRENCIES.map((c) => (
-                    <SelectItem key={c} value={c} className="text-[13px]">
-                      {c}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          </Panel>
-
-          <Panel title="Timeline">
-            {/* Project Duration */}
-            <div>
-              <FieldLabel>Project Duration</FieldLabel>
-              <div className="grid grid-cols-2 gap-2">
-                {["Less than 1 week", "1–4 weeks", "1–3 months", "3+ months"].map((d) => (
-                  <button
-                    key={d}
-                    type="button"
-                    onClick={() => setForm((f) => ({ ...f, duration: d }))}
-                    className={`p-3 rounded-lg border text-[13px] text-left transition-colors ${
-                      form.duration === d
-                        ? "border-foreground/40 bg-foreground/5 text-foreground"
-                        : "border-border text-muted-foreground hover:border-border/80"
-                    }`}
-                  >
-                    {d}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Deadline */}
-            <div>
-              <FieldLabel>Application Deadline</FieldLabel>
-              <Input
-                type="date"
-                className="h-9 text-[13px]"
-                value={form.deadline}
-                onChange={(e) => setForm((f) => ({ ...f, deadline: e.target.value }))}
-              />
-            </div>
-
-            {/* Location Preference */}
-            <div>
-              <FieldLabel>Location Preference</FieldLabel>
-              <div className="grid grid-cols-3 gap-2">
-                {(
-                  [
-                    { value: "remote", label: "Remote" },
-                    { value: "onsite", label: "On-site" },
-                    { value: "hybrid", label: "Hybrid" },
-                  ] as const
-                ).map(({ value, label }) => (
-                  <button
-                    key={value}
-                    type="button"
-                    onClick={() => setForm((f) => ({ ...f, locationPreference: value }))}
-                    className={`p-3 rounded-lg border text-[13px] text-left transition-colors ${
-                      form.locationPreference === value
-                        ? "border-foreground/40 bg-foreground/5 text-foreground"
-                        : "border-border text-muted-foreground hover:border-border/80"
-                    }`}
-                  >
-                    {label}
-                  </button>
-                ))}
-              </div>
-            </div>
-          </Panel>
-
-          <div className="flex items-center justify-between">
-            <button
-              type="button"
-              onClick={() => setStep(1)}
-              className="inline-flex items-center gap-1.5 px-5 py-2.5 rounded-lg border border-border text-[13px] text-muted-foreground hover:text-foreground hover:border-foreground/30 transition-colors"
+          <div>
+            <Label>Currency</Label>
+            <Select
+              value={form.currency}
+              onValueChange={(val) => setForm((f) => ({ ...f, currency: val }))}
             >
+              <SelectTrigger className="mt-1">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {CURRENCIES.map((c) => (
+                  <SelectItem key={c} value={c}>
+                    {c}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div>
+            <Label>Project Duration</Label>
+            <div className="grid grid-cols-2 gap-3 mt-1">
+              {[
+                "Less than 1 week",
+                "1–4 weeks",
+                "1–3 months",
+                "3+ months",
+              ].map((d) => (
+                <button
+                  key={d}
+                  type="button"
+                  onClick={() => setForm((f) => ({ ...f, duration: d }))}
+                  className={`p-3 rounded-lg border text-sm text-left transition-colors ${
+                    form.duration === d
+                      ? "border-primary bg-primary/5"
+                      : "border-border hover:border-primary/50"
+                  }`}
+                >
+                  {d}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div>
+            <Label htmlFor="deadline">Application Deadline</Label>
+            <Input
+              id="deadline"
+              type="date"
+              className="mt-1"
+              value={form.deadline}
+              onChange={(e) => setForm((f) => ({ ...f, deadline: e.target.value }))}
+            />
+          </div>
+
+          <div>
+            <Label>Location Preference</Label>
+            <div className="grid grid-cols-3 gap-3 mt-1">
+              {(
+                [
+                  { value: "remote", label: "Remote" },
+                  { value: "onsite", label: "On-site" },
+                  { value: "hybrid", label: "Hybrid" },
+                ] as const
+              ).map(({ value, label }) => (
+                <button
+                  key={value}
+                  type="button"
+                  onClick={() => setForm((f) => ({ ...f, locationPreference: value }))}
+                  className={`p-3 rounded-lg border text-sm text-left transition-colors ${
+                    form.locationPreference === value
+                      ? "border-primary bg-primary/5"
+                      : "border-border hover:border-primary/50"
+                  }`}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="flex justify-between">
+            <Button variant="outline" onClick={() => setStep(1)} className="gap-1">
               <ChevronLeft className="w-4 h-4" /> Back
-            </button>
-            <button
-              type="button"
-              onClick={() => setStep(3)}
-              disabled={!canProceedStep2}
-              className="inline-flex items-center gap-1.5 px-5 py-2.5 rounded-lg bg-primary text-primary-foreground text-[13px] font-semibold hover:bg-primary/90 disabled:opacity-40 transition-colors"
-            >
+            </Button>
+            <Button onClick={() => setStep(3)} disabled={!canProceedStep2} className="gap-1">
               Preview <ChevronRight className="w-4 h-4" />
-            </button>
+            </Button>
           </div>
         </div>
       )}
 
-      {/* ── Step 3: Preview & Publish ── */}
       {step === 3 && (
-        <div className="space-y-4">
-          {/* Preview panel */}
-          <div className="border border-border rounded-xl bg-card overflow-hidden">
-            <div className="px-5 py-3.5 border-b border-border flex items-center justify-between">
-              <span className="text-[13px] font-semibold text-foreground">Preview</span>
-              <div className="flex items-center gap-3 text-[12px]">
-                <button
-                  type="button"
-                  onClick={() => setStep(1)}
-                  className="text-muted-foreground hover:text-foreground transition-colors"
-                >
-                  Edit Details
-                </button>
-                <span className="text-border">·</span>
-                <button
-                  type="button"
-                  onClick={() => setStep(2)}
-                  className="text-muted-foreground hover:text-foreground transition-colors"
-                >
-                  Edit Budget
-                </button>
-              </div>
-            </div>
-            <div className="px-5 py-5 space-y-4">
-              <div className="flex items-start justify-between gap-4">
+        <div className="space-y-6">
+          <Card>
+            <CardContent className="pt-6 space-y-4">
+              <div className="flex items-start justify-between">
                 <div>
-                  <h2 className="text-[16px] font-semibold text-foreground">{form.title}</h2>
-                  <div className="flex gap-2 mt-1.5 flex-wrap">
+                  <h2 className="text-xl font-bold">{form.title}</h2>
+                  <div className="flex gap-2 mt-1 flex-wrap">
                     {form.skillCategory && (
-                      <span className="px-2 py-0.5 rounded-md border border-border text-[11px] text-muted-foreground">
-                        {form.skillCategory}
-                      </span>
+                      <Badge variant="outline">{form.skillCategory}</Badge>
                     )}
-                    <span className="px-2 py-0.5 rounded-md border border-border text-[11px] text-muted-foreground capitalize">
-                      {form.jobType}
-                    </span>
-                    <span className="px-2 py-0.5 rounded-md border border-border text-[11px] text-muted-foreground capitalize">
-                      {form.locationPreference}
-                    </span>
+                    <Badge variant="outline" className="capitalize">{form.jobType}</Badge>
+                    <Badge variant="outline" className="capitalize">{form.locationPreference}</Badge>
                   </div>
                 </div>
-                <div className="text-right shrink-0">
+                <div className="text-right shrink-0 ml-4">
                   {form.budgetMin && (
-                    <p className="text-[15px] font-semibold text-foreground">
-                      {currencySymbol}
+                    <p className="font-bold text-lg">
+                      {form.currency === "NGN" ? "₦" : form.currency === "USD" ? "$" : form.currency}
                       {Number(form.budgetMin).toLocaleString()}
                       {form.budgetType === "hourly" && form.budgetMax && (
-                        <span> – {currencySymbol}{Number(form.budgetMax).toLocaleString()}</span>
+                        <span>
+                          {" "}–{" "}
+                          {form.currency === "NGN" ? "₦" : form.currency === "USD" ? "$" : form.currency}
+                          {Number(form.budgetMax).toLocaleString()}
+                        </span>
                       )}
-                      {form.budgetType === "hourly" && (
-                        <span className="text-[12px] font-normal text-muted-foreground">/hr</span>
-                      )}
+                      {form.budgetType === "hourly" && <span className="text-sm font-normal">/hr</span>}
                     </p>
                   )}
                   {form.duration && (
-                    <p className="text-[11px] text-muted-foreground mt-0.5">{form.duration}</p>
+                    <p className="text-xs text-muted-foreground mt-0.5">{form.duration}</p>
                   )}
                 </div>
               </div>
 
-              <div className="border-t border-border pt-4">
-                <p className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider mb-2">
-                  Description
-                </p>
-                <p className="text-[13px] text-muted-foreground whitespace-pre-wrap leading-relaxed">
-                  {form.description}
-                </p>
+              <div>
+                <p className="text-sm font-semibold mb-1">Description</p>
+                <p className="text-sm text-muted-foreground whitespace-pre-wrap">{form.description}</p>
               </div>
 
               {form.requiredSkills.length > 0 && (
-                <div className="border-t border-border pt-4">
-                  <p className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider mb-2">
-                    Required Skills
-                  </p>
+                <div>
+                  <p className="text-sm font-semibold mb-2">Required Skills</p>
                   <div className="flex flex-wrap gap-1.5">
                     {form.requiredSkills.map((s) => (
-                      <span
-                        key={s}
-                        className="px-2 py-0.5 rounded-md bg-muted text-[12px] text-muted-foreground"
-                      >
-                        {s}
-                      </span>
+                      <Badge key={s} variant="secondary">{s}</Badge>
                     ))}
                   </div>
                 </div>
               )}
 
               {form.deadline && (
-                <p className="text-[12px] text-muted-foreground border-t border-border pt-3">
-                  Deadline:{" "}
-                  {new Date(form.deadline).toLocaleDateString("en-US", {
-                    year: "numeric",
-                    month: "long",
-                    day: "numeric",
-                  })}
+                <p className="text-xs text-muted-foreground">
+                  Deadline: {new Date(form.deadline).toLocaleDateString()}
                 </p>
               )}
-            </div>
-          </div>
+            </CardContent>
+          </Card>
 
-          {/* Navigation */}
-          <div className="flex items-center justify-between">
-            <button
-              type="button"
-              onClick={() => setStep(2)}
-              className="inline-flex items-center gap-1.5 px-5 py-2.5 rounded-lg border border-border text-[13px] text-muted-foreground hover:text-foreground hover:border-foreground/30 transition-colors"
-            >
-              <ChevronLeft className="w-4 h-4" /> Back
-            </button>
+          <div className="flex justify-between items-center">
             <div className="flex gap-2">
               <button
-                type="button"
+                onClick={() => setStep(1)}
+                className="text-sm text-primary hover:underline"
+              >
+                Edit Details
+              </button>
+              <span className="text-muted-foreground">·</span>
+              <button
+                onClick={() => setStep(2)}
+                className="text-sm text-primary hover:underline"
+              >
+                Edit Budget
+              </button>
+            </div>
+            <div className="flex gap-3">
+              <Button
+                variant="outline"
                 onClick={() => handlePublish("draft")}
                 disabled={saving}
-                className="inline-flex items-center gap-1.5 px-5 py-2.5 rounded-lg border border-border text-[13px] text-muted-foreground hover:text-foreground hover:border-foreground/30 disabled:opacity-40 transition-colors"
               >
-                {saving && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+                {saving ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
                 Save as Draft
-              </button>
-              <button
-                type="button"
+              </Button>
+              <Button
                 onClick={() => handlePublish("active")}
                 disabled={saving}
-                className="inline-flex items-center gap-1.5 px-5 py-2.5 rounded-lg bg-primary text-primary-foreground text-[13px] font-semibold hover:bg-primary/90 disabled:opacity-40 transition-colors"
               >
-                {saving && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+                {saving ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
                 Publish Job
-              </button>
+              </Button>
             </div>
           </div>
         </div>

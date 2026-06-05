@@ -1,8 +1,11 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
+import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { ArrowLeft, CheckCircle, Loader2 } from "lucide-react";
+import { Label } from "@/components/ui/label";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Mail, Loader2, ArrowLeft, CheckCircle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
@@ -42,116 +45,103 @@ export default function ForgotPassword() {
 
   if (emailSent) {
     return (
-      <div className="min-h-screen bg-[#09090b] flex items-center justify-center px-4">
+      <div className="min-h-screen flex items-center justify-center px-4 py-12 bg-gray-50">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="w-full max-w-[400px]"
+          className="w-full max-w-md"
         >
-          <div className="bg-[#111111] border border-white/[0.08] rounded-2xl p-8">
-            {/* Logo */}
-            <div className="flex items-center justify-center gap-2 mb-8">
-              <img src="/logo.png" alt="Skryve" className="w-6 h-6 object-contain" />
-              <span className="font-bold text-white text-base">Skryve</span>
-            </div>
+          <Link to="/" className="flex items-center justify-center gap-2 mb-8">
+            <img src="/logo.png" alt="Skryve" className="w-8 h-8 object-contain" />
+            <span className="font-bold text-2xl text-[#1E3A5F]">Skryve</span>
+          </Link>
 
-            {/* Success icon */}
-            <div className="flex items-center justify-center mb-6">
-              <CheckCircle className="w-10 h-10 text-white" strokeWidth={1.5} />
-            </div>
-
-            <h1 className="text-[22px] font-bold text-white tracking-tight mb-1 text-center">
-              Check your email
-            </h1>
-            <p className="text-[13px] text-white/40 mb-8 text-center">
-              We sent a reset link to{" "}
-              <span className="text-white/70">{email}</span>
-            </p>
-
-            <p className="text-[13px] text-white/35 text-center mb-6">
-              Didn't receive it? Check your spam folder or{" "}
-              <button
-                onClick={() => setEmailSent(false)}
-                className="text-white/70 hover:text-white transition-colors"
-              >
-                try again
-              </button>
-            </p>
-
-            <Link
-              to="/login"
-              className="flex items-center justify-center gap-1 text-[13px] text-white/40 hover:text-white/70 transition-colors"
-            >
-              <ArrowLeft className="w-3.5 h-3.5" />
-              Back to login
-            </Link>
-          </div>
+          <Card className="border-0 shadow-xl">
+            <CardContent className="pt-6 text-center">
+              <div className="w-16 h-16 rounded-full bg-blue-50 flex items-center justify-center mx-auto mb-4">
+                <CheckCircle className="w-8 h-8 text-[#2563EB]" />
+              </div>
+              <h2 className="text-xl font-semibold mb-2">Check your email</h2>
+              <p className="text-gray-500 mb-6">
+                We've sent a password reset link to <strong>{email}</strong>
+              </p>
+              <p className="text-sm text-gray-500 mb-6">
+                Didn't receive the email? Check your spam folder or{" "}
+                <button
+                  onClick={() => setEmailSent(false)}
+                  className="text-[#2563EB] hover:underline"
+                >
+                  try again
+                </button>
+              </p>
+              <Link to="/login">
+                <Button variant="outline" className="w-full">
+                  <ArrowLeft className="w-4 h-4 mr-2" />
+                  Back to login
+                </Button>
+              </Link>
+            </CardContent>
+          </Card>
         </motion.div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-[#09090b] flex items-center justify-center px-4">
+    <div className="min-h-screen flex items-center justify-center px-4 py-12 bg-gray-50">
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="w-full max-w-[400px]"
+        className="w-full max-w-md"
       >
-        <div className="bg-[#111111] border border-white/[0.08] rounded-2xl p-8">
-          {/* Logo */}
-          <div className="flex items-center justify-center gap-2 mb-8">
-            <img src="/logo.png" alt="Skryve" className="w-6 h-6 object-contain" />
-            <span className="font-bold text-white text-base">Skryve</span>
-          </div>
+        <Link to="/" className="flex items-center justify-center gap-2 mb-8">
+          <img src="/logo.png" alt="Skryve" className="w-8 h-8 object-contain" />
+          <span className="font-bold text-2xl text-[#1E3A5F]">Skryve</span>
+        </Link>
 
-          <h1 className="text-[22px] font-bold text-white tracking-tight mb-1 text-center">
-            Forgot password?
-          </h1>
-          <p className="text-[13px] text-white/40 mb-8 text-center">
-            Enter your email and we'll send you a reset link
-          </p>
-
-          <form onSubmit={handleSubmit}>
-            <div className="flex flex-col gap-1.5 mb-5">
-              <label htmlFor="email" className="text-[12px] font-medium text-white/50 uppercase tracking-wider">
-                Email
-              </label>
-              <Input
-                id="email"
-                type="email"
-                placeholder="you@example.com"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="bg-white/[0.04] border-white/[0.1] text-white placeholder:text-white/25 focus-visible:border-white/30 focus-visible:ring-0 h-10"
-                required
-              />
-            </div>
-
-            <button
-              type="submit"
-              disabled={isLoading}
-              className="w-full h-10 rounded-lg bg-white text-[#09090b] text-[13px] font-bold hover:bg-white/90 transition-all flex items-center justify-center gap-2 disabled:opacity-60"
-            >
-              {isLoading ? (
-                <>
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                  Sending...
-                </>
-              ) : (
-                "Send Reset Link"
-              )}
-            </button>
-          </form>
-
-          <Link
-            to="/login"
-            className="flex items-center justify-center gap-1 text-[13px] text-white/40 hover:text-white/70 transition-colors mt-6"
-          >
-            <ArrowLeft className="w-3.5 h-3.5" />
-            Back to login
-          </Link>
-        </div>
+        <Card className="border-0 shadow-xl">
+          <CardHeader className="text-center">
+            <CardTitle className="text-2xl">Forgot Password?</CardTitle>
+            <CardDescription>
+              Enter your email and we'll send you a reset link
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="email">Email</Label>
+                <div className="relative">
+                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                  <Input
+                    id="email"
+                    type="email"
+                    placeholder="you@example.com"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    className="pl-10"
+                    required
+                  />
+                </div>
+              </div>
+              <Button type="submit" className="w-full bg-[#2563EB] hover:bg-[#1d4ed8]" size="lg" disabled={isLoading}>
+                {isLoading ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                    Sending...
+                  </>
+                ) : (
+                  "Send Reset Link"
+                )}
+              </Button>
+            </form>
+            <p className="text-center text-sm text-gray-500 mt-6">
+              Remember your password?{" "}
+              <Link to="/login" className="text-[#2563EB] hover:underline font-medium">
+                Sign in
+              </Link>
+            </p>
+          </CardContent>
+        </Card>
       </motion.div>
     </div>
   );

@@ -1,6 +1,9 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { motion } from "framer-motion";
+import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -28,6 +31,7 @@ import {
   Briefcase,
   AlertTriangle,
   Loader2,
+  Save,
   X,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -86,107 +90,12 @@ const CURRENCIES = ["USD","EUR","GBP","NGN","CAD","AUD","GHS","KES","ZAR"];
 type Section = "account" | "notifications" | "privacy" | "job-preferences" | "danger";
 
 const NAV_ITEMS: { value: Section; label: string; icon: React.ReactNode }[] = [
-  { value: "account",          label: "Account",         icon: <User className="w-4 h-4" /> },
-  { value: "notifications",    label: "Notifications",   icon: <Bell className="w-4 h-4" /> },
-  { value: "privacy",          label: "Privacy",         icon: <Shield className="w-4 h-4" /> },
-  { value: "job-preferences",  label: "Job Preferences", icon: <Briefcase className="w-4 h-4" /> },
-  { value: "danger",           label: "Danger Zone",     icon: <AlertTriangle className="w-4 h-4 text-destructive" /> },
+  { value: "account", label: "Account", icon: <User className="w-4 h-4" /> },
+  { value: "notifications", label: "Notifications", icon: <Bell className="w-4 h-4" /> },
+  { value: "privacy", label: "Privacy", icon: <Shield className="w-4 h-4" /> },
+  { value: "job-preferences", label: "Job Preferences", icon: <Briefcase className="w-4 h-4" /> },
+  { value: "danger", label: "Danger Zone", icon: <AlertTriangle className="w-4 h-4 text-destructive" /> },
 ];
-
-// ── Shared panel primitives ────────────────────────────────────────────────────
-
-function Panel({ children }: { children: React.ReactNode }) {
-  return (
-    <div className="border border-border rounded-xl bg-card overflow-hidden mb-4">
-      {children}
-    </div>
-  );
-}
-
-function PanelHeader({ title, sub, action }: { title: string; sub?: string; action?: React.ReactNode }) {
-  return (
-    <div className="px-5 py-3.5 border-b border-border flex items-start justify-between gap-3">
-      <div>
-        <p className="text-[13px] font-semibold text-foreground">{title}</p>
-        {sub && <p className="text-[11px] text-muted-foreground mt-0.5">{sub}</p>}
-      </div>
-      {action && <div className="shrink-0">{action}</div>}
-    </div>
-  );
-}
-
-function PanelBody({ children, className = "" }: { children: React.ReactNode; className?: string }) {
-  return (
-    <div className={`px-5 py-4 space-y-4 ${className}`}>
-      {children}
-    </div>
-  );
-}
-
-function Row({ children }: { children: React.ReactNode }) {
-  return (
-    <div className="flex items-center justify-between py-3 border-b border-border last:border-0">
-      {children}
-    </div>
-  );
-}
-
-function RowLabel({ label, sub }: { label: string; sub?: string }) {
-  return (
-    <div>
-      <p className="text-[13px] font-medium text-foreground">{label}</p>
-      {sub && <p className="text-[12px] text-muted-foreground">{sub}</p>}
-    </div>
-  );
-}
-
-function FormLabel({ children }: { children: React.ReactNode }) {
-  return (
-    <p className="text-[12px] font-medium text-muted-foreground uppercase tracking-wider mb-1.5">
-      {children}
-    </p>
-  );
-}
-
-function PrimaryButton({
-  onClick,
-  disabled,
-  children,
-}: {
-  onClick: () => void;
-  disabled?: boolean;
-  children: React.ReactNode;
-}) {
-  return (
-    <button
-      onClick={onClick}
-      disabled={disabled}
-      className="px-4 py-2 rounded-lg bg-primary text-primary-foreground text-[13px] font-medium hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-2"
-    >
-      {children}
-    </button>
-  );
-}
-
-function DangerButton({
-  onClick,
-  disabled,
-  children,
-}: {
-  onClick: () => void;
-  disabled?: boolean;
-  children: React.ReactNode;
-}) {
-  return (
-    <button
-      onClick={onClick}
-      disabled={disabled}
-      className="px-4 py-2 rounded-lg border border-destructive/30 text-destructive text-[13px] font-medium hover:bg-destructive/10 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-2"
-    >
-      {children}
-    </button>
-  );
-}
 
 // ── Main Component ─────────────────────────────────────────────────────────────
 
@@ -263,20 +172,21 @@ export default function Settings() {
         setTalentId(talent.id);
         setUsername(talent.username || "");
         setNotifPrefs({
-          notif_email_jobs:      talent.notif_email_jobs      ?? true,
-          notif_email_apps:      talent.notif_email_apps      ?? true,
-          notif_email_messages:  talent.notif_email_messages  ?? true,
-          notif_email_offers:    talent.notif_email_offers    ?? true,
-          notif_email_projects:  talent.notif_email_projects  ?? true,
-          notif_email_events:    talent.notif_email_events    ?? true,
-          notif_email_learning:  talent.notif_email_learning  ?? true,
+          notif_email_jobs: talent.notif_email_jobs ?? true,
+          notif_email_apps: talent.notif_email_apps ?? true,
+          notif_email_messages: talent.notif_email_messages ?? true,
+          notif_email_offers: talent.notif_email_offers ?? true,
+          notif_email_projects: talent.notif_email_projects ?? true,
+          notif_email_events: talent.notif_email_events ?? true,
+          notif_email_learning: talent.notif_email_learning ?? true,
           notif_email_marketing: talent.notif_email_marketing ?? false,
-          notif_push_enabled:    talent.notif_push_enabled    ?? true,
+          notif_push_enabled: talent.notif_push_enabled ?? true,
         });
         setProfileVisibility(talent.profile_visibility || "public");
         setWhoCanMessage(talent.who_can_message || "everyone");
         setShowEarnings(talent.show_earnings ?? false);
 
+        // Load job prefs
         const { data: prefs } = await (supabase as any)
           .from("job_preferences")
           .select("job_types, budget_min, budget_currency, secondary_skills")
@@ -301,6 +211,7 @@ export default function Settings() {
     if (!userId) return;
     setSavingAccount(true);
     try {
+      // Username
       if (talentId && username) {
         const { error } = await (supabase as any)
           .from("talent_profiles")
@@ -309,6 +220,7 @@ export default function Settings() {
         if (error) throw error;
       }
 
+      // Password
       if (newPassword) {
         if (newPassword !== confirmPassword) {
           toast({ title: "Passwords do not match", variant: "destructive" });
@@ -445,272 +357,288 @@ export default function Settings() {
   // ── Render ─────────────────────────────────────────────────────────────────────
 
   return (
-    <div className="max-w-5xl mx-auto px-4 py-8">
-      {/* Page header */}
-      <div className="mb-8">
-        <h1 className="text-xl font-semibold text-foreground tracking-tight">Settings</h1>
-        <p className="text-[13px] text-muted-foreground mt-0.5">
-          Manage your account, preferences, and privacy
-        </p>
-      </div>
+    <div className="max-w-5xl mx-auto px-4 py-6">
+      <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}>
+        <h1 className="text-2xl font-bold mb-6">Settings</h1>
 
-      <div className="flex gap-8 lg:items-start">
-        {/* Sidebar */}
-        <aside className="hidden lg:flex flex-col gap-0.5 w-48 shrink-0 sticky top-4">
-          {NAV_ITEMS.map((item) => (
-            <button
-              key={item.value}
-              onClick={() => setActiveSection(item.value)}
-              className={`flex items-center gap-2.5 px-3 py-2 rounded-lg text-[13px] font-medium transition-colors text-left ${
-                activeSection === item.value
-                  ? "bg-primary/10 text-primary"
-                  : "text-muted-foreground hover:bg-muted hover:text-foreground"
-              }`}
-            >
-              {item.icon}
-              {item.label}
-            </button>
-          ))}
-        </aside>
-
-        {/* Mobile tab bar */}
-        <div className="lg:hidden w-full overflow-x-auto mb-2">
-          <div className="flex gap-0.5 border-b border-border pb-2">
+        <div className="flex gap-6 lg:items-start">
+          {/* Sidebar */}
+          <aside className="hidden lg:flex flex-col gap-1 w-52 shrink-0 sticky top-4">
             {NAV_ITEMS.map((item) => (
               <button
                 key={item.value}
                 onClick={() => setActiveSection(item.value)}
-                className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-[12px] font-medium whitespace-nowrap transition-colors ${
+                className={`flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors text-left ${
                   activeSection === item.value
                     ? "bg-primary/10 text-primary"
-                    : "text-muted-foreground hover:bg-muted"
+                    : "text-muted-foreground hover:bg-muted hover:text-foreground"
                 }`}
               >
                 {item.icon}
                 {item.label}
               </button>
             ))}
+          </aside>
+
+          {/* Mobile tab bar */}
+          <div className="lg:hidden w-full overflow-x-auto mb-2">
+            <div className="flex gap-1 border-b pb-2">
+              {NAV_ITEMS.map((item) => (
+                <button
+                  key={item.value}
+                  onClick={() => setActiveSection(item.value)}
+                  className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium whitespace-nowrap transition-colors ${
+                    activeSection === item.value
+                      ? "bg-primary/10 text-primary"
+                      : "text-muted-foreground hover:bg-muted"
+                  }`}
+                >
+                  {item.icon}
+                  {item.label}
+                </button>
+              ))}
+            </div>
           </div>
-        </div>
 
-        {/* Content */}
-        <div className="flex-1 min-w-0">
-
-          {/* ── Account ── */}
-          {activeSection === "account" && (
-            <div>
-              <Panel>
-                <PanelHeader title="Email Address" sub="Your sign-in email address" />
-                <PanelBody>
-                  <div>
-                    <FormLabel>Email</FormLabel>
-                    <Input value={userEmail} disabled className="h-9 text-[13px] bg-muted" />
+          {/* Content */}
+          <div className="flex-1 min-w-0 space-y-6">
+            {/* ── Account ── */}
+            {activeSection === "account" && (
+              <div className="space-y-6">
+                {/* Email */}
+                <section className="bg-card border border-border rounded-xl p-6 space-y-4">
+                  <h2 className="font-semibold text-base">Email Address</h2>
+                  <div className="space-y-2">
+                    <Label>Email</Label>
+                    <Input value={userEmail} disabled className="bg-muted" />
+                    <button
+                      className="text-sm text-primary hover:underline"
+                      onClick={() =>
+                        toast({
+                          title: "Email change",
+                          description:
+                            "We'll send a verification email to your new address.",
+                        })
+                      }
+                    >
+                      Change Email
+                    </button>
                   </div>
-                  <button
-                    className="text-[13px] text-primary hover:underline"
-                    onClick={() =>
-                      toast({
-                        title: "Email change",
-                        description: "We'll send a verification email to your new address.",
-                      })
-                    }
-                  >
-                    Change email address
-                  </button>
-                </PanelBody>
-              </Panel>
+                </section>
 
-              <Panel>
-                <PanelHeader title="Username" sub="Your public username on Skryve" />
-                <PanelBody>
-                  <div>
-                    <FormLabel>Username</FormLabel>
+                {/* Username */}
+                <section className="bg-card border border-border rounded-xl p-6 space-y-4">
+                  <h2 className="font-semibold text-base">Username</h2>
+                  <div className="space-y-2">
+                    <Label htmlFor="username">Username</Label>
                     <div className="flex items-center">
-                      <span className="px-3 h-9 flex items-center border border-r-0 rounded-l-md bg-muted text-muted-foreground text-[13px] border-input">
+                      <span className="px-3 py-2 border border-r-0 rounded-l-md bg-muted text-muted-foreground text-sm">
                         @
                       </span>
                       <Input
+                        id="username"
                         value={username}
                         onChange={(e) => setUsername(e.target.value)}
                         placeholder="yourusername"
-                        className="rounded-l-none h-9 text-[13px]"
+                        className="rounded-l-none"
                       />
                     </div>
                   </div>
-                </PanelBody>
-              </Panel>
+                </section>
 
-              <Panel>
-                <PanelHeader title="Change Password" sub="Update your account password" />
-                <PanelBody>
-                  <div>
-                    <FormLabel>Current Password</FormLabel>
-                    <Input
-                      type="password"
-                      value={currentPassword}
-                      onChange={(e) => setCurrentPassword(e.target.value)}
-                      placeholder="••••••••"
-                      className="h-9 text-[13px]"
-                    />
-                  </div>
-                  <div>
-                    <FormLabel>New Password</FormLabel>
-                    <Input
-                      type="password"
-                      value={newPassword}
-                      onChange={(e) => setNewPassword(e.target.value)}
-                      placeholder="••••••••"
-                      className="h-9 text-[13px]"
-                    />
-                  </div>
-                  <div>
-                    <FormLabel>Confirm New Password</FormLabel>
-                    <Input
-                      type="password"
-                      value={confirmPassword}
-                      onChange={(e) => setConfirmPassword(e.target.value)}
-                      placeholder="••••••••"
-                      className="h-9 text-[13px]"
-                    />
-                  </div>
-                </PanelBody>
-              </Panel>
-
-              <div className="flex justify-end">
-                <PrimaryButton onClick={saveAccount} disabled={savingAccount}>
-                  {savingAccount && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
-                  Save changes
-                </PrimaryButton>
-              </div>
-            </div>
-          )}
-
-          {/* ── Notifications ── */}
-          {activeSection === "notifications" && (
-            <div>
-              <Panel>
-                <PanelHeader
-                  title="Email Notifications"
-                  sub="Choose which emails you want to receive"
-                />
-                <div className="px-5 divide-y divide-border">
-                  {(
-                    [
-                      ["notif_email_jobs",      "New job matches",     "Get notified when new jobs match your profile"],
-                      ["notif_email_apps",      "Application updates", "Status changes on your applications"],
-                      ["notif_email_messages",  "New messages",        "When someone sends you a message"],
-                      ["notif_email_offers",    "Offers",              "When you receive a job offer"],
-                      ["notif_email_projects",  "Project updates",     "Updates on active projects"],
-                      ["notif_email_events",    "Event reminders",     "Upcoming events and webinars"],
-                      ["notif_email_learning",  "Learning updates",    "New courses and learning content"],
-                      ["notif_email_marketing", "Marketing & tips",    "Product news and tips from Skryve"],
-                    ] as [keyof typeof notifPrefs, string, string][]
-                  ).map(([key, label, sub]) => (
-                    <Row key={key}>
-                      <RowLabel label={label} sub={sub} />
-                      <Switch
-                        checked={notifPrefs[key] as boolean}
-                        onCheckedChange={(v) =>
-                          setNotifPrefs((prev) => ({ ...prev, [key]: v }))
-                        }
+                {/* Password */}
+                <section className="bg-card border border-border rounded-xl p-6 space-y-4">
+                  <h2 className="font-semibold text-base">Change Password</h2>
+                  <div className="space-y-3">
+                    <div className="space-y-2">
+                      <Label htmlFor="currentPwd">Current Password</Label>
+                      <Input
+                        id="currentPwd"
+                        type="password"
+                        value={currentPassword}
+                        onChange={(e) => setCurrentPassword(e.target.value)}
+                        placeholder="••••••••"
                       />
-                    </Row>
-                  ))}
-                </div>
-              </Panel>
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="newPwd">New Password</Label>
+                      <Input
+                        id="newPwd"
+                        type="password"
+                        value={newPassword}
+                        onChange={(e) => setNewPassword(e.target.value)}
+                        placeholder="••••••••"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="confirmPwd">Confirm New Password</Label>
+                      <Input
+                        id="confirmPwd"
+                        type="password"
+                        value={confirmPassword}
+                        onChange={(e) => setConfirmPassword(e.target.value)}
+                        placeholder="••••••••"
+                      />
+                    </div>
+                  </div>
+                </section>
 
-              <Panel>
-                <PanelHeader title="Push Notifications" sub="Browser and device notifications" />
-                <div className="px-5 divide-y divide-border">
-                  <Row>
-                    <RowLabel
-                      label="Enable push notifications"
-                      sub="Receive browser and device push notifications"
-                    />
+                <div className="flex justify-end">
+                  <Button onClick={saveAccount} disabled={savingAccount} className="gap-2">
+                    {savingAccount ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <Save className="w-4 h-4" />
+                    )}
+                    Save Changes
+                  </Button>
+                </div>
+              </div>
+            )}
+
+            {/* ── Notifications ── */}
+            {activeSection === "notifications" && (
+              <div className="space-y-6">
+                <section className="bg-card border border-border rounded-xl p-6 space-y-4">
+                  <h2 className="font-semibold text-base">Email Notifications</h2>
+                  <div className="space-y-4">
+                    {(
+                      [
+                        ["notif_email_jobs", "New job matches"],
+                        ["notif_email_apps", "Application updates"],
+                        ["notif_email_messages", "New messages"],
+                        ["notif_email_offers", "Offers"],
+                        ["notif_email_projects", "Project updates"],
+                        ["notif_email_events", "Event reminders"],
+                        ["notif_email_learning", "Learning updates"],
+                        ["notif_email_marketing", "Marketing & tips"],
+                      ] as [keyof typeof notifPrefs, string][]
+                    ).map(([key, label]) => (
+                      <div key={key} className="flex items-center justify-between">
+                        <div>
+                          <p className="text-sm font-medium">Email: {label}</p>
+                        </div>
+                        <Switch
+                          checked={notifPrefs[key] as boolean}
+                          onCheckedChange={(v) =>
+                            setNotifPrefs((prev) => ({ ...prev, [key]: v }))
+                          }
+                        />
+                      </div>
+                    ))}
+                  </div>
+                </section>
+
+                <section className="bg-card border border-border rounded-xl p-6 space-y-4">
+                  <h2 className="font-semibold text-base">Push Notifications</h2>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-medium">Push notifications</p>
+                      <p className="text-xs text-muted-foreground">
+                        Receive browser / device push notifications
+                      </p>
+                    </div>
                     <Switch
                       checked={notifPrefs.notif_push_enabled}
                       onCheckedChange={(v) =>
                         setNotifPrefs((prev) => ({ ...prev, notif_push_enabled: v }))
                       }
                     />
-                  </Row>
+                  </div>
+                </section>
+
+                <div className="flex justify-end">
+                  <Button onClick={saveNotifications} disabled={savingNotifs} className="gap-2">
+                    {savingNotifs ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <Save className="w-4 h-4" />
+                    )}
+                    Save Preferences
+                  </Button>
                 </div>
-              </Panel>
-
-              <div className="flex justify-end">
-                <PrimaryButton onClick={saveNotifications} disabled={savingNotifs}>
-                  {savingNotifs && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
-                  Save preferences
-                </PrimaryButton>
               </div>
-            </div>
-          )}
+            )}
 
-          {/* ── Privacy ── */}
-          {activeSection === "privacy" && (
-            <div>
-              <Panel>
-                <PanelHeader
-                  title="Privacy Settings"
-                  sub="Control who can see your profile and contact you"
-                />
-                <PanelBody>
-                  <div>
-                    <FormLabel>Profile visibility</FormLabel>
-                    <Select value={profileVisibility} onValueChange={setProfileVisibility}>
-                      <SelectTrigger className="h-9 text-[13px]">
+            {/* ── Privacy ── */}
+            {activeSection === "privacy" && (
+              <div className="space-y-6">
+                <section className="bg-card border border-border rounded-xl p-6 space-y-5">
+                  <h2 className="font-semibold text-base">Privacy Settings</h2>
+
+                  <div className="space-y-2">
+                    <Label>Profile visibility</Label>
+                    <Select
+                      value={profileVisibility}
+                      onValueChange={setProfileVisibility}
+                    >
+                      <SelectTrigger>
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="public">Public</SelectItem>
-                        <SelectItem value="registered">Registered users only</SelectItem>
+                        <SelectItem value="registered">
+                          Registered users only
+                        </SelectItem>
                         <SelectItem value="hidden">Hidden</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
 
-                  <div>
-                    <FormLabel>Who can message me</FormLabel>
-                    <Select value={whoCanMessage} onValueChange={setWhoCanMessage}>
-                      <SelectTrigger className="h-9 text-[13px]">
+                  <div className="space-y-2">
+                    <Label>Who can message me</Label>
+                    <Select
+                      value={whoCanMessage}
+                      onValueChange={setWhoCanMessage}
+                    >
+                      <SelectTrigger>
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="everyone">Everyone</SelectItem>
-                        <SelectItem value="worked_with">Only people I've worked with</SelectItem>
+                        <SelectItem value="worked_with">
+                          Only people I've worked with
+                        </SelectItem>
                         <SelectItem value="nobody">Nobody</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
-                </PanelBody>
 
-                <div className="px-5 divide-y divide-border border-t border-border">
-                  <Row>
-                    <RowLabel
-                      label="Show earnings on profile"
-                      sub="Clients will be able to see your earnings history"
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-medium">
+                        Show my earnings on profile
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        Clients will be able to see your earnings history
+                      </p>
+                    </div>
+                    <Switch
+                      checked={showEarnings}
+                      onCheckedChange={setShowEarnings}
                     />
-                    <Switch checked={showEarnings} onCheckedChange={setShowEarnings} />
-                  </Row>
+                  </div>
+                </section>
+
+                <div className="flex justify-end">
+                  <Button onClick={savePrivacy} disabled={savingPrivacy} className="gap-2">
+                    {savingPrivacy ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <Save className="w-4 h-4" />
+                    )}
+                    Save
+                  </Button>
                 </div>
-              </Panel>
-
-              <div className="flex justify-end">
-                <PrimaryButton onClick={savePrivacy} disabled={savingPrivacy}>
-                  {savingPrivacy && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
-                  Save changes
-                </PrimaryButton>
               </div>
-            </div>
-          )}
+            )}
 
-          {/* ── Job Preferences ── */}
-          {activeSection === "job-preferences" && (
-            <div>
-              <Panel>
-                <PanelHeader title="Job Types" sub="Select the work arrangements you prefer" />
-                <PanelBody>
-                  <div className="flex flex-wrap gap-2">
+            {/* ── Job Preferences ── */}
+            {activeSection === "job-preferences" && (
+              <div className="space-y-6">
+                <section className="bg-card border border-border rounded-xl p-6 space-y-4">
+                  <h2 className="font-semibold text-base">Job Types</h2>
+                  <div className="flex flex-wrap gap-3">
                     {JOB_TYPES.map((jt) => (
                       <label
                         key={jt.value}
@@ -720,51 +648,47 @@ export default function Settings() {
                           checked={jpJobTypes.includes(jt.value)}
                           onCheckedChange={() => toggleJobType(jt.value)}
                         />
-                        <span className="text-[13px] font-medium">{jt.label}</span>
+                        <span className="text-sm font-medium">{jt.label}</span>
                       </label>
                     ))}
                   </div>
-                </PanelBody>
-              </Panel>
+                </section>
 
-              <Panel>
-                <PanelHeader title="Desired Rate" sub="Set your minimum acceptable rate" />
-                <PanelBody>
-                  <div>
-                    <FormLabel>Currency &amp; minimum rate</FormLabel>
-                    <div className="flex gap-2">
-                      <Select value={jpCurrency} onValueChange={setJpCurrency}>
-                        <SelectTrigger className="w-28 h-9 text-[13px]">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {CURRENCIES.map((c) => (
-                            <SelectItem key={c} value={c}>{c}</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      <Input
-                        type="number"
-                        placeholder="Min rate (e.g. 500)"
-                        value={jpRateMin}
-                        onChange={(e) => setJpRateMin(e.target.value)}
-                        className="flex-1 h-9 text-[13px]"
-                      />
-                    </div>
+                <section className="bg-card border border-border rounded-xl p-6 space-y-4">
+                  <h2 className="font-semibold text-base">Desired Rate Range</h2>
+                  <div className="flex gap-3">
+                    <Select
+                      value={jpCurrency}
+                      onValueChange={setJpCurrency}
+                    >
+                      <SelectTrigger className="w-28">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {CURRENCIES.map((c) => (
+                          <SelectItem key={c} value={c}>
+                            {c}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <Input
+                      type="number"
+                      placeholder="Min rate (e.g. 500)"
+                      value={jpRateMin}
+                      onChange={(e) => setJpRateMin(e.target.value)}
+                      className="flex-1"
+                    />
                   </div>
-                </PanelBody>
-              </Panel>
+                </section>
 
-              <Panel>
-                <PanelHeader
-                  title="Skills of Interest"
-                  sub={`Select up to 10 skills you want to work with (${jpSkills.length}/10)`}
-                />
-                <PanelBody>
+                <section className="bg-card border border-border rounded-xl p-6 space-y-4">
+                  <h2 className="font-semibold text-base">Skills of Interest</h2>
+                  <p className="text-xs text-muted-foreground">Select up to 10 skills</p>
                   {jpSkills.length > 0 && (
-                    <div className="flex flex-wrap gap-1.5">
+                    <div className="flex flex-wrap gap-2">
                       {jpSkills.map((s) => (
-                        <Badge key={s} variant="secondary" className="gap-1 text-[12px]">
+                        <Badge key={s} variant="secondary" className="gap-1">
                           {s}
                           <button onClick={() => toggleSkill(s)}>
                             <X className="w-3 h-3" />
@@ -777,13 +701,12 @@ export default function Settings() {
                     placeholder="Search skills..."
                     value={jpSkillSearch}
                     onChange={(e) => setJpSkillSearch(e.target.value)}
-                    className="h-9 text-[13px]"
                   />
                   <div className="grid grid-cols-2 gap-2 max-h-48 overflow-y-auto pr-1">
                     {filteredSkills.map((skill) => (
                       <label
                         key={skill}
-                        className="flex items-center gap-2 cursor-pointer text-[13px]"
+                        className="flex items-center gap-2 cursor-pointer text-sm"
                       >
                         <Checkbox
                           checked={jpSkills.includes(skill)}
@@ -793,82 +716,85 @@ export default function Settings() {
                       </label>
                     ))}
                   </div>
-                </PanelBody>
-              </Panel>
+                </section>
 
-              <div className="flex justify-end">
-                <PrimaryButton onClick={saveJobPrefs} disabled={savingJobPrefs}>
-                  {savingJobPrefs && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
-                  Save preferences
-                </PrimaryButton>
-              </div>
-            </div>
-          )}
-
-          {/* ── Danger Zone ── */}
-          {activeSection === "danger" && (
-            <div>
-              <div className="border border-destructive/30 rounded-xl bg-card overflow-hidden mb-4">
-                <div className="px-5 py-3.5 border-b border-destructive/20 bg-destructive/5 flex items-start gap-2">
-                  <AlertTriangle className="w-4 h-4 text-destructive mt-0.5 shrink-0" />
-                  <div>
-                    <p className="text-[13px] font-semibold text-destructive">Danger Zone</p>
-                    <p className="text-[11px] text-muted-foreground mt-0.5">
-                      These actions are irreversible. Proceed with caution.
-                    </p>
-                  </div>
-                </div>
-                <div className="px-5 py-4 space-y-4">
-                  <div>
-                    <p className="text-[13px] font-medium text-foreground">Delete Account</p>
-                    <p className="text-[12px] text-muted-foreground mt-0.5">
-                      Permanently delete your account and all associated data. This action cannot be undone.
-                    </p>
-                  </div>
-                  <div>
-                    <FormLabel>Type DELETE to confirm</FormLabel>
-                    <Input
-                      value={deleteInput}
-                      onChange={(e) => setDeleteInput(e.target.value)}
-                      placeholder="DELETE"
-                      className="h-9 text-[13px] max-w-xs"
-                    />
-                  </div>
-                  <DangerButton
-                    onClick={() => setShowDeleteStep2(true)}
-                    disabled={deleteInput !== "DELETE"}
-                  >
-                    Delete my account
-                  </DangerButton>
+                <div className="flex justify-end">
+                  <Button onClick={saveJobPrefs} disabled={savingJobPrefs} className="gap-2">
+                    {savingJobPrefs ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <Save className="w-4 h-4" />
+                    )}
+                    Save Preferences
+                  </Button>
                 </div>
               </div>
+            )}
 
-              <AlertDialog open={showDeleteStep2} onOpenChange={setShowDeleteStep2}>
-                <AlertDialogContent>
-                  <AlertDialogHeader>
-                    <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
-                    <AlertDialogDescription>
-                      Your account and all data will be permanently deleted. This action cannot be undone.
-                    </AlertDialogDescription>
-                  </AlertDialogHeader>
-                  <AlertDialogFooter>
-                    <AlertDialogCancel>Cancel</AlertDialogCancel>
-                    <AlertDialogAction
-                      className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                      onClick={deleteAccount}
-                      disabled={deleting}
-                    >
-                      {deleting && <Loader2 className="w-4 h-4 animate-spin mr-2" />}
-                      Yes, delete my account
-                    </AlertDialogAction>
-                  </AlertDialogFooter>
-                </AlertDialogContent>
-              </AlertDialog>
-            </div>
-          )}
+            {/* ── Danger Zone ── */}
+            {activeSection === "danger" && (
+              <section className="bg-card border-2 border-destructive rounded-xl p-6 space-y-4">
+                <div className="flex items-center gap-2 text-destructive">
+                  <AlertTriangle className="w-5 h-5" />
+                  <h2 className="font-semibold text-base">Danger Zone</h2>
+                </div>
+                <p className="text-sm text-muted-foreground">
+                  Permanently delete your account and all associated data. This
+                  action cannot be undone.
+                </p>
 
+                <div className="space-y-2">
+                  <Label htmlFor="deleteConfirm">
+                    Type <strong>DELETE</strong> to enable the delete button
+                  </Label>
+                  <Input
+                    id="deleteConfirm"
+                    value={deleteInput}
+                    onChange={(e) => setDeleteInput(e.target.value)}
+                    placeholder="DELETE"
+                  />
+                </div>
+
+                <Button
+                  variant="destructive"
+                  disabled={deleteInput !== "DELETE"}
+                  onClick={() => setShowDeleteStep2(true)}
+                >
+                  Delete Account
+                </Button>
+
+                <AlertDialog
+                  open={showDeleteStep2}
+                  onOpenChange={setShowDeleteStep2}
+                >
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        Your account and all data will be permanently deleted.
+                        This action cannot be undone.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Cancel</AlertDialogCancel>
+                      <AlertDialogAction
+                        className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                        onClick={deleteAccount}
+                        disabled={deleting}
+                      >
+                        {deleting ? (
+                          <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                        ) : null}
+                        Yes, delete my account
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+              </section>
+            )}
+          </div>
         </div>
-      </div>
+      </motion.div>
     </div>
   );
 }

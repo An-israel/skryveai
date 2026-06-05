@@ -2,7 +2,10 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { formatDistanceToNow, format, isPast, isFuture } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
+import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
+import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
@@ -13,14 +16,18 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Label } from "@/components/ui/label";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   CalendarDays,
   Search,
   MapPin,
   Users,
+  Clock,
   Star,
   Plus,
   Video,
+  Globe,
   Filter,
   X,
 } from "lucide-react";
@@ -32,19 +39,18 @@ const NICHE_OPTIONS = [
   "DevOps", "Blockchain", "AI/ML", "Startup", "Finance", "Healthcare",
 ];
 
-const FORMAT_TEXT_COLORS: Record<string, string> = {
-  webinar:    "text-blue-600",
-  workshop:   "text-purple-600",
-  conference: "text-orange-600",
-  meetup:     "text-green-600",
-  hackathon:  "text-rose-600",
+const FORMAT_COLORS: Record<string, string> = {
+  webinar: "bg-blue-50 text-blue-700 border-blue-200",
+  workshop: "bg-purple-50 text-purple-700 border-purple-200",
+  conference: "bg-orange-50 text-orange-700 border-orange-200",
+  meetup: "bg-green-50 text-green-700 border-green-200",
+  hackathon: "bg-rose-50 text-rose-700 border-rose-200",
 };
 
 function EventCard({ event, onRsvp }: { event: any; onRsvp: (id: string) => void }) {
   const navigate = useNavigate();
   const past = isPast(new Date(event.date_time));
-  const monthStr = format(new Date(event.date_time), "MMM").toUpperCase();
-  const dayStr   = format(new Date(event.date_time), "d");
+  const soon = isFuture(new Date(event.date_time));
 
   return (
     <motion.div
@@ -52,13 +58,12 @@ function EventCard({ event, onRsvp }: { event: any; onRsvp: (id: string) => void
       animate={{ opacity: 1, y: 0 }}
       layout
     >
-      <div
-        className="border border-border rounded-xl bg-card overflow-hidden hover:border-primary/30 transition-colors group cursor-pointer flex flex-col"
+      <Card
+        className="overflow-hidden cursor-pointer hover:shadow-md transition-all border border-border/60 group"
         onClick={() => navigate(`/events/${event.id}`)}
       >
-        {/* Image or gradient header */}
         {event.banner_url || event.cover_image_url ? (
-          <div className="h-36 overflow-hidden bg-muted">
+          <div className="h-40 overflow-hidden bg-gray-100">
             <img
               src={event.banner_url || event.cover_image_url}
               alt={event.title}
@@ -66,87 +71,72 @@ function EventCard({ event, onRsvp }: { event: any; onRsvp: (id: string) => void
             />
           </div>
         ) : (
-          <div className="h-36 bg-gradient-to-br from-primary/8 to-primary/4 flex items-center justify-center">
-            <CalendarDays className="w-10 h-10 text-primary/20" />
+          <div className="h-40 bg-gradient-to-br from-[#2563EB]/10 to-purple-100 flex items-center justify-center">
+            <CalendarDays className="w-12 h-12 text-[#2563EB]/40" />
           </div>
         )}
 
-        <div className="p-4 flex flex-col gap-3 flex-1">
-          {/* Date widget + title */}
-          <div className="flex items-start gap-3">
-            {/* Stacked calendar widget */}
-            <div className="flex flex-col items-center w-10 border border-border rounded-lg overflow-hidden shrink-0">
-              <span className="text-[9px] font-semibold uppercase tracking-wider bg-primary text-primary-foreground w-full text-center py-0.5 leading-none">
-                {monthStr}
-              </span>
-              <span className="text-[17px] font-bold text-foreground leading-tight py-0.5">
-                {dayStr}
-              </span>
-            </div>
+        <CardContent className="p-4 space-y-3">
+          <div className="flex items-start justify-between gap-2">
+            <Badge variant="outline" className={`text-xs capitalize ${FORMAT_COLORS[event.format] || ""}`}>
+              {event.format}
+            </Badge>
+            <span className="text-xs text-muted-foreground">
+              {past ? "Ended" : formatDistanceToNow(new Date(event.date_time), { addSuffix: true })}
+            </span>
+          </div>
 
-            <div className="flex-1 min-w-0">
-              <h3 className="text-[14px] font-medium text-foreground leading-snug line-clamp-2 group-hover:text-primary transition-colors">
-                {event.title}
-              </h3>
-              {event.niche_category && (
-                <p className="text-[12px] text-muted-foreground mt-0.5 truncate">{event.niche_category}</p>
+          <div>
+            <h3 className="font-semibold text-sm leading-snug line-clamp-2 group-hover:text-[#2563EB] transition-colors">
+              {event.title}
+            </h3>
+            {event.niche_category && (
+              <span className="text-xs text-muted-foreground">{event.niche_category}</span>
+            )}
+          </div>
+
+          <div className="space-y-1 text-xs text-muted-foreground">
+            <div className="flex items-center gap-1.5">
+              <CalendarDays className="w-3.5 h-3.5 flex-shrink-0" />
+              <span>{format(new Date(event.date_time), "EEE, MMM d 'at' h:mm a")}</span>
+            </div>
+            {event.location_address ? (
+              <div className="flex items-center gap-1.5">
+                <MapPin className="w-3.5 h-3.5 flex-shrink-0" />
+                <span className="truncate">{event.location_address}</span>
+              </div>
+            ) : event.platform_name ? (
+              <div className="flex items-center gap-1.5">
+                <Video className="w-3.5 h-3.5 flex-shrink-0" />
+                <span>{event.platform_name}</span>
+              </div>
+            ) : null}
+            <div className="flex items-center gap-1.5">
+              <Users className="w-3.5 h-3.5 flex-shrink-0" />
+              <span>{event.attendee_count} attending</span>
+              {event.max_attendees && (
+                <span className="text-muted-foreground/60">/ {event.max_attendees} max</span>
               )}
             </div>
           </div>
 
-          {/* Meta row */}
-          <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[12px] text-muted-foreground">
-            <span className={`capitalize font-medium ${FORMAT_TEXT_COLORS[event.format] || "text-muted-foreground"}`}>
-              {event.format}
-            </span>
-            <span className="opacity-40">·</span>
-            {event.location_address ? (
-              <span className="flex items-center gap-1 truncate">
-                <MapPin className="w-3 h-3 shrink-0" />
-                {event.location_address}
-              </span>
-            ) : event.platform_name ? (
-              <span className="flex items-center gap-1">
-                <Video className="w-3 h-3 shrink-0" />
-                {event.platform_name}
-              </span>
-            ) : (
-              <span>{format(new Date(event.date_time), "h:mm a")}</span>
-            )}
-            <span className="opacity-40">·</span>
-            <span className="flex items-center gap-1">
-              <Users className="w-3 h-3 shrink-0" />
-              {event.attendee_count}
-            </span>
-          </div>
-
-          {/* Bottom row: price + action */}
-          <div className="flex items-center justify-between mt-auto pt-1 border-t border-border">
-            <span className={`text-[13px] font-semibold ${event.price_type === "free" ? "text-green-600" : "text-foreground"}`}>
+          <div className="flex items-center justify-between pt-1">
+            <span className={`text-sm font-semibold ${event.price_type === "free" ? "text-green-600" : "text-[#1E3A5F]"}`}>
               {event.price_type === "free" ? "Free" : event.ticket_price ? `$${event.ticket_price}` : "Paid"}
             </span>
-            <div className="flex items-center gap-2">
-              {past ? (
-                <span className="text-[11px] px-2 py-0.5 bg-muted text-muted-foreground rounded-md">Ended</span>
-              ) : event.user_rsvped ? (
-                <button
-                  onClick={(e) => { e.stopPropagation(); onRsvp(event.id); }}
-                  className="px-4 py-2 rounded-lg border border-border text-[13px] text-muted-foreground hover:text-foreground hover:border-foreground/30 transition-colors"
-                >
-                  Attending
-                </button>
-              ) : (
-                <button
-                  onClick={(e) => { e.stopPropagation(); onRsvp(event.id); }}
-                  className="px-4 py-2 rounded-lg bg-primary text-primary-foreground text-[13px] font-medium hover:bg-primary/90 transition-colors"
-                >
-                  RSVP
-                </button>
-              )}
-            </div>
+            {!past && (
+              <Button
+                size="sm"
+                variant={event.user_rsvped ? "outline" : "default"}
+                className={event.user_rsvped ? "" : "bg-[#2563EB] hover:bg-[#1d4ed8]"}
+                onClick={(e) => { e.stopPropagation(); onRsvp(event.id); }}
+              >
+                {event.user_rsvped ? "Attending" : "RSVP"}
+              </Button>
+            )}
           </div>
-        </div>
-      </div>
+        </CardContent>
+      </Card>
     </motion.div>
   );
 }
@@ -155,10 +145,10 @@ function FeaturedBanner({ event, onRsvp }: { event: any; onRsvp: (id: string) =>
   const navigate = useNavigate();
   return (
     <div
-      className="relative rounded-xl overflow-hidden cursor-pointer group mb-6 border border-border"
+      className="relative rounded-xl overflow-hidden cursor-pointer group mb-6"
       onClick={() => navigate(`/events/${event.id}`)}
     >
-      <div className="h-56 md:h-72 bg-gradient-to-br from-[#1E3A5F] to-primary">
+      <div className="h-56 md:h-72 bg-gradient-to-br from-[#1E3A5F] to-[#2563EB]">
         {(event.banner_url || event.cover_image_url) && (
           <img
             src={event.banner_url || event.cover_image_url}
@@ -167,29 +157,31 @@ function FeaturedBanner({ event, onRsvp }: { event: any; onRsvp: (id: string) =>
           />
         )}
       </div>
-      <div className="absolute inset-0 flex flex-col justify-end p-6 bg-gradient-to-t from-black/70 via-transparent">
+      <div className="absolute inset-0 flex flex-col justify-end p-6 bg-gradient-to-t from-black/60 via-transparent">
         <div className="flex items-center gap-2 mb-2">
           <Star className="w-4 h-4 text-yellow-400 fill-yellow-400" />
-          <span className="text-yellow-400 text-[13px] font-medium">Featured Event</span>
-          <span className="text-[11px] px-2 py-0.5 bg-white/10 text-white rounded-md capitalize">{event.format}</span>
+          <span className="text-yellow-400 text-sm font-medium">Featured Event</span>
+          <Badge variant="outline" className={`text-xs capitalize border-white/30 text-white ${FORMAT_COLORS[event.format] || ""}`}>
+            {event.format}
+          </Badge>
         </div>
-        <h2 className="text-white text-2xl font-semibold mb-1 line-clamp-2 tracking-tight">{event.title}</h2>
-        <div className="flex items-center gap-4 text-white/70 text-[13px] mb-4">
-          <span className="flex items-center gap-1.5">
+        <h2 className="text-white text-2xl font-bold mb-1 line-clamp-2">{event.title}</h2>
+        <div className="flex items-center gap-4 text-white/80 text-sm mb-4">
+          <span className="flex items-center gap-1">
             <CalendarDays className="w-4 h-4" />
             {format(new Date(event.date_time), "EEE, MMM d 'at' h:mm a")}
           </span>
-          <span className="flex items-center gap-1.5">
+          <span className="flex items-center gap-1">
             <Users className="w-4 h-4" />
             {event.attendee_count} attending
           </span>
         </div>
-        <button
-          className="w-fit px-4 py-2 rounded-lg bg-white text-[#1E3A5F] text-[13px] font-medium hover:bg-white/90 transition-colors"
+        <Button
+          className="w-fit bg-white text-[#1E3A5F] hover:bg-white/90"
           onClick={(e) => { e.stopPropagation(); onRsvp(event.id); }}
         >
           {event.user_rsvped ? "Attending ✓" : "RSVP Now"}
-        </button>
+        </Button>
       </div>
     </div>
   );
@@ -249,6 +241,7 @@ export default function Events() {
         user_rsvped: userRsvps.includes(e.id),
       }));
 
+      // Find featured event
       const feat = tagged.find((e: any) => e.is_featured && isFuture(new Date(e.date_time)));
       setFeatured(feat || null);
       setEvents(tagged);
@@ -284,23 +277,22 @@ export default function Events() {
     setFormats((prev) => prev.includes(f) ? prev.filter((x) => x !== f) : [...prev, f]);
 
   const hasFilters = formats.length > 0 || price !== "all" || niche !== "all";
-  const activeFilterCount = formats.length + (price !== "all" ? 1 : 0) + (niche !== "all" ? 1 : 0);
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-6 space-y-6">
-      {/* Page header */}
+      {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-xl font-semibold text-foreground tracking-tight">Events Hub</h1>
-          <p className="text-[13px] text-muted-foreground mt-0.5">Webinars, workshops, conferences &amp; more</p>
+          <h1 className="text-2xl font-bold text-[#1E3A5F]">Events Hub</h1>
+          <p className="text-muted-foreground text-sm">Webinars, workshops, conferences & more</p>
         </div>
-        <button
-          className="px-4 py-2 rounded-lg bg-primary text-primary-foreground text-[13px] font-medium hover:bg-primary/90 transition-colors flex items-center gap-2"
+        <Button
+          className="bg-[#2563EB] hover:bg-[#1d4ed8]"
           onClick={() => navigate("/events/post")}
         >
-          <Plus className="w-4 h-4" />
+          <Plus className="w-4 h-4 mr-2" />
           Post Event
-        </button>
+        </Button>
       </div>
 
       {/* Featured banner */}
@@ -308,7 +300,7 @@ export default function Events() {
         <FeaturedBanner event={featured} onRsvp={handleRsvp} />
       )}
 
-      {/* Tabs + Search bar */}
+      {/* Tabs + Search */}
       <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center">
         <Tabs value={tab} onValueChange={setTab} className="flex-shrink-0">
           <TabsList>
@@ -328,22 +320,16 @@ export default function Events() {
               className="pl-9"
             />
           </div>
-          <button
+          <Button
+            variant="outline"
+            size="sm"
             onClick={() => setShowFilters((v) => !v)}
-            className={`flex items-center gap-2 px-4 py-2 rounded-lg border text-[13px] font-medium transition-colors ${
-              hasFilters
-                ? "border-primary text-primary bg-primary/5"
-                : "border-border text-muted-foreground hover:text-foreground hover:border-foreground/30"
-            }`}
+            className={hasFilters ? "border-[#2563EB] text-[#2563EB]" : ""}
           >
-            <Filter className="w-4 h-4" />
+            <Filter className="w-4 h-4 mr-2" />
             Filters
-            {hasFilters && (
-              <span className="ml-0.5 bg-primary text-primary-foreground text-[11px] rounded-full w-4 h-4 flex items-center justify-center leading-none">
-                {activeFilterCount}
-              </span>
-            )}
-          </button>
+            {hasFilters && <span className="ml-1 bg-[#2563EB] text-white text-xs rounded-full px-1.5">{formats.length + (price !== "all" ? 1 : 0) + (niche !== "all" ? 1 : 0)}</span>}
+          </Button>
         </div>
       </div>
 
@@ -356,21 +342,10 @@ export default function Events() {
             exit={{ opacity: 0, height: 0 }}
             className="overflow-hidden"
           >
-            <div className="border border-border rounded-xl bg-card overflow-hidden">
-              <div className="px-5 py-3.5 border-b border-border flex items-center justify-between">
-                <span className="text-[13px] font-semibold text-foreground">Filters</span>
-                {hasFilters && (
-                  <button
-                    onClick={() => { setFormats([]); setPrice("all"); setNiche("all"); }}
-                    className="flex items-center gap-1 text-[12px] text-muted-foreground hover:text-foreground transition-colors"
-                  >
-                    <X className="w-3.5 h-3.5" /> Clear all
-                  </button>
-                )}
-              </div>
-              <div className="px-5 py-5 grid grid-cols-1 md:grid-cols-3 gap-6">
+            <Card className="p-4">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <div>
-                  <p className="text-[12px] font-medium text-muted-foreground uppercase tracking-wider mb-3">Format</p>
+                  <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-3 block">Format</Label>
                   <div className="space-y-2">
                     {FORMAT_OPTIONS.map((f) => (
                       <div key={f} className="flex items-center gap-2">
@@ -379,14 +354,14 @@ export default function Events() {
                           checked={formats.includes(f)}
                           onCheckedChange={() => toggleFormat(f)}
                         />
-                        <label htmlFor={f} className="text-[13px] capitalize cursor-pointer text-foreground">{f}</label>
+                        <label htmlFor={f} className="text-sm capitalize cursor-pointer">{f}</label>
                       </div>
                     ))}
                   </div>
                 </div>
 
                 <div>
-                  <p className="text-[12px] font-medium text-muted-foreground uppercase tracking-wider mb-3">Price</p>
+                  <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-3 block">Price</Label>
                   <Select value={price} onValueChange={setPrice}>
                     <SelectTrigger><SelectValue /></SelectTrigger>
                     <SelectContent>
@@ -398,7 +373,7 @@ export default function Events() {
                 </div>
 
                 <div>
-                  <p className="text-[12px] font-medium text-muted-foreground uppercase tracking-wider mb-3">Niche / Category</p>
+                  <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-3 block">Niche / Category</Label>
                   <Select value={niche} onValueChange={setNiche}>
                     <SelectTrigger><SelectValue placeholder="All niches" /></SelectTrigger>
                     <SelectContent>
@@ -410,47 +385,51 @@ export default function Events() {
                   </Select>
                 </div>
               </div>
-            </div>
+
+              {hasFilters && (
+                <div className="flex justify-end mt-4">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => { setFormats([]); setPrice("all"); setNiche("all"); }}
+                  >
+                    <X className="w-4 h-4 mr-1" /> Clear filters
+                  </Button>
+                </div>
+              )}
+            </Card>
           </motion.div>
         )}
       </AnimatePresence>
 
       {/* Events grid */}
       {loading ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {Array.from({ length: 6 }).map((_, i) => (
-            <div key={i} className="border border-border rounded-xl bg-card overflow-hidden">
-              <Skeleton className="h-36 w-full" />
-              <div className="p-4 space-y-3">
-                <div className="flex items-start gap-3">
-                  <Skeleton className="w-10 h-10 rounded-lg shrink-0" />
-                  <div className="flex-1 space-y-2">
-                    <Skeleton className="h-4 w-full" />
-                    <Skeleton className="h-3 w-24" />
-                  </div>
-                </div>
-                <Skeleton className="h-3 w-3/4" />
-                <Skeleton className="h-8 w-20 mt-1" />
-              </div>
-            </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+          {Array.from({ length: 8 }).map((_, i) => (
+            <Card key={i} className="overflow-hidden">
+              <Skeleton className="h-40 w-full" />
+              <CardContent className="p-4 space-y-3">
+                <Skeleton className="h-4 w-24" />
+                <Skeleton className="h-5 w-full" />
+                <Skeleton className="h-4 w-3/4" />
+                <Skeleton className="h-8 w-20" />
+              </CardContent>
+            </Card>
           ))}
         </div>
       ) : filtered.length === 0 ? (
-        <div className="text-center py-20">
-          <CalendarDays className="w-10 h-10 opacity-20 mx-auto mb-3" />
-          <p className="text-[14px] font-medium text-foreground mb-1">No events found</p>
-          <p className="text-[13px] text-muted-foreground mb-4">
+        <div className="text-center py-20 text-muted-foreground">
+          <CalendarDays className="w-12 h-12 mx-auto mb-4 opacity-30" />
+          <p className="text-lg font-medium mb-2">No events found</p>
+          <p className="text-sm mb-6">
             {tab === "mine" ? "You haven't posted any events yet." : "Try adjusting your filters or check back later."}
           </p>
-          <button
-            className="px-4 py-2 rounded-lg bg-primary text-primary-foreground text-[13px] font-medium hover:bg-primary/90 transition-colors"
-            onClick={() => navigate("/events/post")}
-          >
+          <Button className="bg-[#2563EB] hover:bg-[#1d4ed8]" onClick={() => navigate("/events/post")}>
             Post an Event
-          </button>
+          </Button>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
           {filtered.map((event) => (
             <EventCard key={event.id} event={event} onRsvp={handleRsvp} />
           ))}

@@ -2,6 +2,10 @@ import { useEffect, useState } from "react";
 import { useNavigate, useParams, Link } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { supabase } from "@/integrations/supabase/client";
+import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Progress } from "@/components/ui/progress";
+import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import {
   CheckCircle,
@@ -208,101 +212,78 @@ export default function QuizPage() {
 
     return (
       <div className="max-w-2xl mx-auto py-12 px-4">
-        {/* Result hero */}
-        <div className="border border-border rounded-xl bg-card overflow-hidden mb-6">
-          <div className="px-5 py-10 flex flex-col items-center text-center">
-            <div
-              className={`w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-5 ${
-                passed ? "bg-emerald-500/10" : "bg-destructive/10"
-              }`}
-            >
-              {passed ? (
-                <CheckCircle className="h-8 w-8 text-emerald-500" />
-              ) : (
-                <XCircle className="h-8 w-8 text-destructive" />
-              )}
-            </div>
-            <h1 className="text-2xl font-bold text-foreground mb-1">
-              {passed ? "Great work!" : "Keep practicing!"}
-            </h1>
-            <p className="text-[13px] text-muted-foreground mb-4">
-              {score}/{questions.length} correct — {pct}%
+        <div className="text-center mb-8">
+          {passed ? (
+            <CheckCircle className="h-20 w-20 text-[#059669] mx-auto mb-4" />
+          ) : (
+            <XCircle className="h-20 w-20 text-destructive mx-auto mb-4" />
+          )}
+          <h1 className="text-3xl font-bold mb-2">
+            {passed ? "Great work!" : "Keep practicing!"}
+          </h1>
+          <p className="text-muted-foreground text-lg">
+            {score}/{questions.length} correct ({pct}%)
+          </p>
+          {!passed && quiz && (
+            <p className="text-sm text-muted-foreground mt-2">
+              You need {quiz.pass_threshold}% to pass.
             </p>
-
-            {/* Score bar */}
-            <div className="w-full max-w-xs mb-4">
-              <div className="h-1 bg-border rounded-full">
-                <div
-                  className={`h-full rounded-full transition-all ${passed ? "bg-emerald-500" : "bg-destructive"}`}
-                  style={{ width: `${pct}%` }}
-                />
-              </div>
-            </div>
-
-            {!passed && quiz && (
-              <p className="text-[12px] text-muted-foreground">
-                You need {quiz.pass_threshold}% to pass.
-              </p>
-            )}
-          </div>
+          )}
         </div>
 
-        {/* Actions */}
-        <div className="flex flex-col sm:flex-row gap-3 mb-6">
+        <div className="flex flex-col sm:flex-row gap-3 justify-center mb-8">
           {passed ? (
-            <button
-              className="flex-1 px-5 py-2.5 rounded-lg bg-primary text-primary-foreground text-[13px] font-semibold hover:bg-primary/90 transition-colors flex items-center justify-center gap-2"
+            <Button
+              size="lg"
+              className="bg-[#059669] hover:bg-[#047857] text-white"
               onClick={() => navigate(`/learn/${courseId}`)}
             >
               Continue to Next Module
-              <ChevronRight className="h-4 w-4" />
-            </button>
+              <ChevronRight className="h-4 w-4 ml-2" />
+            </Button>
           ) : (
-            <button
-              className="flex-1 px-5 py-2.5 rounded-lg bg-primary text-primary-foreground text-[13px] font-semibold hover:bg-primary/90 transition-colors flex items-center justify-center gap-2"
+            <Button
+              size="lg"
+              variant="default"
               onClick={handleRetry}
             >
-              <RotateCcw className="h-4 w-4" />
+              <RotateCcw className="h-4 w-4 mr-2" />
               Retry Quiz
-            </button>
+            </Button>
           )}
-          <Link
-            to={`/learn/${courseId}`}
-            className="flex-1 px-5 py-2.5 rounded-lg border border-border text-[13px] text-muted-foreground hover:text-foreground hover:border-foreground/30 transition-colors flex items-center justify-center gap-2"
-          >
-            <ArrowLeft className="h-4 w-4" />
-            Back to Course
-          </Link>
+          <Button variant="outline" size="lg" asChild>
+            <Link to={`/learn/${courseId}`}>
+              <ArrowLeft className="h-4 w-4 mr-2" />
+              Back to Course
+            </Link>
+          </Button>
         </div>
 
-        {/* Answer Review */}
         {!passed && questions.length > 0 && (
-          <div className="border border-border rounded-xl bg-card overflow-hidden">
-            <button
-              className="w-full px-5 py-3.5 flex items-center justify-between text-[13px] font-semibold text-foreground hover:bg-muted/30 transition-colors"
+          <div>
+            <Button
+              variant="outline"
+              className="w-full mb-4"
               onClick={() => setReviewOpen(!reviewOpen)}
             >
               {reviewOpen ? "Hide" : "Review"} Answers
-              <ChevronRight
-                className={`h-4 w-4 text-muted-foreground transition-transform ${reviewOpen ? "rotate-90" : ""}`}
-              />
-            </button>
+            </Button>
 
             {reviewOpen && (
-              <div className="divide-y divide-border border-t border-border">
+              <div className="space-y-4">
                 {questions.map((q, i) => {
                   const userAnswer = answers[q.id];
                   const isCorrect = userAnswer === q.correct_answer;
                   return (
-                    <div key={q.id} className="px-5 py-4">
-                      <p className="text-[13px] font-medium text-foreground mb-3">
+                    <Card key={q.id} className="p-4">
+                      <p className="font-semibold text-sm mb-3">
                         {i + 1}. {q.question}
                       </p>
-                      <div className="space-y-2">
+                      <div className="space-y-2 text-sm">
                         <div
-                          className={`flex items-center gap-2 px-3 py-2 rounded-lg text-[13px] ${
+                          className={`flex items-center gap-2 px-3 py-2 rounded-md ${
                             isCorrect
-                              ? "bg-emerald-500/10 text-emerald-600"
+                              ? "bg-[#059669]/10 text-[#059669]"
                               : "bg-destructive/10 text-destructive"
                           }`}
                         >
@@ -316,20 +297,20 @@ export default function QuizPage() {
                           </span>
                         </div>
                         {!isCorrect && (
-                          <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-emerald-500/10 text-emerald-600 text-[13px]">
+                          <div className="flex items-center gap-2 px-3 py-2 rounded-md bg-[#059669]/10 text-[#059669]">
                             <CheckCircle className="h-4 w-4 flex-shrink-0" />
                             <span>
-                              Correct: <strong>{q.correct_answer}</strong>
+                              Correct answer: <strong>{q.correct_answer}</strong>
                             </span>
                           </div>
                         )}
                         {q.explanation && (
-                          <p className="text-[12px] text-muted-foreground mt-1 px-3">
+                          <p className="text-muted-foreground text-xs mt-2 px-3">
                             {q.explanation}
                           </p>
                         )}
                       </div>
-                    </div>
+                    </Card>
                   );
                 })}
               </div>
@@ -345,7 +326,7 @@ export default function QuizPage() {
   if (!currentQuestion) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
-        <p className="text-[13px] text-muted-foreground">No questions found for this quiz.</p>
+        <p className="text-muted-foreground">No questions found for this quiz.</p>
       </div>
     );
   }
@@ -361,37 +342,29 @@ export default function QuizPage() {
     <div className="max-w-2xl mx-auto py-8 px-4">
       {/* Header */}
       <div className="mb-6">
-        <div className="flex items-center justify-between mb-4">
-          <Link
-            to={`/learn/${courseId}`}
-            className="flex items-center gap-1.5 text-[13px] text-muted-foreground hover:text-foreground transition-colors"
-          >
-            <ArrowLeft className="h-4 w-4" />
-            Back
-          </Link>
-          <span className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">
-            {quiz?.pass_threshold}% to pass
-          </span>
-        </div>
-
-        {/* Course + quiz label */}
-        <div className="mb-3">
-          <p className="text-[11px] text-muted-foreground">{courseTitle}</p>
-          <p className="text-[14px] font-semibold text-foreground">{quiz?.title ?? "Module Quiz"}</p>
+        <div className="flex items-center gap-3 mb-1">
+          <Button variant="ghost" size="sm" asChild>
+            <Link to={`/learn/${courseId}`}>
+              <ArrowLeft className="h-4 w-4 mr-1" />
+              Back
+            </Link>
+          </Button>
+          <div>
+            <p className="text-xs text-muted-foreground">{courseTitle}</p>
+            <h2 className="text-sm font-semibold">{quiz?.title ?? "Module Quiz"}</h2>
+          </div>
         </div>
 
         {/* Progress */}
-        <div className="flex items-center gap-3">
-          <div className="flex-1 h-1 bg-border rounded-full">
-            <div
-              className="h-full bg-primary rounded-full transition-all duration-300"
-              style={{ width: `${progressPercent}%` }}
-            />
-          </div>
-          <span className="text-[11px] text-muted-foreground tabular-nums shrink-0">
-            {currentQuestionIdx + 1} / {questions.length}
+        <div className="flex items-center justify-between text-sm text-muted-foreground mb-2">
+          <span>
+            Question {currentQuestionIdx + 1} of {questions.length}
           </span>
+          <Badge variant="outline">
+            {quiz?.pass_threshold}% to pass
+          </Badge>
         </div>
+        <Progress value={progressPercent} className="h-1.5" />
       </div>
 
       {/* Question Card */}
@@ -401,83 +374,83 @@ export default function QuizPage() {
           initial={{ opacity: 0, x: 40 }}
           animate={{ opacity: 1, x: 0 }}
           exit={{ opacity: 0, x: -40 }}
-          transition={{ duration: 0.22 }}
+          transition={{ duration: 0.25 }}
         >
-          <div className="border border-border rounded-xl bg-card overflow-hidden mb-5">
-            <div className="px-5 py-5">
-              <p className="text-[16px] font-medium text-foreground mb-6 leading-relaxed">
-                {currentQuestion.question}
-              </p>
+          <Card className="p-6 mb-6">
+            <p className="text-lg font-semibold mb-6 leading-relaxed">
+              {currentQuestion.question}
+            </p>
 
-              {currentQuestion.question_type === "true_false" ? (
-                /* True/False */
-                <div className="grid grid-cols-2 gap-3">
-                  {options.map((opt) => (
-                    <button
-                      key={opt}
-                      onClick={() => handleSelectAnswer(opt)}
-                      className={`h-14 rounded-xl text-[14px] font-semibold border transition-all ${
-                        selectedAnswer === opt
-                          ? "border-primary bg-primary/10 text-primary"
-                          : "border-border hover:border-primary/50 hover:bg-primary/5"
-                      }`}
-                    >
-                      {opt}
-                    </button>
-                  ))}
-                </div>
-              ) : (
-                /* Multiple Choice */
-                <div className="space-y-2.5">
-                  {options.map((opt, i) => (
-                    <button
-                      key={i}
-                      onClick={() => handleSelectAnswer(opt)}
-                      className={`w-full text-left px-4 py-3 rounded-xl border text-[14px] cursor-pointer transition-all ${
-                        selectedAnswer === opt
-                          ? "border-primary bg-primary/10 text-primary"
-                          : "border-border hover:border-primary/50 hover:bg-primary/5"
-                      }`}
-                    >
-                      <span className="font-semibold mr-2 text-[13px]">
-                        {String.fromCharCode(65 + i)}.
-                      </span>
-                      {opt}
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
+            {currentQuestion.question_type === "true_false" ? (
+              /* True/False */
+              <div className="grid grid-cols-2 gap-4">
+                {options.map((opt) => (
+                  <button
+                    key={opt}
+                    onClick={() => handleSelectAnswer(opt)}
+                    className={`h-16 rounded-xl text-lg font-semibold border-2 transition-all ${
+                      selectedAnswer === opt
+                        ? "border-[#2563EB] bg-[#2563EB]/10 text-[#2563EB]"
+                        : "border-border hover:border-[#2563EB]/50 hover:bg-muted"
+                    }`}
+                  >
+                    {opt}
+                  </button>
+                ))}
+              </div>
+            ) : (
+              /* Multiple Choice */
+              <div className="space-y-3">
+                {options.map((opt, i) => (
+                  <button
+                    key={i}
+                    onClick={() => handleSelectAnswer(opt)}
+                    className={`w-full text-left px-4 py-3 rounded-lg border-2 transition-all text-sm ${
+                      selectedAnswer === opt
+                        ? "border-[#2563EB] bg-[#2563EB]/10 text-[#2563EB] font-medium"
+                        : "border-border hover:border-[#2563EB]/50 hover:bg-muted"
+                    }`}
+                  >
+                    <span className="font-semibold mr-2">
+                      {String.fromCharCode(65 + i)}.
+                    </span>
+                    {opt}
+                  </button>
+                ))}
+              </div>
+            )}
+          </Card>
         </motion.div>
       </AnimatePresence>
 
       {/* Navigation */}
       <div className="flex justify-end">
         {isLastQuestion ? (
-          <button
+          <Button
+            size="lg"
             disabled={!selectedAnswer || submitting}
             onClick={handleSubmit}
-            className="px-5 py-2.5 rounded-lg bg-primary text-primary-foreground text-[13px] font-semibold hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+            className="bg-[#2563EB] hover:bg-[#1d4ed8] text-white"
           >
             {submitting ? (
               <>
-                <Loader2 className="h-4 w-4 animate-spin" />
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                 Submitting…
               </>
             ) : (
               "Submit Quiz"
             )}
-          </button>
+          </Button>
         ) : (
-          <button
+          <Button
+            size="lg"
             disabled={!selectedAnswer}
             onClick={handleNext}
-            className="px-5 py-2.5 rounded-lg bg-primary text-primary-foreground text-[13px] font-semibold hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+            className="bg-[#2563EB] hover:bg-[#1d4ed8] text-white"
           >
             Next Question
-            <ChevronRight className="h-4 w-4" />
-          </button>
+            <ChevronRight className="h-4 w-4 ml-2" />
+          </Button>
         )}
       </div>
     </div>

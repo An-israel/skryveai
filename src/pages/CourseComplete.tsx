@@ -2,7 +2,9 @@ import { useEffect, useState, useMemo } from "react";
 import { useNavigate, useParams, Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import { supabase } from "@/integrations/supabase/client";
+import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import {
   Award,
@@ -13,7 +15,6 @@ import {
   Twitter,
   Linkedin,
   ChevronRight,
-  CheckCircle,
 } from "lucide-react";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -212,152 +213,153 @@ export default function CourseComplete() {
     : window.location.href;
 
   return (
-    <div className="max-w-lg mx-auto py-12 px-4">
+    <div className="max-w-4xl mx-auto py-10 px-4">
       {/* Confetti */}
       {showConfetti && <Confetti />}
 
-      {/* Hero card */}
+      {/* Hero section */}
       <motion.div
-        initial={{ opacity: 0, y: 24 }}
+        initial={{ opacity: 0, y: 30 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5 }}
-        className="border border-border rounded-xl bg-card overflow-hidden mb-6"
+        transition={{ duration: 0.6 }}
+        className="text-center mb-12"
       >
-        <div className="px-8 py-10 text-center">
-          <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-primary/10 mb-6">
-            <Award className="h-10 w-10 text-primary" />
-          </div>
-          <h1 className="text-2xl font-bold text-foreground mb-2 leading-snug">
-            You completed{" "}
-            <span className="text-primary">{course.title}</span>
-          </h1>
-          <p className="text-[13px] text-muted-foreground mb-1">
-            {course.duration_hours} hours of learning. Certified.
-          </p>
-          <p className="text-[13px] text-muted-foreground mb-7">
-            Congratulations, {fullName}! Your certificate is ready.
-          </p>
+        <div className="inline-flex items-center justify-center w-24 h-24 rounded-full bg-[#059669]/10 mb-6">
+          <Award className="h-12 w-12 text-[#059669]" />
+        </div>
+        <h1 className="text-3xl md:text-4xl font-bold mb-3 leading-tight">
+          You completed{" "}
+          <span className="text-[#2563EB]">{course.title}</span>! 🎉
+        </h1>
+        <p className="text-muted-foreground text-lg mb-2">
+          {course.duration_hours} hours of learning. Certified.
+        </p>
+        <p className="text-muted-foreground mb-8">
+          Congratulations, {fullName}! Your certificate is ready.
+        </p>
 
-          <div className="flex flex-col gap-3 mb-7">
-            <button
-              className="px-5 py-2.5 rounded-lg bg-primary text-primary-foreground text-[13px] font-semibold hover:bg-primary/90 transition-colors flex items-center justify-center gap-2"
-              onClick={() => navigate(`/learn/${courseId}/certificate`)}
-            >
-              Claim Your Certificate
-              <ChevronRight className="h-4 w-4" />
-            </button>
-            <Link
-              to="/learn"
-              className="px-5 py-2.5 rounded-lg border border-border text-[13px] text-muted-foreground hover:text-foreground hover:border-foreground/30 transition-colors text-center"
-            >
-              Browse More Courses
-            </Link>
-          </div>
+        <div className="flex flex-col sm:flex-row gap-3 justify-center mb-8">
+          <Button
+            size="lg"
+            className="bg-[#2563EB] hover:bg-[#1d4ed8] text-white"
+            onClick={() => navigate(`/learn/${courseId}/certificate`)}
+          >
+            Claim Your Certificate
+            <ChevronRight className="h-4 w-4 ml-2" />
+          </Button>
+          <Button size="lg" variant="outline" asChild>
+            <Link to="/learn">Browse More Courses</Link>
+          </Button>
+        </div>
 
-          {/* Social share */}
-          <div className="border-t border-border pt-6">
-            <p className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground mb-3">
-              Share your achievement
-            </p>
-            <div className="flex items-center justify-center gap-2">
-              <button
-                className="px-4 py-2 rounded-lg border border-border text-[13px] text-muted-foreground hover:text-foreground hover:border-foreground/30 flex items-center gap-2 transition-colors"
-                onClick={() =>
-                  window.open(
-                    `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(certUrl)}&summary=${encodeURIComponent(
-                      `I just completed ${course.title} on Skryve! 🎓`
-                    )}`,
-                    "_blank"
-                  )
-                }
-              >
-                <Linkedin className="h-4 w-4" />
-                LinkedIn
-              </button>
-              <button
-                className="px-4 py-2 rounded-lg border border-border text-[13px] text-muted-foreground hover:text-foreground hover:border-foreground/30 flex items-center gap-2 transition-colors"
-                onClick={() =>
-                  window.open(
-                    `https://twitter.com/intent/tweet?text=${encodeURIComponent(
-                      `I just completed ${course.title} on @SkryveHQ! 🎓 ${certUrl}`
-                    )}`,
-                    "_blank"
-                  )
-                }
-              >
-                <Twitter className="h-4 w-4" />
-                Twitter
-              </button>
-            </div>
-          </div>
+        {/* Social share */}
+        <div className="flex flex-wrap items-center justify-center gap-3">
+          <span className="text-sm text-muted-foreground">Share your achievement:</span>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() =>
+              window.open(
+                `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(certUrl)}&summary=${encodeURIComponent(
+                  `I just completed ${course.title} on Skryve! 🎓`
+                )}`,
+                "_blank"
+              )
+            }
+          >
+            <Linkedin className="h-4 w-4 mr-2 text-[#0077b5]" />
+            LinkedIn
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() =>
+              window.open(
+                `https://twitter.com/intent/tweet?text=${encodeURIComponent(
+                  `I just completed ${course.title} on @SkryveHQ! 🎓 ${certUrl}`
+                )}`,
+                "_blank"
+              )
+            }
+          >
+            <Twitter className="h-4 w-4 mr-2 text-[#1da1f2]" />
+            Twitter
+          </Button>
         </div>
       </motion.div>
 
       {/* Jobs section */}
       {jobs.length > 0 && (
         <motion.div
-          initial={{ opacity: 0, y: 16 }}
+          initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.25, duration: 0.4 }}
+          transition={{ delay: 0.3, duration: 0.5 }}
         >
-          <div className="border border-border rounded-xl bg-card overflow-hidden">
-            <div className="px-5 py-3.5 border-b border-border flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Briefcase className="h-4 w-4 text-primary" />
-                <span className="text-[13px] font-semibold text-foreground">Jobs You Can Now Apply To</span>
-              </div>
-              <Link
-                to={`/jobs?skill=${encodeURIComponent(course.skill_category)}`}
-                className="text-[12px] text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1"
-              >
-                View All <ChevronRight className="h-3 w-3" />
+          <div className="flex items-center justify-between mb-6">
+            <div>
+              <h2 className="text-xl font-bold flex items-center gap-2">
+                <Briefcase className="h-5 w-5 text-[#2563EB]" />
+                Jobs You Can Now Apply To
+              </h2>
+              <p className="text-sm text-muted-foreground mt-1">
+                Roles matching your new {course.skill_category} skills
+              </p>
+            </div>
+            <Button variant="outline" size="sm" asChild>
+              <Link to={`/jobs?skill=${encodeURIComponent(course.skill_category)}`}>
+                View All Jobs
+                <ChevronRight className="h-4 w-4 ml-1" />
               </Link>
-            </div>
-            <div className="divide-y divide-border">
-              {jobs.map((job) => {
-                const match = matchPercent(job, course.skill_category);
-                const salaryStr = formatSalary(job.salary_min, job.salary_max);
-                return (
-                  <div key={job.id} className="px-5 py-4 hover:bg-muted/30 transition-colors">
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="flex-1 min-w-0">
-                        <p className="text-[14px] font-medium text-foreground line-clamp-1">{job.title}</p>
-                        <div className="flex items-center gap-2 mt-1 flex-wrap">
-                          <span className="text-[12px] text-muted-foreground">{job.company}</span>
-                          <span className="text-[11px] px-2 py-0.5 bg-muted text-muted-foreground rounded-md">{job.platform}</span>
-                          {salaryStr && (
-                            <span className="text-[12px] text-muted-foreground">{salaryStr}</span>
-                          )}
-                          {match > 0 && (
-                            <span className="text-[11px] px-2 py-0.5 bg-primary/10 text-primary rounded-md font-medium">
-                              {match}% match
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-1.5 shrink-0">
-                        <button
-                          className="px-3 py-1.5 rounded-lg bg-primary text-primary-foreground text-[12px] font-semibold hover:bg-primary/90 transition-colors"
-                          onClick={() => navigate(`/jobs?skill=${encodeURIComponent(course.skill_category)}`)}
-                        >
-                          Apply
-                        </button>
-                        {job.external_url && (
-                          <a
-                            href={job.external_url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="h-7 w-7 rounded-lg border border-border flex items-center justify-center text-muted-foreground hover:text-foreground hover:border-foreground/30 transition-colors"
-                          >
-                            <ExternalLink className="h-3.5 w-3.5" />
-                          </a>
-                        )}
-                      </div>
-                    </div>
+            </Button>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {jobs.map((job) => {
+              const match = matchPercent(job, course.skill_category);
+              const salaryStr = formatSalary(job.salary_min, job.salary_max);
+              return (
+                <Card key={job.id} className="p-4 flex flex-col gap-3">
+                  <div>
+                    <h3 className="font-semibold text-sm line-clamp-2">{job.title}</h3>
+                    <p className="text-xs text-muted-foreground mt-0.5">{job.company}</p>
                   </div>
-                );
-              })}
-            </div>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <Badge variant="secondary" className="text-xs">
+                      {job.platform}
+                    </Badge>
+                    {salaryStr && (
+                      <span className="text-xs text-muted-foreground">{salaryStr}</span>
+                    )}
+                    {match > 0 && (
+                      <Badge
+                        variant="outline"
+                        className="text-xs text-[#059669] border-[#059669]/30"
+                      >
+                        {match}% match
+                      </Badge>
+                    )}
+                  </div>
+                  <div className="mt-auto pt-2 flex gap-2">
+                    <Button
+                      size="sm"
+                      className="flex-1 text-xs bg-[#2563EB] hover:bg-[#1d4ed8] text-white"
+                      onClick={() =>
+                        navigate(`/jobs?skill=${encodeURIComponent(course.skill_category)}`)
+                      }
+                    >
+                      Generate Proposal
+                    </Button>
+                    {job.external_url && (
+                      <Button size="sm" variant="outline" className="text-xs" asChild>
+                        <a href={job.external_url} target="_blank" rel="noopener noreferrer">
+                          <ExternalLink className="h-3 w-3" />
+                        </a>
+                      </Button>
+                    )}
+                  </div>
+                </Card>
+              );
+            })}
           </div>
         </motion.div>
       )}
