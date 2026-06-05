@@ -1,11 +1,8 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { format, isPast, isFuture } from "date-fns";
+import { format, isPast } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
@@ -37,10 +34,10 @@ import {
   Lock,
 } from "lucide-react";
 
-const STATUS_STYLES: Record<string, string> = {
-  published: "bg-green-50 text-green-700 border-green-200",
-  draft: "bg-gray-100 text-gray-600 border-gray-200",
-  cancelled: "bg-red-50 text-red-700 border-red-200",
+const STATUS_DOT: Record<string, { color: string; label: string }> = {
+  published: { color: "bg-green-500", label: "Published" },
+  draft: { color: "bg-muted-foreground/40", label: "Draft" },
+  cancelled: { color: "bg-red-500", label: "Cancelled" },
 };
 
 export default function MyEvents() {
@@ -122,48 +119,69 @@ export default function MyEvents() {
 
   return (
     <div className="max-w-5xl mx-auto px-4 py-6 space-y-6">
+      {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-[#1E3A5F]">My Events</h1>
-          <p className="text-sm text-muted-foreground">Manage the events you've organized</p>
+          <h1 className="text-2xl font-bold text-foreground">My Events</h1>
+          <p className="text-[13px] text-muted-foreground mt-1">Manage the events you've organized</p>
         </div>
-        <Button className="bg-[#2563EB] hover:bg-[#1d4ed8]" onClick={() => navigate("/events/post")}>
-          <Plus className="w-4 h-4 mr-2" /> Post Event
-        </Button>
+        <button
+          className="px-5 py-2.5 rounded-lg bg-primary text-primary-foreground text-[13px] font-semibold hover:bg-primary/90 flex items-center gap-2 transition-colors"
+          onClick={() => navigate("/events/post")}
+        >
+          <Plus className="w-4 h-4" /> Post Event
+        </button>
       </div>
 
-      <Tabs value={tab} onValueChange={setTab}>
-        <TabsList>
-          <TabsTrigger value="upcoming">Upcoming</TabsTrigger>
-          <TabsTrigger value="past">Past</TabsTrigger>
-          <TabsTrigger value="draft">Drafts</TabsTrigger>
-          <TabsTrigger value="cancelled">Cancelled</TabsTrigger>
-        </TabsList>
-      </Tabs>
+      {/* Panel */}
+      <div className="border border-border rounded-xl bg-card overflow-hidden">
+        {/* Tab bar */}
+        <div className="px-5 py-3.5 border-b border-border">
+          <Tabs value={tab} onValueChange={setTab}>
+            <TabsList className="bg-transparent gap-1 p-0">
+              {["upcoming", "past", "draft", "cancelled"].map((t) => (
+                <TabsTrigger
+                  key={t}
+                  value={t}
+                  className="text-[13px] capitalize data-[state=active]:bg-muted/60 data-[state=active]:text-foreground"
+                >
+                  {t}
+                </TabsTrigger>
+              ))}
+            </TabsList>
+          </Tabs>
+        </div>
 
-      {loading ? (
-        <div className="space-y-3">
-          {[1, 2, 3].map((i) => <Skeleton key={i} className="h-24 w-full" />)}
-        </div>
-      ) : events.length === 0 ? (
-        <div className="text-center py-20 text-muted-foreground">
-          <CalendarDays className="w-12 h-12 mx-auto mb-4 opacity-30" />
-          <p className="text-lg font-medium mb-2">No events here</p>
-          <p className="text-sm mb-6">
-            {tab === "draft" ? "You have no draft events." : tab === "upcoming" ? "You haven't posted any upcoming events yet." : "Nothing to show."}
-          </p>
-          <Button className="bg-[#2563EB] hover:bg-[#1d4ed8]" onClick={() => navigate("/events/post")}>
-            Post an Event
-          </Button>
-        </div>
-      ) : (
-        <div className="space-y-3">
-          {events.map((event) => (
-            <Card key={event.id} className="hover:shadow-sm transition-shadow">
-              <CardContent className="py-4 px-5">
-                <div className="flex items-start gap-4">
+        {loading ? (
+          <div className="divide-y divide-border">
+            {[1, 2, 3].map((i) => (
+              <div key={i} className="px-5 py-4">
+                <Skeleton className="h-14 w-full" />
+              </div>
+            ))}
+          </div>
+        ) : events.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-20 text-center">
+            <CalendarDays className="w-10 h-10 text-muted-foreground/40 mb-4" />
+            <p className="text-[14px] font-medium text-foreground mb-1">No events here</p>
+            <p className="text-[13px] text-muted-foreground mb-6">
+              {tab === "draft" ? "You have no draft events." : tab === "upcoming" ? "You haven't posted any upcoming events yet." : "Nothing to show."}
+            </p>
+            <button
+              className="px-5 py-2.5 rounded-lg bg-primary text-primary-foreground text-[13px] font-semibold hover:bg-primary/90 transition-colors"
+              onClick={() => navigate("/events/post")}
+            >
+              Post an Event
+            </button>
+          </div>
+        ) : (
+          <div className="divide-y divide-border">
+            {events.map((event) => {
+              const statusInfo = STATUS_DOT[event.status] || STATUS_DOT.draft;
+              return (
+                <div key={event.id} className="px-5 py-4 hover:bg-muted/30 transition-colors flex items-start gap-4">
                   {/* Banner thumb */}
-                  <div className="w-16 h-16 rounded-lg overflow-hidden flex-shrink-0 bg-gradient-to-br from-[#2563EB]/10 to-purple-100">
+                  <div className="w-14 h-14 rounded-xl overflow-hidden flex-shrink-0 bg-primary/10">
                     {(event.banner_url || event.cover_image_url) && (
                       <img
                         src={event.banner_url || event.cover_image_url}
@@ -175,40 +193,40 @@ export default function MyEvents() {
 
                   <div className="flex-1 min-w-0">
                     <div className="flex items-start justify-between gap-2">
-                      <div>
+                      <div className="flex-1 min-w-0">
+                        {/* Title + status */}
                         <div className="flex items-center gap-2 mb-1">
-                          <h3 className="font-semibold text-sm truncate">{event.title}</h3>
-                          <Badge variant="outline" className={`text-xs capitalize ${STATUS_STYLES[event.status] || ""}`}>
-                            {event.status}
-                          </Badge>
+                          <span className={`w-1.5 h-1.5 rounded-full inline-block shrink-0 ${statusInfo.color}`} />
+                          <p className="text-[14px] font-medium text-foreground truncate">{event.title}</p>
                           {event.is_featured && (
-                            <Badge variant="outline" className="text-xs bg-yellow-50 text-yellow-700 border-yellow-200">Featured</Badge>
+                            <span className="text-[11px] px-2 py-0.5 bg-amber-500/10 text-amber-600 rounded-md shrink-0">Featured</span>
                           )}
                         </div>
-                        <div className="flex flex-wrap gap-3 text-xs text-muted-foreground">
+
+                        {/* Meta row */}
+                        <div className="flex flex-wrap gap-3 text-[12px] text-muted-foreground">
                           <span className="flex items-center gap-1">
-                            <CalendarDays className="w-3.5 h-3.5" />
+                            <CalendarDays className="w-3 h-3" />
                             {format(new Date(event.date_time), "MMM d, yyyy 'at' h:mm a")}
                           </span>
-                          <span className="flex items-center gap-1 capitalize">
-                            {event.format}
-                          </span>
+                          <span className="capitalize">{event.format}</span>
                           <span className="flex items-center gap-1">
-                            <Users className="w-3.5 h-3.5" />
-                            {event.attendee_count} attending
+                            <Users className="w-3 h-3" />
+                            {event.attendee_count || 0} attending
                             {event.max_attendees && ` / ${event.max_attendees} max`}
                           </span>
-                          <span className={event.price_type === "free" ? "text-green-600" : "text-blue-600"}>
+                          <span className={event.price_type === "free" ? "text-primary" : ""}>
                             {event.price_type === "free" ? "Free" : `$${event.ticket_price}`}
                           </span>
                         </div>
                       </div>
 
+                      {/* Actions dropdown */}
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="icon" className="flex-shrink-0">
+                          <button className="h-8 w-8 rounded-lg flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors flex-shrink-0">
                             <MoreVertical className="w-4 h-4" />
-                          </Button>
+                          </button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
                           <DropdownMenuItem onClick={() => navigate(`/events/${event.id}`)}>
@@ -237,11 +255,11 @@ export default function MyEvents() {
                     </div>
                   </div>
                 </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-      )}
+              );
+            })}
+          </div>
+        )}
+      </div>
 
       {/* Cancel dialog */}
       <AlertDialog open={!!cancelId} onOpenChange={() => setCancelId(null)}>

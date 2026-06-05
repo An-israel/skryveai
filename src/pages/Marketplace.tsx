@@ -4,10 +4,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { formatDistanceToNow } from "date-fns";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Skeleton } from "@/components/ui/skeleton";
 import {
   Select,
   SelectContent,
@@ -16,8 +14,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Card, CardContent } from "@/components/ui/card";
-import { Bookmark, BookmarkCheck, Star, BadgeCheck, Filter } from "lucide-react";
+import { Bookmark, BookmarkCheck, Star, BadgeCheck, Filter, Briefcase } from "lucide-react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 
 const SKILL_CATEGORIES = [
@@ -30,21 +27,7 @@ function JobCardSkeleton() {
   return (
     <div className="space-y-3">
       {Array.from({ length: 5 }).map((_, i) => (
-        <Card key={i}>
-          <CardContent className="p-5 space-y-3">
-            <div className="flex justify-between">
-              <Skeleton className="h-5 w-64" />
-              <Skeleton className="h-5 w-16" />
-            </div>
-            <Skeleton className="h-4 w-48" />
-            <Skeleton className="h-4 w-full" />
-            <Skeleton className="h-4 w-3/4" />
-            <div className="flex gap-2">
-              <Skeleton className="h-6 w-20" />
-              <Skeleton className="h-6 w-20" />
-            </div>
-          </CardContent>
-        </Card>
+        <div key={i} className="border border-border rounded-xl bg-card p-5 animate-pulse h-44" />
       ))}
     </div>
   );
@@ -59,12 +42,6 @@ const formatBudget = (job: any) => {
     return `${sym}${Number(job.budget_min || job.budget_max || 0).toLocaleString()} Fixed`;
   }
   return `${sym}${Number(job.hourly_rate_min || 0).toLocaleString()}–${sym}${Number(job.hourly_rate_max || 0).toLocaleString()}/hr`;
-};
-
-const matchPillClass = (score: number) => {
-  if (score >= 80) return "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400";
-  if (score >= 60) return "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400";
-  return "bg-muted text-muted-foreground";
 };
 
 const scoreJob = (job: any, skills: string[]) => {
@@ -85,15 +62,12 @@ const calcAvgRating = (reviews: any[] | undefined) => {
   return reviews.reduce((sum: number, r: any) => sum + (r.rating || 0), 0) / reviews.length;
 };
 
-function StarRating({ rating }: { rating: number | null }) {
-  if (rating === null) return null;
-  return (
-    <span className="flex items-center gap-0.5 text-xs text-amber-500">
-      <Star className="w-3 h-3 fill-amber-500" />
-      {rating.toFixed(1)}
-    </span>
-  );
-}
+const jobTypeLabel = (jobType: string) => {
+  if (jobType === "gig") return "One-time Gig";
+  if (jobType === "contract") return "Contract";
+  if (jobType === "long_term") return "Long-term";
+  return jobType;
+};
 
 interface FiltersState {
   search: string;
@@ -120,21 +94,21 @@ function FilterSidebar({ filters, setFilters, onClear }: FilterSidebarProps) {
     filters.clientRating !== "any" || filters.duration;
 
   return (
-    <div className="space-y-6">
+    <div className="border border-border rounded-xl bg-card p-5 space-y-5">
       <div>
-        <Label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Search</Label>
+        <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground mb-2">Search</p>
         <Input
-          className="mt-2"
           placeholder="Keywords..."
           value={filters.search}
           onChange={(e) => setFilters((f) => ({ ...f, search: e.target.value }))}
+          className="h-8 text-[13px]"
         />
       </div>
 
       <div>
-        <Label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Skill Category</Label>
+        <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground mb-2">Skill Category</p>
         <Select value={filters.skillCategory || "all"} onValueChange={(v) => setFilters((f) => ({ ...f, skillCategory: v === "all" ? "" : v }))}>
-          <SelectTrigger className="mt-2">
+          <SelectTrigger className="h-8 text-[13px]">
             <SelectValue placeholder="Any category" />
           </SelectTrigger>
           <SelectContent>
@@ -145,65 +119,65 @@ function FilterSidebar({ filters, setFilters, onClear }: FilterSidebarProps) {
       </div>
 
       <div>
-        <Label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Budget Range (₦)</Label>
-        <div className="flex gap-2 mt-2">
-          <Input type="number" placeholder="Min" value={filters.budgetMin} onChange={(e) => setFilters((f) => ({ ...f, budgetMin: e.target.value }))} />
-          <Input type="number" placeholder="Max" value={filters.budgetMax} onChange={(e) => setFilters((f) => ({ ...f, budgetMax: e.target.value }))} />
+        <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground mb-2">Budget Range (₦)</p>
+        <div className="flex gap-2">
+          <Input type="number" placeholder="Min" value={filters.budgetMin} onChange={(e) => setFilters((f) => ({ ...f, budgetMin: e.target.value }))} className="h-8 text-[13px]" />
+          <Input type="number" placeholder="Max" value={filters.budgetMax} onChange={(e) => setFilters((f) => ({ ...f, budgetMax: e.target.value }))} className="h-8 text-[13px]" />
         </div>
       </div>
 
       <div>
-        <Label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Job Type</Label>
+        <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground mb-2">Job Type</p>
         <RadioGroup
-          className="mt-2 space-y-1"
+          className="space-y-1.5"
           value={filters.jobType || "all"}
           onValueChange={(v) => setFilters((f) => ({ ...f, jobType: v === "all" ? "" : v }))}
         >
           {[["all", "All Types"], ["gig", "One-time Gig"], ["contract", "Short Contract"], ["long_term", "Long-term"]].map(([val, label]) => (
             <div key={val} className="flex items-center gap-2">
               <RadioGroupItem value={val} id={`jt-${val}`} />
-              <Label htmlFor={`jt-${val}`} className="text-sm font-normal cursor-pointer">{label}</Label>
+              <Label htmlFor={`jt-${val}`} className="text-[13px] font-normal cursor-pointer">{label}</Label>
             </div>
           ))}
         </RadioGroup>
       </div>
 
       <div>
-        <Label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Location</Label>
+        <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground mb-2">Location</p>
         <RadioGroup
-          className="mt-2 space-y-1"
+          className="space-y-1.5"
           value={filters.locationType || "all"}
           onValueChange={(v) => setFilters((f) => ({ ...f, locationType: v === "all" ? "" : v }))}
         >
           {[["all", "All"], ["remote", "Remote"], ["onsite", "On-site"], ["hybrid", "Hybrid"]].map(([val, label]) => (
             <div key={val} className="flex items-center gap-2">
               <RadioGroupItem value={val} id={`lt-${val}`} />
-              <Label htmlFor={`lt-${val}`} className="text-sm font-normal cursor-pointer">{label}</Label>
+              <Label htmlFor={`lt-${val}`} className="text-[13px] font-normal cursor-pointer">{label}</Label>
             </div>
           ))}
         </RadioGroup>
       </div>
 
       <div>
-        <Label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Date Posted</Label>
+        <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground mb-2">Date Posted</p>
         <RadioGroup
-          className="mt-2 space-y-1"
+          className="space-y-1.5"
           value={filters.datePosted}
           onValueChange={(v) => setFilters((f) => ({ ...f, datePosted: v as FiltersState["datePosted"] }))}
         >
           {[["all", "All Time"], ["today", "Today"], ["week", "This Week"], ["month", "This Month"]].map(([val, label]) => (
             <div key={val} className="flex items-center gap-2">
               <RadioGroupItem value={val} id={`dp-${val}`} />
-              <Label htmlFor={`dp-${val}`} className="text-sm font-normal cursor-pointer">{label}</Label>
+              <Label htmlFor={`dp-${val}`} className="text-[13px] font-normal cursor-pointer">{label}</Label>
             </div>
           ))}
         </RadioGroup>
       </div>
 
       <div>
-        <Label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Duration</Label>
+        <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground mb-2">Duration</p>
         <Select value={filters.duration || "any"} onValueChange={(v) => setFilters((f) => ({ ...f, duration: v === "any" ? "" : v }))}>
-          <SelectTrigger className="mt-2">
+          <SelectTrigger className="h-8 text-[13px]">
             <SelectValue placeholder="Any duration" />
           </SelectTrigger>
           <SelectContent>
@@ -217,7 +191,9 @@ function FilterSidebar({ filters, setFilters, onClear }: FilterSidebarProps) {
       </div>
 
       {hasActive && (
-        <Button variant="outline" className="w-full" onClick={onClear}>Clear Filters</Button>
+        <Button variant="outline" className="w-full h-8 text-[13px]" onClick={onClear}>
+          Clear Filters
+        </Button>
       )}
     </div>
   );
@@ -238,76 +214,88 @@ function MarketplaceJobCard({ job, saved, onSave }: MarketplaceJobCardProps) {
   const extraSkills = requiredSkills.length - 3;
 
   return (
-    <Card className="hover:border-primary/50 transition-colors">
-      <CardContent className="p-5 space-y-3">
-        <div className="flex items-start justify-between gap-3">
-          <Link
-            to={`/marketplace/${job.id}`}
-            className="font-semibold text-foreground hover:text-primary transition-colors line-clamp-2 flex-1"
-          >
-            {job.title}
-          </Link>
-          {job.matchScore > 0 && (
-            <span className={`shrink-0 text-xs font-semibold px-2 py-0.5 rounded-full ${matchPillClass(job.matchScore)}`}>
-              {job.matchScore}% match
+    <Link
+      to={`/marketplace/${job.id}`}
+      className="block border border-border bg-card rounded-xl px-5 py-4 hover:border-primary/30 transition-colors group"
+    >
+      <div className="flex items-start justify-between gap-3 mb-2">
+        <h3 className="text-[14px] font-semibold text-foreground group-hover:text-primary transition-colors line-clamp-2 flex-1">
+          {job.title}
+        </h3>
+        {job.matchScore > 0 && (
+          <span className="text-[11px] font-semibold text-primary shrink-0">
+            {job.matchScore}% match
+          </span>
+        )}
+      </div>
+
+      <div className="flex items-center gap-2 text-[12px] text-muted-foreground mb-2">
+        <span className="text-foreground font-medium">{formatBudget(job)}</span>
+        {job.job_type && (
+          <>
+            <span className="text-muted-foreground/40">·</span>
+            <span className="capitalize">{jobTypeLabel(job.job_type)}</span>
+          </>
+        )}
+        {job.location_type && (
+          <>
+            <span className="text-muted-foreground/40">·</span>
+            <span className="capitalize">{job.location_type}</span>
+          </>
+        )}
+      </div>
+
+      <div className="flex items-center gap-2 mb-3">
+        <div className="w-5 h-5 rounded-full bg-primary/10 flex items-center justify-center text-[10px] font-bold text-primary shrink-0">
+          {initials}
+        </div>
+        <span className="text-[12px] text-muted-foreground">{companyName}</span>
+        {job.clientRating !== null && job.clientRating !== undefined && (
+          <span className="text-[11px] text-amber-500 flex items-center gap-0.5">
+            <Star className="w-3 h-3 fill-amber-500" />
+            {job.clientRating.toFixed(1)}
+          </span>
+        )}
+        {client?.is_verified && (
+          <BadgeCheck className="w-3.5 h-3.5 text-blue-500" />
+        )}
+      </div>
+
+      {job.description && (
+        <p className="text-[13px] text-muted-foreground line-clamp-2 mb-3">{job.description}</p>
+      )}
+
+      {visibleSkills.length > 0 && (
+        <div className="flex flex-wrap gap-1 mb-3">
+          {visibleSkills.map((skill: string) => (
+            <span key={skill} className="text-[11px] px-2 py-0.5 bg-muted text-muted-foreground rounded-md">
+              {skill}
+            </span>
+          ))}
+          {extraSkills > 0 && (
+            <span className="text-[11px] px-2 py-0.5 bg-muted text-muted-foreground rounded-md">
+              +{extraSkills}
             </span>
           )}
         </div>
+      )}
 
-        <div className="flex flex-wrap items-center gap-2 text-sm">
-          <span className="font-medium text-foreground">{formatBudget(job)}</span>
-          {job.job_type && (
-            <Badge variant="secondary" className="text-xs">
-              {job.job_type === "gig" ? "One-time Gig" : job.job_type === "contract" ? "Contract" : "Long-term"}
-            </Badge>
-          )}
-          {job.location_type && (
-            <Badge variant="outline" className="text-xs capitalize">{job.location_type}</Badge>
-          )}
-        </div>
-
-        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-          <div className="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center text-xs font-bold text-primary shrink-0">
-            {initials}
-          </div>
-          <span className="font-medium text-foreground">{companyName}</span>
-          <StarRating rating={job.clientRating} />
-          {client?.is_verified && (
-            <BadgeCheck className="w-3.5 h-3.5 text-blue-500" />
-          )}
-        </div>
-
-        {job.description && (
-          <p className="text-sm text-muted-foreground line-clamp-2">{job.description}</p>
-        )}
-
-        {visibleSkills.length > 0 && (
-          <div className="flex flex-wrap gap-1.5">
-            {visibleSkills.map((skill: string) => (
-              <span key={skill} className="text-xs px-2 py-0.5 bg-secondary rounded-full text-secondary-foreground">
-                {skill}
-              </span>
-            ))}
-            {extraSkills > 0 && (
-              <span className="text-xs px-2 py-0.5 bg-secondary rounded-full text-muted-foreground">
-                +{extraSkills} more
-              </span>
-            )}
-          </div>
-        )}
-
-        <div className="flex items-center justify-between text-xs text-muted-foreground pt-1">
-          <span>{job.applicant_count || 0} applicants · {formatDistanceToNow(new Date(job.created_at), { addSuffix: true })}</span>
-          <button
-            onClick={(e) => { e.preventDefault(); onSave(); }}
-            className="p-1 rounded hover:text-primary transition-colors"
-            aria-label={saved ? "Unsave job" : "Save job"}
-          >
-            {saved ? <BookmarkCheck className="w-4 h-4 text-primary" /> : <Bookmark className="w-4 h-4" />}
-          </button>
-        </div>
-      </CardContent>
-    </Card>
+      <div className="flex items-center justify-between text-[11px] text-muted-foreground mt-3 pt-3 border-t border-border">
+        <span>
+          {job.applicant_count || 0} applicants · {formatDistanceToNow(new Date(job.created_at), { addSuffix: true })}
+        </span>
+        <button
+          onClick={(e) => { e.preventDefault(); onSave(); }}
+          className="text-muted-foreground hover:text-primary transition-colors"
+          aria-label={saved ? "Unsave job" : "Save job"}
+        >
+          {saved
+            ? <BookmarkCheck className="w-4 h-4 text-primary" />
+            : <Bookmark className="w-4 h-4" />
+          }
+        </button>
+      </div>
+    </Link>
   );
 }
 
@@ -456,13 +444,13 @@ export default function Marketplace() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="font-display text-2xl font-bold">Marketplace</h1>
-          <p className="text-sm text-muted-foreground">Jobs posted directly by clients on Skryve</p>
+          <h1 className="text-xl font-semibold text-foreground tracking-tight">Marketplace</h1>
+          <p className="text-[13px] text-muted-foreground">Jobs posted directly by clients on Skryve</p>
         </div>
         <Sheet open={mobileFilterOpen} onOpenChange={setMobileFilterOpen}>
           <SheetTrigger asChild>
-            <Button variant="outline" size="sm" className="lg:hidden">
-              <Filter className="w-4 h-4 mr-2" />
+            <Button variant="outline" size="sm" className="lg:hidden h-8 text-[13px]">
+              <Filter className="w-3.5 h-3.5 mr-1.5" />
               Filters
             </Button>
           </SheetTrigger>
@@ -478,15 +466,15 @@ export default function Marketplace() {
       </div>
 
       <div className="flex gap-6">
-        <aside className="hidden lg:block w-64 shrink-0">
+        <aside className="hidden lg:block w-60 shrink-0">
           <FilterSidebar filters={filters} setFilters={setFilters} onClear={clearFilters} />
         </aside>
 
         <div className="flex-1 min-w-0">
           <div className="flex items-center justify-between mb-4">
-            <p className="text-sm text-muted-foreground">{jobs.length} jobs found</p>
+            <p className="text-[13px] text-muted-foreground">{jobs.length} jobs found</p>
             <Select value={sortBy} onValueChange={(v) => setSortBy(v as typeof sortBy)}>
-              <SelectTrigger className="w-48 h-9">
+              <SelectTrigger className="w-44 h-8 text-[13px]">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -502,7 +490,7 @@ export default function Marketplace() {
             <JobCardSkeleton />
           ) : (
             <>
-              <div className="grid gap-4">
+              <div className="space-y-3">
                 {jobs.map((job) => (
                   <MarketplaceJobCard
                     key={job.id}
@@ -512,15 +500,23 @@ export default function Marketplace() {
                   />
                 ))}
               </div>
+
               {jobs.length > 0 && jobs.length % 20 === 0 && (
-                <Button variant="outline" className="w-full mt-4" onClick={loadMore} disabled={loading}>
+                <Button variant="outline" className="w-full mt-4 h-8 text-[13px]" onClick={loadMore} disabled={loading}>
                   Load More
                 </Button>
               )}
+
               {!loading && jobs.length === 0 && (
-                <div className="text-center py-16">
-                  <p className="text-muted-foreground mb-2">No jobs found matching your filters.</p>
-                  <Button variant="outline" onClick={clearFilters}>Clear Filters</Button>
+                <div className="flex flex-col items-center justify-center py-24 text-center">
+                  <Briefcase className="w-10 h-10 text-foreground opacity-20 mb-4" />
+                  <p className="text-[14px] font-medium text-foreground mb-1">No jobs found</p>
+                  <p className="text-[13px] text-muted-foreground mb-4">
+                    Try adjusting your filters to see more results.
+                  </p>
+                  <Button variant="outline" size="sm" className="h-8 text-[13px]" onClick={clearFilters}>
+                    Clear Filters
+                  </Button>
                 </div>
               )}
             </>

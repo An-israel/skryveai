@@ -3,17 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { formatDistanceToNow } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -27,11 +17,11 @@ import {
 import { Eye, Pencil, Plus, Briefcase } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 
-const STATUS_BADGE: Record<string, { label: string; className: string }> = {
-  active: { label: "Active", className: "bg-green-500/10 text-green-600 border-green-500/20" },
-  paused: { label: "Paused", className: "bg-amber-500/10 text-amber-600 border-amber-500/20" },
-  draft: { label: "Draft", className: "bg-muted text-muted-foreground" },
-  closed: { label: "Closed", className: "bg-red-500/10 text-red-600 border-red-500/20" },
+const STATUS_DOT: Record<string, { color: string; label: string }> = {
+  active: { color: "bg-green-500", label: "Active" },
+  paused: { color: "bg-amber-500", label: "Paused" },
+  draft: { color: "bg-muted-foreground/40", label: "Draft" },
+  closed: { color: "bg-red-500", label: "Closed" },
 };
 
 type TabKey = "active" | "paused" | "draft" | "closed";
@@ -45,8 +35,8 @@ function EmptyTab({ tab }: { tab: TabKey }) {
   };
   return (
     <div className="flex flex-col items-center justify-center py-16 text-center">
-      <Briefcase className="w-10 h-10 text-muted-foreground mb-3" />
-      <p className="text-sm text-muted-foreground">{messages[tab]}</p>
+      <Briefcase className="w-9 h-9 text-muted-foreground/40 mb-3" />
+      <p className="text-[13px] text-muted-foreground">{messages[tab]}</p>
     </div>
   );
 }
@@ -90,23 +80,9 @@ export default function MyJobPosts() {
     toast({ title: `Job ${status === "active" ? "resumed" : status}.` });
   };
 
-  const filteredJobs = jobs.filter((j) => {
-    if (tab === "active") return j.status === "active";
-    if (tab === "paused") return j.status === "paused";
-    if (tab === "draft") return j.status === "draft";
-    if (tab === "closed") return j.status === "closed";
-    return true;
-  });
+  const filteredJobs = jobs.filter((j) => j.status === tab);
 
-  const countFor = (s: TabKey) => {
-    const map: Record<TabKey, string> = {
-      active: "active",
-      paused: "paused",
-      draft: "draft",
-      closed: "closed",
-    };
-    return jobs.filter((j) => j.status === map[s]).length;
-  };
+  const countFor = (s: TabKey) => jobs.filter((j) => j.status === s).length;
 
   if (loading) {
     return (
@@ -114,7 +90,7 @@ export default function MyJobPosts() {
         <Skeleton className="h-8 w-48" />
         <Skeleton className="h-10 w-72" />
         <div className="space-y-2">
-          {[1, 2, 3].map((i) => <Skeleton key={i} className="h-12 rounded-lg" />)}
+          {[1, 2, 3].map((i) => <Skeleton key={i} className="h-16 rounded-xl" />)}
         </div>
       </div>
     );
@@ -122,121 +98,119 @@ export default function MyJobPosts() {
 
   return (
     <div className="space-y-6">
+      {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="font-display text-2xl font-bold">My Job Posts</h1>
-          <p className="text-muted-foreground text-sm mt-1">Manage all your job listings.</p>
+          <h1 className="text-2xl font-bold text-foreground">My Job Posts</h1>
+          <p className="text-[13px] text-muted-foreground mt-1">Manage all your job listings.</p>
         </div>
-        <Button onClick={() => navigate("/marketplace/post")} className="gap-1">
+        <button
+          className="px-5 py-2.5 rounded-lg bg-primary text-primary-foreground text-[13px] font-semibold hover:bg-primary/90 flex items-center gap-2 transition-colors"
+          onClick={() => navigate("/marketplace/post")}
+        >
           <Plus className="w-4 h-4" /> Post New Job
-        </Button>
+        </button>
       </div>
 
-      <Tabs value={tab} onValueChange={(v) => setTab(v as TabKey)}>
-        <TabsList>
-          <TabsTrigger value="active">Active <Badge variant="secondary" className="ml-1.5 py-0 px-1.5 text-xs">{countFor("active")}</Badge></TabsTrigger>
-          <TabsTrigger value="paused">Paused <Badge variant="secondary" className="ml-1.5 py-0 px-1.5 text-xs">{countFor("paused")}</Badge></TabsTrigger>
-          <TabsTrigger value="draft">Draft <Badge variant="secondary" className="ml-1.5 py-0 px-1.5 text-xs">{countFor("draft")}</Badge></TabsTrigger>
-          <TabsTrigger value="closed">Closed <Badge variant="secondary" className="ml-1.5 py-0 px-1.5 text-xs">{countFor("closed")}</Badge></TabsTrigger>
-        </TabsList>
+      {/* Tabs + panel */}
+      <div className="border border-border rounded-xl bg-card overflow-hidden">
+        <div className="px-5 py-3.5 border-b border-border">
+          <Tabs value={tab} onValueChange={(v) => setTab(v as TabKey)}>
+            <TabsList className="bg-transparent gap-1 p-0">
+              {(["active", "paused", "draft", "closed"] as TabKey[]).map((t) => (
+                <TabsTrigger
+                  key={t}
+                  value={t}
+                  className="text-[13px] capitalize data-[state=active]:bg-muted/60 data-[state=active]:text-foreground"
+                >
+                  {t}
+                  {countFor(t) > 0 && (
+                    <span className="ml-1.5 text-[11px] px-1.5 py-0.5 bg-muted text-muted-foreground rounded-md">
+                      {countFor(t)}
+                    </span>
+                  )}
+                </TabsTrigger>
+              ))}
+            </TabsList>
+          </Tabs>
+        </div>
 
-        {(["active", "paused", "draft", "closed"] as TabKey[]).map((tabKey) => (
-          <TabsContent key={tabKey} value={tabKey}>
-            {filteredJobs.length === 0 ? (
-              <EmptyTab tab={tabKey} />
-            ) : (
-              <div className="rounded-xl border border-border overflow-hidden mt-4">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Job Title</TableHead>
-                      <TableHead>Applicants</TableHead>
-                      <TableHead>Views</TableHead>
-                      <TableHead>Posted</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead>Actions</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {filteredJobs.map((job) => {
-                      const statusInfo = STATUS_BADGE[job.status] || STATUS_BADGE.draft;
-                      return (
-                        <TableRow key={job.id}>
-                          <TableCell className="font-medium max-w-[220px] truncate">
-                            {job.title}
-                          </TableCell>
-                          <TableCell>{job.applicant_count || 0}</TableCell>
-                          <TableCell>{job.views || job.view_count || 0}</TableCell>
-                          <TableCell className="text-muted-foreground text-sm">
-                            {formatDistanceToNow(new Date(job.created_at), { addSuffix: true })}
-                          </TableCell>
-                          <TableCell>
-                            <Badge variant="outline" className={statusInfo.className}>
-                              {statusInfo.label}
-                            </Badge>
-                          </TableCell>
-                          <TableCell>
-                            <div className="flex items-center gap-1">
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-7 w-7"
-                                title="View"
-                                onClick={() => navigate(`/marketplace/${job.id}`)}
-                              >
-                                <Eye className="w-3.5 h-3.5" />
-                              </Button>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-7 w-7"
-                                title="Edit"
-                                onClick={() => navigate(`/marketplace/post?edit=${job.id}`)}
-                              >
-                                <Pencil className="w-3.5 h-3.5" />
-                              </Button>
-                              {job.status === "active" && (
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  className="h-7 text-xs text-amber-600 hover:text-amber-600"
-                                  onClick={() => updateJobStatus(job.id, "paused")}
-                                >
-                                  Pause
-                                </Button>
-                              )}
-                              {job.status === "paused" && (
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  className="h-7 text-xs text-green-600 hover:text-green-600"
-                                  onClick={() => updateJobStatus(job.id, "active")}
-                                >
-                                  Resume
-                                </Button>
-                              )}
-                              {job.status !== "closed" && (
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  className="h-7 text-xs text-destructive hover:text-destructive"
-                                  onClick={() => setCloseId(job.id)}
-                                >
-                                  Close
-                                </Button>
-                              )}
-                            </div>
-                          </TableCell>
-                        </TableRow>
-                      );
-                    })}
-                  </TableBody>
-                </Table>
-              </div>
-            )}
-          </TabsContent>
-        ))}
-      </Tabs>
+        {filteredJobs.length === 0 ? (
+          <EmptyTab tab={tab} />
+        ) : (
+          <div className="divide-y divide-border">
+            {filteredJobs.map((job) => {
+              const statusInfo = STATUS_DOT[job.status] || STATUS_DOT.draft;
+              return (
+                <div key={job.id} className="px-5 py-4 hover:bg-muted/30 transition-colors flex items-center gap-4">
+                  {/* Status dot */}
+                  <span className={`w-1.5 h-1.5 rounded-full inline-block shrink-0 ${statusInfo.color}`} />
+
+                  {/* Job info */}
+                  <div className="flex-1 min-w-0">
+                    <p className="text-[14px] font-medium text-foreground truncate">{job.title}</p>
+                    <div className="flex items-center gap-3 mt-0.5">
+                      <span className="text-[12px] text-muted-foreground">
+                        {formatDistanceToNow(new Date(job.created_at), { addSuffix: true })}
+                      </span>
+                      <span className="text-[12px] text-muted-foreground">
+                        {job.applicant_count || 0} applicant{job.applicant_count !== 1 ? "s" : ""}
+                      </span>
+                      {(job.views || job.view_count) > 0 && (
+                        <span className="text-[12px] text-muted-foreground">
+                          {job.views || job.view_count} views
+                        </span>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Actions */}
+                  <div className="flex items-center gap-1 shrink-0">
+                    <button
+                      className="h-8 w-8 rounded-lg flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors"
+                      title="View"
+                      onClick={() => navigate(`/marketplace/${job.id}`)}
+                    >
+                      <Eye className="w-3.5 h-3.5" />
+                    </button>
+                    <button
+                      className="h-8 w-8 rounded-lg flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors"
+                      title="Edit"
+                      onClick={() => navigate(`/marketplace/post?edit=${job.id}`)}
+                    >
+                      <Pencil className="w-3.5 h-3.5" />
+                    </button>
+                    {job.status === "active" && (
+                      <button
+                        className="px-3 py-1 rounded-lg text-[12px] text-amber-600 hover:bg-amber-500/10 transition-colors"
+                        onClick={() => updateJobStatus(job.id, "paused")}
+                      >
+                        Pause
+                      </button>
+                    )}
+                    {job.status === "paused" && (
+                      <button
+                        className="px-3 py-1 rounded-lg text-[12px] text-primary hover:bg-primary/10 transition-colors"
+                        onClick={() => updateJobStatus(job.id, "active")}
+                      >
+                        Resume
+                      </button>
+                    )}
+                    {job.status !== "closed" && (
+                      <button
+                        className="px-3 py-1 rounded-lg text-[12px] text-destructive hover:bg-destructive/10 transition-colors"
+                        onClick={() => setCloseId(job.id)}
+                      >
+                        Close
+                      </button>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
 
       <AlertDialog open={!!closeId} onOpenChange={(open) => !open && setCloseId(null)}>
         <AlertDialogContent>

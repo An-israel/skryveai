@@ -1,11 +1,8 @@
 import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { Button } from "@/components/ui/button";
 import { PasswordInput } from "@/components/ui/password-input";
-import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Lock, Loader2, CheckCircle } from "lucide-react";
+import { ArrowLeft, CheckCircle, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
@@ -16,6 +13,7 @@ export default function ResetPassword() {
   const [isSuccess, setIsSuccess] = useState(false);
   const [isValidSession, setIsValidSession] = useState(false);
   const [checkingSession, setCheckingSession] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -46,31 +44,24 @@ export default function ResetPassword() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setError(null);
 
     if (password !== confirmPassword) {
-      toast({
-        title: "Passwords don't match",
-        description: "Please make sure both passwords are the same",
-        variant: "destructive",
-      });
+      setError("Passwords don't match. Please make sure both fields are the same.");
       return;
     }
 
     if (password.length < 6) {
-      toast({
-        title: "Password too short",
-        description: "Password must be at least 6 characters",
-        variant: "destructive",
-      });
+      setError("Password must be at least 6 characters.");
       return;
     }
 
     setIsLoading(true);
 
     try {
-      const { error } = await supabase.auth.updateUser({ password });
+      const { error: updateError } = await supabase.auth.updateUser({ password });
 
-      if (error) throw error;
+      if (updateError) throw updateError;
 
       setIsSuccess(true);
       toast({
@@ -82,142 +73,185 @@ export default function ResetPassword() {
         await supabase.auth.signOut();
         navigate("/login");
       }, 3000);
-    } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : "Failed to reset password";
-      toast({
-        title: "Error",
-        description: message,
-        variant: "destructive",
-      });
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "Failed to reset password";
+      setError(message);
     } finally {
       setIsLoading(false);
     }
   };
 
-  const LogoLink = () => (
-    <Link to="/" className="flex items-center justify-center gap-2 mb-8">
-      <img src="/logo.png" alt="Skryve" className="w-8 h-8 object-contain" />
-      <span className="font-bold text-2xl text-[#1E3A5F]">Skryve</span>
-    </Link>
-  );
-
+  // Checking session — minimal spinner
   if (checkingSession) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <Loader2 className="w-8 h-8 animate-spin text-[#2563EB]" />
+      <div className="min-h-screen bg-[#09090b] flex items-center justify-center">
+        <Loader2 className="w-6 h-6 animate-spin text-white/30" />
       </div>
     );
   }
 
+  // Invalid / expired link
   if (!isValidSession) {
     return (
-      <div className="min-h-screen flex items-center justify-center px-4 py-12 bg-gray-50">
+      <div className="min-h-screen bg-[#09090b] flex items-center justify-center px-4">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="w-full max-w-md"
+          className="w-full max-w-[400px]"
         >
-          <LogoLink />
-          <Card className="border-0 shadow-xl">
-            <CardContent className="pt-6 text-center">
-              <h2 className="text-xl font-semibold mb-2">Invalid or Expired Link</h2>
-              <p className="text-gray-500 mb-6">
-                This password reset link is invalid or has expired. Please request a new one.
-              </p>
-              <Link to="/forgot-password">
-                <Button className="w-full bg-[#2563EB] hover:bg-[#1d4ed8]">Request New Link</Button>
-              </Link>
-            </CardContent>
-          </Card>
+          <div className="bg-[#111111] border border-white/[0.08] rounded-2xl p-8">
+            {/* Logo */}
+            <div className="flex items-center justify-center gap-2 mb-8">
+              <img src="/logo.png" alt="Skryve" className="w-6 h-6 object-contain" />
+              <span className="font-bold text-white text-base">Skryve</span>
+            </div>
+
+            <h1 className="text-[22px] font-bold text-white tracking-tight mb-1 text-center">
+              Link expired
+            </h1>
+            <p className="text-[13px] text-white/40 mb-8 text-center">
+              This password reset link is invalid or has expired. Request a new one.
+            </p>
+
+            <Link
+              to="/forgot-password"
+              className="w-full h-10 rounded-lg bg-white text-[#09090b] text-[13px] font-bold hover:bg-white/90 transition-all flex items-center justify-center"
+            >
+              Request New Link
+            </Link>
+
+            <Link
+              to="/login"
+              className="flex items-center justify-center gap-1 text-[13px] text-white/40 hover:text-white/70 transition-colors mt-4"
+            >
+              <ArrowLeft className="w-3.5 h-3.5" />
+              Back to login
+            </Link>
+          </div>
         </motion.div>
       </div>
     );
   }
 
+  // Success state
   if (isSuccess) {
     return (
-      <div className="min-h-screen flex items-center justify-center px-4 py-12 bg-gray-50">
+      <div className="min-h-screen bg-[#09090b] flex items-center justify-center px-4">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="w-full max-w-md"
+          className="w-full max-w-[400px]"
         >
-          <LogoLink />
-          <Card className="border-0 shadow-xl">
-            <CardContent className="pt-6 text-center">
-              <div className="w-16 h-16 rounded-full bg-emerald-50 flex items-center justify-center mx-auto mb-4">
-                <CheckCircle className="w-8 h-8 text-[#059669]" />
-              </div>
-              <h2 className="text-xl font-semibold mb-2">Password Reset Complete!</h2>
-              <p className="text-gray-500 mb-4">
-                Your password has been successfully updated. Redirecting to login...
-              </p>
-              <Loader2 className="w-6 h-6 animate-spin text-[#2563EB] mx-auto" />
-            </CardContent>
-          </Card>
+          <div className="bg-[#111111] border border-white/[0.08] rounded-2xl p-8">
+            {/* Logo */}
+            <div className="flex items-center justify-center gap-2 mb-8">
+              <img src="/logo.png" alt="Skryve" className="w-6 h-6 object-contain" />
+              <span className="font-bold text-white text-base">Skryve</span>
+            </div>
+
+            <div className="flex items-center justify-center mb-6">
+              <CheckCircle className="w-10 h-10 text-white" strokeWidth={1.5} />
+            </div>
+
+            <h1 className="text-[22px] font-bold text-white tracking-tight mb-1 text-center">
+              Password updated!
+            </h1>
+            <p className="text-[13px] text-white/40 mb-8 text-center">
+              Your password has been reset. Redirecting you to login…
+            </p>
+
+            <div className="flex justify-center">
+              <Loader2 className="w-5 h-5 animate-spin text-white/30" />
+            </div>
+          </div>
         </motion.div>
       </div>
     );
   }
 
+  // Main form
   return (
-    <div className="min-h-screen flex items-center justify-center px-4 py-12 bg-gray-50">
+    <div className="min-h-screen bg-[#09090b] flex items-center justify-center px-4">
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="w-full max-w-md"
+        className="w-full max-w-[400px]"
       >
-        <LogoLink />
-        <Card className="border-0 shadow-xl">
-          <CardHeader className="text-center">
-            <CardTitle className="text-2xl">Set Password</CardTitle>
-            <CardDescription>Enter your new password below</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="password">New Password</Label>
-                <div className="relative">
-                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 z-10" />
-                  <PasswordInput
-                    id="password"
-                    placeholder="••••••••"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    className="pl-10"
-                    required
-                    minLength={6}
-                  />
-                </div>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="confirmPassword">Confirm Password</Label>
-                <div className="relative">
-                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 z-10" />
-                  <PasswordInput
-                    id="confirmPassword"
-                    placeholder="••••••••"
-                    value={confirmPassword}
-                    onChange={(e) => setConfirmPassword(e.target.value)}
-                    className="pl-10"
-                    required
-                    minLength={6}
-                  />
-                </div>
-              </div>
-              <Button type="submit" className="w-full bg-[#2563EB] hover:bg-[#1d4ed8]" size="lg" disabled={isLoading}>
-                {isLoading ? (
-                  <>
-                    <Loader2 className="w-4 h-4 animate-spin mr-2" />
-                    Updating...
-                  </>
-                ) : (
-                  "Set Password"
-                )}
-              </Button>
-            </form>
-          </CardContent>
-        </Card>
+        <div className="bg-[#111111] border border-white/[0.08] rounded-2xl p-8">
+          {/* Logo */}
+          <div className="flex items-center justify-center gap-2 mb-8">
+            <img src="/logo.png" alt="Skryve" className="w-6 h-6 object-contain" />
+            <span className="font-bold text-white text-base">Skryve</span>
+          </div>
+
+          <h1 className="text-[22px] font-bold text-white tracking-tight mb-1 text-center">
+            Set new password
+          </h1>
+          <p className="text-[13px] text-white/40 mb-8 text-center">
+            Enter your new password below
+          </p>
+
+          {error && (
+            <div className="bg-destructive/10 border border-destructive/30 text-destructive rounded-lg px-3 py-2 text-[13px] mb-4">
+              {error}
+            </div>
+          )}
+
+          <form onSubmit={handleSubmit}>
+            <div className="flex flex-col gap-1.5 mb-4">
+              <label htmlFor="password" className="text-[12px] font-medium text-white/50 uppercase tracking-wider">
+                New Password
+              </label>
+              <PasswordInput
+                id="password"
+                placeholder="••••••••"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="bg-white/[0.04] border-white/[0.1] text-white placeholder:text-white/25 focus-visible:border-white/30 focus-visible:ring-0 h-10"
+                required
+                minLength={6}
+              />
+            </div>
+
+            <div className="flex flex-col gap-1.5 mb-6">
+              <label htmlFor="confirmPassword" className="text-[12px] font-medium text-white/50 uppercase tracking-wider">
+                Confirm Password
+              </label>
+              <PasswordInput
+                id="confirmPassword"
+                placeholder="••••••••"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                className="bg-white/[0.04] border-white/[0.1] text-white placeholder:text-white/25 focus-visible:border-white/30 focus-visible:ring-0 h-10"
+                required
+                minLength={6}
+              />
+            </div>
+
+            <button
+              type="submit"
+              disabled={isLoading}
+              className="w-full h-10 rounded-lg bg-white text-[#09090b] text-[13px] font-bold hover:bg-white/90 transition-all flex items-center justify-center gap-2 disabled:opacity-60"
+            >
+              {isLoading ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  Updating…
+                </>
+              ) : (
+                "Set Password"
+              )}
+            </button>
+          </form>
+
+          <Link
+            to="/login"
+            className="flex items-center justify-center gap-1 text-[13px] text-white/40 hover:text-white/70 transition-colors mt-6"
+          >
+            <ArrowLeft className="w-3.5 h-3.5" />
+            Back to login
+          </Link>
+        </div>
       </motion.div>
     </div>
   );

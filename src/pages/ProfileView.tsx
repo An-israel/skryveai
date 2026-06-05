@@ -2,18 +2,15 @@ import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import {
   MapPin, Star, Calendar, Briefcase, MessageSquare, Share2, Eye,
   Globe, Linkedin, Twitter, Github, ImageIcon, ExternalLink,
 } from "lucide-react";
 
-const AVAILABILITY_STYLES: Record<string, { label: string; class: string }> = {
-  available:   { label: "Available",     class: "bg-green-500/10 text-green-500 border-green-500/30" },
-  busy:        { label: "Busy",          class: "bg-yellow-500/10 text-yellow-500 border-yellow-500/30" },
-  unavailable: { label: "Not Available", class: "bg-red-500/10 text-red-500 border-red-500/30" },
+const AVAILABILITY_STYLES: Record<string, { label: string; dotClass: string }> = {
+  available:   { label: "Available",     dotClass: "bg-green-500" },
+  busy:        { label: "Busy",          dotClass: "bg-amber-500" },
+  unavailable: { label: "Not Available", dotClass: "bg-red-500" },
 };
 
 export default function ProfileView() {
@@ -96,9 +93,14 @@ export default function ProfileView() {
   if (notFound) {
     return (
       <div className="text-center py-24">
-        <h2 className="font-display text-2xl font-bold mb-2">Profile not found</h2>
-        <p className="text-muted-foreground mb-6">The profile you're looking for doesn't exist or has been removed.</p>
-        <Button onClick={() => navigate("/marketplace")}>Browse Talent</Button>
+        <h2 className="text-xl font-bold text-foreground mb-2">Profile not found</h2>
+        <p className="text-[13px] text-muted-foreground mb-6">The profile you're looking for doesn't exist or has been removed.</p>
+        <button
+          className="px-5 py-2.5 rounded-lg bg-primary text-primary-foreground text-[13px] font-semibold hover:bg-primary/90 transition-colors"
+          onClick={() => navigate("/marketplace")}
+        >
+          Browse Talent
+        </button>
       </div>
     );
   }
@@ -106,8 +108,8 @@ export default function ProfileView() {
   if (noTalentProfile) {
     return (
       <div className="text-center py-24">
-        <h2 className="font-display text-2xl font-bold mb-2">Profile not set up</h2>
-        <p className="text-muted-foreground">This user hasn't set up their talent profile yet.</p>
+        <h2 className="text-xl font-bold text-foreground mb-2">Profile not set up</h2>
+        <p className="text-[13px] text-muted-foreground">This user hasn't set up their talent profile yet.</p>
       </div>
     );
   }
@@ -118,12 +120,13 @@ export default function ProfileView() {
   const social = talent?.social_links || {};
 
   return (
-    <div className="max-w-3xl mx-auto space-y-6">
-      <Card className="overflow-hidden">
-        <div className="h-24 bg-gradient-to-br from-primary/20 via-primary/10 to-transparent" />
-        <CardContent className="px-6 pb-6 -mt-10">
+    <div className="max-w-3xl mx-auto space-y-4">
+      {/* ── Hero card ── */}
+      <div className="border border-border rounded-xl bg-card overflow-hidden">
+        <div className="h-20 bg-gradient-to-br from-primary/15 via-primary/8 to-transparent" />
+        <div className="px-6 pb-6 -mt-10">
           <div className="flex flex-col sm:flex-row items-start sm:items-end gap-4">
-            <div className="w-20 h-20 rounded-full border-4 border-background bg-muted flex items-center justify-center overflow-hidden shrink-0">
+            <div className="w-20 h-20 rounded-full border-4 border-card bg-muted flex items-center justify-center overflow-hidden shrink-0">
               {talent?.profile_photo_url ? (
                 <img src={talent.profile_photo_url} alt={profileUser?.full_name} className="w-full h-full object-cover" />
               ) : (
@@ -133,17 +136,20 @@ export default function ProfileView() {
               )}
             </div>
             <div className="flex-1 min-w-0">
-              <div className="flex flex-wrap items-center gap-2">
-                <h1 className="font-display text-xl font-extrabold">
+              <div className="flex flex-wrap items-center gap-2 mb-1">
+                <h1 className="text-xl font-bold text-foreground">
                   {talent?.full_name || profileUser?.full_name || profileUser?.username}
                 </h1>
-                <Badge variant="outline" className={avail.class}>{avail.label}</Badge>
+                <span className="flex items-center gap-1.5">
+                  <span className={`w-1.5 h-1.5 rounded-full inline-block ${avail.dotClass}`} />
+                  <span className="text-[12px] text-muted-foreground">{avail.label}</span>
+                </span>
               </div>
               {talent?.tagline && (
-                <p className="text-sm text-muted-foreground mt-0.5">{talent.tagline}</p>
+                <p className="text-[13px] text-muted-foreground">{talent.tagline}</p>
               )}
               {talent?.location && (
-                <div className="flex items-center gap-1 mt-1 text-xs text-muted-foreground">
+                <div className="flex items-center gap-1 mt-1 text-[12px] text-muted-foreground">
                   <MapPin className="w-3 h-3" />
                   {talent.location}
                 </div>
@@ -152,174 +158,213 @@ export default function ProfileView() {
             <div className="flex gap-2 flex-wrap">
               {isOwner ? (
                 <>
-                  <Button size="sm" variant="outline" onClick={() => navigate("/profile")}>Edit Profile</Button>
-                  <Button size="sm" variant="outline" onClick={handleShare}><Share2 className="w-4 h-4 mr-1" />Share</Button>
-                  <Button size="sm" variant="ghost" onClick={() => setPreviewAsClient(true)}>
-                    <Eye className="w-4 h-4 mr-1" />Preview as Client
-                  </Button>
+                  <button
+                    className="px-4 py-2 rounded-lg border border-border text-[13px] text-muted-foreground hover:text-foreground hover:border-foreground/30 transition-colors"
+                    onClick={() => navigate("/profile")}
+                  >
+                    Edit Profile
+                  </button>
+                  <button
+                    className="px-4 py-2 rounded-lg border border-border text-[13px] text-muted-foreground hover:text-foreground hover:border-foreground/30 flex items-center gap-1.5 transition-colors"
+                    onClick={handleShare}
+                  >
+                    <Share2 className="w-3.5 h-3.5" /> Share
+                  </button>
+                  <button
+                    className="px-4 py-2 rounded-lg border border-border text-[13px] text-muted-foreground hover:text-foreground hover:border-foreground/30 flex items-center gap-1.5 transition-colors"
+                    onClick={() => setPreviewAsClient(true)}
+                  >
+                    <Eye className="w-3.5 h-3.5" /> Preview as Client
+                  </button>
                 </>
               ) : (
                 <>
-                  <Button size="sm" onClick={() => navigate(`/messages?talent=${profileUser?.id}`)}>
-                    <MessageSquare className="w-4 h-4 mr-1" />Send Message
-                  </Button>
-                  <Button size="sm" variant="outline">Invite to Job</Button>
+                  <button
+                    className="px-4 py-2 rounded-lg bg-primary text-primary-foreground text-[13px] font-semibold hover:bg-primary/90 flex items-center gap-1.5 transition-colors"
+                    onClick={() => navigate(`/messages?talent=${profileUser?.id}`)}
+                  >
+                    <MessageSquare className="w-3.5 h-3.5" /> Send Message
+                  </button>
+                  <button className="px-4 py-2 rounded-lg border border-border text-[13px] text-muted-foreground hover:text-foreground hover:border-foreground/30 transition-colors">
+                    Invite to Job
+                  </button>
                 </>
               )}
               {previewAsClient && (
-                <Button size="sm" variant="ghost" onClick={() => setPreviewAsClient(false)}>Exit Preview</Button>
+                <button
+                  className="px-4 py-2 rounded-lg border border-border text-[13px] text-muted-foreground hover:text-foreground transition-colors"
+                  onClick={() => setPreviewAsClient(false)}
+                >
+                  Exit Preview
+                </button>
               )}
             </div>
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
 
+      {/* ── About ── */}
       {talent?.bio && (
-        <Card>
-          <CardContent className="p-5">
-            <h2 className="font-semibold text-sm mb-2">About</h2>
-            <p className="text-sm text-muted-foreground leading-relaxed whitespace-pre-line">{talent.bio}</p>
-          </CardContent>
-        </Card>
+        <div className="border border-border rounded-xl bg-card overflow-hidden">
+          <div className="px-5 py-3.5 border-b border-border">
+            <span className="text-[13px] font-semibold text-foreground">About</span>
+          </div>
+          <div className="px-5 py-5">
+            <p className="text-[13px] text-muted-foreground leading-relaxed whitespace-pre-line">{talent.bio}</p>
+          </div>
+        </div>
       )}
 
+      {/* ── Skills ── */}
       {(talent?.primary_skill || (talent?.secondary_skills?.length ?? 0) > 0) && (
-        <Card>
-          <CardContent className="p-5">
-            <h2 className="font-semibold text-sm mb-3">Skills</h2>
+        <div className="border border-border rounded-xl bg-card overflow-hidden">
+          <div className="px-5 py-3.5 border-b border-border">
+            <span className="text-[13px] font-semibold text-foreground">Skills</span>
+          </div>
+          <div className="px-5 py-5">
             <div className="flex flex-wrap gap-2">
               {talent?.primary_skill && (
-                <Badge className="text-sm px-3 py-1">{talent.primary_skill}</Badge>
+                <span className="text-[13px] px-3 py-1 bg-primary/10 text-primary rounded-lg font-medium">
+                  {talent.primary_skill}
+                </span>
               )}
               {(talent?.secondary_skills || []).map((skill: string) => (
-                <Badge key={skill} variant="secondary">{skill}</Badge>
+                <span key={skill} className="text-[11px] px-2 py-0.5 bg-muted text-muted-foreground rounded-md">
+                  {skill}
+                </span>
               ))}
             </div>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
       )}
 
-      <Card>
-        <CardContent className="p-5">
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-center">
-            {memberYear && (
-              <div>
-                <div className="flex items-center justify-center gap-1 text-muted-foreground mb-1">
-                  <Calendar className="w-4 h-4" />
-                </div>
-                <p className="font-semibold text-sm">{memberYear}</p>
-                <p className="text-xs text-muted-foreground">Member Since</p>
+      {/* ── Stats ── */}
+      <div className="border border-border rounded-xl bg-card overflow-hidden">
+        <div className="px-5 py-5 grid grid-cols-2 sm:grid-cols-4 gap-4 text-center">
+          {memberYear && (
+            <div>
+              <div className="flex items-center justify-center gap-1 text-muted-foreground mb-1.5">
+                <Calendar className="w-3.5 h-3.5" />
               </div>
+              <p className="text-[14px] font-semibold text-foreground">{memberYear}</p>
+              <p className="text-[12px] text-muted-foreground">Member Since</p>
+            </div>
+          )}
+          <div>
+            <div className="flex items-center justify-center gap-1 text-muted-foreground mb-1.5">
+              <Briefcase className="w-3.5 h-3.5" />
+            </div>
+            <p className="text-[14px] font-semibold text-foreground">{talent?.completed_projects_count || 0}</p>
+            <p className="text-[12px] text-muted-foreground">Completed Projects</p>
+          </div>
+          <div>
+            <div className="flex items-center justify-center gap-1 text-amber-500 mb-1.5">
+              <Star className="w-3.5 h-3.5 fill-current" />
+            </div>
+            <p className="text-[14px] font-semibold text-foreground">{talent?.rating_avg ? Number(talent.rating_avg).toFixed(1) : "5.0"}</p>
+            <p className="text-[12px] text-muted-foreground">Avg Rating</p>
+          </div>
+          {talent?.total_reviews > 0 && (
+            <div>
+              <p className="text-[14px] font-semibold text-foreground">{talent.total_reviews}</p>
+              <p className="text-[12px] text-muted-foreground">Reviews</p>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* ── Social links ── */}
+      {(social.linkedin || social.twitter || social.github || social.website) && (
+        <div className="border border-border rounded-xl bg-card overflow-hidden">
+          <div className="px-5 py-3.5 border-b border-border">
+            <span className="text-[13px] font-semibold text-foreground">Links</span>
+          </div>
+          <div className="px-5 py-5 flex flex-wrap gap-2">
+            {social.linkedin && (
+              <a href={social.linkedin} target="_blank" rel="noopener noreferrer">
+                <button className="px-4 py-2 rounded-lg border border-border text-[13px] text-muted-foreground hover:text-foreground hover:border-foreground/30 flex items-center gap-1.5 transition-colors">
+                  <Linkedin className="w-3.5 h-3.5" /> LinkedIn
+                </button>
+              </a>
             )}
-            <div>
-              <div className="flex items-center justify-center gap-1 text-muted-foreground mb-1">
-                <Briefcase className="w-4 h-4" />
-              </div>
-              <p className="font-semibold text-sm">{talent?.completed_projects_count || 0}</p>
-              <p className="text-xs text-muted-foreground">Completed Projects</p>
-            </div>
-            <div>
-              <div className="flex items-center justify-center gap-1 text-yellow-500 mb-1">
-                <Star className="w-4 h-4 fill-current" />
-              </div>
-              <p className="font-semibold text-sm">{talent?.rating_avg ? Number(talent.rating_avg).toFixed(1) : "5.0"}</p>
-              <p className="text-xs text-muted-foreground">Avg Rating</p>
-            </div>
-            {talent?.total_reviews > 0 && (
-              <div>
-                <p className="font-semibold text-sm">{talent.total_reviews}</p>
-                <p className="text-xs text-muted-foreground">Reviews</p>
-              </div>
+            {social.twitter && (
+              <a href={social.twitter} target="_blank" rel="noopener noreferrer">
+                <button className="px-4 py-2 rounded-lg border border-border text-[13px] text-muted-foreground hover:text-foreground hover:border-foreground/30 flex items-center gap-1.5 transition-colors">
+                  <Twitter className="w-3.5 h-3.5" /> Twitter
+                </button>
+              </a>
+            )}
+            {social.github && (
+              <a href={social.github} target="_blank" rel="noopener noreferrer">
+                <button className="px-4 py-2 rounded-lg border border-border text-[13px] text-muted-foreground hover:text-foreground hover:border-foreground/30 flex items-center gap-1.5 transition-colors">
+                  <Github className="w-3.5 h-3.5" /> GitHub
+                </button>
+              </a>
+            )}
+            {social.website && (
+              <a href={social.website} target="_blank" rel="noopener noreferrer">
+                <button className="px-4 py-2 rounded-lg border border-border text-[13px] text-muted-foreground hover:text-foreground hover:border-foreground/30 flex items-center gap-1.5 transition-colors">
+                  <Globe className="w-3.5 h-3.5" /> Website
+                </button>
+              </a>
             )}
           </div>
-        </CardContent>
-      </Card>
-
-      {(social.linkedin || social.twitter || social.github || social.website) && (
-        <Card>
-          <CardContent className="p-5">
-            <h2 className="font-semibold text-sm mb-3">Links</h2>
-            <div className="flex flex-wrap gap-3">
-              {social.linkedin && (
-                <a href={social.linkedin} target="_blank" rel="noopener noreferrer">
-                  <Button variant="outline" size="sm" className="gap-1.5">
-                    <Linkedin className="w-4 h-4" /> LinkedIn
-                  </Button>
-                </a>
-              )}
-              {social.twitter && (
-                <a href={social.twitter} target="_blank" rel="noopener noreferrer">
-                  <Button variant="outline" size="sm" className="gap-1.5">
-                    <Twitter className="w-4 h-4" /> Twitter
-                  </Button>
-                </a>
-              )}
-              {social.github && (
-                <a href={social.github} target="_blank" rel="noopener noreferrer">
-                  <Button variant="outline" size="sm" className="gap-1.5">
-                    <Github className="w-4 h-4" /> GitHub
-                  </Button>
-                </a>
-              )}
-              {social.website && (
-                <a href={social.website} target="_blank" rel="noopener noreferrer">
-                  <Button variant="outline" size="sm" className="gap-1.5">
-                    <Globe className="w-4 h-4" /> Website
-                  </Button>
-                </a>
-              )}
-            </div>
-          </CardContent>
-        </Card>
+        </div>
       )}
 
+      {/* ── Portfolio ── */}
       {portfolio.length > 0 && (
         <div>
-          <h2 className="font-display font-bold text-lg mb-3">Portfolio</h2>
+          <p className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground mb-3">Portfolio</p>
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
             {portfolio.map(item => (
-              <Card key={item.id} className="overflow-hidden group cursor-pointer">
+              <div key={item.id} className="border border-border rounded-xl bg-card overflow-hidden group cursor-pointer hover:border-primary/30 transition-colors">
                 <a href={item.project_url || item.image_url || "#"} target="_blank" rel="noopener noreferrer">
                   <div className="relative aspect-video bg-muted flex items-center justify-center">
                     {item.image_url ? (
                       <img src={item.image_url} alt={item.title} className="w-full h-full object-cover group-hover:opacity-90 transition-opacity" />
                     ) : (
-                      <ImageIcon className="w-10 h-10 text-muted-foreground" />
+                      <ImageIcon className="w-8 h-8 text-muted-foreground" />
                     )}
                     {item.is_featured && (
-                      <Badge className="absolute top-2 left-2 bg-yellow-500/90 text-yellow-950 text-[10px]">
-                        <Star className="w-3 h-3 mr-0.5 fill-current" /> Featured
-                      </Badge>
+                      <span className="absolute top-2 left-2 text-[10px] px-2 py-0.5 bg-amber-500/90 text-amber-950 rounded-md font-semibold flex items-center gap-0.5">
+                        <Star className="w-2.5 h-2.5 fill-current" /> Featured
+                      </span>
                     )}
                     {item.project_url && (
                       <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                        <ExternalLink className="w-6 h-6 text-white" />
+                        <ExternalLink className="w-5 h-5 text-white" />
                       </div>
                     )}
                   </div>
-                  <CardContent className="p-3">
-                    <p className="font-medium text-sm truncate">{item.title}</p>
+                  <div className="px-4 py-3">
+                    <p className="text-[13px] font-medium text-foreground truncate">{item.title}</p>
                     {item.skill_category && (
-                      <Badge variant="secondary" className="mt-1 text-[10px]">{item.skill_category}</Badge>
+                      <span className="text-[11px] px-2 py-0.5 bg-muted text-muted-foreground rounded-md mt-1 inline-block">
+                        {item.skill_category}
+                      </span>
                     )}
-                  </CardContent>
+                  </div>
                 </a>
-              </Card>
+              </div>
             ))}
           </div>
         </div>
       )}
 
-      <Card>
-        <CardContent className="p-5">
-          <h2 className="font-semibold text-sm mb-3">Reviews</h2>
+      {/* ── Reviews ── */}
+      <div className="border border-border rounded-xl bg-card overflow-hidden">
+        <div className="px-5 py-3.5 border-b border-border">
+          <span className="text-[13px] font-semibold text-foreground">Reviews</span>
+        </div>
+        <div className="px-5 py-5">
           {talent?.total_reviews > 0 ? (
-            <p className="text-sm text-muted-foreground">Reviews coming soon.</p>
+            <p className="text-[13px] text-muted-foreground">Reviews coming soon.</p>
           ) : (
-            <p className="text-sm text-muted-foreground">No reviews yet.</p>
+            <p className="text-[13px] text-muted-foreground">No reviews yet.</p>
           )}
-        </CardContent>
-      </Card>
+        </div>
+      </div>
     </div>
   );
 }

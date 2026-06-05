@@ -1,11 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { Card } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Progress } from "@/components/ui/progress";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Dialog,
   DialogContent,
@@ -92,28 +87,27 @@ function CertificateModal({
         <DialogHeader>
           <DialogTitle>Certificate of Completion</DialogTitle>
         </DialogHeader>
-        <div className="relative border-8 border-double border-[#2563EB]/30 rounded-xl p-10 text-center bg-gradient-to-br from-background to-muted/30">
-          {/* Decorative corners */}
-          <div className="absolute top-4 left-4 h-8 w-8 border-t-2 border-l-2 border-[#2563EB]/50 rounded-tl" />
-          <div className="absolute top-4 right-4 h-8 w-8 border-t-2 border-r-2 border-[#2563EB]/50 rounded-tr" />
-          <div className="absolute bottom-4 left-4 h-8 w-8 border-b-2 border-l-2 border-[#2563EB]/50 rounded-bl" />
-          <div className="absolute bottom-4 right-4 h-8 w-8 border-b-2 border-r-2 border-[#2563EB]/50 rounded-br" />
-
-          <Trophy className="h-12 w-12 text-[#2563EB] mx-auto mb-4" />
-          <p className="text-sm text-muted-foreground uppercase tracking-widest mb-1">
+        <div className="relative border-8 border-double border-primary/30 rounded-xl p-10 text-center bg-gradient-to-br from-background to-muted/30">
+          <div className="absolute top-4 left-4 h-8 w-8 border-t-2 border-l-2 border-primary/50 rounded-tl" />
+          <div className="absolute top-4 right-4 h-8 w-8 border-t-2 border-r-2 border-primary/50 rounded-tr" />
+          <div className="absolute bottom-4 left-4 h-8 w-8 border-b-2 border-l-2 border-primary/50 rounded-bl" />
+          <div className="absolute bottom-4 right-4 h-8 w-8 border-b-2 border-r-2 border-primary/50 rounded-br" />
+          <Trophy className="h-12 w-12 text-primary mx-auto mb-4" />
+          <p className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground mb-1">
             Certificate of Completion
           </p>
-          <p className="text-lg text-muted-foreground mb-4">
+          <p className="text-sm text-muted-foreground mb-4">
             This certifies successful completion of
           </p>
           <h2 className="text-2xl font-bold mb-2">{cert.courses.title}</h2>
           {cert.courses.skill_category && (
-            <Badge variant="secondary" className="mb-4">
+            <span className="inline-block px-3 py-1 rounded-full bg-muted text-[12px] font-medium text-muted-foreground mb-4">
               {cert.courses.skill_category}
-            </Badge>
+            </span>
           )}
-          <p className="text-sm text-muted-foreground mt-2">
-            Issued on {new Date(cert.issued_at).toLocaleDateString("en-NG", {
+          <p className="text-[13px] text-muted-foreground mt-2">
+            Issued on{" "}
+            {new Date(cert.issued_at).toLocaleDateString("en-NG", {
               year: "numeric",
               month: "long",
               day: "numeric",
@@ -130,10 +124,10 @@ function CertificateModal({
             rel="noopener noreferrer"
             className="flex items-center justify-center gap-2 mt-2"
           >
-            <Button variant="outline" className="gap-2">
+            <button className="px-5 py-2.5 rounded-lg border border-border text-[13px] text-muted-foreground hover:text-foreground hover:border-foreground/30 flex items-center gap-2 transition-colors">
               <Download className="h-4 w-4" />
               Download Certificate
-            </Button>
+            </button>
           </a>
         )}
       </DialogContent>
@@ -141,12 +135,50 @@ function CertificateModal({
   );
 }
 
+// ─── Tab button ───────────────────────────────────────────────────────────────
+
+function TabButton({
+  active,
+  onClick,
+  icon,
+  label,
+  count,
+}: {
+  active: boolean;
+  onClick: () => void;
+  icon: React.ReactNode;
+  label: string;
+  count?: number;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      className={`flex items-center gap-2 px-4 py-2 text-[13px] font-medium rounded-lg transition-colors ${
+        active
+          ? "bg-muted text-foreground"
+          : "text-muted-foreground hover:text-foreground"
+      }`}
+    >
+      {icon}
+      {label}
+      {count != null && count > 0 && (
+        <span className="ml-0.5 px-1.5 py-0.5 rounded-full bg-border text-[11px] font-semibold text-muted-foreground leading-none">
+          {count}
+        </span>
+      )}
+    </button>
+  );
+}
+
 // ─── Main Component ───────────────────────────────────────────────────────────
+
+type Tab = "in-progress" | "completed" | "certificates";
 
 export default function MyLearning() {
   const navigate = useNavigate();
   const { toast } = useToast();
 
+  const [tab, setTab] = useState<Tab>("in-progress");
   const [inProgress, setInProgress] = useState<Enrollment[]>([]);
   const [completed, setCompleted] = useState<Enrollment[]>([]);
   const [certificates, setCertificates] = useState<Certificate[]>([]);
@@ -160,7 +192,9 @@ export default function MyLearning() {
 
   async function init() {
     setLoading(true);
-    const { data: { user } } = await supabase.auth.getUser();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
     if (!user) {
       navigate("/login");
       return;
@@ -185,14 +219,18 @@ export default function MyLearning() {
     ] = await Promise.all([
       (supabase as any)
         .from("enrollments")
-        .select("id, course_id, progress_percent, completed_at, created_at, courses(*)")
+        .select(
+          "id, course_id, progress_percent, completed_at, created_at, courses(*)"
+        )
         .eq("talent_id", profile.id)
         .eq("payment_status", "paid")
         .lt("progress_percent", 100)
         .order("created_at", { ascending: false }),
       (supabase as any)
         .from("enrollments")
-        .select("id, course_id, progress_percent, completed_at, created_at, courses(*)")
+        .select(
+          "id, course_id, progress_percent, completed_at, created_at, courses(*)"
+        )
         .eq("talent_id", profile.id)
         .eq("payment_status", "paid")
         .eq("progress_percent", 100)
@@ -211,7 +249,6 @@ export default function MyLearning() {
   }
 
   async function continueEnrollment(enrollment: Enrollment) {
-    // Navigate to first incomplete lesson
     const { data: lessons } = await (supabase as any)
       .from("course_lessons")
       .select("id, order_index")
@@ -224,8 +261,12 @@ export default function MyLearning() {
       .eq("enrollment_id", enrollment.id)
       .eq("is_completed", true);
 
-    const completedIds = new Set((progress || []).map((p: any) => p.lesson_id));
-    const firstIncomplete = (lessons || []).find((l: any) => !completedIds.has(l.id));
+    const completedIds = new Set(
+      (progress || []).map((p: any) => p.lesson_id)
+    );
+    const firstIncomplete = (lessons || []).find(
+      (l: any) => !completedIds.has(l.id)
+    );
 
     if (firstIncomplete) {
       navigate(`/learn/${enrollment.course_id}/${firstIncomplete.id}`);
@@ -246,247 +287,356 @@ export default function MyLearning() {
 
   return (
     <div className="max-w-5xl mx-auto px-4 pb-12 pt-2">
+      {/* Page header */}
       <div className="flex items-center gap-3 mb-6">
-        <Button variant="ghost" size="sm" asChild className="-ml-2">
-          <Link to="/learn">
-            <ArrowLeft className="h-4 w-4 mr-1" /> Browse Courses
-          </Link>
-        </Button>
-        <div>
-          <h1 className="text-2xl font-bold">My Learning</h1>
-          <p className="text-sm text-muted-foreground">
-            Track your progress and download certificates
-          </p>
-        </div>
+        <Link
+          to="/learn"
+          className="flex items-center gap-1.5 text-[13px] text-muted-foreground hover:text-foreground transition-colors -ml-1"
+        >
+          <ArrowLeft className="h-4 w-4" />
+          Browse Courses
+        </Link>
       </div>
 
-      <Tabs defaultValue="in-progress">
-        <TabsList className="mb-6">
-          <TabsTrigger value="in-progress" className="gap-1.5">
-            <BookOpen className="h-4 w-4" />
-            In Progress
-            {inProgress.length > 0 && (
-              <Badge variant="secondary" className="text-xs">
-                {inProgress.length}
-              </Badge>
-            )}
-          </TabsTrigger>
-          <TabsTrigger value="completed" className="gap-1.5">
-            <GraduationCap className="h-4 w-4" />
-            Completed
-            {completed.length > 0 && (
-              <Badge variant="secondary" className="text-xs">
-                {completed.length}
-              </Badge>
-            )}
-          </TabsTrigger>
-          <TabsTrigger value="certificates" className="gap-1.5">
-            <Award className="h-4 w-4" />
-            Certificates
-            {certificates.length > 0 && (
-              <Badge variant="secondary" className="text-xs">
-                {certificates.length}
-              </Badge>
-            )}
-          </TabsTrigger>
-        </TabsList>
+      <div className="mb-6">
+        <h1 className="text-[22px] font-bold text-foreground">My Learning</h1>
+        <p className="text-[13px] text-muted-foreground mt-0.5">
+          Track your progress and download certificates
+        </p>
+      </div>
 
-        {/* ── In Progress ── */}
-        <TabsContent value="in-progress">
+      {/* Tabs */}
+      <div className="flex items-center gap-1 mb-6 border-b border-border pb-3">
+        <TabButton
+          active={tab === "in-progress"}
+          onClick={() => setTab("in-progress")}
+          icon={<BookOpen className="h-3.5 w-3.5" />}
+          label="In Progress"
+          count={inProgress.length}
+        />
+        <TabButton
+          active={tab === "completed"}
+          onClick={() => setTab("completed")}
+          icon={<GraduationCap className="h-3.5 w-3.5" />}
+          label="Completed"
+          count={completed.length}
+        />
+        <TabButton
+          active={tab === "certificates"}
+          onClick={() => setTab("certificates")}
+          icon={<Award className="h-3.5 w-3.5" />}
+          label="Certificates"
+          count={certificates.length}
+        />
+      </div>
+
+      {/* ── In Progress ── */}
+      {tab === "in-progress" && (
+        <>
           {inProgress.length === 0 ? (
-            <div className="text-center py-16 text-muted-foreground">
-              <BookOpen className="h-12 w-12 mx-auto mb-3 opacity-30" />
-              <p>You haven't started any courses yet.</p>
-              <Button asChild className="mt-4">
-                <Link to="/learn">Browse Courses</Link>
-              </Button>
+            <div className="border border-border rounded-xl bg-card overflow-hidden">
+              <div className="flex flex-col items-center justify-center py-16 text-center px-5">
+                <div className="w-12 h-12 rounded-full bg-muted flex items-center justify-center mb-4">
+                  <BookOpen className="h-5 w-5 text-muted-foreground" />
+                </div>
+                <p className="text-[14px] font-medium text-foreground mb-1">
+                  No courses in progress
+                </p>
+                <p className="text-[13px] text-muted-foreground mb-5">
+                  You haven't started any courses yet.
+                </p>
+                <Link
+                  to="/learn"
+                  className="px-5 py-2.5 rounded-lg bg-primary text-primary-foreground text-[13px] font-semibold hover:bg-primary/90 transition-colors"
+                >
+                  Browse Courses
+                </Link>
+              </div>
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {inProgress.map((enr) => {
-                const c = enr.courses;
-                return (
-                  <Card key={enr.id} className="overflow-hidden flex flex-col">
-                    <div className="relative h-40 flex-shrink-0">
-                      {c.thumbnail_url ? (
-                        <img
-                          src={c.thumbnail_url}
-                          alt={c.title}
-                          className="w-full h-full object-cover"
-                        />
-                      ) : (
-                        <div
-                          className={`w-full h-full bg-gradient-to-br ${getGradient(c.skill_category)} flex items-center justify-center`}
-                        >
-                          <GraduationCap className="h-10 w-10 text-white/50" />
-                        </div>
-                      )}
-                      <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-3">
-                        <Progress
-                          value={enr.progress_percent}
-                          className="h-1.5"
-                        />
-                        <p className="text-xs text-white/80 mt-1">
-                          {enr.progress_percent}% complete
-                        </p>
-                      </div>
-                    </div>
-                    <div className="p-4 flex flex-col flex-1">
-                      {c.skill_category && (
-                        <Badge variant="secondary" className="w-fit text-xs mb-1.5">
-                          {c.skill_category}
-                        </Badge>
-                      )}
-                      <h3 className="font-semibold line-clamp-2 flex-1">{c.title}</h3>
-                      {c.instructor_name && (
-                        <p className="text-xs text-muted-foreground mt-1">
-                          by {c.instructor_name}
-                        </p>
-                      )}
-                      <div className="flex items-center justify-between mt-3 pt-3 border-t">
-                        <span className="text-xs text-muted-foreground flex items-center gap-1">
-                          <Clock className="h-3 w-3" />
-                          Enrolled {formatDistanceToNow(new Date(enr.created_at), { addSuffix: true })}
-                        </span>
-                        <Button
-                          size="sm"
-                          className="gap-1"
-                          onClick={() => void continueEnrollment(enr)}
-                        >
-                          Continue <ChevronRight className="h-3 w-3" />
-                        </Button>
-                      </div>
-                    </div>
-                  </Card>
-                );
-              })}
-            </div>
-          )}
-        </TabsContent>
-
-        {/* ── Completed ── */}
-        <TabsContent value="completed">
-          {completed.length === 0 ? (
-            <div className="text-center py-16 text-muted-foreground">
-              <GraduationCap className="h-12 w-12 mx-auto mb-3 opacity-30" />
-              <p>No completed courses yet. Keep learning!</p>
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {completed.map((enr) => {
-                const c = enr.courses;
-                return (
-                  <Card key={enr.id} className="overflow-hidden flex flex-col">
-                    <div className="relative h-40 flex-shrink-0">
-                      {c.thumbnail_url ? (
-                        <img
-                          src={c.thumbnail_url}
-                          alt={c.title}
-                          className="w-full h-full object-cover"
-                        />
-                      ) : (
-                        <div
-                          className={`w-full h-full bg-gradient-to-br ${getGradient(c.skill_category)} flex items-center justify-center`}
-                        >
-                          <GraduationCap className="h-10 w-10 text-white/50" />
-                        </div>
-                      )}
-                      <Badge className="absolute top-2 right-2 bg-[#059669] text-white border-0">
-                        Completed
-                      </Badge>
-                    </div>
-                    <div className="p-4 flex flex-col flex-1">
-                      {c.skill_category && (
-                        <Badge variant="secondary" className="w-fit text-xs mb-1.5">
-                          {c.skill_category}
-                        </Badge>
-                      )}
-                      <h3 className="font-semibold line-clamp-2 flex-1">{c.title}</h3>
-                      <div className="flex items-center justify-between mt-3 pt-3 border-t">
-                        <span className="text-xs text-muted-foreground">
-                          {enr.completed_at
-                            ? `Completed ${formatDistanceToNow(new Date(enr.completed_at), { addSuffix: true })}`
-                            : "Completed"}
-                        </span>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => navigate(`/learn/${enr.course_id}`)}
-                        >
-                          Review
-                        </Button>
-                      </div>
-                    </div>
-                  </Card>
-                );
-              })}
-            </div>
-          )}
-        </TabsContent>
-
-        {/* ── Certificates ── */}
-        <TabsContent value="certificates">
-          {certificates.length === 0 ? (
-            <div className="text-center py-16 text-muted-foreground">
-              <Award className="h-12 w-12 mx-auto mb-3 opacity-30" />
-              <p>No certificates yet. Complete a course to earn one!</p>
-              <Button asChild className="mt-4">
-                <Link to="/learn">Browse Courses</Link>
-              </Button>
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {certificates.map((cert) => {
-                const c = cert.courses;
-                return (
-                  <Card
-                    key={cert.id}
-                    className="p-6 text-center cursor-pointer hover:shadow-md transition-shadow border-2 border-dashed border-[#2563EB]/20 hover:border-[#2563EB]/50"
-                    onClick={() => {
-                      setSelectedCert(cert);
-                      setCertModalOpen(true);
-                    }}
-                  >
+            <div className="border border-border rounded-xl bg-card overflow-hidden">
+              <div className="px-5 py-3.5 border-b border-border flex items-center justify-between">
+                <span className="text-[13px] font-semibold text-foreground">
+                  In Progress
+                </span>
+                <span className="text-[12px] text-muted-foreground">
+                  {inProgress.length}{" "}
+                  {inProgress.length === 1 ? "course" : "courses"}
+                </span>
+              </div>
+              <div className="divide-y divide-border">
+                {inProgress.map((enr) => {
+                  const c = enr.courses;
+                  return (
                     <div
-                      className={`w-16 h-16 rounded-full bg-gradient-to-br ${getGradient(c.skill_category)} flex items-center justify-center mx-auto mb-4`}
+                      key={enr.id}
+                      className="px-5 py-4 hover:bg-muted/30 transition-colors flex items-center gap-4"
                     >
-                      <Trophy className="h-8 w-8 text-white" />
+                      {/* Thumbnail */}
+                      <div className="w-12 h-12 rounded-lg overflow-hidden flex-shrink-0">
+                        {c.thumbnail_url ? (
+                          <img
+                            src={c.thumbnail_url}
+                            alt={c.title}
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          <div
+                            className={`w-full h-full bg-gradient-to-br ${getGradient(c.skill_category)} flex items-center justify-center`}
+                          >
+                            <GraduationCap className="h-5 w-5 text-white/60" />
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Info */}
+                      <div className="flex-1 min-w-0">
+                        <p className="text-[13px] font-medium text-foreground truncate">
+                          {c.title}
+                        </p>
+                        <div className="flex items-center gap-2 mt-0.5">
+                          {c.skill_category && (
+                            <span className="text-[11px] text-muted-foreground">
+                              {c.skill_category}
+                            </span>
+                          )}
+                          {c.instructor_name && (
+                            <>
+                              <span className="text-[11px] text-border">·</span>
+                              <span className="text-[11px] text-muted-foreground">
+                                {c.instructor_name}
+                              </span>
+                            </>
+                          )}
+                        </div>
+                        {/* Progress bar */}
+                        <div className="mt-2 flex items-center gap-2">
+                          <div className="flex-1 h-1 bg-border rounded-full">
+                            <div
+                              className="h-full bg-primary rounded-full transition-all"
+                              style={{ width: `${enr.progress_percent}%` }}
+                            />
+                          </div>
+                          <span className="text-[11px] text-muted-foreground tabular-nums">
+                            {enr.progress_percent}%
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Meta + action */}
+                      <div className="flex items-center gap-3 flex-shrink-0">
+                        <span className="text-[11px] text-muted-foreground hidden sm:flex items-center gap-1">
+                          <Clock className="h-3 w-3" />
+                          {formatDistanceToNow(new Date(enr.created_at), {
+                            addSuffix: true,
+                          })}
+                        </span>
+                        <button
+                          onClick={() => void continueEnrollment(enr)}
+                          className="px-4 py-2 rounded-lg bg-primary text-primary-foreground text-[12px] font-semibold hover:bg-primary/90 transition-colors flex items-center gap-1"
+                        >
+                          Continue
+                          <ChevronRight className="h-3.5 w-3.5" />
+                        </button>
+                      </div>
                     </div>
-                    <h3 className="font-semibold text-sm line-clamp-2 mb-1">
-                      {c.title}
-                    </h3>
-                    {c.skill_category && (
-                      <Badge variant="secondary" className="text-xs mb-2">
-                        {c.skill_category}
-                      </Badge>
-                    )}
-                    <p className="text-xs text-muted-foreground">
-                      Issued {new Date(cert.issued_at).toLocaleDateString("en-NG", {
-                        year: "numeric",
-                        month: "short",
-                        day: "numeric",
-                      })}
-                    </p>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="mt-3 w-full gap-1"
-                      onClick={(e) => {
-                        e.stopPropagation();
+                  );
+                })}
+              </div>
+            </div>
+          )}
+        </>
+      )}
+
+      {/* ── Completed ── */}
+      {tab === "completed" && (
+        <>
+          {completed.length === 0 ? (
+            <div className="border border-border rounded-xl bg-card overflow-hidden">
+              <div className="flex flex-col items-center justify-center py-16 text-center px-5">
+                <div className="w-12 h-12 rounded-full bg-muted flex items-center justify-center mb-4">
+                  <GraduationCap className="h-5 w-5 text-muted-foreground" />
+                </div>
+                <p className="text-[14px] font-medium text-foreground mb-1">
+                  No completed courses yet
+                </p>
+                <p className="text-[13px] text-muted-foreground">
+                  Keep learning!
+                </p>
+              </div>
+            </div>
+          ) : (
+            <div className="border border-border rounded-xl bg-card overflow-hidden">
+              <div className="px-5 py-3.5 border-b border-border flex items-center justify-between">
+                <span className="text-[13px] font-semibold text-foreground">
+                  Completed
+                </span>
+                <span className="text-[12px] text-muted-foreground">
+                  {completed.length}{" "}
+                  {completed.length === 1 ? "course" : "courses"}
+                </span>
+              </div>
+              <div className="divide-y divide-border">
+                {completed.map((enr) => {
+                  const c = enr.courses;
+                  return (
+                    <div
+                      key={enr.id}
+                      className="px-5 py-4 hover:bg-muted/30 transition-colors flex items-center gap-4"
+                    >
+                      {/* Thumbnail */}
+                      <div className="w-12 h-12 rounded-lg overflow-hidden flex-shrink-0 relative">
+                        {c.thumbnail_url ? (
+                          <img
+                            src={c.thumbnail_url}
+                            alt={c.title}
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          <div
+                            className={`w-full h-full bg-gradient-to-br ${getGradient(c.skill_category)} flex items-center justify-center`}
+                          >
+                            <GraduationCap className="h-5 w-5 text-white/60" />
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Info */}
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2">
+                          <p className="text-[13px] font-medium text-foreground truncate">
+                            {c.title}
+                          </p>
+                          <span className="flex-shrink-0 flex items-center gap-1 text-[11px] text-emerald-500 font-medium">
+                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 inline-block" />
+                            Completed
+                          </span>
+                        </div>
+                        {c.skill_category && (
+                          <span className="text-[11px] text-muted-foreground">
+                            {c.skill_category}
+                          </span>
+                        )}
+                        <p className="text-[11px] text-muted-foreground mt-0.5">
+                          {enr.completed_at
+                            ? `Completed ${formatDistanceToNow(
+                                new Date(enr.completed_at),
+                                { addSuffix: true }
+                              )}`
+                            : "Completed"}
+                        </p>
+                      </div>
+
+                      {/* Action */}
+                      <button
+                        onClick={() => navigate(`/learn/${enr.course_id}`)}
+                        className="px-4 py-2 rounded-lg border border-border text-[12px] text-muted-foreground hover:text-foreground hover:border-foreground/30 transition-colors flex-shrink-0"
+                      >
+                        Review
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+        </>
+      )}
+
+      {/* ── Certificates ── */}
+      {tab === "certificates" && (
+        <>
+          {certificates.length === 0 ? (
+            <div className="border border-border rounded-xl bg-card overflow-hidden">
+              <div className="flex flex-col items-center justify-center py-16 text-center px-5">
+                <div className="w-12 h-12 rounded-full bg-muted flex items-center justify-center mb-4">
+                  <Award className="h-5 w-5 text-muted-foreground" />
+                </div>
+                <p className="text-[14px] font-medium text-foreground mb-1">
+                  No certificates yet
+                </p>
+                <p className="text-[13px] text-muted-foreground mb-5">
+                  Complete a course to earn one!
+                </p>
+                <Link
+                  to="/learn"
+                  className="px-5 py-2.5 rounded-lg bg-primary text-primary-foreground text-[13px] font-semibold hover:bg-primary/90 transition-colors"
+                >
+                  Browse Courses
+                </Link>
+              </div>
+            </div>
+          ) : (
+            <div className="border border-border rounded-xl bg-card overflow-hidden">
+              <div className="px-5 py-3.5 border-b border-border flex items-center justify-between">
+                <span className="text-[13px] font-semibold text-foreground">
+                  Certificates
+                </span>
+                <span className="text-[12px] text-muted-foreground">
+                  {certificates.length}{" "}
+                  {certificates.length === 1 ? "certificate" : "certificates"}
+                </span>
+              </div>
+              <div className="divide-y divide-border">
+                {certificates.map((cert) => {
+                  const c = cert.courses;
+                  return (
+                    <div
+                      key={cert.id}
+                      className="px-5 py-4 hover:bg-muted/30 transition-colors flex items-center gap-4 cursor-pointer"
+                      onClick={() => {
                         setSelectedCert(cert);
                         setCertModalOpen(true);
                       }}
                     >
-                      <Award className="h-3.5 w-3.5" />
-                      View Certificate
-                    </Button>
-                  </Card>
-                );
-              })}
+                      {/* Icon */}
+                      <div
+                        className={`w-10 h-10 rounded-full bg-gradient-to-br ${getGradient(c.skill_category)} flex items-center justify-center flex-shrink-0`}
+                      >
+                        <Trophy className="h-4 w-4 text-white" />
+                      </div>
+
+                      {/* Info */}
+                      <div className="flex-1 min-w-0">
+                        <p className="text-[13px] font-medium text-foreground truncate">
+                          {c.title}
+                        </p>
+                        <p className="text-[11px] text-muted-foreground mt-0.5">
+                          {c.skill_category && (
+                            <span className="mr-2">{c.skill_category}</span>
+                          )}
+                          Issued{" "}
+                          {new Date(cert.issued_at).toLocaleDateString(
+                            "en-NG",
+                            {
+                              year: "numeric",
+                              month: "short",
+                              day: "numeric",
+                            }
+                          )}
+                        </p>
+                      </div>
+
+                      {/* Action */}
+                      <button
+                        className="px-4 py-2 rounded-lg border border-border text-[12px] text-muted-foreground hover:text-foreground hover:border-foreground/30 transition-colors flex-shrink-0 flex items-center gap-1.5"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setSelectedCert(cert);
+                          setCertModalOpen(true);
+                        }}
+                      >
+                        <Award className="h-3.5 w-3.5" />
+                        View
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
             </div>
           )}
-        </TabsContent>
-      </Tabs>
+        </>
+      )}
 
       <CertificateModal
         cert={selectedCert}
