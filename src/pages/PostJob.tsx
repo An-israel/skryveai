@@ -286,7 +286,7 @@ export default function PostJob() {
             <div className="grid grid-cols-3 gap-3 mt-1">
               {(
                 [
-                  { value: "gig", label: "One-time Gig" },
+                  { value: "gig", label: "One-time Gig", sub: "" },
                   { value: "contract", label: "Short Contract", sub: "1–4 wks" },
                   { value: "longterm", label: "Long-term", sub: "1+ month" },
                 ] as const

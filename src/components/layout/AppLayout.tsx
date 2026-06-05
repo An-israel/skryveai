@@ -50,12 +50,12 @@ export function AppLayout() {
   // ── Unread notifications count ────────────────────────────────
   useEffect(() => {
     if (!user?.id) return;
-    supabase
+    (supabase as any)
       .from("notifications")
       .select("id", { count: "exact", head: true })
       .eq("user_id", user.id)
       .eq("is_read", false)
-      .then(({ count }) => setUnread(count ?? 0));
+      .then(({ count }: { count: number | null }) => setUnread(count ?? 0));
 
     const channel = supabase
       .channel("notifications-count")
