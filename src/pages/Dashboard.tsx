@@ -19,14 +19,19 @@ export default function Dashboard() {
   const { showTour, showWizard, markOnboardingComplete } = useOnboarding(user?.id);
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session?.user) setUser(session.user);
-      else navigate("/login");
-      setAuthLoading(false);
-    });
+    supabase.auth.getSession()
+      .then(({ data: { session } }) => {
+        if (session?.user) setUser(session.user);
+        else navigate("/login");
+        setAuthLoading(false);
+      })
+      .catch((err) => {
+        console.error("Dashboard getSession error:", err);
+        setAuthLoading(false);
+      });
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_, session) => {
       if (session?.user) setUser(session.user);
-      else navigate("/login");
+      setAuthLoading(false);
     });
     return () => subscription.unsubscribe();
   }, [navigate]);
