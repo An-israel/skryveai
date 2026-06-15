@@ -34,8 +34,7 @@ interface Notification {
   id: string;
   type: string;
   title: string;
-  body: string | null;
-  link: string | null;
+  message: string;
   is_read: boolean;
   created_at: string;
 }
@@ -105,7 +104,7 @@ export default function Notifications() {
 
       let query = (supabase as any)
         .from("notifications")
-        .select("id, type, title, body, link, is_read, created_at")
+        .select("id, type, title, message, is_read:read, created_at")
         .eq("user_id", userId)
         .order("created_at", { ascending: false })
         .range(from, to);
@@ -168,13 +167,12 @@ export default function Notifications() {
     if (!notif.is_read) {
       await (supabase as any)
         .from("notifications")
-        .update({ is_read: true })
+        .update({ read: true })
         .eq("id", notif.id);
       setNotifications((prev) =>
         prev.map((n) => (n.id === notif.id ? { ...n, is_read: true } : n))
       );
     }
-    if (notif.link) navigate(notif.link);
   };
 
   const markAllAsRead = async () => {
@@ -182,9 +180,9 @@ export default function Notifications() {
     setMarkingAll(true);
     await (supabase as any)
       .from("notifications")
-      .update({ is_read: true })
+      .update({ read: true })
       .eq("user_id", userId)
-      .eq("is_read", false);
+      .eq("read", false);
     setNotifications((prev) => prev.map((n) => ({ ...n, is_read: true })));
     setMarkingAll(false);
     toast({ title: "All notifications marked as read" });
@@ -266,9 +264,9 @@ export default function Notifications() {
                   <p className="font-medium text-sm text-foreground leading-snug">
                     {notif.title}
                   </p>
-                  {notif.body && (
+                  {notif.message && (
                     <p className="text-sm text-muted-foreground mt-0.5 line-clamp-2">
-                      {notif.body}
+                      {notif.message}
                     </p>
                   )}
                   <p className="text-xs text-muted-foreground mt-1">
