@@ -12,50 +12,48 @@ export default function OnboardingDispatcher() {
 
   useEffect(() => {
     (async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
-        navigate('/login');
-        return;
-      }
-      const u = session.user;
-      setUser(u);
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session) {
+          navigate('/login');
+          return;
+        }
+        const u = session.user;
+        setUser(u);
 
-      const [{ data: tp }, { data: cp }] = await Promise.all([
-        (supabase as any).from('talent_profiles').select('id,onboarding_completed').eq('user_id', u.id).maybeSingle(),
-        (supabase as any).from('client_profiles').select('id,onboarding_completed').eq('user_id', u.id).maybeSingle(),
-      ]);
+        const [{ data: tp }, { data: cp }] = await Promise.all([
+          (supabase as any).from('talent_profiles').select('id,onboarding_completed').eq('user_id', u.id).maybeSingle(),
+          (supabase as any).from('client_profiles').select('id,onboarding_completed').eq('user_id', u.id).maybeSingle(),
+        ]);
 
-      if (tp) {
-        if (tp.onboarding_completed) {
-          navigate('/dashboard');
-        } else {
+        if (tp) {
+          navigate(tp.onboarding_completed ? '/dashboard' : '/onboarding/talent');
+          return;
+        }
+
+        if (cp) {
+          navigate(cp.onboarding_completed ? '/dashboard' : '/onboarding/client');
+          return;
+        }
+
+        const role = u.user_metadata?.role;
+        if (role === 'talent') {
           navigate('/onboarding/talent');
+          return;
         }
-        return;
-      }
-
-      if (cp) {
-        if (cp.onboarding_completed) {
-          navigate('/dashboard');
-        } else {
+        if (role === 'client') {
           navigate('/onboarding/client');
+          return;
         }
-        return;
-      }
 
-      const role = u.user_metadata?.role;
-      if (role === 'talent') {
-        navigate('/onboarding/talent');
-        return;
+        setLoading(false);
+      } catch (err) {
+        console.error("OnboardingDispatcher error:", err);
+        toast({ title: "Something went wrong", description: "Please try again.", variant: "destructive" });
+        setLoading(false);
       }
-      if (role === 'client') {
-        navigate('/onboarding/client');
-        return;
-      }
-
-      setLoading(false);
     })();
-  }, [navigate]);
+  }, [navigate, toast]);
 
   const selectRole = async (role: 'talent' | 'client') => {
     if (!user) return;

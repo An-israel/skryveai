@@ -38,6 +38,7 @@ SUPPORTING=(
   generate-ai-coach
   generate-cover-letter
   generate-cv-summary
+  generate-bio
   generate-job-application
   generate-proposal
   generate-pitch

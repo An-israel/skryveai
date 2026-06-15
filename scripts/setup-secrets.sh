@@ -7,7 +7,7 @@
 #   RESEND_API_KEY       → resend.com → API Keys
 #   PAYSTACK_SECRET_KEY  → dashboard.paystack.com → Settings → API Keys (use LIVE key)
 #   HOOK_SECRET          → generate with: openssl rand -hex 32
-#   OPENAI_API_KEY       → platform.openai.com → API Keys
+#   ANTHROPIC_API_KEY    → console.anthropic.com → API Keys (used by all AI features)
 #   GOOGLE_CLIENT_ID/SECRET → console.cloud.google.com (for Gmail OAuth)
 
 set -euo pipefail
@@ -22,7 +22,7 @@ supabase secrets set \
   RESEND_API_KEY="REPLACE_ME_re_xxxx" \
   PAYSTACK_SECRET_KEY="REPLACE_ME_sk_live_xxxx" \
   HOOK_SECRET="REPLACE_ME_$(openssl rand -hex 32 2>/dev/null || echo 'generate-with-openssl-rand-hex-32')" \
-  OPENAI_API_KEY="REPLACE_ME_sk-xxxx"
+  ANTHROPIC_API_KEY="REPLACE_ME_sk-ant-xxxx"
 
 # Optional — only needed if you use Gmail OAuth for outreach
 # supabase secrets set \
