@@ -65,7 +65,7 @@ export function AppLayout() {
       .from("notifications")
       .select("id", { count: "exact", head: true })
       .eq("user_id", user.id)
-      .eq("is_read", false)
+      .eq("read", false)
       .then(({ count }: { count: number | null }) => setUnread(count ?? 0));
 
     const channel = supabase
@@ -78,7 +78,7 @@ export function AppLayout() {
           .from("notifications")
           .select("id", { count: "exact", head: true })
           .eq("user_id", user.id)
-          .eq("is_read", false)
+          .eq("read", false)
           .then(({ count }: { count: number | null }) => setUnread(count ?? 0));
       })
       .subscribe();
