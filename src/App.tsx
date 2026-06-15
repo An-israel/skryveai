@@ -7,6 +7,7 @@ import { ThemeProvider } from "next-themes";
 import { PublicThemeWrapper } from "@/components/PublicThemeWrapper";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { ChatWidget } from "@/components/chat/ChatWidget";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 
 // ── Public pages ────────────────────────────────────────────
 import Landing          from "./pages/Landing";
@@ -84,6 +85,7 @@ const Public = ({ children }: { children: React.ReactNode }) => (
 
 export default function App() {
   return (
+    <ErrorBoundary>
     <ThemeProvider attribute="class" defaultTheme="dark" enableSystem={false} storageKey="skryve-theme">
       <QueryClientProvider client={queryClient}>
         <TooltipProvider>
@@ -189,5 +191,6 @@ export default function App() {
         </TooltipProvider>
       </QueryClientProvider>
     </ThemeProvider>
+    </ErrorBoundary>
   );
 }

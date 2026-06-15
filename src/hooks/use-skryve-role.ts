@@ -10,6 +10,8 @@ export function useSkryveRole(userId: string | null | undefined) {
     if (!userId) { setRole("none"); return; }
 
     let cancelled = false;
+    // Safety net: never leave the dashboard stuck on the loading skeleton
+    const failsafe = setTimeout(() => { if (!cancelled) setRole("talent"); }, 8000);
     (async () => {
       try {
         const [{ data: tp }, { data: cp }] = await Promise.all([
@@ -23,10 +25,12 @@ export function useSkryveRole(userId: string | null | undefined) {
       } catch (err) {
         console.error("useSkryveRole error:", err);
         if (!cancelled) setRole("talent");
+      } finally {
+        clearTimeout(failsafe);
       }
     })();
 
-    return () => { cancelled = true; };
+    return () => { cancelled = true; clearTimeout(failsafe); };
   }, [userId]);
 
   return role;
