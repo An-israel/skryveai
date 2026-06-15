@@ -12,38 +12,27 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import {
   LayoutDashboard, Users, CreditCard, FileText, Image, UserCog, Activity,
   Loader2, Plus, Trash2, Edit, Search, Download, RefreshCw, BarChart3,
-  Mail, Target, Send, Shield, Coins, Gift, MessageSquare, ClipboardList,
-  CheckCircle, XCircle, MailCheck, ShieldCheck, Wrench, TrendingUp, MessageCircle,
+  Mail, Shield, Coins, MessageSquare, ClipboardList,
+  CheckCircle, XCircle, MailCheck, ShieldCheck, CalendarDays, GraduationCap,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar } from "recharts";
 import { CMSPageEditor } from "@/components/admin/CMSPageEditor";
 import { CMSImageUploader } from "@/components/admin/CMSImageUploader";
-import { IPAddressManager } from "@/components/admin/IPAddressManager";
-import { EmailQueueManager } from "@/components/admin/EmailQueueManager";
 import { CreditManager } from "@/components/admin/CreditManager";
-import { ReferralManager } from "@/components/admin/ReferralManager";
 import { SendUserEmailDialog } from "@/components/admin/SendUserEmailDialog";
 import { StaffReports } from "@/components/admin/StaffReports";
 import { PageToggleManager } from "@/components/admin/PageToggleManager";
-import { AdminEmailTracker } from "@/components/admin/AdminEmailTracker";
-import { ToolUsageTracker } from "@/components/admin/ToolUsageTracker";
-import { CustomerSuccessDashboard } from "@/components/admin/CustomerSuccessDashboard";
-import { WelcomeEmailMonitor } from "@/components/admin/WelcomeEmailMonitor";
-import { GrowthDashboard } from "@/components/admin/GrowthDashboard";
-import { AdminChatManager } from "@/components/admin/AdminChatManager";
 import { AdminBlogManager } from "@/components/admin/AdminBlogManager";
+import { EventsManager } from "@/components/admin/EventsManager";
+import { SkillsManager } from "@/components/admin/SkillsManager";
 
 interface AdminStats {
   totalUsers: number;
   activeSubscriptions: number;
   trialUsers: number;
-  totalCampaigns: number;
-  totalEmails: number;
   totalRevenue: number;
-  totalEmailsSentByAll: number;
-  totalRepliesByAll: number;
 }
 
 interface CMSPage {
@@ -59,36 +48,26 @@ interface CMSPage {
 }
 
 // Role-based tab definitions
-type TabId = "users" | "campaigns" | "email-queue" | "pages" | "images" | "staff" | "activity" | "ip-addresses" | "credits" | "referrals" | "analytics" | "send-email" | "email-tracker" | "welcome-email" | "reports" | "page-toggle" | "tool-usage" | "cs-dashboard" | "growth" | "chat" | "blog";
+type TabId = "users" | "pages" | "images" | "staff" | "activity" | "credits" | "analytics" | "reports" | "page-toggle" | "blog" | "events" | "skills";
 
 const TAB_PERMISSIONS: Record<TabId, string[]> = {
-  "cs-dashboard": ["super_admin", "support_agent"],
-  "welcome-email": ["super_admin", "support_agent"],
   users: ["super_admin", "support_agent"],
-  campaigns: ["super_admin"],
-  "email-queue": ["super_admin"],
   pages: ["super_admin", "content_editor"],
   images: ["super_admin", "content_editor"],
   staff: ["super_admin"],
   activity: ["super_admin"],
-  "ip-addresses": ["super_admin"],
   credits: ["super_admin"],
-  referrals: ["super_admin"],
   analytics: ["super_admin", "content_editor", "support_agent"],
-  "send-email": ["super_admin", "support_agent"],
-  "email-tracker": ["super_admin", "support_agent"],
   reports: ["super_admin", "content_editor", "support_agent", "staff"],
   "page-toggle": ["super_admin"],
-  "tool-usage": ["super_admin", "content_editor", "support_agent"],
-  growth: ["super_admin", "staff"],
-  chat: ["super_admin", "support_agent"],
   blog: ["super_admin", "content_editor"],
+  events: ["super_admin", "content_editor", "staff"],
+  skills: ["super_admin", "content_editor"],
 };
 
 export default function Admin() {
   const [stats, setStats] = useState<AdminStats | null>(null);
   const [users, setUsers] = useState<any[]>([]);
-  const [campaigns, setCampaigns] = useState<any[]>([]);
   const [pages, setPages] = useState<CMSPage[]>([]);
   const [images, setImages] = useState<any[]>([]);
   const [staff, setStaff] = useState<any[]>([]);
@@ -233,15 +212,6 @@ export default function Admin() {
           productsUsed: Array.from(productUsageMap.get(u.user_id) || []),
         }));
         setUsers(usersWithSubs);
-      }
-
-      // Fetch campaigns (super_admin only)
-      if (currentRole === "super_admin") {
-        const { data: campaignsData } = await supabase
-          .from("campaigns")
-          .select("*")
-          .order("created_at", { ascending: false });
-        setCampaigns(campaignsData || []);
       }
 
       // Fetch CMS pages (super_admin + content_editor)
@@ -497,17 +467,17 @@ export default function Admin() {
   const getDefaultTab = (): TabId => {
     if (isSuperAdmin) return "users";
     if (userRole === "content_editor") return "pages";
-    if (userRole === "support_agent") return "cs-dashboard";
-    if (userRole === "staff") return "growth";
+    if (userRole === "support_agent") return "users";
+    if (userRole === "staff") return "events";
     return "reports";
   };
 
   // Role label for header
   const getRoleLabel = () => {
     if (userRole === "super_admin") return "Super Admin";
-    if (userRole === "content_editor") return "Marketing Manager";
+    if (userRole === "content_editor") return "Content Editor";
     if (userRole === "support_agent") return "Customer Success";
-    if (userRole === "staff") return "Growth Expert";
+    if (userRole === "staff") return "Staff";
     return userRole;
   };
 
@@ -538,7 +508,7 @@ export default function Admin() {
 
       <div className="container mx-auto px-4 py-6">
         {/* Stats Cards - Role filtered */}
-        <div className={`grid grid-cols-2 md:grid-cols-4 ${isSuperAdmin ? 'lg:grid-cols-8' : 'lg:grid-cols-4'} gap-4 mb-6`}>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
           <Card>
             <CardContent className="p-4">
               <div className="flex items-center gap-2 text-muted-foreground mb-1">
@@ -566,46 +536,8 @@ export default function Admin() {
               <p className="text-2xl font-bold">{stats?.trialUsers || 0}</p>
             </CardContent>
           </Card>
-          {(isSuperAdmin || userRole === "content_editor") && (
-            <Card>
-              <CardContent className="p-4">
-                <div className="flex items-center gap-2 text-muted-foreground mb-1">
-                  <Target className="w-4 h-4" />
-                  <span className="text-xs">Campaigns</span>
-                </div>
-                <p className="text-2xl font-bold">{stats?.totalCampaigns || 0}</p>
-              </CardContent>
-            </Card>
-          )}
           {isSuperAdmin && (
             <>
-              <Card>
-                <CardContent className="p-4">
-                  <div className="flex items-center gap-2 text-muted-foreground mb-1">
-                    <Mail className="w-4 h-4" />
-                    <span className="text-xs">Emails (DB)</span>
-                  </div>
-                  <p className="text-2xl font-bold">{stats?.totalEmails || 0}</p>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardContent className="p-4">
-                  <div className="flex items-center gap-2 text-muted-foreground mb-1">
-                    <Send className="w-4 h-4" />
-                    <span className="text-xs">Total Sent</span>
-                  </div>
-                  <p className="text-2xl font-bold text-info">{stats?.totalEmailsSentByAll || 0}</p>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardContent className="p-4">
-                  <div className="flex items-center gap-2 text-muted-foreground mb-1">
-                    <Mail className="w-4 h-4" />
-                    <span className="text-xs">Total Replies</span>
-                  </div>
-                  <p className="text-2xl font-bold text-warning">{stats?.totalRepliesByAll || 0}</p>
-                </CardContent>
-              </Card>
               <Card>
                 <CardContent className="p-4">
                   <div className="flex items-center gap-2 text-muted-foreground mb-1">
@@ -625,49 +557,31 @@ export default function Admin() {
             {visibleTabs.map(tab => {
               const icons: Record<TabId, React.ReactNode> = {
                 users: <Users className="w-3.5 h-3.5 shrink-0" />,
-                campaigns: <Target className="w-3.5 h-3.5 shrink-0" />,
-                "email-queue": <Send className="w-3.5 h-3.5 shrink-0" />,
                 pages: <FileText className="w-3.5 h-3.5 shrink-0" />,
                 images: <Image className="w-3.5 h-3.5 shrink-0" />,
                 staff: <UserCog className="w-3.5 h-3.5 shrink-0" />,
                 activity: <Activity className="w-3.5 h-3.5 shrink-0" />,
-                "ip-addresses": <Shield className="w-3.5 h-3.5 shrink-0" />,
                 credits: <Coins className="w-3.5 h-3.5 shrink-0" />,
-                referrals: <Gift className="w-3.5 h-3.5 shrink-0" />,
                 analytics: <BarChart3 className="w-3.5 h-3.5 shrink-0" />,
-                "send-email": <MessageSquare className="w-3.5 h-3.5 shrink-0" />,
-                "email-tracker": <MailCheck className="w-3.5 h-3.5 shrink-0" />,
                 reports: <ClipboardList className="w-3.5 h-3.5 shrink-0" />,
                 "page-toggle": <Shield className="w-3.5 h-3.5 shrink-0" />,
-                "tool-usage": <Wrench className="w-3.5 h-3.5 shrink-0" />,
-                "cs-dashboard": <Users className="w-3.5 h-3.5 shrink-0" />,
-                "welcome-email": <Mail className="w-3.5 h-3.5 shrink-0" />,
-                growth: <TrendingUp className="w-3.5 h-3.5 shrink-0" />,
-                chat: <MessageCircle className="w-3.5 h-3.5 shrink-0" />,
                 blog: <FileText className="w-3.5 h-3.5 shrink-0" />,
+                events: <CalendarDays className="w-3.5 h-3.5 shrink-0" />,
+                skills: <GraduationCap className="w-3.5 h-3.5 shrink-0" />,
               };
               const labels: Record<TabId, string> = {
-                "cs-dashboard": "CS Dashboard",
-                "welcome-email": "Welcome Emails",
                 users: "Users",
-                campaigns: "Campaigns",
-                "email-queue": "Queue",
                 pages: "Pages",
                 images: "Images",
                 staff: "Staff",
                 activity: "Activity",
-                "ip-addresses": "IPs",
                 credits: "Credits",
-                referrals: "Referrals",
                 analytics: "Analytics",
-                "send-email": "Email Users",
-                "email-tracker": "Email Tracker",
                 reports: "Reports",
                 "page-toggle": "Visibility",
-                "tool-usage": "Tool Usage",
-                growth: "Growth",
-                chat: "Live Chat",
                 blog: "Blog",
+                events: "Events",
+                skills: "Skills",
               };
               return (
                 <TabsTrigger key={tab} value={tab} className="gap-1 text-xs sm:text-sm px-2 py-1.5">
@@ -835,59 +749,6 @@ export default function Admin() {
                 </CardContent>
               </Card>
             </TabsContent>
-          )}
-
-          {/* Campaigns Tab */}
-          {hasTabAccess("campaigns") && (
-            <TabsContent value="campaigns">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Campaign Overview</CardTitle>
-                  <CardDescription>All campaigns across the platform</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Name</TableHead>
-                        <TableHead>Type</TableHead>
-                        <TableHead>Location</TableHead>
-                        <TableHead>Status</TableHead>
-                        <TableHead>Emails Sent</TableHead>
-                        <TableHead>Open Rate</TableHead>
-                        <TableHead>Created</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {campaigns.map((campaign) => (
-                        <TableRow key={campaign.id}>
-                          <TableCell className="font-medium">{campaign.name}</TableCell>
-                          <TableCell>{campaign.business_type}</TableCell>
-                          <TableCell>{campaign.location}</TableCell>
-                          <TableCell>
-                            <Badge variant={campaign.status === "completed" ? "default" : "secondary"}>
-                              {campaign.status}
-                            </Badge>
-                          </TableCell>
-                          <TableCell>{campaign.emails_sent}</TableCell>
-                          <TableCell>
-                            {campaign.emails_sent > 0
-                              ? `${Math.round((campaign.emails_opened / campaign.emails_sent) * 100)}%`
-                              : "N/A"}
-                          </TableCell>
-                          <TableCell>{new Date(campaign.created_at).toLocaleDateString()}</TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </CardContent>
-              </Card>
-            </TabsContent>
-          )}
-
-          {/* Email Queue Tab */}
-          {hasTabAccess("email-queue") && (
-            <TabsContent value="email-queue"><EmailQueueManager /></TabsContent>
           )}
 
           {/* Pages Tab */}
@@ -1109,11 +970,6 @@ export default function Admin() {
             </TabsContent>
           )}
 
-          {/* IP Addresses Tab */}
-          {hasTabAccess("ip-addresses") && (
-            <TabsContent value="ip-addresses"><IPAddressManager /></TabsContent>
-          )}
-
           {/* Analytics Tab */}
           {hasTabAccess("analytics") && (
             <TabsContent value="analytics">
@@ -1169,50 +1025,6 @@ export default function Admin() {
             <TabsContent value="credits"><CreditManager /></TabsContent>
           )}
 
-          {/* Referrals Tab */}
-          {hasTabAccess("referrals") && (
-            <TabsContent value="referrals"><ReferralManager /></TabsContent>
-          )}
-
-          {/* Send Email Tab */}
-          {hasTabAccess("send-email") && (
-            <TabsContent value="send-email">
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <MessageSquare className="w-5 h-5" /> Email Users
-                  </CardTitle>
-                  <CardDescription>
-                    Send onboarding, follow-up, or conversion emails to users. Select a user from the Users tab or compose directly.
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-4">
-                    <Button
-                      className="gap-2"
-                      onClick={() => {
-                        setEmailTarget({ email: "" });
-                        setShowEmailDialog(true);
-                      }}
-                    >
-                      <Plus className="w-4 h-4" /> Compose Email
-                    </Button>
-                    <p className="text-sm text-muted-foreground">
-                      💡 Tip: You can also click the email icon next to any user in the <strong>Users</strong> tab to send them a pre-filled email using templates.
-                    </p>
-                  </div>
-                </CardContent>
-              </Card>
-            </TabsContent>
-          )}
-
-          {/* Email Tracker Tab */}
-          {hasTabAccess("email-tracker") && (
-            <TabsContent value="email-tracker">
-              <AdminEmailTracker />
-            </TabsContent>
-          )}
-
           {/* Reports Tab */}
           {hasTabAccess("reports") && (
             <TabsContent value="reports">
@@ -1227,34 +1039,6 @@ export default function Admin() {
             </TabsContent>
           )}
 
-          {/* Tool Usage Tab */}
-          {hasTabAccess("tool-usage") && (
-            <TabsContent value="tool-usage">
-              <ToolUsageTracker />
-            </TabsContent>
-          )}
-
-          {/* CS Dashboard Tab */}
-          {hasTabAccess("cs-dashboard") && (
-            <TabsContent value="cs-dashboard">
-              <CustomerSuccessDashboard />
-            </TabsContent>
-          )}
-
-          {/* Welcome Email Monitor Tab */}
-          {hasTabAccess("welcome-email") && (
-            <TabsContent value="welcome-email">
-              <WelcomeEmailMonitor />
-            </TabsContent>
-          )}
-
-          {/* Growth Dashboard Tab */}
-          {hasTabAccess("growth") && (
-            <TabsContent value="growth">
-              <GrowthDashboard />
-            </TabsContent>
-          )}
-
           {/* Blog Manager Tab */}
           {hasTabAccess("blog") && (
             <TabsContent value="blog">
@@ -1262,11 +1046,17 @@ export default function Admin() {
             </TabsContent>
           )}
 
-          {/* Live Chat Tab */}
+          {/* Events Manager Tab */}
+          {hasTabAccess("events") && (
+            <TabsContent value="events">
+              <EventsManager />
+            </TabsContent>
+          )}
 
-          {hasTabAccess("chat") && (
-            <TabsContent value="chat">
-              <AdminChatManager />
+          {/* Skills / Learn Manager Tab */}
+          {hasTabAccess("skills") && (
+            <TabsContent value="skills">
+              <SkillsManager />
             </TabsContent>
           )}
         </Tabs>

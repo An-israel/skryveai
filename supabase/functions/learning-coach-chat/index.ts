@@ -104,10 +104,32 @@ Deno.serve(async (req) => {
     if (body.lessonId) {
       const { data } = await admin
         .from("learning_lessons")
-        .select("id, title, description, content_type, lesson_number")
+        .select("id, title, description, content_type, content_url, lesson_number, order_index")
         .eq("id", body.lessonId)
         .maybeSingle();
       lessonCtx = data;
+    }
+
+    // Fetch a small window of curated video lessons (current + upcoming) for this learning path,
+    // so the coach can reference vetted videos without inventing its own links.
+    let curatedVideos: { title: string; content_url: string; lesson_number: number; order_index: number | null }[] = [];
+    if (ul.learning_path_id) {
+      const baseOrder = lessonCtx?.order_index ?? -1;
+      const { data: videoLessons } = await admin
+        .from("learning_lessons")
+        .select("title, content_url, lesson_number, order_index, content_type")
+        .eq("learning_path_id", ul.learning_path_id)
+        .eq("content_type", "video")
+        .not("content_url", "is", null)
+        .gte("order_index", baseOrder)
+        .order("order_index", { ascending: true })
+        .limit(5);
+      curatedVideos = (videoLessons || []).map((v: any) => ({
+        title: v.title,
+        content_url: v.content_url,
+        lesson_number: v.lesson_number,
+        order_index: v.order_index,
+      }));
     }
     if (body.assignmentId) {
       const { data } = await admin
@@ -157,6 +179,9 @@ ${progressBlock}
 ${lessonCtx ? `Current lesson: "${lessonCtx.title}" (${lessonCtx.content_type})\nLesson summary: ${lessonCtx.description || "n/a"}` : ""}
 ${assignmentCtx ? `Current assignment: "${assignmentCtx.title}"\nInstructions: ${assignmentCtx.instructions}\nPassing criteria: ${assignmentCtx.passing_criteria || "n/a"}` : ""}
 
+${curatedVideos.length > 0 ? `CURATED VIDEOS FOR THIS CURRICULUM (vetted by Skryve admins — these are the ONLY videos you may mention or link):
+${curatedVideos.map((v) => `- "${v.title}" (Video for Lesson ${v.lesson_number}): ${v.content_url}`).join("\n")}` : ""}
+
 Guidelines:
 - Use ${skillName}-specific terminology, tools, and examples.
 - Give concrete, actionable advice — never vague.
@@ -165,11 +190,12 @@ Guidelines:
 - Match the ${tone} tone.
 - If the learner's question is off-topic, gently steer them back to ${skillName}.
 
-ZERO-EXTERNAL-LINK RULE (critical):
-- Everything happens INSIDE SkryveAI's chat. NEVER tell the learner to "open this link", "watch this video on YouTube", "read this article on X.com", or visit any external site.
-- NEVER include URLs or "[link](https://...)" markdown links in your replies. If you reference a known resource, summarise it in your own words instead.
-- If the lesson topic would normally point to an article, TEACH the article's substance directly here: give the key ideas, the reasoning, an example, and a short exercise — all written out in this chat.
-- If the lesson topic would normally point to a video that the learner cannot watch, describe the demo step-by-step in plain text so they get the same outcome without leaving the chat.`;
+CURATED VIDEO RULE (critical):
+- Everything else happens INSIDE SkryveAI's chat. NEVER tell the learner to "search YouTube for...", "read this article on X.com", or visit any external site EXCEPT for the curated videos listed above.
+- If the "CURATED VIDEOS FOR THIS CURRICULUM" list above contains a video for the current or an upcoming lesson, you SHOULD proactively mention it by title (e.g. "Video for Lesson 3: '<title>'") and may share its content_url — these are vetted resources hand-picked by Skryve admins, not links you generated.
+- NEVER invent, guess, or generate your own YouTube/article links. Only ever reference URLs that appear verbatim in the curated videos list above. If no curated video is listed for this lesson, do not mention or imply one exists.
+- For non-video content (articles, text lessons), TEACH the substance directly here: give the key ideas, the reasoning, an example, and a short exercise — all written out in this chat.
+- NEVER include any URL or "[link](https://...)" markdown link other than the exact content_url values from the curated videos list.`;
 
     // Persist user message immediately
     await admin.from("coach_messages").insert({
