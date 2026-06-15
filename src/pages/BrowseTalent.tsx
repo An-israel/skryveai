@@ -2,6 +2,8 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import {
   Select,
@@ -19,10 +21,10 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 import { Star, Users, ChevronDown } from "lucide-react";
 
-const AVAILABILITY_DOT: Record<string, { color: string; label: string }> = {
-  available: { color: "bg-green-500", label: "Available" },
-  busy: { color: "bg-amber-500", label: "Busy" },
-  not_available: { color: "bg-red-500", label: "Not Available" },
+const AVAILABILITY_BADGE: Record<string, { label: string; className: string }> = {
+  available: { label: "Available", className: "bg-green-500/10 text-green-600 border-green-500/20" },
+  busy: { label: "Busy", className: "bg-amber-500/10 text-amber-600 border-amber-500/20" },
+  not_available: { label: "Not Available", className: "bg-red-500/10 text-red-600 border-red-500/20" },
 };
 
 function getInitials(name: string) {
@@ -137,97 +139,85 @@ export default function BrowseTalent() {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
       <div>
-        <h1 className="text-2xl font-bold text-foreground">Browse Talent</h1>
-        <p className="text-[13px] text-muted-foreground mt-1">Find skilled freelancers for your projects.</p>
+        <h1 className="font-display text-2xl font-bold">Browse Talent</h1>
+        <p className="text-muted-foreground text-sm mt-1">Find skilled freelancers for your projects.</p>
       </div>
 
-      {/* Filters */}
-      <div className="border border-border rounded-xl bg-card overflow-hidden">
-        <div className="px-5 py-3.5 border-b border-border">
-          <span className="text-[13px] font-semibold text-foreground">Filters</span>
+      <div className="flex flex-wrap gap-3 items-end">
+        <div className="flex-1 min-w-[160px]">
+          <Input
+            placeholder="Search by skill..."
+            value={skillFilter}
+            onChange={(e) => setSkillFilter(e.target.value)}
+          />
         </div>
-        <div className="px-5 py-4 flex flex-wrap gap-3 items-end">
-          <div className="flex-1 min-w-[160px]">
-            <Input
-              placeholder="Search by skill..."
-              value={skillFilter}
-              onChange={(e) => setSkillFilter(e.target.value)}
-            />
-          </div>
 
-          <Select value={levelFilter} onValueChange={setLevelFilter}>
-            <SelectTrigger className="w-40">
-              <SelectValue placeholder="Experience" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Levels</SelectItem>
-              <SelectItem value="entry">Entry</SelectItem>
-              <SelectItem value="mid">Mid</SelectItem>
-              <SelectItem value="senior">Senior</SelectItem>
-              <SelectItem value="expert">Expert</SelectItem>
-            </SelectContent>
-          </Select>
+        <Select value={levelFilter} onValueChange={setLevelFilter}>
+          <SelectTrigger className="w-40">
+            <SelectValue placeholder="Experience" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Levels</SelectItem>
+            <SelectItem value="entry">Entry</SelectItem>
+            <SelectItem value="mid">Mid</SelectItem>
+            <SelectItem value="senior">Senior</SelectItem>
+            <SelectItem value="expert">Expert</SelectItem>
+          </SelectContent>
+        </Select>
 
-          <Select value={availabilityFilter} onValueChange={setAvailabilityFilter}>
-            <SelectTrigger className="w-44">
-              <SelectValue placeholder="Availability" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Any Availability</SelectItem>
-              <SelectItem value="available">Available</SelectItem>
-              <SelectItem value="busy">Busy</SelectItem>
-              <SelectItem value="not_available">Not Available</SelectItem>
-            </SelectContent>
-          </Select>
+        <Select value={availabilityFilter} onValueChange={setAvailabilityFilter}>
+          <SelectTrigger className="w-44">
+            <SelectValue placeholder="Availability" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Any Availability</SelectItem>
+            <SelectItem value="available">Available</SelectItem>
+            <SelectItem value="busy">Busy</SelectItem>
+            <SelectItem value="not_available">Not Available</SelectItem>
+          </SelectContent>
+        </Select>
 
-          <div className="flex gap-1.5 items-center">
-            <Input
-              type="number"
-              placeholder="Min rate"
-              className="w-24"
-              value={minRate}
-              onChange={(e) => setMinRate(e.target.value)}
-            />
-            <span className="text-muted-foreground text-sm">–</span>
-            <Input
-              type="number"
-              placeholder="Max rate"
-              className="w-24"
-              value={maxRate}
-              onChange={(e) => setMaxRate(e.target.value)}
-            />
-          </div>
-
-          <Select value={sortBy} onValueChange={setSortBy}>
-            <SelectTrigger className="w-44">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="newest">Newest</SelectItem>
-              <SelectItem value="rate_low">Lowest Rate</SelectItem>
-              <SelectItem value="rate_high">Highest Rate</SelectItem>
-            </SelectContent>
-          </Select>
-
-          {hasFilters && (
-            <button
-              className="text-[13px] text-muted-foreground hover:text-foreground transition-colors"
-              onClick={clearFilters}
-            >
-              Clear
-            </button>
-          )}
+        <div className="flex gap-1 items-center">
+          <Input
+            type="number"
+            placeholder="Min rate"
+            className="w-24"
+            value={minRate}
+            onChange={(e) => setMinRate(e.target.value)}
+          />
+          <span className="text-muted-foreground text-sm">–</span>
+          <Input
+            type="number"
+            placeholder="Max rate"
+            className="w-24"
+            value={maxRate}
+            onChange={(e) => setMaxRate(e.target.value)}
+          />
         </div>
+
+        <Select value={sortBy} onValueChange={setSortBy}>
+          <SelectTrigger className="w-44">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="newest">Newest</SelectItem>
+            <SelectItem value="rate_low">Lowest Rate</SelectItem>
+            <SelectItem value="rate_high">Highest Rate</SelectItem>
+          </SelectContent>
+        </Select>
+
+        {hasFilters && (
+          <Button variant="ghost" size="sm" onClick={clearFilters}>
+            Clear
+          </Button>
+        )}
       </div>
 
-      {/* Result count */}
-      <p className="text-[12px] text-muted-foreground">
+      <p className="text-sm text-muted-foreground">
         {filteredTalents.length} talent{filteredTalents.length !== 1 ? "s" : ""} found
       </p>
 
-      {/* Talent grid */}
       {loading ? (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           {[1, 2, 3, 4, 5, 6].map((i) => (
@@ -235,17 +225,15 @@ export default function BrowseTalent() {
           ))}
         </div>
       ) : filteredTalents.length === 0 ? (
-        <div className="border border-border rounded-xl bg-card">
-          <div className="flex flex-col items-center justify-center py-20 text-center">
-            <Users className="w-10 h-10 text-muted-foreground/40 mb-4" />
-            <h3 className="text-[14px] font-medium text-foreground mb-1">No talent found</h3>
-            <p className="text-[13px] text-muted-foreground">Try adjusting your filters.</p>
-          </div>
+        <div className="flex flex-col items-center justify-center py-20 text-center">
+          <Users className="w-12 h-12 text-muted-foreground/40 mb-4" />
+          <h3 className="font-semibold mb-2">No talent found</h3>
+          <p className="text-sm text-muted-foreground">Try adjusting your filters.</p>
         </div>
       ) : (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           {filteredTalents.map((talent) => {
-            const avail = AVAILABILITY_DOT[talent.availability_status || "available"];
+            const avail = AVAILABILITY_BADGE[talent.availability_status || "available"];
             const profileSlug =
               talent.full_name?.toLowerCase().replace(/\s+/g, "-") || talent.id;
             const rate = formatRate(talent.hourly_rate, talent.rate_currency);
@@ -253,78 +241,73 @@ export default function BrowseTalent() {
             return (
               <div
                 key={talent.id}
-                className="border border-border rounded-xl bg-card overflow-hidden hover:border-primary/30 transition-colors flex flex-col"
+                className="border rounded-xl p-4 bg-card hover:border-primary/40 transition-colors flex flex-col gap-3"
               >
-                <div className="px-5 py-5 flex-1">
-                  <div className="flex items-start gap-3 mb-4">
-                    {/* Avatar */}
-                    <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center text-[12px] font-bold text-primary shrink-0 overflow-hidden">
-                      {talent.profile_photo_url ? (
-                        <img
-                          src={talent.profile_photo_url}
-                          alt={talent.full_name}
-                          className="w-full h-full object-cover"
-                        />
-                      ) : (
-                        getInitials(talent.full_name)
-                      )}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2">
-                        <p className="text-[14px] font-medium text-foreground truncate">{talent.full_name}</p>
-                        {avail && (
-                          <span className="flex items-center gap-1">
-                            <span className={`w-1.5 h-1.5 rounded-full inline-block ${avail.color}`} />
-                            <span className="text-[11px] text-muted-foreground">{avail.label}</span>
-                          </span>
-                        )}
-                      </div>
-                      {talent.primary_skill && (
-                        <p className="text-[12px] text-muted-foreground mt-0.5 truncate">{talent.primary_skill}</p>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Skills chips */}
-                  {talent.secondary_skills && talent.secondary_skills.length > 0 && (
-                    <div className="flex flex-wrap gap-1.5 mb-4">
-                      {talent.secondary_skills.slice(0, 3).map((skill: string) => (
-                        <span key={skill} className="text-[11px] px-2 py-0.5 bg-muted text-muted-foreground rounded-md">
-                          {skill}
-                        </span>
-                      ))}
-                    </div>
-                  )}
-
-                  {/* Rate + rating */}
-                  <div className="flex items-center justify-between">
-                    {rate ? (
-                      <span className="text-[13px] font-semibold text-foreground">{rate}</span>
+                <div className="flex items-start gap-3">
+                  <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center font-bold text-sm shrink-0 overflow-hidden">
+                    {talent.profile_photo_url ? (
+                      <img
+                        src={talent.profile_photo_url}
+                        alt={talent.full_name}
+                        className="w-full h-full object-cover"
+                      />
                     ) : (
-                      <span className="text-[12px] text-muted-foreground">Rate not set</span>
+                      getInitials(talent.full_name)
                     )}
-                    <div className="flex items-center gap-1 text-amber-400">
-                      <Star className="w-3.5 h-3.5 fill-current" />
-                      <span className="text-[12px] text-foreground font-medium">5.0</span>
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <p className="font-semibold text-sm">{talent.full_name}</p>
+                      {avail && (
+                        <Badge variant="outline" className={`text-[10px] px-1.5 py-0 ${avail.className}`}>
+                          {avail.label}
+                        </Badge>
+                      )}
                     </div>
+                    {talent.primary_skill && (
+                      <p className="text-xs text-muted-foreground mt-0.5">{talent.primary_skill}</p>
+                    )}
                   </div>
                 </div>
 
-                {/* Actions */}
-                <div className="px-5 py-4 border-t border-border flex gap-2">
-                  <button
-                    className="flex-1 px-4 py-2 rounded-lg border border-border text-[13px] text-muted-foreground hover:text-foreground hover:border-foreground/30 transition-colors"
+                {talent.secondary_skills && talent.secondary_skills.length > 0 && (
+                  <div className="flex flex-wrap gap-1">
+                    {talent.secondary_skills.slice(0, 3).map((skill: string) => (
+                      <Badge key={skill} variant="secondary" className="text-[10px] px-1.5 py-0">
+                        {skill}
+                      </Badge>
+                    ))}
+                  </div>
+                )}
+
+                <div className="flex items-center justify-between text-sm">
+                  {rate ? (
+                    <span className="font-semibold">{rate}</span>
+                  ) : (
+                    <span className="text-muted-foreground text-xs">Rate not set</span>
+                  )}
+                  <div className="flex items-center gap-1 text-amber-400">
+                    <Star className="w-3.5 h-3.5 fill-current" />
+                    <span className="text-xs text-foreground font-medium">5.0</span>
+                  </div>
+                </div>
+
+                <div className="flex gap-2 mt-auto pt-1">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="flex-1"
                     onClick={() => navigate(`/profile/${profileSlug}`)}
                   >
                     View Profile
-                  </button>
+                  </Button>
 
                   {clientJobs.length > 0 && (
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
-                        <button className="px-4 py-2 rounded-lg bg-primary text-primary-foreground text-[13px] font-semibold hover:bg-primary/90 flex items-center gap-1 transition-colors">
+                        <Button size="sm" className="gap-1">
                           Invite <ChevronDown className="w-3 h-3" />
-                        </button>
+                        </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
                         {clientJobs.map((job) => (

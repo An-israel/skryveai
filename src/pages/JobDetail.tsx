@@ -3,10 +3,12 @@ import { useParams, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { ProposalModal } from "@/components/proposals/ProposalModal";
 import {
   ArrowLeft, Heart, ExternalLink,
-  MapPin, Briefcase, DollarSign, Calendar,
+  MapPin, Briefcase, DollarSign, Calendar
 } from "lucide-react";
 import { formatDistanceToNow, format } from "date-fns";
 
@@ -25,16 +27,22 @@ interface AggJob {
   is_active: boolean;
 }
 
-function platformLabel(platform: string): string {
+function platformBadgeClass(platform: string): string {
   const map: Record<string, string> = {
-    upwork: "Upwork",
-    remoteok: "RemoteOK",
-    weworkremotely: "WeWorkRemotely",
-    linkedin: "LinkedIn",
-    indeed: "Indeed",
-    jobberman: "Jobberman",
+    upwork: "bg-green-500 text-white",
+    remoteok: "bg-emerald-600 text-white",
+    weworkremotely: "bg-gray-800 text-white",
+    linkedin: "bg-blue-600 text-white",
+    indeed: "bg-blue-500 text-white",
+    jobberman: "bg-red-500 text-white",
   };
-  return map[platform] || platform;
+  return map[platform] || "bg-muted text-muted-foreground";
+}
+
+function matchPillClass(score: number): string {
+  if (score >= 80) return "bg-green-100 text-green-700 border border-green-200 dark:bg-green-900/40 dark:text-green-400 dark:border-green-800";
+  if (score >= 60) return "bg-blue-100 text-blue-700 border border-blue-200 dark:bg-blue-900/40 dark:text-blue-400 dark:border-blue-800";
+  return "bg-gray-100 text-gray-600 border border-gray-200 dark:bg-gray-800 dark:text-gray-400 dark:border-gray-700";
 }
 
 function scoreJob(job: AggJob, skills: string[]): number {
@@ -51,19 +59,16 @@ function scoreJob(job: AggJob, skills: string[]): number {
 }
 
 function ScoreCircle({ score }: { score: number }) {
-  const color =
-    score >= 80 ? "text-green-500" : score >= 60 ? "text-blue-500" : "text-muted-foreground";
-  const ringColor =
-    score >= 80 ? "stroke-green-500" : score >= 60 ? "stroke-blue-500" : "stroke-muted-foreground/50";
+  const color = score >= 80 ? "text-green-600" : score >= 60 ? "text-blue-600" : "text-gray-500";
+  const ringColor = score >= 80 ? "stroke-green-500" : score >= 60 ? "stroke-blue-500" : "stroke-gray-400";
   const circumference = 2 * Math.PI * 30;
   const dashOffset = circumference - (score / 100) * circumference;
 
   return (
     <div className="flex items-center gap-4">
-      <div className="relative w-20 h-20 shrink-0">
+      <div className="relative w-20 h-20">
         <svg className="w-20 h-20 -rotate-90" viewBox="0 0 80 80">
-          <circle cx="40" cy="40" r="30" fill="none" stroke="currentColor"
-            strokeWidth="6" className="text-muted/20" />
+          <circle cx="40" cy="40" r="30" fill="none" stroke="currentColor" strokeWidth="6" className="text-muted/30" />
           <circle
             cx="40" cy="40" r="30" fill="none" strokeWidth="6"
             className={ringColor}
@@ -72,18 +77,14 @@ function ScoreCircle({ score }: { score: number }) {
             strokeLinecap="round"
           />
         </svg>
-        <div className={`absolute inset-0 flex items-center justify-center font-bold text-sm ${color}`}>
+        <div className={`absolute inset-0 flex items-center justify-center font-bold text-base ${color}`}>
           {score}%
         </div>
       </div>
       <div>
-        <div className="text-[13px] font-semibold text-foreground">AI Match Score</div>
-        <div className="text-[12px] text-muted-foreground mt-0.5">
-          {score >= 80
-            ? "Excellent match for your skills"
-            : score >= 60
-            ? "Good match for your profile"
-            : "Partial skill match"}
+        <div className="font-semibold text-foreground">AI Match Score</div>
+        <div className="text-sm text-muted-foreground mt-0.5">
+          {score >= 80 ? "Excellent match for your skills" : score >= 60 ? "Good match for your profile" : "Partial skill match"}
         </div>
       </div>
     </div>
@@ -102,6 +103,8 @@ export default function JobDetail() {
   const [matchScore, setMatchScore] = useState(0);
   const [primarySkill, setPrimarySkill] = useState("");
   const [talentId, setTalentId] = useState<string | null>(null);
+  const [userName, setUserName] = useState("");
+  const [hourlyRate, setHourlyRate] = useState("");
   const [proposalOpen, setProposalOpen] = useState(false);
 
   useEffect(() => {
@@ -125,11 +128,13 @@ export default function JobDetail() {
 
         if (talent) {
           setTalentId(talent.id);
+          setUserName(talent.full_name || "");
+          setHourlyRate(talent.hourly_rate ? `$${talent.hourly_rate}/hr` : "");
           setPrimarySkill(talent.primary_skill || "");
           const skills = [talent.primary_skill, ...(talent.secondary_skills || [])].filter(Boolean);
           setMatchScore(scoreJob(jobData, skills));
 
-          const { data: savedData } = await (supabase as any)
+          const { data: saved } = await (supabase as any)
             .from("saved_jobs")
             .select("id")
             .eq("talent_id", talent.id)
@@ -137,7 +142,7 @@ export default function JobDetail() {
             .eq("source", "aggregated")
             .maybeSingle();
 
-          setSaved(!!savedData);
+          setSaved(!!saved);
         }
       }
       setLoading(false);
@@ -162,49 +167,35 @@ export default function JobDetail() {
     }
   };
 
-  /* ── Loading skeleton ── */
   if (loading) {
     return (
-      <div className="max-w-4xl mx-auto px-4 py-8">
-        <div className="flex items-center gap-1.5 mb-6">
-          <div className="h-3.5 w-3.5 rounded bg-muted animate-pulse" />
-          <div className="h-3.5 w-24 rounded bg-muted animate-pulse" />
-        </div>
-        <div className="space-y-3 animate-pulse mb-8">
-          <div className="h-8 w-3/4 rounded-lg bg-muted" />
-          <div className="h-3.5 w-1/2 rounded bg-muted" />
+      <div className="max-w-3xl mx-auto px-4 py-8">
+        <div className="flex items-center gap-3 mb-6">
+          <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
+            <ArrowLeft className="w-4 h-4" />
+          </Button>
+          <div className="h-5 w-32 rounded bg-muted animate-pulse" />
         </div>
         <div className="space-y-4 animate-pulse">
-          <div className="h-48 rounded-xl bg-muted" />
-          <div className="h-32 rounded-xl bg-muted" />
+          <div className="h-8 w-3/4 rounded bg-muted" />
+          <div className="h-4 w-1/2 rounded bg-muted" />
+          <div className="h-40 rounded bg-muted" />
         </div>
       </div>
     );
   }
 
-  /* ── Not found ── */
   if (!job) {
     return (
-      <div className="max-w-4xl mx-auto px-4 py-8">
-        <button
-          onClick={() => navigate("/jobs")}
-          className="flex items-center gap-1.5 text-[13px] text-muted-foreground hover:text-foreground transition-colors mb-6"
-        >
-          <ArrowLeft className="w-3.5 h-3.5" />
-          Back to Jobs
-        </button>
+      <div className="max-w-3xl mx-auto px-4 py-8">
+        <Button variant="ghost" size="icon" onClick={() => navigate(-1)} className="mb-4">
+          <ArrowLeft className="w-4 h-4" />
+        </Button>
         <div className="text-center py-20">
-          <Briefcase className="w-10 h-10 text-muted-foreground/30 mx-auto mb-4" />
-          <h3 className="text-[14px] font-semibold text-foreground mb-1.5">Job not found</h3>
-          <p className="text-[13px] text-muted-foreground">
-            This job may have been removed or is no longer active.
-          </p>
-          <button
-            onClick={() => navigate("/jobs")}
-            className="mt-6 px-5 py-2.5 rounded-lg bg-primary text-primary-foreground text-[13px] font-semibold hover:bg-primary/90 transition-colors"
-          >
-            Browse Jobs
-          </button>
+          <Briefcase className="w-12 h-12 text-muted-foreground/40 mx-auto mb-4" />
+          <h3 className="font-semibold text-foreground mb-2">Job not found</h3>
+          <p className="text-sm text-muted-foreground">This job may have been removed or is no longer active.</p>
+          <Button className="mt-6" onClick={() => navigate("/jobs")}>Browse Jobs</Button>
         </div>
       </div>
     );
@@ -218,243 +209,104 @@ export default function JobDetail() {
     : null;
 
   return (
-    <div className="max-w-4xl mx-auto px-4 py-8">
-      {/* Back link */}
-      <button
-        onClick={() => navigate("/jobs")}
-        className="flex items-center gap-1.5 text-[13px] text-muted-foreground hover:text-foreground transition-colors mb-6"
-      >
-        <ArrowLeft className="w-3.5 h-3.5" />
-        Back to Jobs
-      </button>
+    <div className="max-w-3xl mx-auto px-4 py-8">
+      <Button variant="ghost" size="icon" onClick={() => navigate(-1)} className="mb-6 -ml-2">
+        <ArrowLeft className="w-4 h-4" />
+      </Button>
 
-      {/* Hero */}
-      <div className="mb-6">
-        {/* Top chip row */}
-        <div className="flex items-center gap-2 mb-3 flex-wrap">
-          <span className="text-[11px] px-2 py-0.5 bg-muted text-muted-foreground rounded-md font-medium uppercase tracking-wide">
-            {platformLabel(job.platform)}
+      <div className="bg-card border border-border rounded-xl p-6 mb-4">
+        <div className="flex flex-wrap gap-2 mb-4">
+          <span className={`text-xs font-semibold uppercase px-2.5 py-1 rounded-md ${platformBadgeClass(job.platform)}`}>
+            {job.platform}
           </span>
-          {job.is_active && (
-            <span className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
-              <span className="w-1.5 h-1.5 rounded-full bg-primary inline-block" />
-              Active
-            </span>
-          )}
           {matchScore > 0 && (
-            <span className={`text-[11px] px-2 py-0.5 rounded-md font-medium ${
-              matchScore >= 80
-                ? "bg-green-500/10 text-green-500"
-                : matchScore >= 60
-                ? "bg-blue-500/10 text-blue-400"
-                : "bg-muted text-muted-foreground"
-            }`}>
+            <span className={`text-xs font-semibold px-2.5 py-1 rounded-md ${matchPillClass(matchScore)}`}>
               {matchScore}% match
             </span>
           )}
         </div>
 
-        <h1 className="text-2xl font-bold text-foreground tracking-tight mb-3 leading-snug">
-          {job.title}
-        </h1>
+        <h1 className="text-xl font-bold text-foreground mb-3 leading-snug">{job.title}</h1>
 
-        {/* Meta row */}
-        <div className="flex items-center flex-wrap gap-x-2 gap-y-1 text-[12px] text-muted-foreground">
+        <div className="flex flex-wrap gap-4 text-sm text-muted-foreground mb-4">
           {job.budget && (
-            <>
-              <span className="flex items-center gap-1">
-                <DollarSign className="w-3 h-3" />
-                <span className="text-lg font-semibold text-foreground leading-none">{job.budget}</span>
-              </span>
-              <span className="text-muted-foreground/40">·</span>
-            </>
+            <div className="flex items-center gap-1.5 text-green-600 dark:text-green-400 font-medium">
+              <DollarSign className="w-4 h-4" />
+              {job.budget}
+            </div>
           )}
           {job.job_type && (
-            <>
-              <span className="flex items-center gap-1 capitalize">
-                <Briefcase className="w-3 h-3" />
-                {job.job_type}
-              </span>
-              <span className="text-muted-foreground/40">·</span>
-            </>
+            <div className="flex items-center gap-1.5">
+              <Briefcase className="w-4 h-4" />
+              <span className="capitalize">{job.job_type}</span>
+            </div>
           )}
           {job.location && (
-            <>
-              <span className="flex items-center gap-1">
-                <MapPin className="w-3 h-3" />
-                {job.location}
-              </span>
-              <span className="text-muted-foreground/40">·</span>
-            </>
+            <div className="flex items-center gap-1.5">
+              <MapPin className="w-4 h-4" />
+              {job.location}
+            </div>
           )}
           {relativeDate && (
-            <span className="flex items-center gap-1" title={fullDate || ""}>
-              <Calendar className="w-3 h-3" />
+            <div className="flex items-center gap-1.5" title={fullDate || ""}>
+              <Calendar className="w-4 h-4" />
               {relativeDate}
-            </span>
+            </div>
           )}
+        </div>
+
+        <div className="flex gap-2 flex-wrap">
+          <Button onClick={() => setProposalOpen(true)} className="flex-1 sm:flex-none">
+            Generate Proposal
+          </Button>
+          <Button
+            variant="outline"
+            onClick={handleToggleSave}
+            className={saved ? "text-red-500 border-red-200 hover:text-red-400" : ""}
+          >
+            <Heart className={`w-4 h-4 mr-1.5 ${saved ? "fill-red-500 text-red-500" : ""}`} />
+            {saved ? "Saved" : "Save Job"}
+          </Button>
+          <Button
+            variant="ghost"
+            onClick={() => window.open(job.external_url, "_blank")}
+          >
+            <ExternalLink className="w-4 h-4 mr-1.5" />
+            Apply on {job.platform}
+          </Button>
         </div>
       </div>
 
-      {/* Grid layout */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-        {/* Main column */}
-        <div className="lg:col-span-2 space-y-4">
-          {/* Description */}
-          {job.description && (
-            <div className="border border-border rounded-xl bg-card overflow-hidden">
-              <div className="px-5 py-3.5 border-b border-border flex items-center justify-between">
-                <span className="text-[13px] font-semibold text-foreground">Job Description</span>
-              </div>
-              <div className="px-5 py-5">
-                <p className="text-[14px] text-muted-foreground leading-relaxed whitespace-pre-wrap">
-                  {job.description}
-                </p>
-              </div>
-            </div>
-          )}
-
-          {/* Skills */}
-          {job.skill_tags.length > 0 && (
-            <div className="border border-border rounded-xl bg-card overflow-hidden">
-              <div className="px-5 py-3.5 border-b border-border flex items-center justify-between">
-                <span className="text-[13px] font-semibold text-foreground">Required Skills</span>
-              </div>
-              <div className="px-5 py-5">
-                <p className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground mb-3">
-                  Skills &amp; Technologies
-                </p>
-                <div className="flex flex-wrap gap-2">
-                  {job.skill_tags.map(tag => (
-                    <span
-                      key={tag}
-                      className="text-[11px] px-2 py-0.5 bg-muted text-muted-foreground rounded-md capitalize"
-                    >
-                      {tag}
-                    </span>
-                  ))}
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Match score */}
-          {matchScore > 0 && (
-            <div className="border border-border rounded-xl bg-card overflow-hidden">
-              <div className="px-5 py-3.5 border-b border-border">
-                <span className="text-[13px] font-semibold text-foreground">Profile Match</span>
-              </div>
-              <div className="px-5 py-5">
-                <ScoreCircle score={matchScore} />
-                {primarySkill && (
-                  <p className="text-[13px] text-muted-foreground mt-4">
-                    This job matches your{" "}
-                    <span className="font-medium text-foreground">{primarySkill}</span> skill
-                    and your profile.
-                  </p>
-                )}
-              </div>
-            </div>
-          )}
+      {job.description && (
+        <div className="bg-card border border-border rounded-xl p-6 mb-4">
+          <h2 className="font-semibold text-foreground mb-3">Job Description</h2>
+          <p className="text-sm text-foreground/80 whitespace-pre-wrap leading-relaxed">
+            {job.description}
+          </p>
         </div>
+      )}
 
-        {/* Sidebar */}
-        <div className="lg:col-span-1">
-          <div className="sticky top-24 space-y-4">
-            {/* CTA panel */}
-            <div className="border border-border rounded-xl bg-card overflow-hidden">
-              <div className="px-5 py-3.5 border-b border-border">
-                <span className="text-[13px] font-semibold text-foreground">Apply</span>
-              </div>
-              <div className="px-5 py-5 space-y-3">
-                <button
-                  onClick={() => setProposalOpen(true)}
-                  className="w-full px-5 py-2.5 rounded-lg bg-primary text-primary-foreground text-[13px] font-semibold hover:bg-primary/90 transition-colors"
-                >
-                  Generate Proposal
-                </button>
-                <button
-                  onClick={() => window.open(job.external_url, "_blank")}
-                  className="w-full px-5 py-2.5 rounded-lg border border-border text-[13px] text-muted-foreground hover:text-foreground hover:border-foreground/30 transition-colors flex items-center justify-center gap-1.5"
-                >
-                  <ExternalLink className="w-3.5 h-3.5" />
-                  Apply on {platformLabel(job.platform)}
-                </button>
-                <button
-                  onClick={handleToggleSave}
-                  className={`w-full px-5 py-2.5 rounded-lg border text-[13px] transition-colors flex items-center justify-center gap-1.5 ${
-                    saved
-                      ? "border-red-500/30 text-red-400 hover:border-red-500/50"
-                      : "border-border text-muted-foreground hover:text-foreground hover:border-foreground/30"
-                  }`}
-                >
-                  <Heart className={`w-3.5 h-3.5 ${saved ? "fill-red-500 text-red-500" : ""}`} />
-                  {saved ? "Saved" : "Save Job"}
-                </button>
-              </div>
-            </div>
-
-            {/* Details panel */}
-            <div className="border border-border rounded-xl bg-card overflow-hidden">
-              <div className="px-5 py-3.5 border-b border-border">
-                <span className="text-[13px] font-semibold text-foreground">Details</span>
-              </div>
-              <div className="px-5 py-5 space-y-3.5">
-                {job.budget && (
-                  <div>
-                    <p className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground mb-1">
-                      Budget
-                    </p>
-                    <p className="text-[14px] font-semibold text-foreground">{job.budget}</p>
-                  </div>
-                )}
-                {job.job_type && (
-                  <>
-                    <div className="border-t border-border" />
-                    <div>
-                      <p className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground mb-1">
-                        Job Type
-                      </p>
-                      <p className="text-[13px] text-foreground capitalize">{job.job_type}</p>
-                    </div>
-                  </>
-                )}
-                {job.location && (
-                  <>
-                    <div className="border-t border-border" />
-                    <div>
-                      <p className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground mb-1">
-                        Location
-                      </p>
-                      <p className="text-[13px] text-foreground">{job.location}</p>
-                    </div>
-                  </>
-                )}
-                {relativeDate && (
-                  <>
-                    <div className="border-t border-border" />
-                    <div>
-                      <p className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground mb-1">
-                        Posted
-                      </p>
-                      <p className="text-[13px] text-foreground" title={fullDate || ""}>
-                        {relativeDate}
-                      </p>
-                    </div>
-                  </>
-                )}
-                <div className="border-t border-border" />
-                <div>
-                  <p className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground mb-1">
-                    Source
-                  </p>
-                  <p className="text-[13px] text-foreground">{platformLabel(job.platform)}</p>
-                </div>
-              </div>
-            </div>
+      {job.skill_tags.length > 0 && (
+        <div className="bg-card border border-border rounded-xl p-6 mb-4">
+          <h2 className="font-semibold text-foreground mb-3">Required Skills</h2>
+          <div className="flex flex-wrap gap-2">
+            {job.skill_tags.map(tag => (
+              <Badge key={tag} variant="secondary" className="capitalize">{tag}</Badge>
+            ))}
           </div>
         </div>
-      </div>
+      )}
+
+      {matchScore > 0 && (
+        <div className="bg-card border border-border rounded-xl p-6 mb-4">
+          <ScoreCircle score={matchScore} />
+          {primarySkill && (
+            <p className="text-sm text-muted-foreground mt-3">
+              This job matches your <span className="font-medium text-foreground">{primarySkill}</span> skill and your profile.
+            </p>
+          )}
+        </div>
+      )}
 
       <ProposalModal
         open={proposalOpen}

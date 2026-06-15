@@ -3,7 +3,12 @@ import { useParams, useNavigate } from "react-router-dom";
 import { format, isPast } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Card, CardContent } from "@/components/ui/card";
+import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   CalendarDays,
   Clock,
@@ -15,9 +20,16 @@ import {
   CheckCircle,
   ExternalLink,
   Tag,
-  Globe,
 } from "lucide-react";
 import { motion } from "framer-motion";
+
+const FORMAT_COLORS: Record<string, string> = {
+  webinar: "bg-blue-50 text-blue-700 border-blue-200",
+  workshop: "bg-purple-50 text-purple-700 border-purple-200",
+  conference: "bg-orange-50 text-orange-700 border-orange-200",
+  meetup: "bg-green-50 text-green-700 border-green-200",
+  hackathon: "bg-rose-50 text-rose-700 border-rose-200",
+};
 
 export default function EventDetail() {
   const { eventId } = useParams<{ eventId: string }>();
@@ -118,16 +130,14 @@ export default function EventDetail() {
 
   if (loading) {
     return (
-      <div className="max-w-4xl mx-auto px-4 py-6 space-y-5">
-        <Skeleton className="h-5 w-28 rounded-lg" />
+      <div className="max-w-4xl mx-auto px-4 py-6 space-y-6">
         <Skeleton className="h-64 w-full rounded-xl" />
         <div className="grid grid-cols-3 gap-6">
           <div className="col-span-2 space-y-4">
-            <Skeleton className="h-8 w-3/4 rounded-lg" />
-            <Skeleton className="h-4 w-full rounded" />
-            <Skeleton className="h-4 w-2/3 rounded" />
+            <Skeleton className="h-8 w-3/4" />
+            <Skeleton className="h-4 w-full" />
           </div>
-          <Skeleton className="h-52 rounded-xl" />
+          <Skeleton className="h-48" />
         </div>
       </div>
     );
@@ -140,224 +150,114 @@ export default function EventDetail() {
   const speakers = Array.isArray(event.speakers) ? event.speakers : [];
   const agenda = Array.isArray(event.agenda) ? event.agenda : [];
 
-  const durationLabel = event.duration_minutes
-    ? `${Math.floor(event.duration_minutes / 60)}h${event.duration_minutes % 60 ? ` ${event.duration_minutes % 60}m` : ""}`
-    : null;
-
-  const organizerInitials = (organizer?.full_name || "O")
-    .split(" ")
-    .map((w: string) => w[0])
-    .slice(0, 2)
-    .join("")
-    .toUpperCase();
-
   return (
-    <div className="max-w-4xl mx-auto px-4 py-6 space-y-5">
-      {/* Back link */}
-      <button
-        onClick={() => navigate("/events")}
-        className="flex items-center gap-1.5 text-[13px] text-muted-foreground hover:text-foreground transition-colors"
-      >
-        <ArrowLeft className="w-3.5 h-3.5" />
-        Back to Events
-      </button>
+    <div className="max-w-4xl mx-auto px-4 py-6 space-y-6">
+      <Button variant="ghost" size="sm" onClick={() => navigate("/events")}>
+        <ArrowLeft className="w-4 h-4 mr-2" /> Back to Events
+      </Button>
 
-      {/* Banner */}
-      <motion.div
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="relative rounded-xl overflow-hidden"
-      >
+      <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="relative rounded-xl overflow-hidden">
         {event.banner_url || event.cover_image_url ? (
-          <img
-            src={event.banner_url || event.cover_image_url}
-            alt={event.title}
-            className="w-full h-56 md:h-72 object-cover"
-          />
+          <img src={event.banner_url || event.cover_image_url} alt={event.title} className="w-full h-56 md:h-72 object-cover" />
         ) : (
           <div className="w-full h-56 md:h-72 bg-gradient-to-br from-[#1E3A5F] to-[#2563EB] flex items-center justify-center">
             <CalendarDays className="w-20 h-20 text-white/20" />
           </div>
         )}
         {past && (
-          <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
-            <span className="text-[13px] font-semibold text-white px-4 py-2 rounded-lg bg-black/60 border border-white/20">
-              Event Ended
-            </span>
+          <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
+            <Badge className="text-base px-4 py-2 bg-black/60 border-white/20 text-white">Event Ended</Badge>
           </div>
         )}
       </motion.div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
-        {/* Main content */}
-        <div className="lg:col-span-2 space-y-5">
-          {/* Title + meta panel */}
-          <div className="border border-border rounded-xl bg-card overflow-hidden">
-            <div className="px-5 py-5">
-              {/* Chips row */}
-              <div className="flex flex-wrap gap-1.5 mb-3">
-                <span className="text-[11px] px-2 py-0.5 bg-muted text-muted-foreground rounded-md capitalize">
-                  {event.format}
-                </span>
-                {event.niche_category && (
-                  <span className="text-[11px] px-2 py-0.5 bg-muted text-muted-foreground rounded-md flex items-center gap-1">
-                    <Tag className="w-2.5 h-2.5" />
-                    {event.niche_category}
-                  </span>
-                )}
-                {event.price_type === "free" ? (
-                  <span className="text-[11px] px-2 py-0.5 bg-muted text-muted-foreground rounded-md">
-                    Free
-                  </span>
-                ) : (
-                  <span className="text-[11px] px-2 py-0.5 bg-muted text-muted-foreground rounded-md">
-                    ${event.ticket_price}
-                  </span>
-                )}
-              </div>
-
-              {/* Title */}
-              <h1 className="text-[22px] font-bold text-foreground leading-snug mb-3">
-                {event.title}
-              </h1>
-
-              {/* Date / time meta */}
-              <div className="flex flex-wrap items-center gap-2 text-[12px] text-muted-foreground">
-                <CalendarDays className="w-3.5 h-3.5" />
-                <span>{format(new Date(event.date_time), "EEEE, MMMM d, yyyy")}</span>
-                <span className="text-border">·</span>
-                <Clock className="w-3.5 h-3.5" />
-                <span>{format(new Date(event.date_time), "h:mm a")}</span>
-                {event.timezone && (
-                  <>
-                    <span className="text-border">·</span>
-                    <Globe className="w-3.5 h-3.5" />
-                    <span>{event.timezone}</span>
-                  </>
-                )}
-                {durationLabel && (
-                  <>
-                    <span className="text-border">·</span>
-                    <span>{durationLabel}</span>
-                  </>
-                )}
-              </div>
-
-              {/* Format / location meta */}
-              {(event.location_address || event.platform_name) && (
-                <div className="flex items-center gap-2 text-[12px] text-muted-foreground mt-2">
-                  {event.location_address ? (
-                    <>
-                      <MapPin className="w-3.5 h-3.5" />
-                      <span>{event.location_address}</span>
-                    </>
-                  ) : (
-                    <>
-                      <Video className="w-3.5 h-3.5" />
-                      <span>Online</span>
-                      {event.platform_name && (
-                        <>
-                          <span className="text-border">·</span>
-                          <span>{event.platform_name}</span>
-                        </>
-                      )}
-                    </>
-                  )}
-                </div>
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="lg:col-span-2 space-y-6">
+          <div>
+            <div className="flex flex-wrap gap-2 mb-3">
+              <Badge variant="outline" className={`capitalize ${FORMAT_COLORS[event.format] || ""}`}>{event.format}</Badge>
+              {event.niche_category && (
+                <Badge variant="outline" className="bg-gray-50 text-gray-600">
+                  <Tag className="w-3 h-3 mr-1" />{event.niche_category}
+                </Badge>
+              )}
+              {event.price_type === "free" ? (
+                <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">Free</Badge>
+              ) : (
+                <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">${event.ticket_price}</Badge>
               )}
             </div>
-
-            {/* Organizer row */}
-            {organizer && (
-              <div className="px-5 py-3.5 border-t border-border flex items-center gap-3">
-                <div className="w-7 h-7 rounded-full bg-muted flex items-center justify-center overflow-hidden shrink-0">
-                  {organizer.profile_photo_url ? (
-                    <img src={organizer.profile_photo_url} alt={organizer.full_name} className="w-full h-full object-cover" />
-                  ) : (
-                    <span className="text-[11px] font-semibold text-muted-foreground">{organizerInitials}</span>
-                  )}
-                </div>
-                <div className="flex items-center gap-2 text-[12px] text-muted-foreground">
-                  <span>Organized by</span>
-                  <span className="font-semibold text-foreground">{organizer.full_name}</span>
-                  {(organizer.primary_skill || organizer.bio) && (
-                    <>
-                      <span className="text-border">·</span>
-                      <span>{organizer.primary_skill || organizer.bio}</span>
-                    </>
-                  )}
-                </div>
-              </div>
-            )}
+            <h1 className="text-2xl font-bold text-[#1E3A5F] mb-2">{event.title}</h1>
+            <div className="flex flex-wrap gap-4 text-sm text-muted-foreground">
+              <span className="flex items-center gap-1.5">
+                <CalendarDays className="w-4 h-4" />
+                {format(new Date(event.date_time), "EEEE, MMMM d, yyyy")}
+              </span>
+              <span className="flex items-center gap-1.5">
+                <Clock className="w-4 h-4" />
+                {format(new Date(event.date_time), "h:mm a")} {event.timezone}
+                {event.duration_minutes && ` · ${Math.floor(event.duration_minutes / 60)}h${event.duration_minutes % 60 ? ` ${event.duration_minutes % 60}m` : ""}`}
+              </span>
+            </div>
           </div>
 
-          {/* Description panel */}
+          <Separator />
+
           {event.description && (
-            <div className="border border-border rounded-xl bg-card overflow-hidden">
-              <div className="px-5 py-3.5 border-b border-border">
-                <p className="text-[13px] font-semibold text-foreground">About this event</p>
-              </div>
-              <div className="px-5 py-5">
-                <p className="text-[14px] text-muted-foreground leading-relaxed whitespace-pre-wrap">
-                  {event.description}
-                </p>
-              </div>
+            <div>
+              <h2 className="font-semibold mb-3">About this event</h2>
+              <p className="text-sm text-muted-foreground whitespace-pre-wrap leading-relaxed">{event.description}</p>
             </div>
           )}
 
-          {/* Speakers panel */}
           {speakers.length > 0 && (
-            <div className="border border-border rounded-xl bg-card overflow-hidden">
-              <div className="px-5 py-3.5 border-b border-border">
-                <p className="text-[13px] font-semibold text-foreground">Speakers</p>
-              </div>
-              <div className="px-5 py-5">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  {speakers.map((speaker: any, i: number) => {
-                    const initials = (speaker.name || "S")
-                      .split(" ")
-                      .map((w: string) => w[0])
-                      .slice(0, 2)
-                      .join("")
-                      .toUpperCase();
-                    return (
-                      <div key={i} className="flex items-start gap-3 p-3 rounded-lg border border-border bg-muted/30">
-                        <div className="w-9 h-9 rounded-full bg-muted flex items-center justify-center overflow-hidden shrink-0">
-                          {speaker.avatar_url ? (
-                            <img src={speaker.avatar_url} alt={speaker.name} className="w-full h-full object-cover" />
-                          ) : (
-                            <span className="text-[11px] font-semibold text-muted-foreground">{initials}</span>
-                          )}
-                        </div>
-                        <div>
-                          <p className="text-[13px] font-semibold text-foreground">{speaker.name}</p>
-                          {speaker.title && (
-                            <p className="text-[12px] text-muted-foreground">{speaker.title}</p>
-                          )}
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Agenda panel */}
-          {agenda.length > 0 && (
-            <div className="border border-border rounded-xl bg-card overflow-hidden">
-              <div className="px-5 py-3.5 border-b border-border">
-                <p className="text-[13px] font-semibold text-foreground">Agenda</p>
-              </div>
-              <div className="divide-y divide-border">
-                {agenda.map((item: any, i: number) => (
-                  <div key={i} className="flex items-start gap-4 px-5 py-3.5">
-                    <span className="text-[12px] text-muted-foreground w-14 shrink-0 pt-0.5 font-mono">
-                      {item.time}
-                    </span>
-                    <span className="text-[13px] text-foreground">{item.topic}</span>
+            <div>
+              <h2 className="font-semibold mb-3">Speakers</h2>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {speakers.map((speaker: any, i: number) => (
+                  <div key={i} className="flex items-start gap-3 p-3 rounded-lg border">
+                    <Avatar className="w-10 h-10">
+                      <AvatarImage src={speaker.avatar_url} />
+                      <AvatarFallback>{speaker.name?.[0] || "S"}</AvatarFallback>
+                    </Avatar>
+                    <div>
+                      <p className="text-sm font-medium">{speaker.name}</p>
+                      {speaker.title && <p className="text-xs text-muted-foreground">{speaker.title}</p>}
+                    </div>
                   </div>
                 ))}
+              </div>
+            </div>
+          )}
+
+          {agenda.length > 0 && (
+            <div>
+              <h2 className="font-semibold mb-3">Agenda</h2>
+              <div className="space-y-2">
+                {agenda.map((item: any, i: number) => (
+                  <div key={i} className="flex gap-4 text-sm">
+                    <span className="text-muted-foreground w-16 flex-shrink-0">{item.time}</span>
+                    <span>{item.topic}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {organizer && (
+            <div>
+              <h2 className="font-semibold mb-3">Organizer</h2>
+              <div className="flex items-start gap-3">
+                <Avatar className="w-10 h-10">
+                  <AvatarImage src={organizer.profile_photo_url} />
+                  <AvatarFallback>{(organizer.full_name || "O")[0]}</AvatarFallback>
+                </Avatar>
+                <div>
+                  <p className="font-medium text-sm">{organizer.full_name}</p>
+                  {(organizer.primary_skill || organizer.bio) && (
+                    <p className="text-xs text-muted-foreground">{organizer.primary_skill || organizer.bio}</p>
+                  )}
+                </div>
               </div>
             </div>
           )}
@@ -365,76 +265,57 @@ export default function EventDetail() {
 
         {/* Sticky sidebar */}
         <div>
-          <div className="sticky top-4 border border-border rounded-xl bg-card overflow-hidden">
-            {/* Attendee count */}
-            <div className="px-5 py-5 text-center border-b border-border">
-              <p className="font-mono text-lg font-bold text-foreground">{event.attendee_count}</p>
-              <p className="text-[12px] text-muted-foreground mt-0.5">attending</p>
-              {spotsLeft !== null && spotsLeft > 0 && (
-                <p className="text-[11px] text-amber-600 mt-1.5">{spotsLeft} spots left</p>
-              )}
-              {spotsLeft !== null && spotsLeft <= 0 && (
-                <p className="text-[11px] text-destructive mt-1.5">Fully booked</p>
-              )}
-            </div>
-
-            {/* Price */}
-            <div className="px-5 py-3.5 border-b border-border">
-              <div className="flex items-center justify-between">
-                <span className="text-[12px] text-muted-foreground">Ticket</span>
-                <span className="text-[13px] font-semibold text-foreground">
-                  {event.price_type === "free" ? "Free" : `$${event.ticket_price}`}
-                </span>
+          <Card className="sticky top-4">
+            <CardContent className="pt-5 space-y-4">
+              <div className="text-center">
+                <p className="text-3xl font-bold text-[#1E3A5F]">{event.attendee_count}</p>
+                <p className="text-sm text-muted-foreground">attending</p>
+                {spotsLeft !== null && spotsLeft > 0 && (
+                  <p className="text-xs text-amber-600 mt-1">{spotsLeft} spots left</p>
+                )}
+                {spotsLeft !== null && spotsLeft <= 0 && (
+                  <p className="text-xs text-red-600 mt-1">Fully booked</p>
+                )}
               </div>
-            </div>
 
-            {/* Actions */}
-            <div className="px-5 py-4 space-y-2.5">
+              <Separator />
+
+              {event.location_address ? (
+                <div className="flex items-start gap-2 text-sm">
+                  <MapPin className="w-4 h-4 mt-0.5 text-muted-foreground" />
+                  <span className="text-muted-foreground">{event.location_address}</span>
+                </div>
+              ) : event.platform_name ? (
+                <div className="flex items-center gap-2 text-sm">
+                  <Video className="w-4 h-4 text-muted-foreground" />
+                  <span className="text-muted-foreground">{event.platform_name}</span>
+                </div>
+              ) : null}
+
               {!past && (
                 <>
                   {rsvped && event.event_link && (
-                    <button
-                      onClick={() => window.open(event.event_link, "_blank")}
-                      className="w-full px-5 py-2.5 rounded-lg border border-border text-[13px] text-muted-foreground hover:text-foreground hover:border-foreground/30 transition-colors flex items-center justify-center gap-2"
-                    >
-                      <ExternalLink className="w-3.5 h-3.5" />
-                      Join Event
-                    </button>
+                    <Button variant="outline" className="w-full" onClick={() => window.open(event.event_link, "_blank")}>
+                      <ExternalLink className="w-4 h-4 mr-2" />Join Event
+                    </Button>
                   )}
-                  <button
+                  <Button
+                    className={`w-full ${rsvped ? "bg-green-600 hover:bg-green-700" : "bg-[#2563EB] hover:bg-[#1d4ed8]"}`}
                     onClick={handleRsvp}
                     disabled={rsvpLoading || (spotsLeft !== null && spotsLeft <= 0 && !rsvped)}
-                    className={`w-full px-5 py-2.5 rounded-lg text-[13px] font-semibold transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed ${
-                      rsvped
-                        ? "bg-green-600 hover:bg-green-700 text-white"
-                        : "bg-primary hover:bg-primary/90 text-primary-foreground"
-                    }`}
                   >
-                    {rsvpLoading ? (
-                      "Loading..."
-                    ) : rsvped ? (
-                      <>
-                        <CheckCircle className="w-3.5 h-3.5" />
-                        Attending
-                      </>
-                    ) : event.price_type === "paid" ? (
-                      `Buy Ticket — $${event.ticket_price}`
-                    ) : (
-                      "RSVP — Free"
-                    )}
-                  </button>
+                    {rsvpLoading ? "Loading..." : rsvped ? (
+                      <><CheckCircle className="w-4 h-4 mr-2" />Attending</>
+                    ) : event.price_type === "paid" ? `Buy Ticket — $${event.ticket_price}` : "RSVP — Free"}
+                  </Button>
                 </>
               )}
 
-              <button
-                onClick={handleShare}
-                className="w-full px-5 py-2.5 rounded-lg border border-border text-[13px] text-muted-foreground hover:text-foreground hover:border-foreground/30 transition-colors flex items-center justify-center gap-2"
-              >
-                <Share2 className="w-3.5 h-3.5" />
-                Share Event
-              </button>
-            </div>
-          </div>
+              <Button variant="outline" className="w-full" onClick={handleShare}>
+                <Share2 className="w-4 h-4 mr-2" />Share Event
+              </Button>
+            </CardContent>
+          </Card>
         </div>
       </div>
     </div>

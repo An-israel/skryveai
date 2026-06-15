@@ -1,7 +1,16 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { formatDistanceToNow } from "date-fns";
-import { ArrowLeft, Send, Loader2, Check, CheckCheck, MessageSquare } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import {
+  ArrowLeft,
+  Send,
+  Loader2,
+  Check,
+  CheckCheck,
+  MessageSquare,
+} from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
@@ -24,14 +33,20 @@ function getInitials(name: string) {
     .toUpperCase();
 }
 
-function Avatar({ name, url }: { name: string; url: string | null }) {
+function AvatarFallback({ name, url }: { name: string; url: string | null }) {
   if (url) {
     return (
-      <img src={url} alt={name} className="w-full h-full object-cover rounded-full" />
+      <img
+        src={url}
+        alt={name}
+        className="w-full h-full object-cover rounded-full"
+      />
     );
   }
   return (
-    <span className="text-[12px] font-bold text-primary">{getInitials(name)}</span>
+    <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-blue-500 to-blue-700 rounded-full text-white font-semibold text-sm">
+      {getInitials(name)}
+    </div>
   );
 }
 
@@ -58,7 +73,7 @@ export default function MessageThread() {
     });
   }, [navigate]);
 
-  // Fetch conversation info to resolve names
+  // Fetch conversation info
   useEffect(() => {
     if (!conversationId || !userId) return;
 
@@ -71,6 +86,7 @@ export default function MessageThread() {
 
       if (!conv) return;
 
+      // Determine who is who
       const { data: talentProfile } = await (supabase as any)
         .from("talent_profiles")
         .select("id, user_id")
@@ -87,6 +103,7 @@ export default function MessageThread() {
       const isClient = clientProfile?.user_id === userId;
 
       if (isTalent) {
+        // Other is client
         const { data: cp } = await (supabase as any)
           .from("client_profiles")
           .select("company_name, logo_url")
@@ -97,6 +114,7 @@ export default function MessageThread() {
           setOtherAvatar(cp.logo_url);
         }
       } else if (isClient) {
+        // Other is talent
         const { data: tp } = await (supabase as any)
           .from("talent_profiles")
           .select("full_name, profile_photo_url")
@@ -118,13 +136,15 @@ export default function MessageThread() {
 
     const { data, error } = await (supabase as any)
       .from("marketplace_messages")
-      .select("id, conversation_id, sender_id, content, attachment_url, is_read, sent_at")
+      .select(
+        "id, conversation_id, sender_id, content, attachment_url, is_read, sent_at"
+      )
       .eq("conversation_id", conversationId)
       .order("sent_at", { ascending: true });
 
     if (!error && data) {
       setMessages(data);
-      // Mark incoming messages as read
+      // Mark incoming as read
       await (supabase as any)
         .from("marketplace_messages")
         .update({ is_read: true })
@@ -141,11 +161,12 @@ export default function MessageThread() {
     }
   }, [userId, conversationId, fetchMessages]);
 
+  // Scroll to bottom
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  // Realtime subscription
+  // Realtime
   useEffect(() => {
     if (!conversationId || !userId) return;
 
@@ -217,31 +238,35 @@ export default function MessageThread() {
 
   return (
     <div className="flex flex-col h-[calc(100vh-4rem)]">
-
       {/* Header */}
-      <div className="px-5 py-3.5 border-b border-border flex items-center gap-3 shrink-0">
-        <button
+      <div className="px-4 py-3 border-b flex items-center gap-3 shrink-0">
+        <Button
+          variant="ghost"
+          size="icon"
           onClick={() => navigate("/messages")}
-          className="p-1 rounded-md hover:bg-muted transition-colors"
         >
-          <ArrowLeft className="w-4 h-4 text-muted-foreground" />
-        </button>
-        <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center shrink-0 overflow-hidden">
-          <Avatar name={otherName} url={otherAvatar} />
+          <ArrowLeft className="w-5 h-5" />
+        </Button>
+        <div className="w-9 h-9 shrink-0">
+          <AvatarFallback name={otherName} url={otherAvatar} />
         </div>
-        <span className="text-[13px] font-semibold text-foreground truncate">{otherName}</span>
+        <div className="flex-1 min-w-0">
+          <p className="font-semibold text-sm truncate">{otherName}</p>
+        </div>
       </div>
 
-      {/* Messages area */}
-      <div className="flex-1 overflow-y-auto px-5 py-4 space-y-2">
+      {/* Messages */}
+      <div className="flex-1 overflow-y-auto p-4 space-y-3">
         {loading ? (
           <div className="flex justify-center py-10">
-            <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
+            <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
           </div>
         ) : messages.length === 0 ? (
-          <div className="text-center py-16">
-            <MessageSquare className="w-8 h-8 mx-auto text-muted-foreground/30 mb-3" />
-            <p className="text-[13px] text-muted-foreground">No messages yet — say hello!</p>
+          <div className="text-center py-10">
+            <MessageSquare className="w-10 h-10 mx-auto text-muted-foreground mb-3" />
+            <p className="text-sm text-muted-foreground">
+              No messages yet. Say hello!
+            </p>
           </div>
         ) : (
           messages.map((msg) => {
@@ -252,13 +277,13 @@ export default function MessageThread() {
                 className={`flex ${isOwn ? "justify-end" : "justify-start"}`}
               >
                 <div
-                  className={`max-w-[75%] px-4 py-2.5 text-[14px] ${
+                  className={`max-w-[75%] px-4 py-2.5 rounded-2xl text-sm ${
                     isOwn
-                      ? "bg-primary text-primary-foreground rounded-2xl rounded-br-sm"
-                      : "bg-muted text-foreground rounded-2xl rounded-bl-sm"
+                      ? "bg-blue-600 text-white rounded-br-sm"
+                      : "bg-muted text-foreground rounded-bl-sm"
                   }`}
                 >
-                  <p className="whitespace-pre-wrap break-words leading-relaxed">
+                  <p className="whitespace-pre-wrap break-words">
                     {msg.content}
                   </p>
                   <div
@@ -267,18 +292,20 @@ export default function MessageThread() {
                     }`}
                   >
                     <span
-                      className={`text-[11px] ${
-                        isOwn ? "text-primary-foreground/60" : "text-muted-foreground"
+                      className={`text-xs ${
+                        isOwn ? "text-blue-200" : "text-muted-foreground"
                       }`}
                     >
-                      {formatDistanceToNow(new Date(msg.sent_at), { addSuffix: false })}
+                      {formatDistanceToNow(new Date(msg.sent_at), {
+                        addSuffix: false,
+                      })}
                     </span>
                     {isOwn && (
-                      <span className="text-primary-foreground/60">
+                      <span className="text-blue-200">
                         {msg.is_read ? (
-                          <CheckCheck className="w-3 h-3" />
+                          <CheckCheck className="w-3.5 h-3.5" />
                         ) : (
-                          <Check className="w-3 h-3" />
+                          <Check className="w-3.5 h-3.5" />
                         )}
                       </span>
                     )}
@@ -291,27 +318,29 @@ export default function MessageThread() {
         <div ref={messagesEndRef} />
       </div>
 
-      {/* Input bar */}
-      <div className="border-t border-border px-4 py-3 flex gap-2 shrink-0">
-        <input
-          placeholder="Type a message…"
-          value={inputText}
-          onChange={(e) => setInputText(e.target.value)}
-          onKeyDown={handleKeyDown}
-          disabled={sending}
-          className="flex-1 px-3 py-2 text-[14px] bg-muted/40 border border-border rounded-lg placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary/40 transition disabled:opacity-50"
-        />
-        <button
-          onClick={sendMessage}
-          disabled={!inputText.trim() || sending}
-          className="w-9 h-9 shrink-0 rounded-lg bg-primary text-primary-foreground flex items-center justify-center hover:opacity-90 transition disabled:opacity-40"
-        >
-          {sending ? (
-            <Loader2 className="w-4 h-4 animate-spin" />
-          ) : (
-            <Send className="w-4 h-4" />
-          )}
-        </button>
+      {/* Input */}
+      <div className="px-4 py-3 border-t shrink-0">
+        <div className="flex gap-2">
+          <Input
+            placeholder="Type a message..."
+            value={inputText}
+            onChange={(e) => setInputText(e.target.value)}
+            onKeyDown={handleKeyDown}
+            disabled={sending}
+          />
+          <Button
+            onClick={sendMessage}
+            disabled={!inputText.trim() || sending}
+            size="icon"
+            className="shrink-0"
+          >
+            {sending ? (
+              <Loader2 className="w-4 h-4 animate-spin" />
+            ) : (
+              <Send className="w-4 h-4" />
+            )}
+          </Button>
+        </div>
       </div>
     </div>
   );

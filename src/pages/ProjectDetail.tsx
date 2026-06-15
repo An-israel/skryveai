@@ -3,10 +3,21 @@ import { useParams, useNavigate, Link } from "react-router-dom";
 import { formatDistanceToNow } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Progress } from "@/components/ui/progress";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import {
   Dialog,
   DialogContent,
@@ -25,7 +36,6 @@ import {
   Circle,
   Clock,
   ExternalLink,
-  ArrowLeft,
 } from "lucide-react";
 
 function formatCurrency(amount: number | null, currency = "NGN") {
@@ -39,54 +49,175 @@ function isOverdue(deadline: string | null) {
   return new Date(deadline) < new Date();
 }
 
-function statusDot(status: string) {
-  const map: Record<string, string> = {
-    active: "bg-primary",
-    awaiting_review: "bg-amber-500",
-    completed: "bg-green-500",
-    overdue: "bg-destructive",
+function StatusBadge({ status }: { status: string }) {
+  const map: Record<string, { label: string; className: string }> = {
+    active: { label: "Active", className: "bg-blue-500/10 text-blue-600 border-blue-500/20" },
+    awaiting_review: { label: "Awaiting Review", className: "bg-amber-500/10 text-amber-600 border-amber-500/20" },
+    completed: { label: "Complete", className: "bg-green-500/10 text-green-600 border-green-500/20" },
   };
-  return map[status] || "bg-muted-foreground";
+  const s = map[status] || { label: status, className: "" };
+  return <Badge variant="outline" className={s.className}>{s.label}</Badge>;
 }
 
-function statusLabel(status: string) {
-  const map: Record<string, string> = {
-    active: "Active",
-    awaiting_review: "Awaiting Review",
-    completed: "Complete",
-    overdue: "Overdue",
-  };
-  return map[status] || status;
+function PaymentBadge({ status }: { status: string }) {
+  if (status === "released") return <Badge variant="outline" className="bg-green-500/10 text-green-600 border-green-500/20">Released</Badge>;
+  if (status === "in_escrow") return <Badge variant="outline" className="bg-blue-500/10 text-blue-600 border-blue-500/20">In Escrow</Badge>;
+  return <Badge variant="outline" className="text-muted-foreground">Pending</Badge>;
 }
 
-function milestoneStatusDot(status: string) {
-  if (status === "completed") return "bg-green-500";
-  if (status === "in_progress") return "bg-primary";
-  return "bg-border";
+function MilestonesSection({ milestones }: { milestones: any[] }) {
+  const total = milestones.length;
+  const completedCount = milestones.filter(m => m.status === "completed").length;
+  const pct = total > 0 ? Math.round((completedCount / total) * 100) : 0;
+
+  return (
+    <div className="space-y-4">
+      <div>
+        <div className="flex items-center justify-between text-sm mb-1.5">
+          <span className="text-muted-foreground">{completedCount}/{total} complete</span>
+          <span className="font-medium">{pct}%</span>
+        </div>
+        <Progress value={pct} className="h-2" />
+      </div>
+      <div className="space-y-2">
+        {milestones.map(m => (
+          <div key={m.id} className="flex items-center gap-3 py-2 border-b last:border-0">
+            {m.status === "completed" ? (
+              <CheckCircle2 className="w-4 h-4 text-green-500 shrink-0" />
+            ) : m.status === "in_progress" ? (
+              <Clock className="w-4 h-4 text-blue-500 shrink-0" />
+            ) : (
+              <Circle className="w-4 h-4 text-muted-foreground shrink-0" />
+            )}
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-medium truncate">{m.title}</p>
+              {m.due_date && (
+                <p className="text-xs text-muted-foreground">
+                  Due {new Date(m.due_date).toLocaleDateString()}
+                </p>
+              )}
+            </div>
+            <Badge
+              variant="outline"
+              className={
+                m.status === "completed"
+                  ? "bg-green-500/10 text-green-600 border-green-500/20 text-xs"
+                  : m.status === "in_progress"
+                  ? "bg-blue-500/10 text-blue-600 border-blue-500/20 text-xs"
+                  : "text-muted-foreground text-xs"
+              }
+            >
+              {m.status === "in_progress" ? "In Progress" : m.status === "completed" ? "Done" : "Pending"}
+            </Badge>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
 }
 
-function deliverableStatusDot(status: string) {
-  if (status === "approved") return "bg-green-500";
-  if (status === "revision_requested") return "bg-amber-500";
-  return "bg-muted-foreground";
+function DeliverablesSection({ deliverables }: { deliverables: any[] }) {
+  if (deliverables.length === 0) {
+    return <p className="text-sm text-muted-foreground py-4 text-center">No deliverables submitted yet.</p>;
+  }
+
+  return (
+    <div className="space-y-3">
+      {deliverables.map(d => (
+        <div key={d.id} className="space-y-2">
+          <div className="flex items-start gap-3 py-2 border-b last:border-0">
+            {d.file_url ? (
+              <File className="w-4 h-4 text-muted-foreground mt-0.5 shrink-0" />
+            ) : (
+              <LinkIcon className="w-4 h-4 text-muted-foreground mt-0.5 shrink-0" />
+            )}
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-medium truncate">{d.file_name || d.external_url || "Deliverable"}</p>
+              {d.delivery_note && (
+                <p className="text-xs text-muted-foreground truncate">{d.delivery_note}</p>
+              )}
+              <p className="text-xs text-muted-foreground mt-0.5">
+                {formatDistanceToNow(new Date(d.created_at), { addSuffix: true })}
+              </p>
+            </div>
+            <div className="flex items-center gap-2 shrink-0">
+              <Badge
+                variant="outline"
+                className={
+                  d.status === "approved"
+                    ? "bg-green-500/10 text-green-600 border-green-500/20 text-xs"
+                    : d.status === "revision_requested"
+                    ? "bg-amber-500/10 text-amber-600 border-amber-500/20 text-xs"
+                    : "text-muted-foreground text-xs"
+                }
+              >
+                {d.status === "approved"
+                  ? "Approved"
+                  : d.status === "revision_requested"
+                  ? "Revision Requested"
+                  : "Pending Review"}
+              </Badge>
+              {(d.file_url || d.external_url) && (
+                <a
+                  href={d.file_url || d.external_url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  onClick={e => e.stopPropagation()}
+                  className="text-primary hover:text-primary/80"
+                >
+                  <ExternalLink className="w-3.5 h-3.5" />
+                </a>
+              )}
+            </div>
+          </div>
+          {d.status === "revision_requested" && d.client_feedback && (
+            <div className="ml-7 p-3 bg-amber-500/5 border border-amber-500/20 rounded-md text-xs text-amber-700 dark:text-amber-400">
+              <span className="font-semibold">Client feedback: </span>{d.client_feedback}
+            </div>
+          )}
+        </div>
+      ))}
+    </div>
+  );
 }
 
-function deliverableStatusLabel(status: string) {
-  if (status === "approved") return "Approved";
-  if (status === "revision_requested") return "Revision";
-  return "Pending";
-}
+function MiniMessageThread({ messages, userId }: { messages: any[]; userId: string }) {
+  if (messages.length === 0) {
+    return (
+      <p className="text-sm text-muted-foreground py-4 text-center">
+        No messages yet. Start the conversation.
+      </p>
+    );
+  }
 
-function paymentStatusDot(status: string) {
-  if (status === "released") return "bg-green-500";
-  if (status === "in_escrow") return "bg-primary";
-  return "bg-muted-foreground";
-}
-
-function paymentStatusLabel(status: string) {
-  if (status === "released") return "Released";
-  if (status === "in_escrow") return "In Escrow";
-  return "Pending";
+  return (
+    <div className="space-y-3 max-h-64 overflow-y-auto">
+      {messages.map(msg => {
+        const isOwn = msg.sender_id === userId;
+        return (
+          <div key={msg.id} className={`flex gap-2 ${isOwn ? "flex-row-reverse" : ""}`}>
+            <div className="w-7 h-7 rounded-full bg-muted flex items-center justify-center shrink-0 text-xs font-bold">
+              {isOwn ? "Y" : "C"}
+            </div>
+            <div className={`max-w-[75%] ${isOwn ? "items-end" : "items-start"} flex flex-col`}>
+              <div
+                className={`rounded-lg px-3 py-2 text-sm ${
+                  isOwn
+                    ? "bg-primary text-primary-foreground"
+                    : "bg-muted text-foreground"
+                }`}
+              >
+                {msg.content}
+              </div>
+              <p className="text-xs text-muted-foreground mt-1">
+                {formatDistanceToNow(new Date(msg.created_at || msg.sent_at), { addSuffix: true })}
+              </p>
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
 }
 
 function StarRatingInput({ value, onChange }: { value: number; onChange: (v: number) => void }) {
@@ -116,49 +247,9 @@ function StarRatingInput({ value, onChange }: { value: number; onChange: (v: num
   );
 }
 
-function MiniMessageThread({ messages, userId }: { messages: any[]; userId: string }) {
-  if (messages.length === 0) {
-    return (
-      <p className="text-[13px] text-muted-foreground py-4 text-center">
-        No messages yet. Start the conversation.
-      </p>
-    );
-  }
-
-  return (
-    <div className="space-y-3 max-h-64 overflow-y-auto">
-      {messages.map(msg => {
-        const isOwn = msg.sender_id === userId;
-        return (
-          <div key={msg.id} className={`flex gap-2 ${isOwn ? "flex-row-reverse" : ""}`}>
-            <div className="w-7 h-7 rounded-full bg-muted flex items-center justify-center shrink-0 text-[11px] font-bold text-muted-foreground">
-              {isOwn ? "Y" : "C"}
-            </div>
-            <div className={`max-w-[75%] ${isOwn ? "items-end" : "items-start"} flex flex-col`}>
-              <div
-                className={`rounded-lg px-3 py-2 text-[13px] ${
-                  isOwn
-                    ? "bg-primary text-primary-foreground"
-                    : "bg-muted text-foreground"
-                }`}
-              >
-                {msg.content}
-              </div>
-              <p className="text-[11px] text-muted-foreground mt-1">
-                {formatDistanceToNow(new Date(msg.created_at || msg.sent_at), { addSuffix: true })}
-              </p>
-            </div>
-          </div>
-        );
-      })}
-    </div>
-  );
-}
-
 function ProjectDetailSkeleton() {
   return (
-    <div className="max-w-5xl mx-auto px-4 py-6 space-y-5">
-      <Skeleton className="h-5 w-28 rounded-lg" />
+    <div className="space-y-6 max-w-5xl">
       <Skeleton className="h-32 rounded-xl" />
       <Skeleton className="h-48 rounded-xl" />
       <Skeleton className="h-48 rounded-xl" />
@@ -349,14 +440,11 @@ export default function ProjectDetail() {
 
   if (!project) {
     return (
-      <div className="max-w-5xl mx-auto px-4 py-6 text-center py-20">
-        <p className="text-[14px] text-muted-foreground">Project not found.</p>
-        <button
-          onClick={() => navigate("/projects")}
-          className="mt-4 px-5 py-2.5 rounded-lg border border-border text-[13px] text-muted-foreground hover:text-foreground hover:border-foreground/30 transition-colors"
-        >
+      <div className="text-center py-20">
+        <p className="text-muted-foreground">Project not found.</p>
+        <Button className="mt-4" variant="outline" onClick={() => navigate("/projects")}>
           Back to Projects
-        </button>
+        </Button>
       </div>
     );
   }
@@ -364,359 +452,171 @@ export default function ProjectDetail() {
   const jobTitle = project.job_posts?.title || project.title || "Untitled Project";
   const companyName = project.client_profiles?.company_name;
   const logoUrl = project.client_profiles?.logo_url;
-  const companyInitial = (companyName || "C")[0].toUpperCase();
-
-  const totalMilestones = milestones.length;
-  const completedMilestones = milestones.filter(m => m.status === "completed").length;
-  const progressPct = totalMilestones > 0 ? Math.round((completedMilestones / totalMilestones) * 100) : 0;
-
-  const effectiveStatus = isOverdue(project.deadline) && project.status === "active"
-    ? "overdue"
-    : project.status;
 
   return (
-    <div className="max-w-5xl mx-auto px-4 py-6 space-y-5">
-      {/* Back link */}
-      <button
-        onClick={() => navigate("/projects")}
-        className="flex items-center gap-1.5 text-[13px] text-muted-foreground hover:text-foreground transition-colors"
-      >
-        <ArrowLeft className="w-3.5 h-3.5" />
-        Back to Projects
-      </button>
-
-      {/* Completion banner */}
+    <div className="space-y-6 max-w-5xl">
       {project.status === "completed" && project.payment_status === "released" && (
-        <div className="flex items-center gap-3 px-5 py-3.5 rounded-xl border border-green-500/30 bg-green-500/8">
-          <CheckCircle className="w-4 h-4 text-green-600 shrink-0" />
-          <p className="text-[13px] text-green-700 dark:text-green-400 font-medium">
-            Project complete — payment of {formatCurrency(project.total_amount, project.currency)} has been released.
-          </p>
-        </div>
+        <Alert className="border-green-500/50 bg-green-500/10">
+          <CheckCircle className="h-4 w-4 text-green-600" />
+          <AlertDescription className="text-green-700 dark:text-green-400 font-medium">
+            Project Complete! Payment of {formatCurrency(project.total_amount, project.currency)} has been released.
+          </AlertDescription>
+        </Alert>
       )}
 
-      {/* Project header panel */}
-      <div className="border border-border rounded-xl bg-card overflow-hidden">
-        <div className="px-5 py-5">
-          <div className="flex items-start justify-between gap-4">
-            {/* Client identity */}
-            <div className="flex items-center gap-3 min-w-0">
-              <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center overflow-hidden shrink-0">
+      <Card>
+        <CardContent className="pt-6">
+          <div className="flex items-start justify-between">
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 rounded-full bg-muted flex items-center justify-center overflow-hidden shrink-0">
                 {logoUrl ? (
                   <img src={logoUrl} className="w-full h-full object-cover" alt={companyName} />
                 ) : (
-                  <span className="text-[13px] font-bold text-muted-foreground">{companyInitial}</span>
+                  <span className="text-lg font-bold">{(companyName || "C")[0]}</span>
                 )}
               </div>
-              <div className="min-w-0">
-                <h1 className="text-[18px] font-bold text-foreground leading-snug truncate">
-                  {jobTitle}
-                </h1>
-                {companyName && (
-                  <p className="text-[13px] text-muted-foreground">{companyName}</p>
-                )}
+              <div>
+                <h1 className="text-xl font-bold">{jobTitle}</h1>
+                {companyName && <p className="text-muted-foreground">{companyName}</p>}
               </div>
             </div>
+            <StatusBadge status={project.status} />
+          </div>
 
-            {/* Status pill */}
-            <div className="flex items-center gap-2 shrink-0">
-              <div className={`w-1.5 h-1.5 rounded-full ${statusDot(effectiveStatus)}`} />
-              <span className="text-[12px] text-muted-foreground">{statusLabel(effectiveStatus)}</span>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-4 pt-4 border-t">
+            <div>
+              <p className="text-xs text-muted-foreground">Rate</p>
+              <p className="font-semibold">{formatCurrency(project.total_amount, project.currency)}</p>
+            </div>
+            <div>
+              <p className="text-xs text-muted-foreground">Started</p>
+              <p className="font-semibold">{new Date(project.created_at).toLocaleDateString()}</p>
+            </div>
+            <div>
+              <p className="text-xs text-muted-foreground">Deadline</p>
+              <p className={`font-semibold ${isOverdue(project.deadline) ? "text-red-500" : ""}`}>
+                {project.deadline ? new Date(project.deadline).toLocaleDateString() : "—"}
+              </p>
+            </div>
+            <div>
+              <p className="text-xs text-muted-foreground">Payment</p>
+              <PaymentBadge status={project.payment_status || "pending"} />
             </div>
           </div>
+        </CardContent>
+      </Card>
 
-          {/* Overall progress bar */}
-          {totalMilestones > 0 && (
-            <div className="mt-4">
-              <div className="flex items-center justify-between mb-1.5">
-                <p className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">
-                  Progress
-                </p>
-                <span className="text-[12px] text-muted-foreground font-mono">
-                  {completedMilestones}/{totalMilestones} milestones · {progressPct}%
-                </span>
-              </div>
-              <div className="h-1 bg-border rounded-full overflow-hidden">
-                <div
-                  className="h-full bg-primary rounded-full transition-all"
-                  style={{ width: `${progressPct}%` }}
-                />
-              </div>
-            </div>
-          )}
-        </div>
-
-        {/* Stats row */}
-        <div className="px-5 py-3.5 border-t border-border grid grid-cols-2 md:grid-cols-4 gap-4">
-          <div>
-            <p className="text-[11px] text-muted-foreground mb-0.5">Total</p>
-            <p className="text-[13px] font-semibold text-foreground">
-              {formatCurrency(project.total_amount, project.currency)}
-            </p>
-          </div>
-          <div>
-            <p className="text-[11px] text-muted-foreground mb-0.5">Started</p>
-            <p className="text-[13px] font-semibold text-foreground">
-              {new Date(project.created_at).toLocaleDateString()}
-            </p>
-          </div>
-          <div>
-            <p className="text-[11px] text-muted-foreground mb-0.5">Deadline</p>
-            <p className={`text-[13px] font-semibold ${isOverdue(project.deadline) ? "text-destructive" : "text-foreground"}`}>
-              {project.deadline ? new Date(project.deadline).toLocaleDateString() : "—"}
-            </p>
-          </div>
-          <div>
-            <p className="text-[11px] text-muted-foreground mb-0.5">Payment</p>
-            <div className="flex items-center gap-1.5">
-              <div className={`w-1.5 h-1.5 rounded-full ${paymentStatusDot(project.payment_status || "pending")}`} />
-              <span className="text-[13px] font-semibold text-foreground">
-                {paymentStatusLabel(project.payment_status || "pending")}
-              </span>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Milestones panel */}
       {milestones.length > 0 && (
-        <div className="border border-border rounded-xl bg-card overflow-hidden">
-          <div className="px-5 py-3.5 border-b border-border flex items-center justify-between">
-            <p className="text-[13px] font-semibold text-foreground">Milestones</p>
-            <span className="text-[12px] text-muted-foreground">
-              {completedMilestones} of {totalMilestones} done
-            </span>
-          </div>
-          <div className="divide-y divide-border">
-            {milestones.map(m => (
-              <div key={m.id} className="flex items-center gap-3 px-5 py-3 border-b border-border last:border-0">
-                {/* Status dot / icon */}
-                <div className="shrink-0">
-                  {m.status === "completed" ? (
-                    <CheckCircle2 className="w-4 h-4 text-green-500" />
-                  ) : m.status === "in_progress" ? (
-                    <Clock className="w-4 h-4 text-primary" />
-                  ) : (
-                    <Circle className="w-4 h-4 text-muted-foreground" />
-                  )}
-                </div>
-
-                {/* Title */}
-                <div className="flex-1 min-w-0">
-                  <p className="text-[13px] font-medium text-foreground truncate">{m.title}</p>
-                  {m.due_date && (
-                    <p className="text-[11px] text-muted-foreground mt-0.5">
-                      Due {new Date(m.due_date).toLocaleDateString()}
-                    </p>
-                  )}
-                </div>
-
-                {/* Amount */}
-                {m.amount && (
-                  <span className="text-[12px] text-muted-foreground font-mono shrink-0">
-                    {formatCurrency(m.amount, project.currency)}
-                  </span>
-                )}
-
-                {/* Status chip */}
-                <div className="flex items-center gap-1.5 shrink-0">
-                  <div className={`w-1.5 h-1.5 rounded-full ${milestoneStatusDot(m.status)}`} />
-                  <span className="text-[11px] px-2 py-0.5 bg-muted text-muted-foreground rounded-md">
-                    {m.status === "in_progress" ? "In Progress" : m.status === "completed" ? "Done" : "Pending"}
-                  </span>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Milestones</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <MilestonesSection milestones={milestones} />
+          </CardContent>
+        </Card>
       )}
 
-      {/* Deliverables panel */}
-      <div className="border border-border rounded-xl bg-card overflow-hidden">
-        <div className="px-5 py-3.5 border-b border-border flex items-center justify-between">
-          <p className="text-[13px] font-semibold text-foreground">Deliverables</p>
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between">
+          <CardTitle className="text-base">Deliverables</CardTitle>
           {project.status !== "completed" && (
-            <button
-              onClick={() => setShowDeliverableModal(true)}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary text-primary-foreground text-[12px] font-semibold hover:bg-primary/90 transition-colors"
-            >
-              <Plus className="w-3.5 h-3.5" />
-              Submit
-            </button>
+            <Button size="sm" onClick={() => setShowDeliverableModal(true)}>
+              <Plus className="w-4 h-4 mr-1" /> Submit Deliverable
+            </Button>
           )}
-        </div>
+        </CardHeader>
+        <CardContent>
+          <DeliverablesSection deliverables={deliverables} />
+        </CardContent>
+      </Card>
 
-        {deliverables.length === 0 ? (
-          <div className="px-5 py-8 text-center">
-            <p className="text-[13px] text-muted-foreground">No deliverables submitted yet.</p>
-          </div>
-        ) : (
-          <div className="divide-y divide-border">
-            {deliverables.map(d => (
-              <div key={d.id}>
-                <div className="flex items-center gap-3 px-5 py-3 border-b border-border last:border-0">
-                  {/* File icon */}
-                  <div className="shrink-0">
-                    {d.file_url ? (
-                      <File className="w-4 h-4 text-muted-foreground" />
-                    ) : (
-                      <LinkIcon className="w-4 h-4 text-muted-foreground" />
-                    )}
-                  </div>
-
-                  {/* Name + note + date */}
-                  <div className="flex-1 min-w-0">
-                    <p className="text-[13px] font-medium text-foreground truncate">
-                      {d.file_name || d.external_url || "Deliverable"}
-                    </p>
-                    {d.delivery_note && (
-                      <p className="text-[11px] text-muted-foreground truncate mt-0.5">{d.delivery_note}</p>
-                    )}
-                    <p className="text-[11px] text-muted-foreground mt-0.5">
-                      {formatDistanceToNow(new Date(d.created_at), { addSuffix: true })}
-                    </p>
-                  </div>
-
-                  {/* Status + external link */}
-                  <div className="flex items-center gap-2 shrink-0">
-                    <div className="flex items-center gap-1.5">
-                      <div className={`w-1.5 h-1.5 rounded-full ${deliverableStatusDot(d.status)}`} />
-                      <span className="text-[11px] px-2 py-0.5 bg-muted text-muted-foreground rounded-md">
-                        {deliverableStatusLabel(d.status)}
-                      </span>
-                    </div>
-                    {(d.file_url || d.external_url) && (
-                      <a
-                        href={d.file_url || d.external_url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        onClick={e => e.stopPropagation()}
-                        className="text-muted-foreground hover:text-foreground transition-colors"
-                      >
-                        <ExternalLink className="w-3.5 h-3.5" />
-                      </a>
-                    )}
-                  </div>
-                </div>
-                {/* Client feedback */}
-                {d.status === "revision_requested" && d.client_feedback && (
-                  <div className="mx-5 mb-3 p-3 bg-amber-500/5 border border-amber-500/20 rounded-lg">
-                    <p className="text-[12px] text-amber-700 dark:text-amber-400">
-                      <span className="font-semibold">Client feedback: </span>
-                      {d.client_feedback}
-                    </p>
-                  </div>
-                )}
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-
-      {/* Messages panel */}
-      <div className="border border-border rounded-xl bg-card overflow-hidden">
-        <div className="px-5 py-3.5 border-b border-border flex items-center justify-between">
-          <p className="text-[13px] font-semibold text-foreground">Messages</p>
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between">
+          <CardTitle className="text-base">Messages</CardTitle>
           {conversationId && (
             <Link
               to={`/messages/${conversationId}`}
-              className="text-[12px] text-primary hover:text-primary/80 transition-colors"
+              className="text-sm text-primary hover:underline"
             >
-              Open full conversation
+              Open Full Conversation
             </Link>
           )}
-        </div>
-        <div className="px-5 py-5">
+        </CardHeader>
+        <CardContent>
           <MiniMessageThread messages={messages} userId={user?.id ?? ""} />
-        </div>
-      </div>
+        </CardContent>
+      </Card>
 
-      {/* Review panel */}
       {showReviewCard && !project.talent_review_submitted && (
-        <div className="border border-amber-500/30 rounded-xl bg-amber-500/5 overflow-hidden">
-          <div className="px-5 py-3.5 border-b border-amber-500/20">
-            <p className="text-[13px] font-semibold text-foreground">
-              Leave a review for {companyName}
-            </p>
-            <p className="text-[12px] text-muted-foreground mt-0.5">
-              Share your experience working with this client
-            </p>
-          </div>
-          <div className="px-5 py-5 space-y-4">
+        <Card className="border-amber-500/30 bg-amber-500/5">
+          <CardHeader>
+            <CardTitle className="text-base">
+              Leave a Review for {companyName}
+            </CardTitle>
+            <CardDescription>Share your experience working with this client</CardDescription>
+          </CardHeader>
+          <CardContent>
             <StarRatingInput value={reviewRating} onChange={setReviewRating} />
             <Textarea
+              className="mt-4"
               placeholder="Describe your experience (optional)"
               value={reviewText}
               onChange={e => setReviewText(e.target.value)}
               rows={3}
-              className="text-[13px]"
             />
-            <div className="flex gap-3">
-              <button
+            <div className="flex gap-3 mt-4">
+              <Button
                 onClick={handleSubmitReview}
                 disabled={reviewRating === 0 || submittingReview}
-                className="px-5 py-2.5 rounded-lg bg-primary text-primary-foreground text-[13px] font-semibold hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
               >
-                {submittingReview && <Loader2 className="w-4 h-4 animate-spin" />}
+                {submittingReview && <Loader2 className="w-4 h-4 animate-spin mr-2" />}
                 Submit Review
-              </button>
-              <button
-                onClick={handleSkipReview}
-                className="px-5 py-2.5 rounded-lg text-[13px] text-muted-foreground hover:text-foreground transition-colors"
-              >
-                Skip
-              </button>
+              </Button>
+              <Button variant="ghost" onClick={handleSkipReview}>Skip</Button>
             </div>
-          </div>
-        </div>
+          </CardContent>
+        </Card>
       )}
 
-      {/* Submit Deliverable Modal */}
       <Dialog open={showDeliverableModal} onOpenChange={setShowDeliverableModal}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle className="text-[15px] font-semibold">Submit Deliverable</DialogTitle>
+            <DialogTitle>Submit Deliverable</DialogTitle>
           </DialogHeader>
 
           <div className="space-y-4 py-2">
-            {/* Type toggle */}
             <div className="flex gap-2">
-              <button
+              <Button
+                size="sm"
+                variant={deliverableType === "file" ? "default" : "outline"}
                 onClick={() => setDeliverableType("file")}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] font-medium transition-colors ${
-                  deliverableType === "file"
-                    ? "bg-primary text-primary-foreground"
-                    : "border border-border text-muted-foreground hover:text-foreground hover:border-foreground/30"
-                }`}
               >
-                <File className="w-3 h-3" /> File Upload
-              </button>
-              <button
+                <File className="w-3 h-3 mr-1.5" /> File Upload
+              </Button>
+              <Button
+                size="sm"
+                variant={deliverableType === "url" ? "default" : "outline"}
                 onClick={() => setDeliverableType("url")}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] font-medium transition-colors ${
-                  deliverableType === "url"
-                    ? "bg-primary text-primary-foreground"
-                    : "border border-border text-muted-foreground hover:text-foreground hover:border-foreground/30"
-                }`}
               >
-                <LinkIcon className="w-3 h-3" /> External URL
-              </button>
+                <LinkIcon className="w-3 h-3 mr-1.5" /> External URL
+              </Button>
             </div>
 
             {deliverableType === "file" ? (
               <div>
-                <Label className="text-[12px]">File</Label>
+                <Label>File</Label>
                 <Input
                   type="file"
-                  className="mt-1 text-[13px]"
+                  className="mt-1"
                   onChange={e => setDeliverableFile(e.target.files?.[0] ?? null)}
                 />
               </div>
             ) : (
               <div>
-                <Label className="text-[12px]">URL</Label>
+                <Label>URL</Label>
                 <Input
-                  className="mt-1 text-[13px]"
+                  className="mt-1"
                   placeholder="https://..."
                   value={deliverableUrl}
                   onChange={e => setDeliverableUrl(e.target.value)}
@@ -725,9 +625,9 @@ export default function ProjectDetail() {
             )}
 
             <div>
-              <Label className="text-[12px]">Delivery Note (optional)</Label>
+              <Label>Delivery Note (optional)</Label>
               <Textarea
-                className="mt-1 text-[13px]"
+                className="mt-1"
                 placeholder="Any notes for your client..."
                 value={deliverableNote}
                 onChange={e => setDeliverableNote(e.target.value)}
@@ -737,25 +637,24 @@ export default function ProjectDetail() {
           </div>
 
           <DialogFooter className="gap-2">
-            <button
+            <Button
+              variant="outline"
               onClick={() => setShowDeliverableModal(false)}
               disabled={uploadingDeliverable}
-              className="px-5 py-2.5 rounded-lg border border-border text-[13px] text-muted-foreground hover:text-foreground hover:border-foreground/30 transition-colors disabled:opacity-50"
             >
               Cancel
-            </button>
-            <button
+            </Button>
+            <Button
               onClick={handleSubmitDeliverable}
               disabled={
                 uploadingDeliverable ||
                 (deliverableType === "file" && !deliverableFile) ||
                 (deliverableType === "url" && !deliverableUrl)
               }
-              className="px-5 py-2.5 rounded-lg bg-primary text-primary-foreground text-[13px] font-semibold hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
             >
-              {uploadingDeliverable && <Loader2 className="w-4 h-4 animate-spin" />}
+              {uploadingDeliverable && <Loader2 className="w-4 h-4 animate-spin mr-2" />}
               Submit
-            </button>
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

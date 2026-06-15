@@ -6,6 +6,7 @@ import { formatDistanceToNow } from "date-fns";
 import { useSkryveRole } from "@/hooks/use-skryve-role";
 import ClientApplicationsView from "@/components/applications/ClientApplicationsView";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetFooter } from "@/components/ui/sheet";
@@ -17,6 +18,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -30,23 +39,12 @@ import {
 import { Label } from "@/components/ui/label";
 import { Download, Plus, ExternalLink, Trash2, ClipboardList, Eye, MessageSquare, CheckCircle, XCircle } from "lucide-react";
 
-const STATUS_DOT: Record<string, string> = {
-  applied: "bg-muted-foreground/40",
-  replied: "bg-blue-500",
-  interview: "bg-yellow-500",
-  offer: "bg-primary",
-  rejected: "bg-destructive",
-};
-
-const MKT_STATUS_DOT: Record<string, string> = {
-  pending: "bg-muted-foreground/40",
-  viewed: "bg-blue-500",
-  shortlisted: "bg-purple-500",
-  interview: "bg-yellow-500",
-  hired: "bg-primary",
-  rejected: "bg-destructive",
-  offer_received: "bg-amber-500",
-  countered: "bg-yellow-500",
+const STATUS_COLORS: Record<string, string> = {
+  applied: "bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300",
+  replied: "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400",
+  interview: "bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400",
+  offer: "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400",
+  rejected: "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400",
 };
 
 const MKT_STATUS_CLASSES: Record<string, string> = {
@@ -100,11 +98,11 @@ interface AddForm {
   rate: string;
 }
 
-function RowSkeleton() {
+function TableSkeleton() {
   return (
-    <div className="space-y-2 mt-4">
+    <div className="space-y-2">
       {Array.from({ length: 5 }).map((_, i) => (
-        <div key={i} className="h-12 rounded-lg bg-muted animate-pulse" />
+        <div key={i} className="h-12 rounded bg-muted animate-pulse" />
       ))}
     </div>
   );
@@ -177,42 +175,39 @@ function NegotiateForm({
   };
 
   return (
-    <div className="space-y-4 mt-4 p-4 border border-border rounded-xl bg-muted/30">
-      <p className="text-[13px] font-semibold text-foreground">Negotiate Terms</p>
+    <div className="space-y-4 mt-4 p-4 border rounded-lg bg-muted/30">
+      <p className="font-semibold text-sm">Negotiate Terms</p>
       <div className="grid grid-cols-2 gap-3">
         <div>
-          <Label className="text-[11px] text-muted-foreground">Proposed Rate (₦)</Label>
+          <Label className="text-xs">Proposed Rate (₦)</Label>
           <Input
             type="number"
             value={counterRate}
             onChange={(e) => setCounterRate(e.target.value)}
             placeholder="e.g. 60000"
-            className="h-8 text-[13px] mt-1"
           />
         </div>
         <div>
-          <Label className="text-[11px] text-muted-foreground">Proposed Timeline</Label>
+          <Label className="text-xs">Proposed Timeline</Label>
           <Input
             value={counterTimeline}
             onChange={(e) => setCounterTimeline(e.target.value)}
             placeholder="e.g. 3 weeks"
-            className="h-8 text-[13px] mt-1"
           />
         </div>
       </div>
       <div>
-        <Label className="text-[11px] text-muted-foreground">Note to Client</Label>
+        <Label className="text-xs">Note to Client</Label>
         <Textarea
           value={counterNote}
           onChange={(e) => setCounterNote(e.target.value)}
           rows={3}
           placeholder="Explain your counter offer..."
-          className="text-[13px] mt-1"
         />
       </div>
       <div className="flex gap-2">
-        <Button variant="outline" size="sm" className="h-8 text-[13px]" onClick={onClose}>Cancel</Button>
-        <Button size="sm" className="h-8 text-[13px]" onClick={handleSubmit} disabled={submitting || !counterRate}>
+        <Button variant="outline" size="sm" onClick={onClose}>Cancel</Button>
+        <Button size="sm" onClick={handleSubmit} disabled={submitting || !counterRate}>
           {submitting ? "Sending..." : "Send Counter Offer"}
         </Button>
       </div>
@@ -276,23 +271,23 @@ function ApplicationDetailDrawer({
 
           <div className="space-y-5 mt-6">
             <div>
-              <p className="text-[15px] font-semibold text-foreground">{job?.title || app.role_title}</p>
-              <p className="text-[13px] text-muted-foreground">{client?.company_name || app.company_name}</p>
+              <p className="font-semibold text-lg">{job?.title || app.role_title}</p>
+              <p className="text-sm text-muted-foreground">{client?.company_name || app.company_name}</p>
             </div>
 
             <div className="flex items-center gap-2">
-              <span className={`text-[11px] px-2 py-0.5 rounded-full font-medium ${MKT_STATUS_CLASSES[status] || ""}`}>
+              <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${MKT_STATUS_CLASSES[status] || ""}`}>
                 {MKT_STATUS_LABELS[status] || status}
               </span>
-              <span className="text-[12px] text-muted-foreground">
+              <span className="text-xs text-muted-foreground">
                 Applied {formatDistanceToNow(new Date(app.created_at), { addSuffix: true })}
               </span>
             </div>
 
             {app.proposal_text && (
               <div>
-                <p className="text-[13px] font-semibold text-foreground mb-1">Your Proposal</p>
-                <p className="text-[13px] text-muted-foreground bg-muted/50 rounded-xl p-3 whitespace-pre-wrap">
+                <p className="text-sm font-semibold mb-1">Your Proposal</p>
+                <p className="text-sm text-muted-foreground bg-muted/50 rounded-lg p-3 whitespace-pre-wrap">
                   {app.proposal_text}
                 </p>
               </div>
@@ -300,8 +295,8 @@ function ApplicationDetailDrawer({
 
             {(app.rate_proposed || app.timeline) && (
               <div>
-                <p className="text-[13px] font-semibold text-foreground mb-2">Your Terms</p>
-                <div className="flex gap-4 text-[13px]">
+                <p className="text-sm font-semibold mb-2">Your Terms</p>
+                <div className="flex gap-4 text-sm">
                   {app.rate_proposed && (
                     <div>
                       <span className="text-muted-foreground">Rate: </span>
@@ -319,8 +314,8 @@ function ApplicationDetailDrawer({
             )}
 
             {["shortlisted", "interview", "hired"].includes(status) && (
-              <div className="p-3 rounded-xl bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800">
-                <p className="text-[13px] font-medium text-blue-700 dark:text-blue-400">
+              <div className="p-3 rounded-lg bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800">
+                <p className="text-sm font-medium text-blue-700 dark:text-blue-400">
                   {status === "shortlisted"
                     ? "You've been shortlisted! The client will be in touch soon."
                     : status === "interview"
@@ -331,20 +326,19 @@ function ApplicationDetailDrawer({
             )}
 
             {status === "offer_received" && (
-              <div className="p-4 rounded-xl border bg-amber-50 dark:bg-amber-900/20 border-amber-200 dark:border-amber-800 space-y-3">
-                <p className="text-[13px] font-semibold text-amber-700 dark:text-amber-400">Offer Received!</p>
-                <p className="text-[13px] text-muted-foreground">
+              <div className="p-4 rounded-lg border bg-amber-50 dark:bg-amber-900/20 border-amber-200 dark:border-amber-800 space-y-3">
+                <p className="font-semibold text-amber-700 dark:text-amber-400">Offer Received!</p>
+                <p className="text-sm text-muted-foreground">
                   The client has sent you an offer. Review and respond below.
                 </p>
                 <div className="flex gap-2 flex-wrap">
-                  <Button size="sm" className="h-8 text-[13px] bg-green-600 hover:bg-green-700" onClick={handleAccept}>
+                  <Button size="sm" className="bg-green-600 hover:bg-green-700" onClick={handleAccept}>
                     <CheckCircle className="w-3.5 h-3.5 mr-1" />
                     Accept Offer
                   </Button>
                   <Button
                     size="sm"
                     variant="destructive"
-                    className="h-8 text-[13px]"
                     onClick={() => setConfirmDecline(true)}
                   >
                     <XCircle className="w-3.5 h-3.5 mr-1" />
@@ -353,7 +347,7 @@ function ApplicationDetailDrawer({
                   <Button
                     size="sm"
                     variant="outline"
-                    className="h-8 text-[13px] border-blue-400 text-blue-600"
+                    className="border-blue-400 text-blue-600"
                     onClick={() => setShowNegotiate((v) => !v)}
                   >
                     Negotiate
@@ -374,16 +368,16 @@ function ApplicationDetailDrawer({
             )}
 
             {status === "countered" && app.counter_rate && (
-              <div className="p-3 rounded-xl bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800">
-                <p className="text-[13px] font-semibold text-yellow-700 dark:text-yellow-400 mb-2">
+              <div className="p-3 rounded-lg bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800">
+                <p className="text-sm font-semibold text-yellow-700 dark:text-yellow-400 mb-2">
                   Counter Offer Sent
                 </p>
-                <div className="flex gap-4 text-[13px]">
+                <div className="flex gap-4 text-sm">
                   <span>Rate: ₦{Number(app.counter_rate).toLocaleString()}</span>
                   {app.counter_timeline && <span>Timeline: {app.counter_timeline}</span>}
                 </div>
                 {app.counter_note && (
-                  <p className="text-[12px] text-muted-foreground mt-1">{app.counter_note}</p>
+                  <p className="text-xs text-muted-foreground mt-1">{app.counter_note}</p>
                 )}
               </div>
             )}
@@ -394,7 +388,6 @@ function ApplicationDetailDrawer({
               <Button
                 variant="outline"
                 size="sm"
-                className="h-8 text-[13px]"
                 onClick={() => navigate(`/messages?to=${client.user_id}`)}
               >
                 <MessageSquare className="w-3.5 h-3.5 mr-1" />
@@ -405,7 +398,7 @@ function ApplicationDetailDrawer({
               <Button
                 variant="outline"
                 size="sm"
-                className="h-8 text-[13px] text-destructive border-destructive/40"
+                className="text-destructive border-destructive/40"
                 onClick={() => setConfirmWithdraw(true)}
               >
                 Withdraw Application
@@ -500,18 +493,24 @@ function MarketplaceApplicationsTab({ user }: MarketplaceApplicationsTabProps) {
   };
 
   if (loading) {
-    return <RowSkeleton />;
+    return (
+      <div className="space-y-2 mt-4">
+        {Array.from({ length: 4 }).map((_, i) => (
+          <div key={i} className="h-12 rounded bg-muted animate-pulse" />
+        ))}
+      </div>
+    );
   }
 
   if (!apps.length) {
     return (
       <div className="flex flex-col items-center justify-center py-24 text-center">
-        <ClipboardList className="w-10 h-10 text-foreground opacity-20 mb-4" />
-        <p className="text-[14px] font-medium text-foreground mb-1">No marketplace applications yet</p>
-        <p className="text-[13px] text-muted-foreground mb-4">
+        <ClipboardList className="w-12 h-12 text-muted-foreground/40 mb-4" />
+        <h3 className="font-semibold text-foreground mb-2">No marketplace applications yet</h3>
+        <p className="text-sm text-muted-foreground mb-6">
           Browse the marketplace and submit your first application.
         </p>
-        <Button asChild size="sm" variant="outline" className="h-8 text-[13px]">
+        <Button asChild>
           <a href="/marketplace">Browse Marketplace</a>
         </Button>
       </div>
@@ -520,55 +519,56 @@ function MarketplaceApplicationsTab({ user }: MarketplaceApplicationsTabProps) {
 
   return (
     <>
-      <div className="border border-border rounded-xl bg-card overflow-hidden mt-4">
-        <div className="px-5 py-3.5 border-b border-border flex items-center justify-between">
-          <span className="text-[13px] font-semibold text-foreground">Marketplace Applications</span>
-          <span className="text-[12px] text-muted-foreground">{apps.length} total</span>
-        </div>
-        <div className="divide-y divide-border">
-          {apps.map((app) => {
-            const job = app.marketplace_jobs;
-            const client = job?.client_profiles;
-            const status: string = app.status || "pending";
-            const dotClass = MKT_STATUS_DOT[status] || "bg-muted-foreground/40";
-            return (
-              <div
-                key={app.id}
-                className="flex items-center gap-3 px-5 py-3 hover:bg-muted/30 transition-colors cursor-pointer"
-                onClick={() => openDetail(app)}
-              >
-                <div className={`w-1.5 h-1.5 rounded-full shrink-0 ${dotClass}`} />
-                <div className="flex-1 min-w-0">
-                  <p className="text-[13px] font-medium text-foreground truncate">
+      <div className="rounded-xl border border-border overflow-hidden mt-4">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Job Title</TableHead>
+              <TableHead>Client</TableHead>
+              <TableHead>Date Applied</TableHead>
+              <TableHead>Status</TableHead>
+              <TableHead>Rate</TableHead>
+              <TableHead>Actions</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {apps.map((app) => {
+              const job = app.marketplace_jobs;
+              const client = job?.client_profiles;
+              const status: string = app.status || "pending";
+              return (
+                <TableRow key={app.id}>
+                  <TableCell className="font-medium max-w-[200px] truncate">
                     {job?.title || app.role_title || "Unknown Job"}
-                  </p>
-                  <p className="text-[11px] text-muted-foreground">
-                    {client?.company_name || app.company_name || "—"} · {app.created_at
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant="outline">
+                      {client?.company_name || app.company_name || "—"}
+                    </Badge>
+                  </TableCell>
+                  <TableCell className="text-muted-foreground text-sm">
+                    {app.created_at
                       ? formatDistanceToNow(new Date(app.created_at), { addSuffix: true })
                       : "—"}
-                  </p>
-                </div>
-                <div className="flex items-center gap-2 shrink-0">
-                  {app.rate_proposed != null && (
-                    <span className="text-[12px] text-muted-foreground">
-                      ₦{Number(app.rate_proposed).toLocaleString()}
+                  </TableCell>
+                  <TableCell>
+                    <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${MKT_STATUS_CLASSES[status] || ""}`}>
+                      {MKT_STATUS_LABELS[status] || status}
                     </span>
-                  )}
-                  <span className="text-[12px] text-muted-foreground capitalize">
-                    {MKT_STATUS_LABELS[status] || status}
-                  </span>
-                  <button
-                    className="text-muted-foreground hover:text-foreground transition-colors"
-                    onClick={(e) => { e.stopPropagation(); openDetail(app); }}
-                    aria-label="View details"
-                  >
-                    <Eye className="w-3.5 h-3.5" />
-                  </button>
-                </div>
-              </div>
-            );
-          })}
-        </div>
+                  </TableCell>
+                  <TableCell className="text-sm">
+                    {app.rate_proposed != null ? `₦${Number(app.rate_proposed).toLocaleString()}` : "—"}
+                  </TableCell>
+                  <TableCell>
+                    <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openDetail(app)}>
+                      <Eye className="w-3 h-3" />
+                    </Button>
+                  </TableCell>
+                </TableRow>
+              );
+            })}
+          </TableBody>
+        </Table>
       </div>
 
       <ApplicationDetailDrawer
@@ -734,28 +734,28 @@ export default function Applications() {
 
   const trackerContent = (
     <div className="space-y-6">
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <div className="bg-card border border-border rounded-xl p-4 text-center">
           <div className="text-3xl font-bold text-foreground">{stats.total}</div>
-          <div className="text-[11px] text-muted-foreground mt-1">Total Applications</div>
+          <div className="text-xs text-muted-foreground mt-1">Total Applications</div>
         </div>
         <div className="bg-card border border-border rounded-xl p-4 text-center">
           <div className="text-3xl font-bold text-foreground">{stats.responseRate}%</div>
-          <div className="text-[11px] text-muted-foreground mt-1">Response Rate</div>
+          <div className="text-xs text-muted-foreground mt-1">Response Rate</div>
         </div>
         <div className="bg-card border border-border rounded-xl p-4 text-center">
           <div className="text-3xl font-bold text-foreground">{stats.interviews}</div>
-          <div className="text-[11px] text-muted-foreground mt-1">Interviews</div>
+          <div className="text-xs text-muted-foreground mt-1">Interviews</div>
         </div>
         <div className="bg-card border border-border rounded-xl p-4 text-center">
           <div className="text-3xl font-bold text-foreground">{stats.offers}</div>
-          <div className="text-[11px] text-muted-foreground mt-1">Offers</div>
+          <div className="text-xs text-muted-foreground mt-1">Offers</div>
         </div>
       </div>
 
       <div className="flex items-center gap-3 flex-wrap">
         <Select value={statusFilter} onValueChange={setStatusFilter}>
-          <SelectTrigger className="w-40 h-8 text-[13px]">
+          <SelectTrigger className="w-40">
             <SelectValue placeholder="All Statuses" />
           </SelectTrigger>
           <SelectContent>
@@ -769,7 +769,7 @@ export default function Applications() {
         </Select>
 
         <Select value={platformFilter} onValueChange={setPlatformFilter}>
-          <SelectTrigger className="w-40 h-8 text-[13px]">
+          <SelectTrigger className="w-40">
             <SelectValue placeholder="All Platforms" />
           </SelectTrigger>
           <SelectContent>
@@ -786,7 +786,6 @@ export default function Applications() {
           <Button
             variant="ghost"
             size="sm"
-            className="h-8 text-[13px]"
             onClick={() => {
               setStatusFilter("all");
               setPlatformFilter("all");
@@ -798,94 +797,114 @@ export default function Applications() {
       </div>
 
       {loading ? (
-        <RowSkeleton />
+        <TableSkeleton />
       ) : apps.length ? (
-        <div className="border border-border rounded-xl bg-card overflow-hidden">
-          <div className="px-5 py-3.5 border-b border-border flex items-center justify-between">
-            <span className="text-[13px] font-semibold text-foreground">Applications</span>
-            <span className="text-[12px] text-muted-foreground">{apps.length} total</span>
-          </div>
-          <div className="divide-y divide-border">
-            {apps.map((app) => {
-              const status = app.status || "applied";
-              const dotClass = STATUS_DOT[status] || "bg-muted-foreground/40";
-              return (
-                <div key={app.id} className="flex items-center gap-3 px-5 py-3 hover:bg-muted/30 transition-colors">
-                  <div className={`w-1.5 h-1.5 rounded-full shrink-0 ${dotClass}`} />
-                  <div className="flex-1 min-w-0">
-                    <p className="text-[13px] font-medium text-foreground truncate">
-                      {app.job_title || app.role_title || "Unknown Job"}
-                    </p>
-                    <p className="text-[11px] text-muted-foreground">
-                      {app.platform || app.company_name || "—"} · {app.applied_at
-                        ? formatDistanceToNow(new Date(app.applied_at), { addSuffix: true })
-                        : "—"}
-                    </p>
-                  </div>
-                  <div className="flex items-center gap-2 shrink-0">
+        <div className="rounded-xl border border-border overflow-hidden">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Job Title</TableHead>
+                <TableHead>Platform</TableHead>
+                <TableHead>Date Applied</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead>Rate Proposed</TableHead>
+                <TableHead>Notes</TableHead>
+                <TableHead>Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {apps.map((app) => (
+                <TableRow key={app.id}>
+                  <TableCell className="font-medium max-w-[200px] truncate">
+                    {app.job_title || app.role_title || "Unknown Job"}
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant="outline">
+                      {app.platform || app.company_name || "—"}
+                    </Badge>
+                  </TableCell>
+                  <TableCell className="text-muted-foreground text-sm">
+                    {app.applied_at
+                      ? formatDistanceToNow(new Date(app.applied_at), { addSuffix: true })
+                      : "—"}
+                  </TableCell>
+                  <TableCell>
                     <Select
                       value={app.status || "applied"}
                       onValueChange={(val) => updateStatus(app.id, val)}
                     >
-                      <SelectTrigger className="w-28 h-7 text-[12px]">
+                      <SelectTrigger className="w-32 h-7 text-xs">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
                         {STATUSES.map((s) => (
-                          <SelectItem key={s} value={s} className="text-[12px] capitalize">
+                          <SelectItem key={s} value={s} className="text-xs capitalize">
                             {s}
                           </SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
-                    {app.rate_proposed != null && (
-                      <span className="text-[12px] text-muted-foreground hidden sm:inline">
-                        ${app.rate_proposed}/hr
-                      </span>
-                    )}
+                  </TableCell>
+                  <TableCell className="text-sm">
+                    {app.rate_proposed != null ? `$${app.rate_proposed}/hr` : "—"}
+                  </TableCell>
+                  <TableCell>
                     <Input
-                      value={editingNote?.id === app.id ? editingNote.note : app.notes || ""}
-                      onFocus={() => setEditingNote({ id: app.id, note: app.notes || "" })}
-                      onChange={(e) => setEditingNote({ id: app.id, note: e.target.value })}
+                      value={
+                        editingNote?.id === app.id ? editingNote.note : app.notes || ""
+                      }
+                      onFocus={() =>
+                        setEditingNote({ id: app.id, note: app.notes || "" })
+                      }
+                      onChange={(e) =>
+                        setEditingNote({ id: app.id, note: e.target.value })
+                      }
                       onBlur={() => saveNote(app.id)}
-                      placeholder="Note..."
-                      className="h-7 text-[12px] w-24 hidden md:block"
+                      placeholder="Add note..."
+                      className="h-7 text-xs w-32"
                     />
-                    {(app.external_url || app.job_url) && (
-                      <Button variant="ghost" size="icon" className="h-7 w-7" asChild>
-                        <a
-                          href={app.external_url || app.job_url || "#"}
-                          target="_blank"
-                          rel="noopener noreferrer"
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex items-center gap-1">
+                      {(app.external_url || app.job_url) && (
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-7 w-7"
+                          asChild
                         >
-                          <ExternalLink className="w-3 h-3" />
-                        </a>
+                          <a
+                            href={app.external_url || app.job_url || "#"}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                          >
+                            <ExternalLink className="w-3 h-3" />
+                          </a>
+                        </Button>
+                      )}
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-7 w-7 text-destructive hover:text-destructive"
+                        onClick={() => setDeleteId(app.id)}
+                      >
+                        <Trash2 className="w-3 h-3" />
                       </Button>
-                    )}
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-7 w-7 text-destructive hover:text-destructive"
-                      onClick={() => setDeleteId(app.id)}
-                    >
-                      <Trash2 className="w-3 h-3" />
-                    </Button>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
         </div>
       ) : (
         <div className="flex flex-col items-center justify-center py-24 text-center">
-          <ClipboardList className="w-10 h-10 text-foreground opacity-20 mb-4" />
-          <p className="text-[14px] font-medium text-foreground mb-1">No applications yet</p>
-          <p className="text-[13px] text-muted-foreground mb-4">
+          <ClipboardList className="w-12 h-12 text-muted-foreground/40 mb-4" />
+          <h3 className="font-semibold text-foreground mb-2">No applications yet</h3>
+          <p className="text-sm text-muted-foreground mb-6">
             Start applying to jobs and track them here.
           </p>
-          <Button size="sm" variant="outline" className="h-8 text-[13px]" onClick={() => navigate("/jobs")}>
-            Browse Jobs
-          </Button>
+          <Button onClick={() => navigate("/jobs")}>Browse Jobs</Button>
         </div>
       )}
     </div>
@@ -895,8 +914,8 @@ export default function Applications() {
     return (
       <div className="space-y-6">
         <div>
-          <h1 className="text-xl font-semibold text-foreground tracking-tight">Applications Inbox</h1>
-          <p className="text-[13px] text-muted-foreground">Review and manage applications to your jobs.</p>
+          <h1 className="font-display text-2xl font-bold">Applications Inbox</h1>
+          <p className="text-muted-foreground text-sm">Review and manage applications to your jobs.</p>
         </div>
         <ClientApplicationsView user={user} />
       </div>
@@ -907,16 +926,16 @@ export default function Applications() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-xl font-semibold text-foreground tracking-tight">Applications</h1>
-          <p className="text-[13px] text-muted-foreground">Track all your job applications</p>
+          <h1 className="font-display text-2xl font-bold">Applications</h1>
+          <p className="text-muted-foreground text-sm">Track all your job applications</p>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" size="sm" className="h-8 text-[13px]" onClick={exportCSV}>
-            <Download className="w-3.5 h-3.5 mr-1.5" />
+          <Button variant="outline" size="sm" onClick={exportCSV}>
+            <Download className="w-4 h-4 mr-1" />
             Export CSV
           </Button>
-          <Button size="sm" className="h-8 text-[13px]" onClick={() => setShowAddForm(true)}>
-            <Plus className="w-3.5 h-3.5 mr-1.5" />
+          <Button size="sm" onClick={() => setShowAddForm(true)}>
+            <Plus className="w-4 h-4 mr-1" />
             Add Application
           </Button>
         </div>
@@ -942,52 +961,48 @@ export default function Applications() {
           </SheetHeader>
           <div className="space-y-4 mt-6">
             <div className="space-y-1.5">
-              <Label htmlFor="jobTitle" className="text-[13px]">Job Title *</Label>
+              <Label htmlFor="jobTitle">Job Title *</Label>
               <Input
                 id="jobTitle"
                 value={addForm.jobTitle}
                 onChange={(e) => setAddForm((f) => ({ ...f, jobTitle: e.target.value }))}
                 placeholder="e.g. Frontend Developer"
-                className="h-8 text-[13px]"
               />
             </div>
             <div className="space-y-1.5">
-              <Label htmlFor="platform" className="text-[13px]">Company / Platform</Label>
+              <Label htmlFor="platform">Company / Platform</Label>
               <Input
                 id="platform"
                 value={addForm.platform}
                 onChange={(e) => setAddForm((f) => ({ ...f, platform: e.target.value }))}
                 placeholder="e.g. Upwork, Acme Corp"
-                className="h-8 text-[13px]"
               />
             </div>
             <div className="space-y-1.5">
-              <Label htmlFor="url" className="text-[13px]">Job URL (optional)</Label>
+              <Label htmlFor="url">Job URL (optional)</Label>
               <Input
                 id="url"
                 value={addForm.url}
                 onChange={(e) => setAddForm((f) => ({ ...f, url: e.target.value }))}
                 placeholder="https://..."
-                className="h-8 text-[13px]"
               />
             </div>
             <div className="space-y-1.5">
-              <Label htmlFor="dateApplied" className="text-[13px]">Date Applied</Label>
+              <Label htmlFor="dateApplied">Date Applied</Label>
               <Input
                 id="dateApplied"
                 type="date"
                 value={addForm.dateApplied}
                 onChange={(e) => setAddForm((f) => ({ ...f, dateApplied: e.target.value }))}
-                className="h-8 text-[13px]"
               />
             </div>
             <div className="space-y-1.5">
-              <Label className="text-[13px]">Status</Label>
+              <Label>Status</Label>
               <Select
                 value={addForm.status}
                 onValueChange={(val) => setAddForm((f) => ({ ...f, status: val }))}
               >
-                <SelectTrigger className="h-8 text-[13px]">
+                <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -1000,17 +1015,16 @@ export default function Applications() {
               </Select>
             </div>
             <div className="space-y-1.5">
-              <Label htmlFor="rate" className="text-[13px]">Proposed Rate ($/hr)</Label>
+              <Label htmlFor="rate">Proposed Rate ($/hr)</Label>
               <Input
                 id="rate"
                 type="number"
                 value={addForm.rate}
                 onChange={(e) => setAddForm((f) => ({ ...f, rate: e.target.value }))}
                 placeholder="e.g. 50"
-                className="h-8 text-[13px]"
               />
             </div>
-            <Button className="w-full h-8 text-[13px]" onClick={handleAddSave} disabled={addSaving}>
+            <Button className="w-full" onClick={handleAddSave} disabled={addSaving}>
               {addSaving ? "Saving..." : "Save Application"}
             </Button>
           </div>

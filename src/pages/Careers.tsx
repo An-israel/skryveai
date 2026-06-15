@@ -1,180 +1,13 @@
-import { useEffect, useState } from "react";
-import { Helmet } from "react-helmet-async";
-import { Link } from "react-router-dom";
+import { Header } from "@/components/layout/Header";
+import { Footer } from "@/components/layout/Footer";
+import { SEOHead } from "@/components/SEOHead";
 import { motion } from "framer-motion";
-import {
-  Briefcase, MapPin, Send, Users, TrendingUp, Sparkles, ArrowRight,
-  Menu, X, Twitter, Linkedin, Instagram, ChevronDown, ChevronUp,
-} from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Briefcase, MapPin, Clock, Send, Users, TrendingUp, Sparkles } from "lucide-react";
 
-/* ─── Navbar ──────────────────────────────────────────────── */
-function Navbar() {
-  const [open, setOpen] = useState(false);
-  const [scrolled, setScrolled] = useState(false);
-
-  useEffect(() => {
-    const fn = () => setScrolled(window.scrollY > 24);
-    window.addEventListener("scroll", fn, { passive: true });
-    return () => window.removeEventListener("scroll", fn);
-  }, []);
-
-  return (
-    <nav
-      className={`fixed top-0 inset-x-0 z-50 transition-all duration-300 ${
-        scrolled
-          ? "bg-[#09090b]/95 backdrop-blur-md border-b border-white/[0.06]"
-          : "bg-transparent"
-      }`}
-    >
-      <div className="max-w-6xl mx-auto px-5 flex items-center justify-between h-14">
-        <Link to="/" className="flex items-center gap-2.5 shrink-0">
-          <img src="/logo.png" alt="Skryve" className="w-6 h-6 object-contain" />
-          <span className="font-bold text-[15px] text-white tracking-tight">Skryve</span>
-        </Link>
-
-        <div className="hidden md:flex items-center gap-7">
-          {[
-            { label: "Features", href: "/#features" },
-            { label: "Pricing",  href: "/pricing"   },
-            { label: "Blog",     href: "/blog"      },
-            { label: "About",    href: "/about"     },
-          ].map(({ label, href }) => (
-            <Link
-              key={label}
-              to={href}
-              className="text-[13px] font-medium text-white/50 hover:text-white transition-colors"
-            >
-              {label}
-            </Link>
-          ))}
-        </div>
-
-        <div className="hidden md:flex items-center gap-2">
-          <Link
-            to="/login"
-            className="px-3.5 py-1.5 rounded-lg text-[13px] font-medium text-white/60 hover:text-white hover:bg-white/[0.08] transition-all"
-          >
-            Sign in
-          </Link>
-          <Link
-            to="/signup"
-            className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-white text-[#09090b] text-[13px] font-semibold hover:bg-white/90 transition-all"
-          >
-            Get started <ArrowRight className="w-3.5 h-3.5" />
-          </Link>
-        </div>
-
-        <button
-          className="md:hidden p-2 text-white/60 hover:text-white transition-colors"
-          onClick={() => setOpen((v) => !v)}
-        >
-          {open ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
-        </button>
-      </div>
-
-      {open && (
-        <div className="md:hidden bg-[#09090b]/98 border-t border-white/[0.06] px-5 py-5 flex flex-col gap-4">
-          {[
-            { label: "Features", href: "/#features" },
-            { label: "Pricing",  href: "/pricing"   },
-            { label: "Blog",     href: "/blog"      },
-            { label: "About",    href: "/about"     },
-          ].map(({ label, href }) => (
-            <Link
-              key={label}
-              to={href}
-              className="text-[14px] font-medium text-white/60 hover:text-white transition-colors"
-              onClick={() => setOpen(false)}
-            >
-              {label}
-            </Link>
-          ))}
-          <div className="flex flex-col gap-2 pt-3 border-t border-white/[0.06]">
-            <Link
-              to="/login"
-              className="text-center py-2 rounded-lg border border-white/[0.12] text-[13px] text-white/70"
-              onClick={() => setOpen(false)}
-            >
-              Sign in
-            </Link>
-            <Link
-              to="/signup"
-              className="text-center py-2 rounded-lg bg-white text-[#09090b] text-[13px] font-semibold"
-              onClick={() => setOpen(false)}
-            >
-              Get started free
-            </Link>
-          </div>
-        </div>
-      )}
-    </nav>
-  );
-}
-
-/* ─── Footer ──────────────────────────────────────────────── */
-function Footer() {
-  return (
-    <footer className="bg-[#09090b] border-t border-white/[0.06] py-12">
-      <div className="max-w-6xl mx-auto px-5">
-        <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-8 mb-10">
-          <Link to="/" className="flex items-center gap-2.5 shrink-0">
-            <img src="/logo.png" alt="Skryve" className="w-6 h-6 object-contain" />
-            <span className="font-bold text-[15px] text-white">Skryve</span>
-          </Link>
-
-          <nav className="grid grid-cols-2 sm:grid-cols-3 gap-x-12 gap-y-3 text-[13px] text-white/35">
-            {[
-              { label: "About",          href: "/about"          },
-              { label: "Blog",           href: "/blog"           },
-              { label: "Pricing",        href: "/pricing"        },
-              { label: "Contact",        href: "/contact"        },
-              { label: "Privacy Policy", href: "/privacy-policy" },
-              { label: "Terms",          href: "/terms"          },
-            ].map(({ label, href }) => (
-              <Link key={label} to={href} className="hover:text-white transition-colors">{label}</Link>
-            ))}
-          </nav>
-
-          <div className="flex items-center gap-4">
-            {[
-              { icon: Twitter,   href: "https://twitter.com",   label: "Twitter"   },
-              { icon: Linkedin,  href: "https://linkedin.com",  label: "LinkedIn"  },
-              { icon: Instagram, href: "https://instagram.com", label: "Instagram" },
-            ].map(({ icon: Icon, href, label }) => (
-              <a
-                key={label}
-                href={href}
-                target="_blank"
-                rel="noopener noreferrer"
-                aria-label={label}
-                className="text-white/25 hover:text-white/60 transition-colors"
-              >
-                <Icon className="w-4 h-4" />
-              </a>
-            ))}
-          </div>
-        </div>
-
-        <div className="border-t border-white/[0.06] pt-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-[12px] text-white/25">
-          <p>© {new Date().getFullYear()} Skryve. All rights reserved.</p>
-          <p>Built for the modern African professional.</p>
-        </div>
-      </div>
-    </footer>
-  );
-}
-
-/* ─── Data ────────────────────────────────────────────────── */
-const roles: {
-  title: string;
-  type: string;
-  location: string;
-  icon: typeof TrendingUp;
-  description: string;
-  responsibilities: string[];
-  requirements: string[];
-  niceToHaves: string[];
-}[] = [
+const roles: { title: string; type: string; location: string; icon: typeof TrendingUp; description: string; responsibilities: string[]; requirements: string[]; niceToHaves: string[] }[] = [
   {
     title: "Project Assistant",
     type: "Full-Time",
@@ -264,235 +97,161 @@ const roles: {
   },
 ];
 
-/* ─── Role Card ───────────────────────────────────────────── */
-function RoleCard({ role, index }: { role: typeof roles[number]; index: number }) {
-  const [expanded, setExpanded] = useState(false);
-
-  const handleApply = () => {
-    const subject = encodeURIComponent(`Application — ${role.title} at SkryveAI`);
-    const body = encodeURIComponent(
-      `Hi SkryveAI Team,\n\nI'm applying for the ${role.title} role.\n\n- Full Name: \n- Email: \n- LinkedIn / Portfolio: \n\n[Attach your CV/Resume]\n\nBest regards`
-    );
-    window.open(`mailto:skryveai@gmail.com?subject=${subject}&body=${body}`, "_blank");
-  };
-
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true }}
-      transition={{ delay: index * 0.08 }}
-      className="border border-white/[0.06] bg-white/[0.02] rounded-2xl overflow-hidden hover:border-white/[0.1] transition-colors"
-    >
-      {/* Header */}
-      <div className="p-7">
-        <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
-          <div className="flex items-center gap-4">
-            <div className="w-11 h-11 rounded-xl bg-[#2563EB]/10 border border-[#2563EB]/20 flex items-center justify-center shrink-0">
-              <role.icon className="w-5 h-5 text-[#2563EB]" />
-            </div>
-            <div>
-              <h3 className="text-[18px] font-semibold text-white">{role.title}</h3>
-              <div className="flex items-center gap-3 mt-1">
-                <span className="flex items-center gap-1 text-[12px] text-white/40">
-                  <Briefcase className="w-3 h-3" /> {role.type}
-                </span>
-                <span className="text-white/20">·</span>
-                <span className="flex items-center gap-1 text-[12px] text-white/40">
-                  <MapPin className="w-3 h-3" /> {role.location}
-                </span>
-              </div>
-            </div>
-          </div>
-          <div className="flex items-center gap-2 shrink-0">
-            <button
-              onClick={handleApply}
-              className="flex items-center gap-1.5 px-4 py-2 rounded-lg bg-white text-[#09090b] text-[12px] font-semibold hover:bg-white/90 transition-all"
-            >
-              <Send className="w-3 h-3" /> Apply
-            </button>
-            <button
-              onClick={() => setExpanded((v) => !v)}
-              className="p-2 rounded-lg border border-white/[0.1] text-white/40 hover:text-white hover:border-white/[0.2] transition-all"
-              aria-label={expanded ? "Collapse" : "Expand"}
-            >
-              {expanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
-            </button>
-          </div>
-        </div>
-
-        <p className="text-[14px] text-white/60 leading-relaxed mt-5">{role.description}</p>
-      </div>
-
-      {/* Expanded content */}
-      {expanded && (
-        <div className="border-t border-white/[0.06] px-7 py-6 space-y-7">
-          <div>
-            <h4 className="text-[13px] font-semibold text-white/90 uppercase tracking-[0.1em] mb-4">What You'll Do</h4>
-            <ul className="space-y-2.5">
-              {role.responsibilities.map((item) => (
-                <li key={item} className="flex items-start gap-3 text-[13px] text-white/60">
-                  <span className="mt-2 h-1.5 w-1.5 rounded-full bg-[#2563EB] shrink-0" />
-                  {item}
-                </li>
-              ))}
-            </ul>
-          </div>
-
-          <div>
-            <h4 className="text-[13px] font-semibold text-white/90 uppercase tracking-[0.1em] mb-4">What We're Looking For</h4>
-            <ul className="space-y-2.5">
-              {role.requirements.map((item) => (
-                <li key={item} className="flex items-start gap-3 text-[13px] text-white/60">
-                  <span className="mt-2 h-1.5 w-1.5 rounded-full bg-[#2563EB] shrink-0" />
-                  {item}
-                </li>
-              ))}
-            </ul>
-          </div>
-
-          <div>
-            <h4 className="text-[13px] font-semibold text-white/90 uppercase tracking-[0.1em] mb-4">Nice to Have</h4>
-            <ul className="space-y-2.5">
-              {role.niceToHaves.map((item) => (
-                <li key={item} className="flex items-start gap-3 text-[13px] text-white/50">
-                  <span className="mt-2 h-1 w-1 rounded-full bg-white/20 shrink-0" />
-                  {item}
-                </li>
-              ))}
-            </ul>
-          </div>
-
-          <div className="pt-2 border-t border-white/[0.06] flex items-center gap-2 text-[13px] text-white/40">
-            <Send className="w-3.5 h-3.5 text-[#2563EB]" />
-            Send your CV and application letter to{" "}
-            <a
-              href="mailto:skryveai@gmail.com"
-              className="font-semibold text-white/80 hover:text-white transition-colors underline underline-offset-2"
-            >
-              skryveai@gmail.com
-            </a>
-          </div>
-        </div>
-      )}
-    </motion.div>
-  );
-}
-
-/* ─── Page ────────────────────────────────────────────────── */
 export default function Careers() {
-  const perks = [
-    { label: "Remote-First", desc: "Work from anywhere in the world" },
-    { label: "Early Stage", desc: "Shape the product and culture from day one" },
-    { label: "Impact-Driven", desc: "Build tools that change how Africa does business" },
-  ];
-
   return (
-    <div className="min-h-screen bg-[#09090b]">
-      <Helmet>
-        <title>Careers at SkryveAI — Join Our Remote Team</title>
-        <meta
-          name="description"
-          content="Join SkryveAI and help empower freelancers and startups worldwide. We're hiring for remote roles in marketing, customer success, and more."
-        />
-        <meta name="keywords" content="SkryveAI careers, SkryveAI jobs, remote jobs AI startup" />
-        <link rel="canonical" href="https://skryveai.com/careers" />
-        <meta property="og:title" content="Careers at SkryveAI — Join Our Remote Team" />
-        <meta property="og:description" content="Help us democratize cold outreach for freelancers worldwide. Remote-first, impact-driven." />
-        <meta property="og:url" content="https://skryveai.com/careers" />
-        <meta property="og:type" content="website" />
-        <meta name="twitter:card" content="summary_large_image" />
-      </Helmet>
-
-      <Navbar />
+    <div className="min-h-screen">
+      <SEOHead
+        title="Careers at SkryveAI — Join Our Remote Team"
+        description="Join SkryveAI and help empower freelancers and startups worldwide. We're hiring for remote roles in marketing, customer success, and more."
+        canonical="https://skryveai.com/careers"
+        keywords="SkryveAI careers, SkryveAI jobs, remote jobs AI startup"
+      />
+      <Header />
 
       {/* Hero */}
-      <section className="pt-32 pb-16 px-5 max-w-6xl mx-auto">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.55, ease: [0.22, 1, 0.36, 1] }}
-          className="max-w-2xl"
-        >
-          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-[#2563EB]/30 bg-[#2563EB]/10 mb-5">
-            <Sparkles className="w-3 h-3 text-[#2563EB]" />
-            <span className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[#2563EB]">
-              We're Hiring
-            </span>
-          </div>
-          <h1 className="text-5xl font-extrabold text-white tracking-[-0.03em] leading-[1.05] mb-5">
-            Join the SkryveAI<br />team
-          </h1>
-          <p className="text-[16px] text-white/40 leading-relaxed">
-            Help us empower freelancers and agencies across Africa to land more clients with smart, AI-powered outreach. We're building something big — and we want you on the team.
-          </p>
-        </motion.div>
+      <section className="relative pt-32 pb-20 bg-gradient-subtle overflow-hidden">
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] rounded-full bg-primary/[0.04] blur-[120px] pointer-events-none" />
+        <div className="container mx-auto px-4 relative">
+          <motion.div
+            initial={{ opacity: 0, y: 30 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6 }}
+            className="max-w-3xl mx-auto text-center"
+          >
+            <Badge variant="secondary" className="mb-5 bg-primary/8 text-primary border-0 font-semibold">
+              <Sparkles className="w-3 h-3 mr-1" /> We're Hiring
+            </Badge>
+            <h1 className="font-display text-4xl md:text-6xl font-extrabold text-foreground mb-6 tracking-tight">
+              Join the SkryveAI Team
+            </h1>
+            <p className="text-lg text-muted-foreground max-w-2xl mx-auto leading-relaxed">
+              Help us empower freelancers and agencies across Africa to land more clients with smart, AI-powered outreach. We're building something big — and we want you on the team.
+            </p>
+          </motion.div>
+        </div>
       </section>
 
-      {/* Perks */}
-      <section className="border-t border-white/[0.06] py-16">
-        <div className="max-w-6xl mx-auto px-5">
-          <div className="grid sm:grid-cols-3 gap-4">
-            {perks.map((perk, i) => (
+      {/* Why Join */}
+      <section className="py-16 border-b border-border-subtle">
+        <div className="container mx-auto px-4 max-w-4xl">
+          <div className="grid sm:grid-cols-3 gap-5">
+            {[
+              { icon: "🌍", label: "Remote-First", desc: "Work from anywhere in the world" },
+              { icon: "🚀", label: "Early Stage", desc: "Shape the product and culture from day one" },
+              { icon: "💡", label: "Impact-Driven", desc: "Build tools that change how Africa does business" },
+            ].map((perk) => (
               <motion.div
                 key={perk.label}
                 initial={{ opacity: 0, y: 20 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
-                transition={{ delay: i * 0.08 }}
-                className="border border-white/[0.06] bg-white/[0.02] rounded-2xl p-7 hover:border-white/[0.1] transition-colors"
+                className="p-7 rounded-2xl bg-card border border-border-subtle card-hover text-center"
               >
-                <h3 className="text-[16px] font-semibold text-white mb-2">{perk.label}</h3>
-                <p className="text-[13px] text-white/50">{perk.desc}</p>
+                <span className="text-3xl mb-3 block">{perk.icon}</span>
+                <h3 className="font-display font-bold mb-1">{perk.label}</h3>
+                <p className="text-sm text-muted-foreground">{perk.desc}</p>
               </motion.div>
             ))}
           </div>
         </div>
       </section>
 
-      {/* Open Roles */}
-      <section className="border-t border-white/[0.06] py-16">
-        <div className="max-w-6xl mx-auto px-5">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            className="mb-10"
-          >
-            <span className="text-[11px] font-semibold uppercase tracking-[0.15em] text-[#2563EB] mb-3 block">
-              Openings
-            </span>
-            <h2 className="text-[28px] font-extrabold text-white tracking-[-0.02em]">
-              Open Positions
-            </h2>
-          </motion.div>
-
-          <div className="space-y-4">
+      {/* Roles */}
+      <section className="py-20">
+        <div className="container mx-auto px-4 max-w-4xl">
+          <h2 className="font-display text-2xl md:text-3xl font-bold text-center mb-12 tracking-tight">Open Positions</h2>
+          <div className="space-y-8">
             {roles.map((role, i) => (
-              <RoleCard key={role.title} role={role} index={i} />
+              <motion.div
+                key={role.title}
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: i * 0.1 }}
+              >
+                <Card className="border-border-subtle overflow-hidden">
+                  <CardHeader className="pb-4">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                      <div className="flex items-center gap-3">
+                        <div className="w-11 h-11 rounded-xl bg-primary/8 flex items-center justify-center">
+                          <role.icon className="w-5 h-5 text-primary" />
+                        </div>
+                        <CardTitle className="font-display text-xl">{role.title}</CardTitle>
+                      </div>
+                      <div className="flex gap-2">
+                        <Badge variant="outline" className="gap-1 border-border-subtle text-muted-foreground">
+                          <Briefcase className="w-3 h-3" /> {role.type}
+                        </Badge>
+                        <Badge variant="outline" className="gap-1 border-border-subtle text-muted-foreground">
+                          <MapPin className="w-3 h-3" /> {role.location}
+                        </Badge>
+                      </div>
+                    </div>
+                  </CardHeader>
+                  <CardContent className="space-y-6">
+                    <p className="text-muted-foreground leading-relaxed">{role.description}</p>
+
+                    <div>
+                      <h4 className="font-display font-bold mb-3">What You'll Do</h4>
+                      <ul className="space-y-2">
+                        {role.responsibilities.map((item) => (
+                          <li key={item} className="flex items-start gap-2.5 text-sm text-muted-foreground">
+                            <span className="mt-2 h-1.5 w-1.5 rounded-full bg-primary shrink-0" />
+                            {item}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+
+                    <div>
+                      <h4 className="font-display font-bold mb-3">What We're Looking For</h4>
+                      <ul className="space-y-2">
+                        {role.requirements.map((item) => (
+                          <li key={item} className="flex items-start gap-2.5 text-sm text-muted-foreground">
+                            <span className="mt-2 h-1.5 w-1.5 rounded-full bg-primary shrink-0" />
+                            {item}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+
+                    <div>
+                      <h4 className="font-display font-bold mb-3">Nice to Have</h4>
+                      <ul className="space-y-2">
+                        {role.niceToHaves.map((item) => (
+                          <li key={item} className="flex items-start gap-2.5 text-sm text-muted-foreground">
+                            <Clock className="w-3.5 h-3.5 mt-0.5 text-muted-foreground/60 shrink-0" />
+                            {item}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+
+                    <div className="pt-3 border-t border-border-subtle text-sm text-muted-foreground">
+                      <Send className="w-4 h-4 inline mr-2 text-primary" />
+                      Email us your application letter and CV at{" "}
+                      <a href="mailto:skryveai@gmail.com" className="font-bold text-foreground underline underline-offset-2">
+                        skryveai@gmail.com
+                      </a>
+                    </div>
+                  </CardContent>
+                </Card>
+              </motion.div>
             ))}
           </div>
         </div>
       </section>
 
-      {/* General Application CTA */}
-      <section className="border-t border-white/[0.06]">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          className="max-w-6xl mx-auto px-5 py-20 text-center"
-        >
-          <span className="text-[11px] font-semibold uppercase tracking-[0.15em] text-[#2563EB] mb-4 block">
-            Open Application
-          </span>
-          <h2 className="text-4xl font-extrabold text-white tracking-[-0.03em] mb-4">
-            Don't see your role?
-          </h2>
-          <p className="text-[15px] text-white/40 mb-8 max-w-lg mx-auto leading-relaxed">
+      {/* CTA */}
+      <section className="py-20 bg-gradient-subtle">
+        <div className="container mx-auto px-4 max-w-2xl text-center">
+          <h2 className="font-display text-2xl md:text-3xl font-bold mb-4 tracking-tight">Don't See Your Role?</h2>
+          <p className="text-muted-foreground mb-8 leading-relaxed">
             We're always open to hearing from talented people. Send us your CV and a note about how you'd contribute to SkryveAI.
           </p>
-          <button
+          <Button
+            variant="outline"
+            className="rounded-full border-primary text-primary font-bold px-8 py-5 hover:bg-primary hover:text-primary-foreground transition-all duration-300"
             onClick={() => {
               const subject = encodeURIComponent("General Application — SkryveAI");
               const body = encodeURIComponent(
@@ -500,12 +259,11 @@ export default function Careers() {
               );
               window.open(`mailto:skryveai@gmail.com?subject=${subject}&body=${body}`, "_blank");
             }}
-            className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-white text-[#09090b] text-[14px] font-semibold hover:bg-white/90 transition-all"
           >
-            <Send className="w-4 h-4" />
+            <Send className="w-4 h-4 mr-2" />
             Send a General Application
-          </button>
-        </motion.div>
+          </Button>
+        </div>
       </section>
 
       <Footer />
