@@ -1,11 +1,11 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
-import { motion, useScroll, useTransform } from "framer-motion";
+import { motion } from "framer-motion";
 import {
   Menu, X, ArrowRight, Twitter, Linkedin, Instagram,
-  Briefcase, Store, CalendarDays, BookOpen, FileText,
-  Zap, Users, Shield, ChevronRight,
+  Briefcase, Users,
 } from "lucide-react";
+import { LandingFeed } from "@/components/landing/LandingFeed";
 
 /* ─── Animation presets ───────────────────────────────────── */
 const fadeUp = (delay = 0) => ({
@@ -120,209 +120,6 @@ function Navbar() {
         </div>
       )}
     </nav>
-  );
-}
-
-/* ─── Hero ────────────────────────────────────────────────── */
-function Hero() {
-  return (
-    <section className="relative min-h-screen flex flex-col items-center justify-center bg-[#09090b] overflow-hidden pt-14">
-
-      {/* Dot grid */}
-      <div
-        className="absolute inset-0 opacity-[0.4]"
-        style={{
-          backgroundImage: "radial-gradient(circle, rgba(255,255,255,0.09) 1px, transparent 1px)",
-          backgroundSize: "28px 28px",
-        }}
-      />
-
-      {/* Glow orbs */}
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[900px] h-[600px] rounded-full bg-[#2563EB]/10 blur-[140px] pointer-events-none" />
-      <div className="absolute top-1/4 right-1/4 w-[300px] h-[300px] rounded-full bg-purple-500/8 blur-[100px] pointer-events-none" />
-
-      <div className="relative z-10 max-w-5xl mx-auto px-5 text-center">
-
-        {/* Badge */}
-        <motion.div
-          initial={{ opacity: 0, y: 12 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
-          className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full border border-white/[0.1] bg-white/[0.04] text-white/60 text-[12px] font-medium mb-8 backdrop-blur-sm"
-        >
-          <span className="w-1.5 h-1.5 rounded-full bg-[#2563EB] animate-pulse" />
-          Now live — the freelance OS for Africa
-          <ChevronRight className="w-3.5 h-3.5 opacity-50" />
-        </motion.div>
-
-        {/* Headline */}
-        <motion.h1
-          initial={{ opacity: 0, y: 24 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, delay: 0.08, ease: [0.22, 1, 0.36, 1] as [number, number, number, number] }}
-          className="text-5xl md:text-7xl lg:text-8xl font-extrabold text-white leading-[0.95] tracking-[-0.04em] mb-6"
-        >
-          The platform where<br />
-          <span
-            className="text-transparent"
-            style={{
-              backgroundImage: "linear-gradient(135deg, #3b82f6 0%, #6366f1 50%, #8b5cf6 100%)",
-              WebkitBackgroundClip: "text",
-              backgroundClip: "text",
-            }}
-          >
-            talent meets
-          </span>{" "}
-          <span className="text-white">opportunity</span>
-        </motion.h1>
-
-        {/* Sub */}
-        <motion.p
-          initial={{ opacity: 0, y: 16 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.55, delay: 0.18 }}
-          className="text-[17px] md:text-xl text-white/40 max-w-xl mx-auto mb-10 leading-relaxed"
-        >
-          Learn skills. Build your portfolio. Find clients. Get hired. One platform, zero friction.
-        </motion.p>
-
-        {/* CTAs */}
-        <motion.div
-          initial={{ opacity: 0, y: 12 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 0.26 }}
-          className="flex flex-col sm:flex-row items-center justify-center gap-3"
-        >
-          <Link
-            to="/signup"
-            className="flex items-center gap-2 px-6 py-3 rounded-xl bg-white text-[#09090b] text-[14px] font-semibold hover:bg-white/90 transition-all shadow-lg shadow-white/10"
-          >
-            Start for free
-            <ArrowRight className="w-4 h-4" />
-          </Link>
-          <Link
-            to="/signup?role=client"
-            className="flex items-center gap-2 px-6 py-3 rounded-xl border border-white/[0.12] text-white/70 text-[14px] font-medium hover:border-white/25 hover:text-white transition-all bg-white/[0.03]"
-          >
-            Post a job
-          </Link>
-        </motion.div>
-
-        {/* Trust line */}
-        <motion.p
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.4, duration: 0.5 }}
-          className="mt-8 text-[12px] text-white/25"
-        >
-          Free to join · No credit card required · Cancel anytime
-        </motion.p>
-      </div>
-
-      {/* Bottom fade */}
-      <div className="absolute bottom-0 inset-x-0 h-32 bg-gradient-to-t from-[#09090b] to-transparent pointer-events-none" />
-    </section>
-  );
-}
-
-/* ─── Stats ───────────────────────────────────────────────── */
-function Stats() {
-  const items = [
-    { value: "10,000+", label: "Registered talents"    },
-    { value: "2,000+",  label: "Active companies"      },
-    { value: "50,000+", label: "Jobs aggregated"       },
-    { value: "98%",     label: "Satisfaction rate"     },
-  ];
-
-  return (
-    <section className="bg-[#09090b] border-y border-white/[0.06]">
-      <div className="max-w-6xl mx-auto grid grid-cols-2 md:grid-cols-4 divide-x divide-y md:divide-y-0 divide-white/[0.06]">
-        {items.map(({ value, label }, i) => (
-          <motion.div
-            key={label}
-            {...fadeUp(i * 0.06)}
-            className="px-8 py-10 text-center"
-          >
-            <p
-              className="text-3xl md:text-4xl font-extrabold text-white mb-1 font-mono tracking-tight"
-              style={{ fontVariantNumeric: "tabular-nums" }}
-            >
-              {value}
-            </p>
-            <p className="text-[12px] text-white/35 uppercase tracking-widest">{label}</p>
-          </motion.div>
-        ))}
-      </div>
-    </section>
-  );
-}
-
-/* ─── Features ────────────────────────────────────────────── */
-const FEATURES = [
-  {
-    icon: Briefcase,
-    title: "Job Aggregator",
-    desc: "Jobs from Upwork, LinkedIn, Remote OK, Jobberman and more — delivered in one daily feed, scored to your profile.",
-  },
-  {
-    icon: Store,
-    title: "Marketplace",
-    desc: "Post a job as a client or browse and apply as talent. Built-in AI matching surfaces the right fit on both sides.",
-  },
-  {
-    icon: CalendarDays,
-    title: "Events Hub",
-    desc: "Discover industry webinars, networking events, and workshops. RSVP, get reminders, connect with organisers.",
-  },
-  {
-    icon: BookOpen,
-    title: "Learning Platform",
-    desc: "Structured courses with an AI coach, quizzes, and verifiable certificates you can share on your profile.",
-  },
-  {
-    icon: FileText,
-    title: "CV Builder",
-    desc: "Six ATS-optimised templates, AI-written summaries, one-click PDF export, and a live ATS score checker.",
-  },
-  {
-    icon: Shield,
-    title: "Secure Payments",
-    desc: "Milestone-based escrow via Paystack. Funds only release when work is approved — protecting both parties.",
-  },
-];
-
-function Features() {
-  return (
-    <section id="features" className="bg-[#09090b] py-24 md:py-32">
-      <div className="max-w-6xl mx-auto px-5">
-
-        <motion.div {...fadeUp()} className="mb-16 max-w-xl">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.15em] text-[#2563EB] mb-4">Platform</p>
-          <h2 className="text-4xl md:text-5xl font-extrabold text-white tracking-[-0.03em] leading-[1.05] mb-5">
-            Everything you need.<br />Nothing you don't.
-          </h2>
-          <p className="text-[15px] text-white/40 leading-relaxed">
-            Six purpose-built tools in one cohesive platform — no switching between apps.
-          </p>
-        </motion.div>
-
-        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-px bg-white/[0.06] rounded-2xl overflow-hidden border border-white/[0.06]">
-          {FEATURES.map(({ icon: Icon, title, desc }, i) => (
-            <motion.div
-              key={title}
-              {...fadeUp(i * 0.05)}
-              className="bg-[#09090b] p-7 hover:bg-white/[0.03] transition-colors group"
-            >
-              <div className="w-9 h-9 rounded-xl border border-white/[0.08] flex items-center justify-center mb-5 group-hover:border-[#2563EB]/40 transition-colors">
-                <Icon className="w-4.5 h-4.5 text-white/50 group-hover:text-[#2563EB] transition-colors" style={{ width: "18px", height: "18px" }} />
-              </div>
-              <h3 className="text-[15px] font-semibold text-white mb-2">{title}</h3>
-              <p className="text-[13px] text-white/40 leading-relaxed">{desc}</p>
-            </motion.div>
-          ))}
-        </div>
-      </div>
-    </section>
   );
 }
 
@@ -570,9 +367,7 @@ export default function Landing() {
   return (
     <div className="min-h-screen bg-[#09090b]">
       <Navbar />
-      <Hero />
-      <Stats />
-      <Features />
+      <LandingFeed />
       <HowItWorks />
       <Testimonials />
       <CTA />
