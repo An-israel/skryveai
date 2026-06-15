@@ -73,7 +73,7 @@ export default function TalentOnboarding() {
     avatarUrl: "",
     primarySkill: "",
     secondarySkills: [] as string[],
-    experienceLevel: "" as "beginner" | "intermediate" | "expert" | "",
+    experienceLevel: "" as "entry" | "mid" | "senior" | "expert" | "",
     hourlyRate: "",
     rateCurrency: "NGN",
     bio: "",
@@ -460,9 +460,10 @@ export default function TalentOnboarding() {
         return (
           <div className="space-y-3">
             {[
-              { value: "beginner" as const, label: "Beginner", sub: "0–1 years · Still building your portfolio" },
-              { value: "intermediate" as const, label: "Intermediate", sub: "2–4 years · Have client experience" },
-              { value: "expert" as const, label: "Expert", sub: "5+ years · Seasoned professional" },
+              { value: "entry" as const, label: "Entry Level", sub: "0–2 years · Still building your portfolio" },
+              { value: "mid" as const, label: "Mid Level", sub: "2–5 years · Have client experience" },
+              { value: "senior" as const, label: "Senior", sub: "5+ years · Seasoned professional" },
+              { value: "expert" as const, label: "Expert", sub: "8+ years · Recognized specialist" },
             ].map(({ value, label, sub }) => (
               <button
                 key={value}
