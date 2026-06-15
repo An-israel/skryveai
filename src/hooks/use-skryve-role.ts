@@ -11,14 +11,19 @@ export function useSkryveRole(userId: string | null | undefined) {
 
     let cancelled = false;
     (async () => {
-      const [{ data: tp }, { data: cp }] = await Promise.all([
-        supabase.from("talent_profiles").select("id").eq("user_id", userId).maybeSingle(),
-        supabase.from("client_profiles").select("id").eq("user_id", userId).maybeSingle(),
-      ]);
-      if (cancelled) return;
-      if (cp)      setRole("client");
-      else if (tp) setRole("talent");
-      else         setRole("talent"); // default for new users — onboarding will set it
+      try {
+        const [{ data: tp }, { data: cp }] = await Promise.all([
+          supabase.from("talent_profiles").select("id").eq("user_id", userId).maybeSingle(),
+          supabase.from("client_profiles").select("id").eq("user_id", userId).maybeSingle(),
+        ]);
+        if (cancelled) return;
+        if (cp)      setRole("client");
+        else if (tp) setRole("talent");
+        else         setRole("talent"); // default for new users — onboarding will set it
+      } catch (err) {
+        console.error("useSkryveRole error:", err);
+        if (!cancelled) setRole("talent");
+      }
     })();
 
     return () => { cancelled = true; };

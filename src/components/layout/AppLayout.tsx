@@ -44,6 +44,9 @@ export function AppLayout() {
         if (data && data.onboarding_completed === false) {
           setNeedsOnboarding(true);
         }
+      })
+      .catch((err: unknown) => {
+        console.error("Onboarding check error:", err);
       });
   }, [user?.id, role, location.pathname]);
 
