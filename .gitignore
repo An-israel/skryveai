@@ -26,3 +26,4 @@ supabase.exe
 supabase-new.exe
 supabase-cli.tar.gz
 supabase/.temp/
+.claude/worktrees/
