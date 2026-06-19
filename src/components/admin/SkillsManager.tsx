@@ -14,6 +14,15 @@ import { Loader2, Plus, Edit, Trash2, ArrowUp, ArrowDown, GraduationCap } from "
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
+function dbError(err: unknown): string {
+  if (!err) return "Unknown error";
+  if (typeof err === "object") {
+    const e = err as any;
+    return e.message || e.error_description || e.details || JSON.stringify(e);
+  }
+  return String(err);
+}
+
 const DIFFICULTY_LEVELS = ["beginner", "intermediate", "advanced"];
 const CONTENT_TYPES = ["video", "article", "text", "quiz", "assignment"];
 
@@ -29,6 +38,14 @@ interface LearningPath {
   total_lessons: number;
   is_active: boolean;
   popular_rank: number | null;
+}
+
+interface LearningModule {
+  id: string;
+  learning_path_id: string;
+  module_number: number;
+  title: string;
+  order_index: number | null;
 }
 
 interface LearningLesson {
@@ -66,7 +83,7 @@ const emptyLessonForm = {
   content_url: "",
   order_index: "",
   lesson_number: "",
-  module_id: "",
+  module_id: "",   // UUID of a learning_module row
   estimated_minutes: "",
   required_for_next: false,
 };
@@ -74,6 +91,7 @@ const emptyLessonForm = {
 export function SkillsManager() {
   const [paths, setPaths] = useState<LearningPath[]>([]);
   const [lessons, setLessons] = useState<LearningLesson[]>([]);
+  const [modules, setModules] = useState<LearningModule[]>([]);
   const [loadingPaths, setLoadingPaths] = useState(true);
   const [loadingLessons, setLoadingLessons] = useState(false);
   const [selectedPath, setSelectedPath] = useState<LearningPath | null>(null);
@@ -110,14 +128,46 @@ export function SkillsManager() {
     }
   };
 
+  const loadModules = async (pathId: string): Promise<LearningModule[]> => {
+    const { data, error } = await (supabase as any)
+      .from("learning_modules")
+      .select("id, learning_path_id, module_number, title, order_index")
+      .eq("learning_path_id", pathId)
+      .order("order_index", { ascending: true });
+    if (error) {
+      console.error("Failed to load modules:", error);
+      return [];
+    }
+    const mods: LearningModule[] = data || [];
+    setModules(mods);
+    return mods;
+  };
+
+  const ensureDefaultModule = async (pathId: string, mods: LearningModule[]): Promise<string> => {
+    if (mods.length > 0) return mods[0].id;
+    // Auto-create "Module 1" if none exist
+    const { data, error } = await (supabase as any)
+      .from("learning_modules")
+      .insert({ learning_path_id: pathId, module_number: 1, title: "Module 1", order_index: 1 })
+      .select("id")
+      .single();
+    if (error) throw new Error("Could not create default module: " + dbError(error));
+    const newMods = await loadModules(pathId);
+    setModules(newMods);
+    return data.id;
+  };
+
   const loadLessons = async (pathId: string) => {
     setLoadingLessons(true);
     try {
-      const { data, error } = await (supabase as any)
-        .from("learning_lessons")
-        .select("*")
-        .eq("learning_path_id", pathId)
-        .order("order_index", { ascending: true });
+      const [{ data, error }] = await Promise.all([
+        (supabase as any)
+          .from("learning_lessons")
+          .select("*")
+          .eq("learning_path_id", pathId)
+          .order("order_index", { ascending: true }),
+        loadModules(pathId),
+      ]);
       if (error) throw error;
       setLessons(data || []);
     } catch (error) {
@@ -134,7 +184,7 @@ export function SkillsManager() {
 
   useEffect(() => {
     if (selectedPath) loadLessons(selectedPath.id);
-    else setLessons([]);
+    else { setLessons([]); setModules([]); }
   }, [selectedPath?.id]);
 
   // Path dialog handlers
@@ -188,8 +238,7 @@ export function SkillsManager() {
       setShowPathDialog(false);
       loadPaths();
     } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : "Failed to save learning path";
-      toast({ title: message, variant: "destructive" });
+      toast({ title: dbError(error), variant: "destructive" });
     } finally {
       setSavingPath(false);
     }
@@ -214,6 +263,7 @@ export function SkillsManager() {
     setEditingLesson(null);
     setLessonForm({
       ...emptyLessonForm,
+      module_id: modules[0]?.id || "",
       order_index: ((lessons[lessons.length - 1]?.order_index ?? lessons.length - 1) + 1).toString(),
       lesson_number: ((lessons.length) + 1).toString(),
     });
@@ -238,21 +288,25 @@ export function SkillsManager() {
 
   const handleSaveLesson = async () => {
     if (!selectedPath) return;
-    if (!lessonForm.title.trim() || !lessonForm.module_id.trim()) {
-      toast({ title: "Title and module ID are required", variant: "destructive" });
+    if (!lessonForm.title.trim()) {
+      toast({ title: "Lesson title is required", variant: "destructive" });
       return;
     }
     setSavingLesson(true);
     try {
+      // Resolve module_id — use selected, fall back to auto-creating a default
+      const moduleId = lessonForm.module_id.trim()
+        || await ensureDefaultModule(selectedPath.id, modules);
+
       const payload: any = {
         learning_path_id: selectedPath.id,
+        module_id: moduleId,
         title: lessonForm.title.trim(),
         description: lessonForm.description.trim() || null,
         content_type: lessonForm.content_type,
         content_url: lessonForm.content_url.trim() || null,
         order_index: lessonForm.order_index ? Number(lessonForm.order_index) : 0,
         lesson_number: lessonForm.lesson_number ? Number(lessonForm.lesson_number) : 1,
-        module_id: lessonForm.module_id.trim(),
         estimated_minutes: lessonForm.estimated_minutes ? Number(lessonForm.estimated_minutes) : null,
         required_for_next: lessonForm.required_for_next,
       };
@@ -268,8 +322,7 @@ export function SkillsManager() {
       setShowLessonDialog(false);
       loadLessons(selectedPath.id);
     } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : "Failed to save lesson";
-      toast({ title: message, variant: "destructive" });
+      toast({ title: dbError(error), variant: "destructive" });
     } finally {
       setSavingLesson(false);
     }
@@ -464,11 +517,22 @@ export function SkillsManager() {
                     <Label>Content URL (YouTube link)</Label>
                     <Input value={lessonForm.content_url} onChange={(e) => setLessonForm({ ...lessonForm, content_url: e.target.value })} placeholder="https://youtube.com/watch?v=..." />
                   </div>
-                  <div className="grid grid-cols-3 gap-3">
-                    <div className="space-y-1.5">
-                      <Label>Module ID</Label>
-                      <Input value={lessonForm.module_id} onChange={(e) => setLessonForm({ ...lessonForm, module_id: e.target.value })} placeholder="module-1" />
-                    </div>
+                  <div className="space-y-1.5">
+                    <Label>Module</Label>
+                    {modules.length === 0 ? (
+                      <p className="text-xs text-muted-foreground">No modules yet — a default "Module 1" will be created automatically.</p>
+                    ) : (
+                      <Select value={lessonForm.module_id} onValueChange={(v) => setLessonForm({ ...lessonForm, module_id: v })}>
+                        <SelectTrigger><SelectValue placeholder="Select module" /></SelectTrigger>
+                        <SelectContent>
+                          {modules.map((m) => (
+                            <SelectItem key={m.id} value={m.id}>{m.title}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    )}
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
                     <div className="space-y-1.5">
                       <Label>Lesson #</Label>
                       <Input type="number" value={lessonForm.lesson_number} onChange={(e) => setLessonForm({ ...lessonForm, lesson_number: e.target.value })} placeholder="1" />
