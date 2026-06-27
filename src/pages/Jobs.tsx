@@ -37,13 +37,16 @@ const EXPERTISE_OPTIONS = [
   "Web Design", "Web Development", "Webflow", "WordPress",
 ];
 
+// Open-apply remote job boards aggregated by the scrape-jobs function. Closed
+// bidding/enrolment platforms (Upwork, Fiverr, Freelancer, Toptal) are excluded
+// since talents can't apply to those directly from here.
 const PLATFORMS = [
-  { value: "upwork", label: "Upwork" },
-  { value: "linkedin", label: "LinkedIn" },
-  { value: "indeed", label: "Indeed" },
-  { value: "jobberman", label: "Jobberman" },
   { value: "remoteok", label: "Remote OK" },
   { value: "weworkremotely", label: "We Work Remotely" },
+  { value: "remotive", label: "Remotive" },
+  { value: "arbeitnow", label: "Arbeitnow" },
+  { value: "jobicy", label: "Jobicy" },
+  { value: "himalayas", label: "Himalayas" },
 ];
 
 const JOB_TYPES = [
@@ -52,18 +55,18 @@ const JOB_TYPES = [
   { value: "full-time", label: "Full-time" },
 ];
 
+// Listings are capped at 7 days old at the source, so the feed only offers the
+// two meaningful windows. Defaults to the last 24 hours.
 const DATE_OPTIONS = [
-  { value: "all", label: "All Time" },
-  { value: "today", label: "Today" },
-  { value: "week", label: "This Week" },
-  { value: "month", label: "This Month" },
+  { value: "today", label: "Last 24 hours" },
+  { value: "week", label: "This week" },
 ] as const;
 
 interface Filters {
   search: string;
   skill: string;
   platformFilter: string[];
-  dateFilter: "today" | "week" | "month" | "all";
+  dateFilter: "today" | "week";
   jobTypes: string[];
   locationPref: string;
 }
@@ -164,7 +167,7 @@ function FilterSidebar({ filters, setFilters, onApply }: FilterSidebarProps) {
   };
 
   const clearAll = () => {
-    setFilters({ search: "", skill: "", platformFilter: [], dateFilter: "all", jobTypes: [], locationPref: "" });
+    setFilters({ search: "", skill: "", platformFilter: [], dateFilter: "today", jobTypes: [], locationPref: "" });
     setTimeout(onApply, 0);
   };
 
@@ -429,7 +432,7 @@ export default function Jobs() {
     search: "",
     skill: "",
     platformFilter: [],
-    dateFilter: "all",
+    dateFilter: "today",
     jobTypes: [],
     locationPref: "",
   });
@@ -501,7 +504,6 @@ export default function Jobs() {
     if (currentFilters.jobTypes.length) query = query.in("job_type", currentFilters.jobTypes);
     if (currentFilters.dateFilter === "today") query = query.gte("posted_at", new Date(Date.now() - 86400000).toISOString());
     if (currentFilters.dateFilter === "week") query = query.gte("posted_at", new Date(Date.now() - 7 * 86400000).toISOString());
-    if (currentFilters.dateFilter === "month") query = query.gte("posted_at", new Date(Date.now() - 30 * 86400000).toISOString());
 
     query = query.range(currentPage * pageSize, (currentPage + 1) * pageSize - 1);
 
