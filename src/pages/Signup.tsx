@@ -68,19 +68,29 @@ export default function Signup() {
     }
     setIsLoading(true);
     try {
-      const { error } = await supabase.auth.signUp({
-        email,
-        password,
-        options: {
-          emailRedirectTo: window.location.origin + "/login",
-          data: {
-            full_name: fullName,
-            role: selectedRole,
-            referral_code: referralCode ? referralCode.toUpperCase() : null,
-          },
+      // Create the account + send the confirmation email through Resend
+      // (send-auth-email), bypassing the unreliable built-in/dispatcher mailer.
+      const { data, error } = await supabase.functions.invoke("send-auth-email", {
+        body: {
+          action: "signup",
+          email,
+          password,
+          fullName,
+          role: selectedRole,
+          referralCode: referralCode ? referralCode.toUpperCase() : null,
+          redirectTo: window.location.origin + "/login",
         },
       });
       if (error) throw error;
+      if (data?.error === "already_registered") {
+        toast({
+          title: "Account already exists",
+          description: "An account with this email already exists. Please log in instead.",
+          variant: "destructive",
+        });
+        return;
+      }
+      if (data?.error) throw new Error(data.error);
       navigate(`/verify-email?email=${encodeURIComponent(email)}`);
     } catch (error: unknown) {
       const msg = error instanceof Error ? error.message : "Something went wrong";

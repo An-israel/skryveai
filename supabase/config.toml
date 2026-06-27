@@ -63,6 +63,8 @@ project_id = "dgyuafltlpruhdlgwiew"
     verify_jwt = false
   [functions.send-admin-email]
     verify_jwt = false
+  [functions.send-auth-email]
+    verify_jwt = false
   [functions.send-daily-encouragement]
     verify_jwt = false
   [functions.send-email]
