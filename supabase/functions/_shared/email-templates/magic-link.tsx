@@ -11,17 +11,17 @@ interface MagicLinkEmailProps { siteName: string; confirmationUrl: string }
 export const MagicLinkEmail = ({ siteName, confirmationUrl }: MagicLinkEmailProps) => (
   <Html lang="en" dir="ltr">
     <Head />
-    <Preview>Your SkryveAI login link</Preview>
+    <Preview>Your Skryve login link</Preview>
     <Body style={main}>
       <Container style={container}>
         <Heading style={h1}>Your login link</Heading>
         <Text style={text}>
           Click below to sign in to {siteName}. This link expires shortly.
         </Text>
-        <Button style={button} href={confirmationUrl}>Log in to SkryveAI</Button>
+        <Button style={button} href={confirmationUrl}>Log in to Skryve</Button>
         <Text style={footer}>
           If you didn't request this link, you can safely ignore this email.
-          <br /><br />— The SkryveAI Team
+          <br /><br />— The Skryve Team
         </Text>
       </Container>
     </Body>

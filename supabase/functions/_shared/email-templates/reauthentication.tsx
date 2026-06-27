@@ -11,7 +11,7 @@ interface ReauthenticationEmailProps { token: string }
 export const ReauthenticationEmail = ({ token }: ReauthenticationEmailProps) => (
   <Html lang="en" dir="ltr">
     <Head />
-    <Preview>Your SkryveAI verification code</Preview>
+    <Preview>Your Skryve verification code</Preview>
     <Body style={main}>
       <Container style={container}>
         <Heading style={h1}>Confirm it's you</Heading>
@@ -19,7 +19,7 @@ export const ReauthenticationEmail = ({ token }: ReauthenticationEmailProps) => 
         <Text style={codeStyle}>{token}</Text>
         <Text style={footer}>
           This code expires shortly. If you didn't request it, you can safely ignore this email.
-          <br /><br />— The SkryveAI Team
+          <br /><br />— The Skryve Team
         </Text>
       </Container>
     </Body>

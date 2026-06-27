@@ -25,7 +25,7 @@ export const EmailChangeEmail = ({ siteName, email, newEmail, confirmationUrl }:
         <Button style={button} href={confirmationUrl}>Confirm email change</Button>
         <Text style={footer}>
           If you didn't request this change, please secure your account immediately.
-          <br /><br />— The SkryveAI Team
+          <br /><br />— The Skryve Team
         </Text>
       </Container>
     </Body>
