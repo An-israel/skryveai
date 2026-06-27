@@ -9,24 +9,24 @@ import { useToast } from "@/hooks/use-toast";
 const motivationalMessages = [
   {
     icon: Rocket,
-    title: "Ready to Land Clients? 🚀",
-    message: "Top freelancers send outreach daily. Even 5 emails today could lead to your next big project!",
-    cta: "Start a Campaign",
-    ctaLink: "/campaigns/new",
+    title: "Fresh Jobs Just Dropped 🚀",
+    message: "New roles from across the web land on Skryve every day. Browse today's matches and apply in minutes.",
+    cta: "Browse Jobs",
+    ctaLink: "/jobs",
   },
   {
     icon: Target,
-    title: "Your Skills Are in Demand! 🎯",
-    message: "Businesses need your expertise — they just don't know it yet. Let AI help you find and pitch them!",
-    cta: "Find Businesses",
-    ctaLink: "/campaigns/new",
+    title: "Stand Out to Clients 🎯",
+    message: "A complete profile gets noticed first. Add your skills, portfolio and rate so clients can find and hire you.",
+    cta: "Complete Profile",
+    ctaLink: "/profile",
   },
   {
     icon: Zap,
-    title: "Quick Win Waiting! ⚡",
-    message: "5 minutes on Skryve = potential new clients. Our AI handles the hard part. You just review and send!",
-    cta: "Send Pitches",
-    ctaLink: "/campaigns/new",
+    title: "Level Up Your Skills ⚡",
+    message: "Finish a course, earn a certificate, and become more hireable. A few minutes today pays off.",
+    cta: "Start Learning",
+    ctaLink: "/learn",
   },
 ];
 
@@ -70,7 +70,7 @@ export function MotivationalPopup() {
   const handleEnablePush = async () => {
     const success = await subscribe();
     if (success) {
-      toast({ title: "Notifications enabled! 🔔", description: "You'll get motivational reminders twice daily." });
+      toast({ title: "Notifications enabled! 🔔", description: "We'll let you know about new job matches, messages, and offers." });
     } else {
       toast({ title: "Couldn't enable notifications", description: "Please allow notifications in your browser settings.", variant: "destructive" });
     }
@@ -146,9 +146,9 @@ export function MotivationalPopup() {
                   <Bell className="w-5 h-5 text-info" />
                 </div>
                 <div className="flex-1">
-                  <h3 className="font-display font-bold text-sm mb-1">Stay Motivated! 🔔</h3>
+                  <h3 className="font-display font-bold text-sm mb-1">Stay in the loop 🔔</h3>
                   <p className="text-xs text-muted-foreground leading-relaxed mb-3">
-                    Get daily reminders at 7 AM & 5 PM to keep your outreach momentum going. Never miss a day!
+                    Get notified about new job matches, messages, and offers so you never miss an opportunity.
                   </p>
                   <div className="flex gap-2">
                     <Button

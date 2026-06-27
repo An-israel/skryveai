@@ -1,6 +1,6 @@
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { ArrowRight, Bot, Search, FileText, Linkedin, BarChart3, BookOpen, Zap } from "lucide-react";
+import { ArrowRight, Briefcase, Search, FileText, Linkedin, BarChart3, BookOpen } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 interface Step {
@@ -13,34 +13,34 @@ interface Step {
 
 const STEPS: Record<string, Step[]> = {
   cv_builder_optimize: [
-    { icon: Search,    title: "Find clients with Smart Find",    description: "Use your skills to discover businesses that need exactly what you offer.",  to: "/campaigns/new" },
-    { icon: Bot,       title: "Run AutoPilot",                   description: "Let AI find and pitch clients for you every day automatically.",           to: "/auto-pilot" },
-    { icon: BarChart3, title: "Check your ATS score",            description: "See how well your CV passes automated screening systems.",                   to: "/ats-checker", variant: "outline" },
+    { icon: Search,    title: "Browse remote jobs",             description: "Find fresh roles matched to your skills and apply directly.",               to: "/jobs" },
+    { icon: Briefcase, title: "Complete your profile",          description: "A complete profile helps clients find and hire you.",                       to: "/profile" },
+    { icon: BarChart3, title: "Check your ATS score",           description: "See how well your CV passes automated screening systems.",                  to: "/ats-checker", variant: "outline" },
   ],
   cv_builder_scratch: [
-    { icon: BarChart3, title: "Check your ATS score",            description: "See how recruiters and bots score your new CV.",                            to: "/ats-checker" },
-    { icon: Linkedin,  title: "Optimise your LinkedIn profile",  description: "Make your profile match the strength of your new CV.",                      to: "/linkedin-analyzer" },
-    { icon: Search,    title: "Find clients with Smart Find",    description: "Start landing clients using your newly documented skills.",                  to: "/campaigns/new", variant: "outline" },
+    { icon: BarChart3, title: "Check your ATS score",           description: "See how recruiters and bots score your new CV.",                            to: "/ats-checker" },
+    { icon: Linkedin,  title: "Optimise your LinkedIn profile", description: "Make your profile match the strength of your new CV.",                      to: "/linkedin-analyzer" },
+    { icon: Search,    title: "Browse remote jobs",             description: "Put your new CV to work — apply to fresh roles today.",                     to: "/jobs", variant: "outline" },
   ],
   ats_checker: [
-    { icon: FileText,  title: "Improve your CV",                 description: "Use the AI CV Builder to fix the issues and boost your score.",              to: "/cv-builder" },
-    { icon: Search,    title: "Find clients with Smart Find",    description: "Even while polishing your CV, start discovering potential clients now.",    to: "/campaigns/new" },
-    { icon: Bot,       title: "Run AutoPilot",                   description: "Set AI to find and reach out to clients on your behalf daily.",              to: "/auto-pilot", variant: "outline" },
+    { icon: FileText,  title: "Improve your CV",                description: "Use the AI CV Builder to fix the issues and boost your score.",             to: "/cv-builder" },
+    { icon: Search,    title: "Browse remote jobs",             description: "Start applying to fresh roles matched to your skills.",                     to: "/jobs" },
+    { icon: Briefcase, title: "Complete your profile",          description: "Stand out to clients browsing for talent like you.",                        to: "/profile", variant: "outline" },
   ],
   linkedin_analyzer: [
-    { icon: Search,    title: "Find clients with Smart Find",    description: "Clients are out there — let AI find businesses that need your service.",    to: "/campaigns/new" },
-    { icon: Bot,       title: "Run AutoPilot",                   description: "Automate your client outreach and never miss an opportunity.",               to: "/auto-pilot" },
-    { icon: FileText,  title: "Build or improve your CV",        description: "A strong CV complements a great LinkedIn profile.",                          to: "/cv-builder", variant: "outline" },
+    { icon: Search,    title: "Browse remote jobs",             description: "Fresh roles from across the web, matched to your skills.",                  to: "/jobs" },
+    { icon: Briefcase, title: "Complete your profile",          description: "A strong profile helps clients find and hire you.",                         to: "/profile" },
+    { icon: FileText,  title: "Build or improve your CV",       description: "A strong CV complements a great LinkedIn profile.",                         to: "/cv-builder", variant: "outline" },
   ],
   learn_hub: [
-    { icon: FileText,  title: "Build your professional CV",      description: "Turn your new skills into a CV that impresses clients and employers.",       to: "/cv-builder" },
-    { icon: Search,    title: "Find clients with Smart Find",    description: "Start finding businesses that need the skill you just learned.",             to: "/campaigns/new" },
-    { icon: Bot,       title: "Run AutoPilot",                   description: "Put client acquisition on autopilot while you keep learning.",               to: "/auto-pilot", variant: "outline" },
+    { icon: FileText,  title: "Build your professional CV",     description: "Turn your new skills into a CV that impresses clients and employers.",      to: "/cv-builder" },
+    { icon: Search,    title: "Browse remote jobs",             description: "Find roles that need the skill you just learned.",                          to: "/jobs" },
+    { icon: Briefcase, title: "Complete your profile",          description: "Showcase your new skills so clients can find you.",                         to: "/profile", variant: "outline" },
   ],
   smart_find: [
-    { icon: Bot,       title: "Run AutoPilot",                   description: "Let AI pitch to these businesses for you automatically every day.",          to: "/auto-pilot" },
-    { icon: FileText,  title: "Build your CV",                   description: "A great CV helps when clients want to see your background.",                 to: "/cv-builder" },
-    { icon: BookOpen,  title: "Learn a new skill",               description: "Add another skill to expand the clients you can serve.",                     to: "/learn", variant: "outline" },
+    { icon: Search,    title: "Browse remote jobs",             description: "Apply directly to fresh remote roles from across the web.",                 to: "/jobs" },
+    { icon: FileText,  title: "Build your CV",                  description: "A great CV helps when clients want to see your background.",                to: "/cv-builder" },
+    { icon: BookOpen,  title: "Learn a new skill",              description: "Add another skill to widen the jobs you can land.",                         to: "/learn", variant: "outline" },
   ],
 };
 
