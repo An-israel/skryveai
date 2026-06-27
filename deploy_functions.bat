@@ -1,6 +1,6 @@
 @echo off
 REM ============================================================
-REM SkryveAI - Deploy All Edge Functions
+REM Skryve - Deploy ALL edge functions + apply DB migrations
 REM Usage: deploy_functions.bat YOUR_SUPABASE_ACCESS_TOKEN
 REM ============================================================
 
@@ -12,42 +12,32 @@ IF "%TOKEN%"=="" (
   exit /b 1
 )
 
-SET PROJECT_REF=cxzjdpxpgjupvbwwetne
-
-echo Deploying all SkryveAI edge functions...
-echo.
+REM Live project ref (matches supabase/config.toml and VITE_SUPABASE_URL)
+SET PROJECT_REF=dgyuafltlpruhdlgwiew
 
 SET SUPABASE_ACCESS_TOKEN=%TOKEN%
 
 supabase.exe login --token %TOKEN%
+supabase.exe link --project-ref %PROJECT_REF%
 
-for %%F in (
-  check-ats-score
-  build-cv
-  paystack-webhook
-  email-webhook
-  process-followups
-  send-team-invite
-  generate-linkedin-guide
-  search-businesses
-  analyze-website
-  initialize-payment
-  verify-payment
-  generate-pitch
-  process-email-queue
-  send-email
-  smtp-auth
-) do (
-  echo Deploying %%F...
-  supabase.exe functions deploy %%F --project-ref %PROJECT_REF%
-  if errorlevel 1 (
-    echo FAILED: %%F
-  ) else (
-    echo OK: %%F
-  )
-  echo.
+echo.
+echo Applying database migrations...
+supabase.exe db push
+if errorlevel 1 (
+  echo WARNING: db push failed - apply migrations manually if needed.
 )
 
 echo.
-echo Done! All functions deployed.
+echo Deploying ALL edge functions (reads supabase/config.toml for verify_jwt)...
+supabase.exe functions deploy --project-ref %PROJECT_REF%
+if errorlevel 1 (
+  echo FAILED: functions deploy
+) else (
+  echo OK: all functions deployed
+)
+
+echo.
+echo Done! If auth/notification emails still don't arrive, confirm:
+echo   - secret RESEND_API_KEY is set (supabase secrets set RESEND_API_KEY=...)
+echo   - skryveai.com is a verified sender domain in Resend (SPF/DKIM)
 pause
