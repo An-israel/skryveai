@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { notifyUser } from "@/lib/notify";
 import { useToast } from "@/hooks/use-toast";
 import { ToastAction } from "@/components/ui/toast";
 import {
@@ -109,6 +110,16 @@ export function ApplicationDrawer({ job, user, open, onClose, onSuccess }: Appli
           company_name: job.client_profiles?.company_name || "",
         });
       if (error) throw error;
+      if (job.client_profiles?.user_id) {
+        notifyUser({
+          userId: job.client_profiles.user_id,
+          type: "application",
+          title: "New application received",
+          message: `${user.user_metadata?.full_name || "A talent"} applied to your job "${job.title}".`,
+          link: "/marketplace/my-jobs",
+          emailCategory: "apps",
+        });
+      }
       toast({
         title: "Application submitted!",
         description: "View your application in the Applications tracker.",

@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { notifyUser } from "@/lib/notify";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -73,14 +74,23 @@ export default function PaymentRelease() {
       if (error) throw error;
 
       // Notify talent
+      // project.talent_id is a talent_profiles.id — resolve the auth user_id.
       if (project?.talent_id) {
-        await (supabase as any).from("notifications").insert({
-          user_id: project.talent_id,
-          type: "payment",
-          title: "Payment released!",
-          body: `Your payment of ${project.currency} ${project.total_amount} has been released for "${project.title}".`,
-          link: `/projects/${projectId}`,
-        });
+        const { data: payTalent } = await (supabase as any)
+          .from("talent_profiles")
+          .select("user_id")
+          .eq("id", project.talent_id)
+          .maybeSingle();
+        if (payTalent?.user_id) {
+          notifyUser({
+            userId: payTalent.user_id,
+            type: "payment",
+            title: "Payment released!",
+            message: `Your payment of ${project.currency} ${project.total_amount} has been released for "${project.title}".`,
+            link: `/projects/${projectId}`,
+            emailCategory: "projects",
+          });
+        }
       }
 
       setReleased(true);

@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { formatDistanceToNow } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
+import { notifyUser } from "@/lib/notify";
 import { useToast } from "@/hooks/use-toast";
 import {
   Card,
@@ -378,12 +379,13 @@ export default function ProjectDetail() {
       });
 
       if (project?.client_profiles?.user_id) {
-        await (supabase as any).from("notifications").insert({
-          user_id: project.client_profiles.user_id,
+        notifyUser({
+          userId: project.client_profiles.user_id,
+          type: "deliverable",
           title: "New Deliverable Submitted",
           message: `${user.user_metadata?.full_name || "Talent"} submitted a deliverable for your project.`,
-          type: "deliverable",
           link: `/projects/${projectId}`,
+          emailCategory: "projects",
         });
       }
 
