@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { notifyUser } from "@/lib/notify";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -135,15 +136,22 @@ export function SendOfferModal({
         .eq("id", applicationId);
 
       // Create notification for talent
-      await (supabase as any)
-        .from("notifications")
-        .insert({
-          user_id: talentId,
+      // talentId is a talent_profiles.id — resolve the auth user_id to notify.
+      const { data: offerTalent } = await (supabase as any)
+        .from("talent_profiles")
+        .select("user_id")
+        .eq("id", talentId)
+        .maybeSingle();
+      if (offerTalent?.user_id) {
+        notifyUser({
+          userId: offerTalent.user_id,
           type: "offer",
           title: "You received an offer!",
-          body: `A client has sent you an offer for "${jobTitle}". Review and respond.`,
+          message: `A client has sent you an offer for "${jobTitle}". Review and respond.`,
           link: `/projects/${project.id}`,
+          emailCategory: "offers",
         });
+      }
 
       // Open conversation
       const { data: convo } = await (supabase as any)

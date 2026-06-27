@@ -35,6 +35,7 @@ interface Notification {
   type: string;
   title: string;
   message: string;
+  link?: string | null;
   is_read: boolean;
   created_at: string;
 }
@@ -104,7 +105,7 @@ export default function Notifications() {
 
       let query = (supabase as any)
         .from("notifications")
-        .select("id, type, title, message, is_read:read, created_at")
+        .select("id, type, title, message, link, is_read:read, created_at")
         .eq("user_id", userId)
         .order("created_at", { ascending: false })
         .range(from, to);
@@ -173,6 +174,7 @@ export default function Notifications() {
         prev.map((n) => (n.id === notif.id ? { ...n, is_read: true } : n))
       );
     }
+    if (notif.link) navigate(notif.link);
   };
 
   const markAllAsRead = async () => {

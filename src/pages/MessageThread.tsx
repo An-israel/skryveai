@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { notifyUser } from "@/lib/notify";
 
 interface Message {
   id: string;
@@ -58,6 +59,7 @@ export default function MessageThread() {
   const [userId, setUserId] = useState<string | null>(null);
   const [otherName, setOtherName] = useState("Conversation");
   const [otherAvatar, setOtherAvatar] = useState<string | null>(null);
+  const [otherUserId, setOtherUserId] = useState<string | null>(null);
 
   const [messages, setMessages] = useState<Message[]>([]);
   const [loading, setLoading] = useState(true);
@@ -104,6 +106,7 @@ export default function MessageThread() {
 
       if (isTalent) {
         // Other is client
+        setOtherUserId(clientProfile?.user_id ?? null);
         const { data: cp } = await (supabase as any)
           .from("client_profiles")
           .select("company_name, logo_url")
@@ -115,6 +118,7 @@ export default function MessageThread() {
         }
       } else if (isClient) {
         // Other is talent
+        setOtherUserId(talentProfile?.user_id ?? null);
         const { data: tp } = await (supabase as any)
           .from("talent_profiles")
           .select("full_name, profile_photo_url")
@@ -222,6 +226,16 @@ export default function MessageThread() {
         .from("marketplace_conversations")
         .update({ last_message_at: new Date().toISOString() })
         .eq("id", conversationId);
+      if (otherUserId) {
+        notifyUser({
+          userId: otherUserId,
+          type: "message",
+          title: "New message",
+          message: "You have a new message on Skryve. Open the conversation to read and reply.",
+          link: `/messages/${conversationId}`,
+          emailCategory: "messages",
+        });
+      }
     } else {
       toast({ title: "Failed to send message", variant: "destructive" });
       setInputText(content);

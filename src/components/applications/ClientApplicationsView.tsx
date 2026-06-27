@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { formatDistanceToNow } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { notifyUser } from "@/lib/notify";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetFooter } from "@/components/ui/sheet";
@@ -240,11 +241,13 @@ export default function ClientApplicationsView({ user }: { user: any }) {
       .update({ status: "shortlisted" })
       .eq("id", app.id);
 
-    await (supabase as any).from("notifications").insert({
-      user_id: app.user_id,
+    notifyUser({
+      userId: app.user_id,
+      type: "application_update",
       title: "You've been shortlisted!",
       message: `Your application for "${selectedJob?.title}" has been shortlisted.`,
-      type: "application_update",
+      link: "/applications",
+      emailCategory: "apps",
     });
 
     setApplications((prev) => prev.map((a) => (a.id === app.id ? { ...a, status: "shortlisted" } : a)));
@@ -575,12 +578,13 @@ function SendOfferInline({
         .update({ status: "offer_received" })
         .eq("id", app.id);
 
-      await (supabase as any).from("notifications").insert({
-        user_id: app.user_id,
+      notifyUser({
+        userId: app.user_id,
+        type: "offer",
         title: "You received an offer! 🎉",
         message: `${user.user_metadata?.full_name || "A client"} sent you an offer for "${job?.title}".`,
-        type: "offer",
         link: "/applications",
+        emailCategory: "offers",
       });
 
       toast({ title: "Offer sent!", description: "The talent has been notified." });

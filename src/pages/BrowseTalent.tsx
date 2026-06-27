@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { notifyUser } from "@/lib/notify";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -96,12 +97,13 @@ export default function BrowseTalent() {
 
   const handleInvite = async (talentId: string, jobId: string, jobTitle: string, talentUserId: string) => {
     try {
-      await (supabase as any).from("notifications").insert({
-        user_id: talentUserId,
+      notifyUser({
+        userId: talentUserId,
+        type: "invite",
         title: "You've been invited to a job!",
         message: `A client has invited you to apply for "${jobTitle}".`,
-        type: "invite",
-        link: "/marketplace",
+        link: `/marketplace/${jobId}`,
+        emailCategory: "jobs",
       });
       toast({ title: "Invitation sent!", description: `Talent has been invited to "${jobTitle}".` });
     } catch (e: any) {
