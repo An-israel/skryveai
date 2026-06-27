@@ -15,11 +15,11 @@ interface Step {
 }
 
 const STEPS: Step[] = [
+  { key: "profile",   label: "Complete your profile",       description: "Add your skills and portfolio so clients can hire you", to: "/profile",          cta: "Edit Profile" },
+  { key: "apply",     label: "Apply to your first job",     description: "Browse fresh remote jobs and apply directly",      to: "/jobs",             cta: "Browse Jobs" },
   { key: "cv",        label: "Build your CV",               description: "Create a professional ATS-ready CV",             to: "/cv-builder",       cta: "Build CV" },
   { key: "ats",       label: "Check your ATS score",        description: "See how your CV scores on recruiting systems",    to: "/ats-checker",      cta: "Check Score" },
   { key: "linkedin",  label: "Optimise your LinkedIn",      description: "Get a detailed LinkedIn profile analysis",         to: "/linkedin-analyzer", cta: "Analyse Profile" },
-  { key: "campaign",  label: "Create your first campaign",  description: "Find businesses and send your first pitch",        to: "/campaigns/new",    cta: "Start Campaign" },
-  { key: "autopilot", label: "Set up AutoPilot",            description: "Let AI find and pitch clients for you daily",      to: "/auto-pilot",       cta: "Set Up AutoPilot" },
 ];
 
 interface SetupChecklistProps {
@@ -37,19 +37,21 @@ export function SetupChecklist({ userId }: SetupChecklistProps) {
     if (localStorage.getItem(key) === "true") { setDismissed(true); setLoading(false); return; }
 
     async function check() {
-      const [toolUsage, campaigns, autopilot] = await Promise.all([
+      const [toolUsage, profile, applications] = await Promise.all([
         supabase.from("tool_usage").select("tool_name").eq("user_id", userId),
-        supabase.from("campaigns").select("id").eq("user_id", userId).limit(1),
-        supabase.from("autopilot_configs").select("id").eq("user_id", userId).limit(1),
+        supabase.from("talent_profiles").select("id").eq("user_id", userId).limit(1),
+        // job_applications isn't in the generated Supabase types yet
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        (supabase as any).from("job_applications").select("id").eq("user_id", userId).limit(1),
       ]);
 
       const tools = new Set((toolUsage.data || []).map((t: any) => t.tool_name));
       setCompleted({
-        cv:        tools.has("cv_builder"),
-        ats:       tools.has("ats_checker"),
-        linkedin:  tools.has("linkedin_analyzer"),
-        campaign:  (campaigns.data?.length || 0) > 0,
-        autopilot: (autopilot.data?.length || 0) > 0,
+        cv:       tools.has("cv_builder"),
+        ats:      tools.has("ats_checker"),
+        linkedin: tools.has("linkedin_analyzer"),
+        profile:  (profile.data?.length || 0) > 0,
+        apply:    (applications.data?.length || 0) > 0,
       });
       setLoading(false);
     }
@@ -79,7 +81,7 @@ export function SetupChecklist({ userId }: SetupChecklistProps) {
       >
         <div className="flex items-start justify-between mb-3">
           <div>
-            <h3 className="font-semibold text-base">Get started with SkryveAI</h3>
+            <h3 className="font-semibold text-base">Get started with Skryve</h3>
             <p className="text-xs text-muted-foreground mt-0.5">{doneCount} of {total} steps complete</p>
           </div>
           <button onClick={dismiss} className="p-1 rounded-full hover:bg-muted transition-colors ml-4">

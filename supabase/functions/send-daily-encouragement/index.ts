@@ -10,128 +10,130 @@ const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
 const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const resendApiKey = Deno.env.get("RESEND_API_KEY")!;
 
+const SITE_URL = "https://skryveai.com";
+
 const encouragementEmails = [
   {
-    subject: "🚀 Your Next Client Is One Email Away",
+    subject: "🚀 Fresh jobs just landed on Skryve",
     getBody: (name: string) => `
       <div style="font-family: 'Segoe UI', Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 30px; background: #ffffff;">
         <div style="text-align: center; margin-bottom: 24px;">
-          <img src="https://skryveai.lovable.app/logo.png" alt="Skryve" style="height: 40px;" />
+          <img src="${SITE_URL}/logo.png" alt="Skryve" style="height: 40px;" />
         </div>
         <h1 style="color: #1a1a2e; font-size: 24px; margin-bottom: 16px;">Hey ${name}! 👋</h1>
-        <p style="color: #444; font-size: 16px; line-height: 1.6;">Did you know that <strong>80% of sales require 5+ follow-ups</strong>, but most people give up after just one?</p>
-        <p style="color: #444; font-size: 16px; line-height: 1.6;">The difference between freelancers who thrive and those who struggle isn't talent — it's <strong>consistent outreach</strong>.</p>
+        <p style="color: #444; font-size: 16px; line-height: 1.6;">New remote roles from across the web land on Skryve every single day — and the freshest ones get the fewest applicants.</p>
+        <p style="color: #444; font-size: 16px; line-height: 1.6;">Applying early gives you the best shot, so it pays to check in often.</p>
         <div style="background: #f0f4ff; border-left: 4px solid #3b82f6; padding: 16px 20px; margin: 24px 0; border-radius: 0 8px 8px 0;">
-          <p style="color: #1a1a2e; font-size: 15px; margin: 0;"><strong>💡 Today's Challenge:</strong> Send at least 5 personalized pitches. Let our AI analyze websites and craft the perfect message for each business.</p>
+          <p style="color: #1a1a2e; font-size: 15px; margin: 0;"><strong>💡 Today's challenge:</strong> Browse the jobs posted in the last 24 hours and apply to at least one that matches your skills.</p>
         </div>
         <div style="text-align: center; margin: 32px 0;">
-          <a href="https://skryveai.lovable.app/campaigns/new" style="background: #3b82f6; color: white; padding: 14px 32px; border-radius: 8px; text-decoration: none; font-weight: 600; font-size: 16px; display: inline-block;">Start Sending Pitches →</a>
+          <a href="${SITE_URL}/jobs" style="background: #3b82f6; color: white; padding: 14px 32px; border-radius: 8px; text-decoration: none; font-weight: 600; font-size: 16px; display: inline-block;">Browse Today's Jobs →</a>
         </div>
-        <p style="color: #888; font-size: 13px; text-align: center; margin-top: 32px;">Keep pushing, ${name}. Your breakthrough is closer than you think! 💪</p>
+        <p style="color: #888; font-size: 13px; text-align: center; margin-top: 32px;">Keep going, ${name}. Your next opportunity is closer than you think! 💪</p>
       </div>
     `,
   },
   {
-    subject: "💪 Don't Give Up — Here's Why Cold Email Works",
+    subject: "💪 A complete profile gets hired faster",
     getBody: (name: string) => `
       <div style="font-family: 'Segoe UI', Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 30px; background: #ffffff;">
         <div style="text-align: center; margin-bottom: 24px;">
-          <img src="https://skryveai.lovable.app/logo.png" alt="Skryve" style="height: 40px;" />
+          <img src="${SITE_URL}/logo.png" alt="Skryve" style="height: 40px;" />
         </div>
-        <h1 style="color: #1a1a2e; font-size: 24px; margin-bottom: 16px;">Keep Going, ${name}! 🔥</h1>
-        <p style="color: #444; font-size: 16px; line-height: 1.6;">We get it — sending cold emails can feel daunting. But here's the truth:</p>
+        <h1 style="color: #1a1a2e; font-size: 24px; margin-bottom: 16px;">Stand out, ${name}! 🔥</h1>
+        <p style="color: #444; font-size: 16px; line-height: 1.6;">Clients on Skryve search for talent every day. Here's how to make sure they pick you:</p>
         <ul style="color: #444; font-size: 15px; line-height: 2;">
-          <li>📧 Cold email has a <strong>15-25% response rate</strong> when personalized</li>
-          <li>💰 One good client can pay for <strong>months of work</strong></li>
-          <li>🤖 Skryve's AI does the hard part — <strong>you just review and send</strong></li>
-          <li>📈 The more you send, the better your <strong>results get</strong></li>
+          <li>🧑‍💻 Add your <strong>top skills</strong> so you match more jobs</li>
+          <li>🖼️ Show off your <strong>portfolio</strong> — proof beats promises</li>
+          <li>💵 Set a clear <strong>rate</strong> so clients know what to expect</li>
+          <li>⚡ Reply quickly to <strong>messages and offers</strong></li>
         </ul>
         <div style="background: #f0fdf4; border-left: 4px solid #22c55e; padding: 16px 20px; margin: 24px 0; border-radius: 0 8px 8px 0;">
-          <p style="color: #1a1a2e; font-size: 15px; margin: 0;"><strong>🎯 Success Story:</strong> Freelancers using Skryve who send 10+ emails daily see their first client within 2 weeks on average.</p>
+          <p style="color: #1a1a2e; font-size: 15px; margin: 0;"><strong>🎯 Tip:</strong> Profiles with a portfolio and a clear headline get noticed first when clients browse talent.</p>
         </div>
         <div style="text-align: center; margin: 32px 0;">
-          <a href="https://skryveai.lovable.app/dashboard" style="background: #22c55e; color: white; padding: 14px 32px; border-radius: 8px; text-decoration: none; font-weight: 600; font-size: 16px; display: inline-block;">Open Your Dashboard →</a>
+          <a href="${SITE_URL}/profile" style="background: #22c55e; color: white; padding: 14px 32px; border-radius: 8px; text-decoration: none; font-weight: 600; font-size: 16px; display: inline-block;">Complete Your Profile →</a>
         </div>
         <p style="color: #888; font-size: 13px; text-align: center; margin-top: 32px;">Every expert was once a beginner. You've got this! 🌟</p>
       </div>
     `,
   },
   {
-    subject: "⚡ 5 Minutes Could Change Your Business Today",
+    subject: "⚡ 5 minutes to move your career forward",
     getBody: (name: string) => `
       <div style="font-family: 'Segoe UI', Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 30px; background: #ffffff;">
         <div style="text-align: center; margin-bottom: 24px;">
-          <img src="https://skryveai.lovable.app/logo.png" alt="Skryve" style="height: 40px;" />
+          <img src="${SITE_URL}/logo.png" alt="Skryve" style="height: 40px;" />
         </div>
-        <h1 style="color: #1a1a2e; font-size: 24px; margin-bottom: 16px;">5 Minutes Is All It Takes, ${name} ⏱️</h1>
-        <p style="color: #444; font-size: 16px; line-height: 1.6;">You don't need hours to grow your freelance business. Here's a <strong>5-minute power routine</strong>:</p>
+        <h1 style="color: #1a1a2e; font-size: 24px; margin-bottom: 16px;">5 minutes is all it takes, ${name} ⏱️</h1>
+        <p style="color: #444; font-size: 16px; line-height: 1.6;">You don't need hours to make progress. Try this <strong>5-minute routine</strong>:</p>
         <div style="margin: 24px 0;">
           <div style="display: flex; align-items: center; padding: 12px 0; border-bottom: 1px solid #f0f0f0;">
             <span style="background: #3b82f6; color: white; width: 28px; height: 28px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-weight: 700; font-size: 14px; margin-right: 12px;">1</span>
-            <span style="color: #444; font-size: 15px;">Open Skryve and create a quick campaign (1 min)</span>
+            <span style="color: #444; font-size: 15px;">Open Skryve and scan today's job matches (1 min)</span>
           </div>
           <div style="display: flex; align-items: center; padding: 12px 0; border-bottom: 1px solid #f0f0f0;">
             <span style="background: #3b82f6; color: white; width: 28px; height: 28px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-weight: 700; font-size: 14px; margin-right: 12px;">2</span>
-            <span style="color: #444; font-size: 15px;">Let AI find businesses & analyze their sites (2 min)</span>
+            <span style="color: #444; font-size: 15px;">Apply to one role that fits your skills (2 min)</span>
           </div>
           <div style="display: flex; align-items: center; padding: 12px 0; border-bottom: 1px solid #f0f0f0;">
             <span style="background: #3b82f6; color: white; width: 28px; height: 28px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-weight: 700; font-size: 14px; margin-right: 12px;">3</span>
-            <span style="color: #444; font-size: 15px;">Review AI pitches and hit send (2 min)</span>
+            <span style="color: #444; font-size: 15px;">Reply to any client messages or offers (2 min)</span>
           </div>
         </div>
-        <p style="color: #444; font-size: 16px; line-height: 1.6; font-weight: 600;">That's it! 5 minutes → potential new clients. 🎯</p>
+        <p style="color: #444; font-size: 16px; line-height: 1.6; font-weight: 600;">That's it! 5 minutes → real momentum. 🎯</p>
         <div style="text-align: center; margin: 32px 0;">
-          <a href="https://skryveai.lovable.app/campaigns/new" style="background: #8b5cf6; color: white; padding: 14px 32px; border-radius: 8px; text-decoration: none; font-weight: 600; font-size: 16px; display: inline-block;">Start Your 5-Minute Routine →</a>
+          <a href="${SITE_URL}/jobs" style="background: #8b5cf6; color: white; padding: 14px 32px; border-radius: 8px; text-decoration: none; font-weight: 600; font-size: 16px; display: inline-block;">Start Your 5-Minute Routine →</a>
         </div>
-        <p style="color: #888; font-size: 13px; text-align: center; margin-top: 32px;">Small daily actions lead to massive results. Let's go! 🚀</p>
+        <p style="color: #888; font-size: 13px; text-align: center; margin-top: 32px;">Small daily actions lead to big results. Let's go! 🚀</p>
       </div>
     `,
   },
   {
-    subject: "🏆 Winners Send More Emails — Here's Proof",
+    subject: "🏆 Level up your skills, get more hireable",
     getBody: (name: string) => `
       <div style="font-family: 'Segoe UI', Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 30px; background: #ffffff;">
         <div style="text-align: center; margin-bottom: 24px;">
-          <img src="https://skryveai.lovable.app/logo.png" alt="Skryve" style="height: 40px;" />
+          <img src="${SITE_URL}/logo.png" alt="Skryve" style="height: 40px;" />
         </div>
-        <h1 style="color: #1a1a2e; font-size: 24px; margin-bottom: 16px;">The Numbers Don't Lie, ${name} 📊</h1>
-        <p style="color: #444; font-size: 16px; line-height: 1.6;">Here's what the data shows about successful freelancers:</p>
+        <h1 style="color: #1a1a2e; font-size: 24px; margin-bottom: 16px;">Invest in yourself, ${name} 📈</h1>
+        <p style="color: #444; font-size: 16px; line-height: 1.6;">The most hireable talent never stops learning. Skryve's courses help you pick up in-demand skills and earn certificates you can show off on your profile.</p>
         <div style="background: #fefce8; padding: 20px; border-radius: 12px; margin: 24px 0;">
-          <p style="color: #444; font-size: 28px; font-weight: 700; text-align: center; margin: 8px 0;">📧 10 emails/day = 300/month</p>
-          <p style="color: #444; font-size: 28px; font-weight: 700; text-align: center; margin: 8px 0;">📬 15% reply rate = 45 responses</p>
-          <p style="color: #444; font-size: 28px; font-weight: 700; text-align: center; margin: 8px 0;">🤝 10% close rate = 4-5 new clients</p>
+          <p style="color: #444; font-size: 18px; font-weight: 700; text-align: center; margin: 8px 0;">📚 Learn a new skill</p>
+          <p style="color: #444; font-size: 18px; font-weight: 700; text-align: center; margin: 8px 0;">🎓 Earn a certificate</p>
+          <p style="color: #444; font-size: 18px; font-weight: 700; text-align: center; margin: 8px 0;">💼 Win more projects</p>
         </div>
-        <p style="color: #444; font-size: 16px; line-height: 1.6;">That's <strong>4-5 new clients every month</strong> just from spending a few minutes daily on Skryve. The math works — you just have to show up consistently.</p>
+        <p style="color: #444; font-size: 16px; line-height: 1.6;">A little learning today opens bigger doors tomorrow. Pick up where you left off, or start something new.</p>
         <div style="text-align: center; margin: 32px 0;">
-          <a href="https://skryveai.lovable.app/campaigns/new" style="background: #f59e0b; color: #1a1a2e; padding: 14px 32px; border-radius: 8px; text-decoration: none; font-weight: 700; font-size: 16px; display: inline-block;">Start Sending Now →</a>
+          <a href="${SITE_URL}/learn" style="background: #f59e0b; color: #1a1a2e; padding: 14px 32px; border-radius: 8px; text-decoration: none; font-weight: 700; font-size: 16px; display: inline-block;">Start Learning →</a>
         </div>
         <p style="color: #888; font-size: 13px; text-align: center; margin-top: 32px;">Consistency is the key. We believe in you, ${name}! 💪</p>
       </div>
     `,
   },
   {
-    subject: "🌟 Remember Why You Started — Keep Pushing!",
+    subject: "🌟 Remember why you started — keep going!",
     getBody: (name: string) => `
       <div style="font-family: 'Segoe UI', Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 30px; background: #ffffff;">
         <div style="text-align: center; margin-bottom: 24px;">
-          <img src="https://skryveai.lovable.app/logo.png" alt="Skryve" style="height: 40px;" />
+          <img src="${SITE_URL}/logo.png" alt="Skryve" style="height: 40px;" />
         </div>
-        <h1 style="color: #1a1a2e; font-size: 24px; margin-bottom: 16px;">Remember Your "Why", ${name} 💭</h1>
-        <p style="color: #444; font-size: 16px; line-height: 1.6;">You signed up for Skryve because you wanted something more — freedom, financial independence, or to build something of your own.</p>
-        <p style="color: #444; font-size: 16px; line-height: 1.6;">That dream is still alive. And every cold email you send brings you one step closer to it.</p>
+        <h1 style="color: #1a1a2e; font-size: 24px; margin-bottom: 16px;">Remember your "why", ${name} 💭</h1>
+        <p style="color: #444; font-size: 16px; line-height: 1.6;">You joined Skryve because you wanted something more — freedom, financial independence, or to build something of your own.</p>
+        <p style="color: #444; font-size: 16px; line-height: 1.6;">That dream is still alive, and every job you apply to brings you one step closer to it.</p>
         <div style="background: linear-gradient(135deg, #eff6ff, #f0fdf4); padding: 20px; border-radius: 12px; margin: 24px 0; text-align: center;">
           <p style="color: #1a1a2e; font-size: 18px; font-style: italic; margin: 0;">"I didn't get lucky. I just didn't quit."</p>
           <p style="color: #666; font-size: 13px; margin-top: 8px;">— Every successful freelancer ever</p>
         </div>
         <p style="color: #444; font-size: 16px; line-height: 1.6;">Here's what you can do <strong>right now</strong>:</p>
         <ul style="color: #444; font-size: 15px; line-height: 2;">
-          <li>✅ Search for businesses in your niche</li>
-          <li>✅ Let AI craft personalized pitches</li>
-          <li>✅ Send them out and let the results come</li>
-          <li>✅ Apply to jobs matching your skills</li>
+          <li>✅ Apply to fresh jobs matching your skills</li>
+          <li>✅ Polish your profile and portfolio</li>
+          <li>✅ Reply to client messages and offers</li>
+          <li>✅ Finish a course and earn a certificate</li>
         </ul>
         <div style="text-align: center; margin: 32px 0;">
-          <a href="https://skryveai.lovable.app/dashboard" style="background: #3b82f6; color: white; padding: 14px 32px; border-radius: 8px; text-decoration: none; font-weight: 600; font-size: 16px; display: inline-block;">Get Back To Work →</a>
+          <a href="${SITE_URL}/dashboard" style="background: #3b82f6; color: white; padding: 14px 32px; border-radius: 8px; text-decoration: none; font-weight: 600; font-size: 16px; display: inline-block;">Open Your Dashboard →</a>
         </div>
         <p style="color: #888; font-size: 13px; text-align: center; margin-top: 32px;">We're rooting for you. Now go make it happen! 🚀</p>
       </div>

@@ -10,23 +10,23 @@ const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
 const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
 const morningMessages = [
-  { title: "🌅 Rise & Pitch!", body: "Top performers send emails before 9 AM. Start your outreach now and beat the competition!" },
-  { title: "☀️ Good Morning, Go-Getter!", body: "Every cold email is a door waiting to open. Send 5 pitches before lunch and watch the magic happen!" },
-  { title: "🚀 Your Morning Boost", body: "Did you know? 80% of deals come from follow-ups. Open Skryve and keep the momentum going!" },
-  { title: "💪 New Day, New Opportunities", body: "The best time to send cold emails is NOW. Your next client could be one pitch away!" },
-  { title: "🎯 Start Strong Today", body: "Consistency wins. Top freelancers send outreach daily. Jump in and send your first batch!" },
-  { title: "⚡ Morning Momentum", body: "While others scroll social media, you could be landing clients. Open Skryve and make it happen!" },
-  { title: "🌟 Seize the Day!", body: "Every successful freelancer started with one email. Make today the day you level up your outreach!" },
+  { title: "🌅 Fresh jobs are in", body: "New roles from across the web just landed on Skryve. Browse today's matches and apply early." },
+  { title: "☀️ Good morning!", body: "The best applications go out early. Check today's job matches and send one before lunch." },
+  { title: "🚀 Your morning boost", body: "A complete profile gets hired faster. Add a skill or portfolio piece and stand out to clients." },
+  { title: "💪 New day, new openings", body: "Remote jobs posted in the last 24 hours are waiting. Open Skryve and find your next gig." },
+  { title: "🎯 Start strong today", body: "Apply to one new job and reply to any client messages. Small steps land big projects." },
+  { title: "⚡ Morning momentum", body: "Clients are reviewing talent right now. Make sure your profile is ready to impress." },
+  { title: "🌟 Seize the day", body: "Learn a new skill, earn a certificate, get more hireable. A few minutes today pays off." },
 ];
 
 const eveningMessages = [
-  { title: "🌙 Evening Check-In", body: "Still time to send a few more pitches today! Evening emails get 22% higher open rates." },
-  { title: "📊 How'd You Do Today?", body: "Quick wins add up. Even 3 emails today puts you ahead of 90% of freelancers. Keep going!" },
-  { title: "🔥 Don't Stop Now!", body: "Your competitors are resting. Send a few more personalized pitches before calling it a day!" },
-  { title: "💡 Pro Tip", body: "The fortune is in the follow-up! Check your campaigns and follow up with businesses that opened your emails." },
-  { title: "🎯 End the Day Strong", body: "One more campaign could change everything. Businesses check email in the evening too!" },
-  { title: "⭐ You're Doing Great!", body: "Rome wasn't built in a day, but every email you send builds your empire. Keep pushing!" },
-  { title: "🏆 Final Push", body: "Top earners never skip a day. Send a few more pitches and let AI do the heavy lifting!" },
+  { title: "🌙 Evening check-in", body: "Still time to apply to a fresh job today — new remote roles are added around the clock." },
+  { title: "📊 How'd today go?", body: "Did you apply, reply, or learn something? A little progress each day adds up fast." },
+  { title: "🔥 Don't miss out", body: "New job matches may have arrived since this morning. Take a quick look before the day ends." },
+  { title: "💡 Pro tip", body: "Reply quickly to client messages and offers — fast responses win more projects." },
+  { title: "🎯 End the day strong", body: "Save the jobs you like and apply tomorrow, or send one more application tonight." },
+  { title: "⭐ You're doing great", body: "Every application and course brings your next opportunity closer. Keep it up!" },
+  { title: "🏆 Final push", body: "Check your messages, offers, and new job matches before you log off for the day." },
 ];
 
 function getRandomMessage(messages: typeof morningMessages) {

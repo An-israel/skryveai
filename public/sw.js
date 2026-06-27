@@ -1,7 +1,7 @@
-// Skryve AI Push Notification Service Worker
+// Skryve Push Notification Service Worker
 
 self.addEventListener("push", (event) => {
-  let data = { title: "Skryve AI", body: "Time to send some pitches!" };
+  let data = { title: "Skryve", body: "You have a new update on Skryve." };
 
   try {
     if (event.data) {
