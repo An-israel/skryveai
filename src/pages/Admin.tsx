@@ -18,6 +18,7 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar } from "recharts";
+import { JobAggregatorCard } from "@/components/admin/JobAggregatorCard";
 import { CMSPageEditor } from "@/components/admin/CMSPageEditor";
 import { CMSImageUploader } from "@/components/admin/CMSImageUploader";
 import { CreditManager } from "@/components/admin/CreditManager";
@@ -549,6 +550,11 @@ export default function Admin() {
               </Card>
             </>
           )}
+        </div>
+
+        {/* Job aggregator control */}
+        <div className="mb-6">
+          <JobAggregatorCard />
         </div>
 
         {/* Main Tabs - Role filtered */}

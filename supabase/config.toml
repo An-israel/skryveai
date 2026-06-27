@@ -57,6 +57,8 @@ project_id = "dgyuafltlpruhdlgwiew"
     verify_jwt = false
   [functions.process-trial-reminders]
     verify_jwt = false
+  [functions.scrape-jobs]
+    verify_jwt = false
   [functions.search-businesses]
     verify_jwt = false
   [functions.search-jobs]
