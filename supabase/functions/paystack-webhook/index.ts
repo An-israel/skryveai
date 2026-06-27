@@ -33,7 +33,7 @@ async function sendSubscriptionReceipt(email: string, plan: string, amount: numb
 <head><meta charset="utf-8"></head>
 <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
   <div style="text-align: center; margin-bottom: 24px;">
-    <h2 style="color: #0B162B; margin: 0;">SkryveAI</h2>
+    <h2 style="color: #0B162B; margin: 0;">Skryve</h2>
   </div>
   <h3 style="color: #333;">🎉 Thank you for subscribing!</h3>
   <p>We're thrilled to have you as a ${planNames[plan] || plan} subscriber! Your account has been upgraded and you now have full access to all premium features.</p>
@@ -48,14 +48,14 @@ async function sendSubscriptionReceipt(email: string, plan: string, amount: numb
   </div>
   <p>Here's what you can do now:</p>
   <ul style="padding-left: 20px;">
-    <li>Run unlimited outreach campaigns</li>
-    <li>Use AI-powered website analysis</li>
-    <li>Track email opens and replies</li>
-    <li>Set up automated follow-ups</li>
+    <li>Apply to more jobs with priority access</li>
+    <li>Greater visibility to clients browsing for talent</li>
+    <li>Unlock premium courses and certificates</li>
+    <li>Advanced messaging and client tools</li>
   </ul>
   <p>If you have any questions, just reply to this email — we're here to help!</p>
-  <p>Let's get you more clients 💪</p>
-  <p style="margin: 0;">— The SkryveAI Team</p>
+  <p>Here's to landing your next opportunity 💪</p>
+  <p style="margin: 0;">— The Skryve Team</p>
   <hr style="border: none; border-top: 1px solid #eee; margin: 32px 0;">
   <p style="font-size: 12px; color: #666; text-align: center;">SkryveAI Limited | RC: 9388330Y</p>
 </body>
@@ -66,9 +66,9 @@ async function sendSubscriptionReceipt(email: string, plan: string, amount: numb
       method: "POST",
       headers: { "Authorization": `Bearer ${RESEND_API_KEY}`, "Content-Type": "application/json" },
       body: JSON.stringify({
-        from: "SkryveAI <outreach@skryveai.com>",
+        from: "Skryve <outreach@skryveai.com>",
         to: [email],
-        subject: `🎉 Welcome to SkryveAI ${planNames[plan] || plan} — Payment Confirmed`,
+        subject: `🎉 Welcome to Skryve ${planNames[plan] || plan} — Payment Confirmed`,
         html: htmlBody,
       }),
     });

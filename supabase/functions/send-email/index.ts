@@ -131,7 +131,7 @@ serve(async (req) => {
       toEmail, 
       subject, 
       body,
-      fromName = "SkryveAI",
+      fromName = "Skryve",
       fromEmail = "outreach@skryveai.com"
     }: SendEmailRequest = await req.json();
 

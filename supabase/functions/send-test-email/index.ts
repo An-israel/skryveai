@@ -67,7 +67,7 @@ serve(async (req) => {
     `;
 
     const { data: emailResponse, error: sendError } = await resend.emails.send({
-      from: "Aniekan Essien <outreach@skryveai.com>",
+      from: "Skryve <outreach@skryveai.com>",
       to: [to],
       reply_to: "reply-sample123@inbound.outreachpro.app",
       subject: "Quick Question About Your Website - I Can Help",

@@ -54,7 +54,7 @@ serve(async (req) => {
       const emailHtml = `
         <div style="font-family: sans-serif; max-width: 520px; margin: 0 auto;">
           <h2 style="color: #1a1a1a;">💬 New Chat Message</h2>
-          <p style="color: #555;">You have a new message from a SkryveAI user.</p>
+          <p style="color: #555;">You have a new message from a Skryve user.</p>
           <table style="width: 100%; border-collapse: collapse; margin: 16px 0;">
             <tr>
               <td style="padding: 8px 12px; background: #f4f4f5; font-size: 13px; color: #666; width: 100px;">From</td>
@@ -68,7 +68,7 @@ serve(async (req) => {
           <a href="${adminUrl}" style="display: inline-block; background: #2563eb; color: white; padding: 10px 20px; border-radius: 8px; text-decoration: none; font-weight: 600; font-size: 14px;">
             Reply in Admin Panel →
           </a>
-          <p style="margin-top: 24px; font-size: 12px; color: #999;">SkryveAI Customer Success Notifications</p>
+          <p style="margin-top: 24px; font-size: 12px; color: #999;">Skryve Customer Success Notifications</p>
         </div>
       `;
 
@@ -79,7 +79,7 @@ serve(async (req) => {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          from: "SkryveAI Support <support@skryveai.com>",
+          from: "Skryve Support <support@skryveai.com>",
           to: [ADMIN_EMAIL],
           subject: `💬 New message from ${userName || user.email}`,
           html: emailHtml,

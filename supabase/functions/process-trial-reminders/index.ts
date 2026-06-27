@@ -51,9 +51,9 @@ serve(async (req) => {
       try {
         // Send reminder email
         await resend.emails.send({
-          from: "SkryveAI <noreply@skryveai.com>",
+          from: "Skryve <noreply@skryveai.com>",
           to: [profile.email],
-          subject: "Your SkryveAI trial ends tomorrow!",
+          subject: "Your Skryve trial ends tomorrow!",
           html: `
             <!DOCTYPE html>
             <html>
@@ -64,7 +64,7 @@ serve(async (req) => {
             <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #1a1a2e; max-width: 600px; margin: 0 auto; padding: 40px 20px; background-color: #f8fafc;">
               <div style="background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f766e 100%); padding: 40px 30px; border-radius: 16px 16px 0 0; text-align: center;">
                 <h1 style="color: white; margin: 0; font-size: 32px; font-weight: 800;">
-                  <span style="background: linear-gradient(135deg, #14b8a6, #2dd4bf); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;">SkryveAI</span>
+                  <span style="background: linear-gradient(135deg, #14b8a6, #2dd4bf); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;">Skryve</span>
                 </h1>
               </div>
               
@@ -72,15 +72,15 @@ serve(async (req) => {
                 <h2 style="color: #1a1a2e; margin: 0 0 20px;">Hi ${profile.full_name}! 👋</h2>
                 
                 <p style="margin: 0 0 20px; color: #64748b; font-size: 16px;">
-                  Your SkryveAI trial ends <strong>tomorrow</strong>. Don't lose access to:
+                  Your Skryve trial ends <strong>tomorrow</strong>. Don't lose access to:
                 </p>
                 
                 <div style="background: #f1f5f9; border-radius: 12px; padding: 20px; margin: 20px 0;">
                   <ul style="margin: 0; padding: 0 0 0 20px; color: #475569;">
-                    <li style="margin-bottom: 10px;">🔍 AI-powered business discovery</li>
-                    <li style="margin-bottom: 10px;">📊 Automated website analysis</li>
-                    <li style="margin-bottom: 10px;">✉️ Personalized pitch generation</li>
-                    <li style="margin-bottom: 0;">📈 Campaign tracking & analytics</li>
+                    <li style="margin-bottom: 10px;">🔍 Fresh remote jobs from across the web</li>
+                    <li style="margin-bottom: 10px;">💼 Apply directly and track your applications</li>
+                    <li style="margin-bottom: 10px;">🎓 Courses and certificates to grow your skills</li>
+                    <li style="margin-bottom: 0;">💬 Client messages, offers & secure payments</li>
                   </ul>
                 </div>
                 
@@ -112,7 +112,7 @@ serve(async (req) => {
                 <hr style="border: none; border-top: 1px solid #e2e8f0; margin: 30px 0;">
                 
                 <p style="margin: 0; color: #94a3b8; font-size: 12px; text-align: center;">
-                  © ${new Date().getFullYear()} SkryveAI. All rights reserved.
+                  © ${new Date().getFullYear()} Skryve. All rights reserved.
                 </p>
               </div>
             </body>
