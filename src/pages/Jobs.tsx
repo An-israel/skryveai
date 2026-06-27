@@ -192,12 +192,15 @@ function FilterSidebar({ filters, setFilters, onApply }: FilterSidebarProps) {
 
       <div className="space-y-2">
         <Label className="text-xs text-muted-foreground uppercase tracking-wide">Skill</Label>
-        <Select value={filters.skill} onValueChange={val => setFilters(prev => ({ ...prev, skill: val }))}>
+        <Select
+          value={filters.skill || "all"}
+          onValueChange={val => setFilters(prev => ({ ...prev, skill: val === "all" ? "" : val }))}
+        >
           <SelectTrigger>
             <SelectValue placeholder="All skills" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="">All Skills</SelectItem>
+            <SelectItem value="all">All Skills</SelectItem>
             {EXPERTISE_OPTIONS.map(s => (
               <SelectItem key={s} value={s}>{s}</SelectItem>
             ))}
