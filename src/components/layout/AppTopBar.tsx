@@ -4,6 +4,7 @@ import {
   DropdownMenuSeparator, DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Menu, Bell, Settings, CreditCard, LogOut, User, ChevronRight } from "lucide-react";
+import { ThemeToggle } from "@/components/ThemeToggle";
 import { supabase } from "@/integrations/supabase/client";
 
 const ROUTES: Record<string, string[]> = {
@@ -105,6 +106,9 @@ export function AppTopBar({ userName, userAvatar, unreadCount, onMenuClick }: Ap
 
       {/* Right cluster */}
       <div className="flex items-center gap-0.5">
+
+        {/* Theme toggle */}
+        <ThemeToggle />
 
         {/* Notifications */}
         <Link

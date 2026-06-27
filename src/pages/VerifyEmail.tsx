@@ -16,7 +16,11 @@ export default function VerifyEmail() {
   const handleResend = async () => {
     if (!email) return;
     setIsResending(true);
-    const { error } = await supabase.auth.resend({ type: "signup", email });
+    const { error } = await supabase.auth.resend({
+      type: "signup",
+      email,
+      options: { emailRedirectTo: window.location.origin + "/login" },
+    });
     setIsResending(false);
     if (error) {
       toast({ title: "Could not resend", description: error.message, variant: "destructive" });
