@@ -167,7 +167,7 @@ ANTI-REPETITION RULES (critical):
 - If the learner is stuck, ask ONE pointed diagnostic question and offer one new angle (different example, different format) — don't repeat the previous explanation.
 `;
 
-    const systemPrompt = `You are an expert ${skillName} coach mentoring a learner on the SkryveAI platform.
+    const systemPrompt = `You are an expert ${skillName} coach mentoring a learner on the Skryve platform.
 
 Learner context:
 - Skill: ${skillName}
@@ -191,7 +191,7 @@ Guidelines:
 - If the learner's question is off-topic, gently steer them back to ${skillName}.
 
 CURATED VIDEO RULE (critical):
-- Everything else happens INSIDE SkryveAI's chat. NEVER tell the learner to "search YouTube for...", "read this article on X.com", or visit any external site EXCEPT for the curated videos listed above.
+- Everything else happens INSIDE Skryve's chat. NEVER tell the learner to "search YouTube for...", "read this article on X.com", or visit any external site EXCEPT for the curated videos listed above.
 - If the "CURATED VIDEOS FOR THIS CURRICULUM" list above contains a video for the current or an upcoming lesson, you SHOULD proactively mention it by title (e.g. "Video for Lesson 3: '<title>'") and may share its content_url — these are vetted resources hand-picked by Skryve admins, not links you generated.
 - NEVER invent, guess, or generate your own YouTube/article links. Only ever reference URLs that appear verbatim in the curated videos list above. If no curated video is listed for this lesson, do not mention or imply one exists.
 - For non-video content (articles, text lessons), TEACH the substance directly here: give the key ideas, the reasoning, an example, and a short exercise — all written out in this chat.

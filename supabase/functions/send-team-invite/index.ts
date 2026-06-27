@@ -165,23 +165,23 @@ serve(async (req) => {
     // Send invitation email
     if (RESEND_API_KEY) {
       const resend = new Resend(RESEND_API_KEY);
-      const appUrl = req.headers.get("origin") || "https://skryveai.lovable.app";
+      const appUrl = req.headers.get("origin") || "https://skryveai.com";
 
       await resend.emails.send({
-        from: `SkryveAI <outreach@skryveai.com>`,
+        from: `Skryve <outreach@skryveai.com>`,
         to: [email],
-        subject: `You've been invited to join ${team.name} on SkryveAI`,
+        subject: `You've been invited to join ${team.name} on Skryve`,
         html: `
           <!DOCTYPE html>
           <html>
           <head><meta charset="utf-8"></head>
           <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
             <div style="text-align: center; margin-bottom: 32px;">
-              <h1 style="color: #7c3aed; margin: 0;">SkryveAI</h1>
+              <h1 style="color: #7c3aed; margin: 0;">Skryve</h1>
             </div>
             <h2 style="margin-bottom: 16px;">You've been invited!</h2>
             <p><strong>${inviterName}</strong> has invited you to join the team <strong>"${team.name}"</strong> as a <strong>${role}</strong>.</p>
-            <p>Log in to your SkryveAI account to accept or decline this invitation.</p>
+            <p>Log in to your Skryve account to accept or decline this invitation.</p>
             <div style="text-align: center; margin: 32px 0;">
               <a href="${appUrl}/team" style="background: #7c3aed; color: white; padding: 12px 32px; border-radius: 8px; text-decoration: none; font-weight: 600;">
                 View Invitation
@@ -189,7 +189,7 @@ serve(async (req) => {
             </div>
             <p style="font-size: 14px; color: #666;">If you don't have an account, <a href="${appUrl}/signup" style="color: #7c3aed;">sign up here</a> with this email address to join the team.</p>
             <hr style="border: none; border-top: 1px solid #eee; margin: 32px 0;">
-            <p style="font-size: 12px; color: #999; text-align: center;">SkryveAI - AI-Powered Outreach Platform</p>
+            <p style="font-size: 12px; color: #999; text-align: center;">Skryve — the talent marketplace</p>
           </body>
           </html>
         `,

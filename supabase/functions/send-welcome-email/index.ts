@@ -23,7 +23,7 @@ interface Body {
 }
 
 const APP_URL = "https://skryveai.com";
-const FROM = "SkryveAI <welcome@skryveai.com>";
+const FROM = "Skryve <welcome@skryveai.com>";
 const SUPPORT_EMAIL = "skryveai@gmail.com";
 const CS_NAME = "Aniekan";
 const CS_TITLE = "Customer Success Manager";
@@ -42,22 +42,19 @@ function buildCta(opts: { plan?: string; firstAction?: string }): {
   switch (action) {
     case "campaign":
     case "new-campaign":
-      return {
-        url: `${APP_URL}/campaigns/new`,
-        label: "▶ Finish Building Your First Campaign",
-        subhint: "Pick up where you left off and launch your first outreach.",
-      };
     case "email-finder":
-      return {
-        url: `${APP_URL}/email-finder`,
-        label: "▶ Find Your First Verified Email",
-        subhint: "A 2-minute walkthrough of the Email Finder.",
-      };
     case "autopilot":
+    case "jobs":
       return {
-        url: `${APP_URL}/auto-pilot`,
-        label: "▶ Set Up AutoPilot in 3 Minutes",
-        subhint: "Let SkryveAI find and pitch clients for you daily.",
+        url: `${APP_URL}/jobs`,
+        label: "▶ Browse Fresh Remote Jobs",
+        subhint: "New roles from across the web, matched to your skills.",
+      };
+    case "profile":
+      return {
+        url: `${APP_URL}/profile`,
+        label: "▶ Complete Your Profile",
+        subhint: "A complete profile helps clients find and hire you.",
       };
     case "cv-builder":
     case "ats":
@@ -96,14 +93,14 @@ function buildCta(opts: { plan?: string; firstAction?: string }): {
 function htmlTemplate(name: string, cta: ReturnType<typeof buildCta>) {
   const safeName = name?.trim() || "there";
   return `<!doctype html>
-<html><head><meta charset="utf-8"><title>Welcome to SkryveAI</title></head>
+<html><head><meta charset="utf-8"><title>Welcome to Skryve</title></head>
 <body style="margin:0;padding:0;background:#ffffff;font-family:'Inter',Arial,sans-serif;color:#0B162B;">
 <div style="max-width:560px;margin:0 auto;padding:32px 24px;">
 
   <!-- Logo at the top -->
   <div style="text-align:center;margin-bottom:32px;">
-    <img src="${APP_URL}/logo.png" alt="SkryveAI" width="56" height="56" style="display:inline-block;border-radius:10px;">
-    <div style="font-weight:800;font-size:20px;color:#0B162B;letter-spacing:-0.01em;margin-top:8px;">SkryveAI</div>
+    <img src="${APP_URL}/logo.png" alt="Skryve" width="56" height="56" style="display:inline-block;border-radius:10px;">
+    <div style="font-weight:800;font-size:20px;color:#0B162B;letter-spacing:-0.01em;margin-top:8px;">Skryve</div>
   </div>
 
   <p style="font-size:16px;line-height:1.6;color:#0B162B;margin:0 0 18px;">
@@ -111,19 +108,19 @@ function htmlTemplate(name: string, cta: ReturnType<typeof buildCta>) {
   </p>
 
   <h1 style="font-size:22px;line-height:1.3;font-weight:800;margin:0 0 16px;color:#0B162B;">
-    Welcome to SkryveAI — we're excited to have you here!
+    Welcome to Skryve — we're excited to have you here!
   </h1>
 
   <p style="font-size:15px;line-height:1.7;color:#475569;margin:0 0 16px;">
-    We built <strong>SkryveAI</strong> with one clear mission: to help freelancers and founders find businesses that actually need their services, without wasting hours on cold emails that go nowhere.
+    <strong>Skryve</strong> is where talent and clients meet. We bring fresh remote jobs from across the web into one place so you can apply directly, get hired for projects, grow your skills, and get paid securely.
   </p>
 
   <p style="font-size:15px;line-height:1.7;color:#475569;margin:0 0 16px;">
-    After seeing how frustrating it is to send dozens of emails with little to no response, we decided to do things differently. <strong>SkryveAI</strong> is designed to help you identify the right prospects, understand their needs, and reach out with messages that feel personal and get replies.
+    No more juggling a dozen job boards. Set up your profile, tell us your skills, and we'll surface roles matched to you — plus courses and certificates to help you stand out and client tools to manage your work end to end.
   </p>
 
   <p style="font-size:15px;line-height:1.7;color:#475569;margin:0 0 24px;">
-    Over the next few days, we'll guide you on how to get the best out of the platform — from finding qualified leads to sending smarter, more effective outreach.
+    Over the next few days, we'll guide you on how to get the best out of the platform — from landing your first job to building a profile clients love.
   </p>
 
   <!-- Personalized CTA -->
@@ -139,7 +136,7 @@ function htmlTemplate(name: string, cta: ReturnType<typeof buildCta>) {
   </p>
 
   <p style="font-size:15px;line-height:1.7;color:#475569;margin:0 0 28px;">
-    Thank you for choosing <strong>SkryveAI</strong>. We're excited to be part of your journey to landing more clients.
+    Thank you for choosing <strong>Skryve</strong>. We're excited to be part of your journey to landing your next opportunity.
   </p>
 
   <p style="font-size:15px;line-height:1.6;color:#0B162B;margin:0 0 4px;">
@@ -149,7 +146,7 @@ function htmlTemplate(name: string, cta: ReturnType<typeof buildCta>) {
     ${CS_NAME}
   </p>
   <p style="font-size:13px;line-height:1.4;color:#475569;margin:0 0 32px;">
-    ${CS_TITLE}, SkryveAI
+    ${CS_TITLE}, Skryve
   </p>
 
   <!-- Support footer -->
@@ -164,7 +161,7 @@ function htmlTemplate(name: string, cta: ReturnType<typeof buildCta>) {
 
   <hr style="border:none;border-top:1px solid #E5E9F2;margin:0 0 16px;">
   <p style="font-size:11px;color:#94A3B8;line-height:1.5;margin:0;text-align:center;">
-    This email was sent to you from SkryveAI.<br>
+    This email was sent to you from Skryve.<br>
     <a href="${APP_URL}" style="color:#94A3B8;">skryveai.com</a> · <a href="${APP_URL}/contact" style="color:#94A3B8;">Contact</a> · <a href="${APP_URL}/privacy-policy" style="color:#94A3B8;">Privacy</a>
   </p>
 </div>
@@ -250,7 +247,7 @@ serve(async (req) => {
     const { data, error } = await resend.emails.send({
       from: FROM,
       to: [email],
-      subject: `Welcome to SkryveAI${firstName ? `, ${firstName}` : ""} 👋`,
+      subject: `Welcome to Skryve${firstName ? `, ${firstName}` : ""} 👋`,
       html: htmlTemplate(firstName, cta),
       reply_to: SUPPORT_EMAIL,
     });

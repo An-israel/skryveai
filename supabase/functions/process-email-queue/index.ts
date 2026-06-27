@@ -518,7 +518,7 @@ async function sendSingleEmail(
       </html>
     `;
 
-    const senderName = (queuedEmail.sender_name as string) || "SkryveAI";
+    const senderName = (queuedEmail.sender_name as string) || "Skryve";
     let emailSent = false;
 
     // Priority 1: SMTP (PRIMARY - best for deliverability)

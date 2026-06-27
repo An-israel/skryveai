@@ -237,7 +237,7 @@ serve(async (req) => {
           to_email: toEmail,
           subject: followup.subject,
           body: followup.body,
-          sender_name: userSettings?.sender_name || "SkryveAI",
+          sender_name: userSettings?.sender_name || "Skryve",
           sender_email: userSettings?.sender_email || null,
           status: "pending",
           scheduled_for: new Date().toISOString(),

@@ -102,7 +102,7 @@ Deno.serve(async (req) => {
       }
     );
     const profiles = await profileRes.json();
-    const senderName = profiles?.[0]?.full_name || "SkryveAI Team";
+    const senderName = profiles?.[0]?.full_name || "Skryve Team";
 
     // Generate a unique ID for tracking this admin email
     const adminEmailId = crypto.randomUUID();
@@ -112,7 +112,7 @@ Deno.serve(async (req) => {
     const trackingPixelUrl = `${baseUrl}/email-webhook?type=admin-open&adminEmailId=${adminEmailId}`;
 
     // Build reply link URL
-    const appUrl = "https://skryveai.lovable.app";
+    const appUrl = "https://skryveai.com";
     const replyLink = `${appUrl}/reply?id=${adminEmailId}`;
 
     // Build HTML email with tracking pixel and reply link
@@ -121,14 +121,14 @@ Deno.serve(async (req) => {
 <head><meta charset="utf-8"></head>
 <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
   <div style="text-align: center; margin-bottom: 24px;">
-    <h2 style="color: #0B162B; margin: 0;">SkryveAI</h2>
+    <h2 style="color: #0B162B; margin: 0;">Skryve</h2>
   </div>
   ${body.split('\n').map((line: string) => `<p style="margin: 0 0 16px 0;">${line}</p>`).join('')}
   <div style="margin: 32px 0; text-align: center;">
     <a href="${replyLink}" style="display: inline-block; background-color: #2563eb; color: #ffffff; padding: 12px 28px; border-radius: 8px; text-decoration: none; font-weight: 600; font-size: 14px;">Reply to this message</a>
   </div>
   <hr style="border: none; border-top: 1px solid #eee; margin: 32px 0;">
-  <p style="font-size: 12px; color: #666;">Sent by ${senderName} from SkryveAI Team</p>
+  <p style="font-size: 12px; color: #666;">Sent by ${senderName} from the Skryve Team</p>
   <img src="${trackingPixelUrl}" width="1" height="1" style="display:none;" alt="">
 </body>
 </html>`;
@@ -143,7 +143,7 @@ Deno.serve(async (req) => {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        from: "SkryveAI <outreach@skryveai.com>",
+        from: "Skryve <outreach@skryveai.com>",
         to: [toEmail],
         subject,
         html: htmlBody,

@@ -131,7 +131,7 @@ Deno.serve(async (req) => {
       .filter(Boolean)
       .join("\n\n");
 
-    const systemPrompt = `You are a senior ${skillName} mentor reviewing a learner's assignment on the SkryveAI platform.
+    const systemPrompt = `You are a senior ${skillName} mentor reviewing a learner's assignment on the Skryve platform.
 
 Be thorough, specific, and kind but honest. Use ${skillName}-specific terminology.
 Return ONLY valid JSON matching this schema (no markdown fences, no prose outside JSON):

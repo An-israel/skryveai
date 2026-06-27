@@ -29,48 +29,47 @@ interface UserProfile {
 
 const EMAIL_TEMPLATES = {
   welcome: {
-    subject: "Welcome to SkryveAI — Let's get you started",
+    subject: "Welcome to Skryve — let's get you started",
     body: `Hey {name},
 
-Thanks for signing up for SkryveAI! I'm here to help you get the most out of the platform.
+Welcome to Skryve! Skryve is where talent and clients meet — find work, get hired, grow your skills, and get paid securely.
 
 Here's how to get started:
 
-1. Search for a business (try 'web designers in Lagos' as a test)
-2. Click 'Audit' to see what problems we find
-3. Review the personalized email we generate
+1. Complete your profile so clients can find and hire you
+2. Browse fresh remote jobs and apply directly from your dashboard
+3. Explore courses to build in-demand skills and earn certificates
 
-Takes about 3 minutes total.
+It only takes a few minutes to set up.
 
-Any questions? Just reply to this email.
+Any questions? Just reply to this email — we're happy to help.
 
-Let's get you your first client 💪`,
+Welcome aboard 💪`,
   },
   followup_inactive: {
-    subject: "Need help getting started with SkryveAI?",
+    subject: "Need a hand getting started on Skryve?",
     body: `Hey {name},
 
-I saw you signed up for SkryveAI a couple days ago but haven't run an audit yet.
+We noticed you signed up for Skryve a couple of days ago but haven't set things up yet.
 
-Any blockers? Anything confusing?
+Two quick wins to get going:
 
-I'm happy to walk you through it real quick — literally takes 3 minutes and you'll see how it works.
+1. Complete your profile so clients can discover you
+2. Browse today's remote jobs and send your first application
 
-Let me know 👍`,
+It takes just a few minutes. Reply to this email if you'd like a hand — we're happy to help 👍`,
   },
   upgrade: {
-    subject: "How's SkryveAI working for you?",
+    subject: "How's Skryve working for you?",
     body: `Hey {name}!
 
-I noticed you've been using SkryveAI quite a bit — that's awesome.
+We noticed you've been active on Skryve lately — that's great to see.
 
-Just curious — how's it working for you so far? Getting any replies yet?
+How's it going so far? Found any jobs worth applying to, or started any client conversations?
 
-Also — what's keeping you on the free plan? Is it the price, or are you still testing it out?
+If you're getting value, upgrading unlocks more applications, greater visibility to clients, and premium tools.
 
-We're working on making the paid plan more accessible for early users like you.
-
-Let me know!`,
+What would make Skryve more useful for you? Just hit reply — we'd love your feedback.`,
   },
   custom: {
     subject: "",

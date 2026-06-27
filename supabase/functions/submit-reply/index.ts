@@ -53,7 +53,7 @@ Deno.serve(async (req) => {
         }
       );
       const profiles = await profileRes.json();
-      const senderName = profiles?.[0]?.full_name || "SkryveAI Team";
+      const senderName = profiles?.[0]?.full_name || "Skryve Team";
 
       return new Response(JSON.stringify({ subject: email.subject, sender: senderName }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },

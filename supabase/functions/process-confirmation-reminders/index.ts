@@ -74,17 +74,17 @@ Deno.serve(async (req) => {
               Authorization: `Bearer ${resendApiKey}`,
             },
             body: JSON.stringify({
-              from: "SkryveAI <onboarding@resend.dev>",
+              from: "Skryve <noreply@skryveai.com>",
               to: [profile.email],
-              subject: "Confirm Your SkryveAI Account ✉️",
+              subject: "Confirm Your Skryve Account ✉️",
               html: `
                 <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
                   <h2 style="color: #0B162B;">Hi ${profile.full_name || "there"} 👋</h2>
-                  <p>We noticed you signed up for SkryveAI but haven't confirmed your email yet.</p>
+                  <p>We noticed you signed up for Skryve but haven't confirmed your email yet.</p>
                   <p>To get started, please check your inbox (and spam folder) for the original confirmation email and click the verification link.</p>
                   <p>If you can't find it or the link has expired, you can request a new one by visiting the login page and attempting to sign in — we'll send a fresh confirmation link.</p>
                   <p style="margin-top: 20px;">Need help? Reply to this email and we'll sort it out!</p>
-                  <p style="color: #666; font-size: 14px; margin-top: 30px;">— The SkryveAI Team</p>
+                  <p style="color: #666; font-size: 14px; margin-top: 30px;">— The Skryve Team</p>
                 </div>
               `,
             }),

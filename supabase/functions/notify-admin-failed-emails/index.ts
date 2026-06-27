@@ -133,7 +133,7 @@ serve(async (req) => {
         </p>
         
         <hr style="border: none; border-top: 1px solid #eee; margin: 32px 0;">
-        <p style="font-size: 12px; color: #666;">This is an automated notification from SkryveAI.</p>
+        <p style="font-size: 12px; color: #666;">This is an automated notification from Skryve.</p>
       </body>
       </html>
     `;
