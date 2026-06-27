@@ -33,9 +33,11 @@ import {
   Loader2,
   Save,
   X,
+  Palette,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { ThemeSelector } from "@/components/settings/ThemeSelector";
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 
@@ -87,10 +89,11 @@ const CURRENCIES = ["USD","EUR","GBP","NGN","CAD","AUD","GHS","KES","ZAR"];
 
 // ── Nav items ──────────────────────────────────────────────────────────────────
 
-type Section = "account" | "notifications" | "privacy" | "job-preferences" | "danger";
+type Section = "account" | "appearance" | "notifications" | "privacy" | "job-preferences" | "danger";
 
 const NAV_ITEMS: { value: Section; label: string; icon: React.ReactNode }[] = [
   { value: "account", label: "Account", icon: <User className="w-4 h-4" /> },
+  { value: "appearance", label: "Appearance", icon: <Palette className="w-4 h-4" /> },
   { value: "notifications", label: "Notifications", icon: <Bell className="w-4 h-4" /> },
   { value: "privacy", label: "Privacy", icon: <Shield className="w-4 h-4" /> },
   { value: "job-preferences", label: "Job Preferences", icon: <Briefcase className="w-4 h-4" /> },
@@ -493,6 +496,22 @@ export default function Settings() {
                     Save Changes
                   </Button>
                 </div>
+              </div>
+            )}
+
+            {/* ── Appearance ── */}
+            {activeSection === "appearance" && (
+              <div className="space-y-6">
+                <section className="bg-card border border-border rounded-xl p-6 space-y-4">
+                  <div className="space-y-1">
+                    <h2 className="font-semibold text-base">Theme</h2>
+                    <p className="text-sm text-muted-foreground">
+                      Choose how Skryve looks to you. Select a single theme, or sync
+                      with your device's system settings.
+                    </p>
+                  </div>
+                  <ThemeSelector />
+                </section>
               </div>
             )}
 

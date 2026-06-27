@@ -4,7 +4,6 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { ThemeProvider } from "next-themes";
-import { PublicThemeWrapper } from "@/components/PublicThemeWrapper";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { ChatWidget } from "@/components/chat/ChatWidget";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
@@ -78,15 +77,13 @@ import MyEvents         from "./pages/MyEvents";
 
 const queryClient = new QueryClient();
 
-// Public routes are forced to light mode
-const Public = ({ children }: { children: React.ReactNode }) => (
-  <PublicThemeWrapper>{children}</PublicThemeWrapper>
-);
+// Public routes respect the user's chosen theme (light / dark / system)
+const Public = ({ children }: { children: React.ReactNode }) => <>{children}</>;
 
 export default function App() {
   return (
     <ErrorBoundary>
-    <ThemeProvider attribute="class" defaultTheme="dark" enableSystem={false} storageKey="skryve-theme">
+    <ThemeProvider attribute="class" defaultTheme="system" enableSystem storageKey="skryve-theme">
       <QueryClientProvider client={queryClient}>
         <TooltipProvider>
           <Toaster />
