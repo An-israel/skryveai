@@ -23,7 +23,7 @@ export const InviteEmail = ({ siteName, siteUrl, confirmationUrl }: InviteEmailP
         <Button style={button} href={confirmationUrl}>Accept invitation</Button>
         <Text style={footer}>
           If you weren't expecting this invitation, you can safely ignore this email.
-          <br /><br />— The SkryveAI Team
+          <br /><br />— The Skryve Team
         </Text>
       </Container>
     </Body>

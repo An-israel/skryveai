@@ -29,14 +29,16 @@ export const SignupEmail = ({
 }: SignupEmailProps) => (
   <Html lang="en" dir="ltr">
     <Head />
-    <Preview>Confirm your SkryveAI account</Preview>
+    <Preview>Confirm your Skryve account</Preview>
     <Body style={main}>
       <Container style={container}>
-        <Heading style={h1}>Welcome to SkryveAI 👋</Heading>
+        <Heading style={h1}>Welcome to Skryve 👋</Heading>
         <Text style={text}>
-          Hi there, thanks for signing up for{' '}
+          Hi there, thanks for joining{' '}
           <Link href={siteUrl} style={link}><strong>{siteName}</strong></Link>!
-          You're one click away from finding clients with AI-powered cold outreach.
+          Skryve is where talent and clients meet — discover fresh jobs from
+          across the web, get hired for projects, grow your skills, and get
+          paid securely.
         </Text>
         <Text style={text}>
           Please confirm your email ({recipient}) to activate your account:
@@ -45,9 +47,9 @@ export const SignupEmail = ({
           Confirm my account
         </Button>
         <Text style={footer}>
-          If you didn't sign up for SkryveAI, you can safely ignore this email.
+          If you didn't sign up for Skryve, you can safely ignore this email.
           <br /><br />
-          — The SkryveAI Team
+          — The Skryve Team
         </Text>
       </Container>
     </Body>

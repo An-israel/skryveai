@@ -21,7 +21,7 @@ interface RecoveryEmailProps {
 export const RecoveryEmail = ({ siteName, confirmationUrl }: RecoveryEmailProps) => (
   <Html lang="en" dir="ltr">
     <Head />
-    <Preview>Reset your SkryveAI password</Preview>
+    <Preview>Reset your Skryve password</Preview>
     <Body style={main}>
       <Container style={container}>
         <Heading style={h1}>Reset your password</Heading>
@@ -34,7 +34,7 @@ export const RecoveryEmail = ({ siteName, confirmationUrl }: RecoveryEmailProps)
         <Text style={footer}>
           This link expires in 24 hours. If you didn't request a reset, you can safely ignore this email.
           <br /><br />
-          — The SkryveAI Team
+          — The Skryve Team
         </Text>
       </Container>
     </Body>
