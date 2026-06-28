@@ -25,7 +25,7 @@ SELECT cron.schedule(
   '0 */4 * * *',
   $cron$
   SELECT net.http_post(
-    url := 'https://dgyuafltlpruhdlgwiew.supabase.co/functions/v1/scrape-jobs',
+    url := 'https://uwwmwerdfpyekgshkrft.supabase.co/functions/v1/scrape-jobs',
     headers := jsonb_build_object('Content-Type', 'application/json'),
     body := '{}'::jsonb
   );
