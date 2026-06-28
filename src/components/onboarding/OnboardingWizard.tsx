@@ -59,8 +59,8 @@ interface OnboardingWizardProps {
   onComplete: () => void;
 }
 
-const STEP_EMOJIS = ["📄", "🎯", "✍️", "📧", "🚀"];
-const STEP_LABELS = ["Documents", "Expertise", "Bio", "Email", "Done!"];
+const STEP_EMOJIS = ["📄", "🎯", "✍️", "🚀"];
+const STEP_LABELS = ["Documents", "Expertise", "Bio", "Done!"];
 const CELEBRATIONS = [
   "Great job! 🎉",
   "You're on fire! 🔥",
@@ -84,107 +84,6 @@ export function OnboardingWizard({ userId, userEmail, userName, onComplete }: On
   const [expertise, setExpertise] = useState<string[]>([]);
   const [bio, setBio] = useState("");
   const [uploadingCV, setUploadingCV] = useState(false);
-
-  // Email connection (SMTP)
-  const [emailConnected, setEmailConnected] = useState(false);
-  const [connectedEmail, setConnectedEmail] = useState<string | null>(null);
-  const [smtpSaving, setSmtpSaving] = useState(false);
-  const [showSmtpPassword, setShowSmtpPassword] = useState(false);
-  const [smtpForm, setSmtpForm] = useState({
-    email_address: "",
-    app_password: "",
-    provider_type: "gmail",
-    smtp_host: "smtp.gmail.com",
-    smtp_port: 587,
-    imap_host: "imap.gmail.com",
-    imap_port: 993,
-  });
-
-  const PROVIDERS: Record<string, { name: string; smtp_host: string; smtp_port: number; imap_host: string; imap_port: number; guide_url: string }> = {
-    gmail: { name: "Gmail", smtp_host: "smtp.gmail.com", smtp_port: 587, imap_host: "imap.gmail.com", imap_port: 993, guide_url: "https://myaccount.google.com/apppasswords" },
-    outlook: { name: "Outlook / Hotmail", smtp_host: "smtp.office365.com", smtp_port: 587, imap_host: "outlook.office365.com", imap_port: 993, guide_url: "https://account.microsoft.com/security" },
-    yahoo: { name: "Yahoo", smtp_host: "smtp.mail.yahoo.com", smtp_port: 587, imap_host: "imap.mail.yahoo.com", imap_port: 993, guide_url: "https://login.yahoo.com/account/security" },
-  };
-
-  // Auto-detect provider from email domain
-  const detectProvider = (email: string): string => {
-    const domain = email.split("@")[1]?.toLowerCase() || "";
-    if (domain.includes("gmail") || domain.includes("googlemail")) return "gmail";
-    if (domain.includes("outlook") || domain.includes("hotmail") || domain.includes("live.com") || domain.includes("msn.com")) return "outlook";
-    if (domain.includes("yahoo") || domain.includes("ymail")) return "yahoo";
-    return "gmail"; // default
-  };
-
-  const handleEmailChange = (email: string) => {
-    setSmtpForm(prev => ({ ...prev, email_address: email }));
-    if (email.includes("@")) {
-      const detected = detectProvider(email);
-      const p = PROVIDERS[detected];
-      if (p) {
-        setSmtpForm(prev => ({
-          ...prev,
-          email_address: email,
-          provider_type: detected,
-          smtp_host: p.smtp_host,
-          smtp_port: p.smtp_port,
-          imap_host: p.imap_host,
-          imap_port: p.imap_port,
-        }));
-      }
-    }
-  };
-
-  // Check email status on mount
-  useEffect(() => {
-    checkEmailStatus();
-  }, []);
-
-  const checkEmailStatus = async () => {
-    try {
-      const { data } = await supabase.functions.invoke("smtp-auth", { body: { action: "check-status" } });
-      if (data?.connected) {
-        setEmailConnected(true);
-        setConnectedEmail(data.email);
-      }
-    } catch (e) {
-      console.error("Email status check failed:", e);
-    }
-  };
-
-  const handleSmtpProviderChange = (value: string) => {
-    const p = PROVIDERS[value];
-    if (p) {
-      setSmtpForm(prev => ({
-        ...prev,
-        provider_type: value,
-        smtp_host: p.smtp_host,
-        smtp_port: p.smtp_port,
-        imap_host: p.imap_host,
-        imap_port: p.imap_port,
-      }));
-    }
-  };
-
-  const connectSmtp = async () => {
-    if (!smtpForm.email_address || !smtpForm.app_password) {
-      toast({ title: "Missing fields", description: "Enter your email and App Password", variant: "destructive" });
-      return;
-    }
-    setSmtpSaving(true);
-    try {
-      const { data, error } = await supabase.functions.invoke("smtp-auth", {
-        body: { action: "save-credentials", credentials: smtpForm },
-      });
-      if (error) throw error;
-      setEmailConnected(true);
-      setConnectedEmail(data.email);
-      toast({ title: "Email Connected! 🎉", description: `${data.email} is now linked.` });
-    } catch (e: any) {
-      toast({ title: "Connection failed", description: e.message || "Check your credentials.", variant: "destructive" });
-    } finally {
-      setSmtpSaving(false);
-    }
-  };
 
   const handleCVUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -252,7 +151,7 @@ export function OnboardingWizard({ userId, userEmail, userName, onComplete }: On
     // Save progress at each step
     await saveProgress();
 
-    if (step < 4) {
+    if (step < 3) {
       setShowCelebration(true);
       setTimeout(() => {
         setShowCelebration(false);
@@ -276,14 +175,13 @@ export function OnboardingWizard({ userId, userEmail, userName, onComplete }: On
     setTimeout(onComplete, 300);
   };
 
-  const progress = ((step + 1) / 5) * 100;
+  const progress = ((step + 1) / 4) * 100;
 
   const canProceed = () => {
     switch (step) {
       case 0: return true; // Documents optional
       case 1: return expertise.length > 0;
       case 2: return true; // Bio optional
-      case 3: return true; // Email optional
       default: return true;
     }
   };
@@ -439,7 +337,7 @@ export function OnboardingWizard({ userId, userEmail, userName, onComplete }: On
                       </motion.div>
                       <h2 className="text-xl font-bold">What Do You Do?</h2>
                       <p className="text-sm text-muted-foreground mt-1">
-                        Select the services you offer — this personalizes your outreach
+                        Select the services you offer — this personalizes your job matches
                       </p>
                     </div>
 
@@ -464,7 +362,7 @@ export function OnboardingWizard({ userId, userEmail, userName, onComplete }: On
                       </motion.div>
                       <h2 className="text-xl font-bold">Tell Us About You</h2>
                       <p className="text-sm text-muted-foreground mt-1">
-                        A short bio helps our AI pitch you authentically
+                        A short bio helps clients and our AI matching get to know you
                       </p>
                     </div>
 
@@ -481,143 +379,8 @@ export function OnboardingWizard({ userId, userEmail, userName, onComplete }: On
                   </div>
                 )}
 
-                {/* Step 3: Email Connection (SMTP) */}
+                {/* Step 3: Done */}
                 {step === 3 && (
-                  <div className="space-y-4">
-                    <div className="text-center">
-                      <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ type: "spring" }}>
-                        <div className="w-14 h-14 mx-auto rounded-2xl bg-primary/10 flex items-center justify-center mb-3">
-                          <Mail className="w-7 h-7 text-primary" />
-                        </div>
-                      </motion.div>
-                      <h2 className="text-xl font-bold">Connect Your Email</h2>
-                      <p className="text-sm text-muted-foreground mt-1">
-                        Send emails from your own address for better deliverability
-                      </p>
-                    </div>
-
-                    {/* Video Guide */}
-                    <div className="rounded-xl overflow-hidden border bg-muted/30">
-                      <div className="aspect-video">
-                        <iframe
-                          src="https://www.youtube.com/embed/aFY_xsuZTG4"
-                          title="How to connect your email"
-                          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                          allowFullScreen
-                          className="w-full h-full"
-                        />
-                      </div>
-                      <p className="text-xs text-muted-foreground text-center py-1.5">📹 Watch: How to connect your email</p>
-                    </div>
-
-                    {emailConnected ? (
-                      <motion.div initial={{ scale: 0.9 }} animate={{ scale: 1 }} className="p-4 bg-green-50 dark:bg-green-950/20 rounded-xl border border-green-200 dark:border-green-900 text-center">
-                        <CheckCircle2 className="w-10 h-10 text-green-500 mx-auto mb-2" />
-                        <p className="font-semibold text-green-800 dark:text-green-200">Email Connected!</p>
-                        <p className="text-sm text-green-600 dark:text-green-400">{connectedEmail}</p>
-                      </motion.div>
-                    ) : (
-                      <div className="space-y-4">
-                        {/* Email — auto-detects provider */}
-                        <div className="space-y-2">
-                          <Label>Your Email Address</Label>
-                          <Input
-                            type="email"
-                            placeholder="your@gmail.com"
-                            value={smtpForm.email_address}
-                            onChange={(e) => handleEmailChange(e.target.value)}
-                          />
-                          {smtpForm.email_address.includes("@") && (
-                            <p className="text-xs text-primary flex items-center gap-1">
-                              <CheckCircle2 className="w-3 h-3" />
-                              Detected: {PROVIDERS[smtpForm.provider_type]?.name || smtpForm.provider_type}
-                            </p>
-                          )}
-                        </div>
-
-                        {/* App Password with clear guide */}
-                        <div className="space-y-2">
-                          <div className="flex items-center justify-between">
-                            <Label>App Password</Label>
-                            <a
-                              href={PROVIDERS[smtpForm.provider_type]?.guide_url || "#"}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="text-xs text-primary hover:underline flex items-center gap-1"
-                            >
-                              Get your App Password <ExternalLink className="h-3 w-3" />
-                            </a>
-                          </div>
-                          <div className="relative">
-                            <Input
-                              type={showSmtpPassword ? "text" : "password"}
-                              placeholder="Paste your App Password here"
-                              value={smtpForm.app_password}
-                              onChange={(e) => setSmtpForm(prev => ({ ...prev, app_password: e.target.value }))}
-                              className="pr-10"
-                            />
-                            <button
-                              type="button"
-                              onClick={() => setShowSmtpPassword(!showSmtpPassword)}
-                              className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                            >
-                              {showSmtpPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                            </button>
-                          </div>
-                          
-                          {/* Step-by-step mini guide */}
-                          <div className="p-3 rounded-lg bg-muted/50 space-y-1.5">
-                            <p className="text-xs font-medium text-foreground">Quick steps:</p>
-                            {smtpForm.provider_type === "gmail" ? (
-                              <ol className="text-xs text-muted-foreground space-y-1 list-decimal list-inside">
-                                <li>Go to <a href="https://myaccount.google.com/security" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">Google Account Security</a></li>
-                                <li>Enable <strong>2-Step Verification</strong> (required)</li>
-                                <li>Search for <strong>"App Passwords"</strong> at the top</li>
-                                <li>Create a new app password and paste it above</li>
-                              </ol>
-                            ) : smtpForm.provider_type === "outlook" ? (
-                              <ol className="text-xs text-muted-foreground space-y-1 list-decimal list-inside">
-                                <li>Go to <a href="https://account.microsoft.com/security" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">Microsoft Security</a></li>
-                                <li>Click <strong>Advanced security options</strong></li>
-                                <li>Under App passwords, click <strong>Create</strong></li>
-                                <li>Copy the password and paste it above</li>
-                              </ol>
-                            ) : (
-                              <ol className="text-xs text-muted-foreground space-y-1 list-decimal list-inside">
-                                <li>Go to your email provider's security settings</li>
-                                <li>Look for <strong>"App Passwords"</strong> or <strong>"Third-party access"</strong></li>
-                                <li>Generate a new app password</li>
-                                <li>Paste it above</li>
-                              </ol>
-                            )}
-                          </div>
-                        </div>
-
-                        <Button
-                          onClick={connectSmtp}
-                          disabled={smtpSaving || !smtpForm.email_address || !smtpForm.app_password}
-                          className="w-full gap-2"
-                          size="lg"
-                        >
-                          {smtpSaving ? (
-                            <><Loader2 className="w-4 h-4 animate-spin" />Connecting...</>
-                          ) : (
-                            <><Mail className="w-4 h-4" />Connect Email</>
-                          )}
-                        </Button>
-                      </div>
-                    )}
-
-                    <div className="p-3 rounded-lg bg-muted/50 text-center">
-                      <p className="text-xs text-muted-foreground">
-                        You can skip this and connect later in <strong>Settings → Email</strong>
-                      </p>
-                    </div>
-                  </div>
-                )}
-
-                {/* Step 4: Done */}
-                {step === 4 && (
                   <div className="space-y-5 text-center">
                     <motion.div
                       initial={{ scale: 0 }}
@@ -632,7 +395,7 @@ export function OnboardingWizard({ userId, userEmail, userName, onComplete }: On
                     <div>
                       <h2 className="text-2xl font-bold">You're All Set! 🎉</h2>
                       <p className="text-muted-foreground mt-2">
-                        Your profile is ready. Time to start landing clients!
+                        Your profile is ready. Start applying to jobs and let clients find you.
                       </p>
                     </div>
 
@@ -649,21 +412,17 @@ export function OnboardingWizard({ userId, userEmail, userName, onComplete }: On
                         <CheckCircle2 className={`w-5 h-5 ${bio ? "text-green-500" : "text-muted-foreground"}`} />
                         <span className="text-sm">{bio ? "Bio added" : "Bio — you can add later"}</span>
                       </div>
-                      <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/50">
-                        <CheckCircle2 className={`w-5 h-5 ${emailConnected ? "text-green-500" : "text-muted-foreground"}`} />
-                        <span className="text-sm">{emailConnected ? `Email: ${connectedEmail}` : "Email — set up in Settings"}</span>
-                      </div>
                     </div>
 
                     <Button onClick={handleFinish} size="lg" className="w-full gap-2" disabled={saving}>
                       {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Rocket className="w-4 h-4" />}
-                      Start Your First Campaign
+                      Browse Jobs
                     </Button>
                   </div>
                 )}
 
                 {/* Navigation */}
-                {step < 4 && (
+                {step < 3 && (
                   <div className="flex gap-3 mt-6">
                     {step > 0 && (
                       <Button variant="outline" onClick={goBack} className="flex-1">
@@ -679,7 +438,7 @@ export function OnboardingWizard({ userId, userEmail, userName, onComplete }: On
                         <Loader2 className="w-4 h-4 animate-spin" />
                       ) : (
                         <>
-                          {step === 3 ? "Almost Done" : "Continue"}
+                          {step === 2 ? "Almost Done" : "Continue"}
                           <ChevronRight className="w-4 h-4 ml-1" />
                         </>
                       )}
@@ -688,7 +447,7 @@ export function OnboardingWizard({ userId, userEmail, userName, onComplete }: On
                 )}
 
                 {/* Skip link */}
-                {step < 4 && (
+                {step < 3 && (
                   <button
                     onClick={handleSkip}
                     className="w-full mt-3 text-xs text-muted-foreground hover:text-foreground transition-colors"

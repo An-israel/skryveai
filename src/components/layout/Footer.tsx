@@ -21,11 +21,13 @@ const footerLinks = {
     { label: "How It Works", href: "/#how-it-works" },
   ],
   tools: [
+    { label: "Find Jobs", href: "/jobs" },
+    { label: "Marketplace", href: "/marketplace" },
+    { label: "Events", href: "/events" },
+    { label: "Learn", href: "/learn" },
     { label: "AI CV Builder", href: "/cv-builder" },
     { label: "ATS Score Checker", href: "/ats-checker" },
     { label: "LinkedIn Profile Analyzer", href: "/linkedin-analyzer" },
-    { label: "Email Finder", href: "/email-finder" },
-    { label: "AutoPilot Outreach", href: "/auto-pilot" },
   ],
   resources: [
     { label: "Blog", href: "/blog" },
@@ -56,11 +58,11 @@ export function Footer() {
           {/* Brand Column */}
           <div className="col-span-2 md:col-span-1">
             <Link to="/" className="inline-flex items-center gap-2">
-              <img src="/logo.png" alt="SkryveAI logo" className="w-8 h-8 object-contain" />
-              <span className="font-bold text-2xl" style={{ color: '#0B162B' }}>SkryveAI</span>
+              <img src="/logo.png" alt="Skryve logo" className="w-8 h-8 object-contain" />
+              <span className="font-bold text-2xl" style={{ color: '#0B162B' }}>Skryve</span>
             </Link>
             <p className="mt-4 text-sm text-muted-foreground max-w-xs">
-              The all-in-one AI platform for cold email outreach, ATS-optimized CV building, resume ATS scoring, and LinkedIn profile analysis. Built for freelancers & startups worldwide.
+              The freelance ecosystem where talent and clients meet — find jobs, get hired, build your skills, and grow your career. Everything in one place.
             </p>
             <a
               href="mailto:skryveai@gmail.com"

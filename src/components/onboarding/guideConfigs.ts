@@ -1,67 +1,9 @@
 import {
-  Search, Globe, Mail, Send, Eye, CheckCircle2, BarChart3,
-  FileText, Upload, Sparkles, Download, Target, AlertTriangle,
-  Linkedin, Zap, Settings, Users, Bot, Clock, TrendingUp, 
-  Briefcase, Gift, Shield, Calendar
+  BarChart3, FileText, Upload, Sparkles, Download, Target,
+  Linkedin, Zap, TrendingUp, Gift, Send,
 } from "lucide-react";
 import type { GuideStep } from "./FeatureGuide";
 import React from "react";
-
-export const dashboardGuide: GuideStep[] = [
-  {
-    title: "Welcome to Your Dashboard",
-    description: "This is your command center. You can see your campaign stats, credits, subscription status, and quick-access career tools all in one place.",
-    icon: React.createElement(BarChart3, { className: "w-6 h-6 text-primary" }),
-  },
-  {
-    title: "Create a New Campaign",
-    description: "Click 'New Campaign' to start finding clients. You'll search for businesses, our AI analyzes their websites, and generates personalized pitch emails for you.",
-    icon: React.createElement(Send, { className: "w-6 h-6 text-primary" }),
-  },
-  {
-    title: "Career Tools",
-    description: "Use CV Builder, ATS Checker, and LinkedIn Analyzer to strengthen your professional profile before outreach. A strong profile = better pitches.",
-    icon: React.createElement(FileText, { className: "w-6 h-6 text-primary" }),
-  },
-  {
-    title: "Connect Your Email First",
-    description: "Go to Settings to connect your Gmail or SMTP email. This lets SkryveAI send pitches directly from YOUR inbox for better deliverability.",
-    icon: React.createElement(Mail, { className: "w-6 h-6 text-primary" }),
-  },
-  {
-    title: "Track Your Results",
-    description: "Check Analytics for detailed open rates, reply rates, and campaign performance over time. Use this data to improve your outreach strategy.",
-    icon: React.createElement(TrendingUp, { className: "w-6 h-6 text-primary" }),
-  },
-];
-
-export const newCampaignGuide: GuideStep[] = [
-  {
-    title: "Choose Your Campaign Type",
-    description: "Pick 'Find Clients' to search for businesses, 'Direct Client' to pitch a specific company, 'Investors' for fundraising, or 'Job Application' to apply for jobs.",
-    icon: React.createElement(Briefcase, { className: "w-6 h-6 text-primary" }),
-  },
-  {
-    title: "Search for Businesses",
-    description: "Enter a business type (e.g., 'restaurants', 'law firms') and location (e.g., 'Lagos, Nigeria'). We'll find real businesses with their contact details.",
-    icon: React.createElement(Search, { className: "w-6 h-6 text-primary" }),
-  },
-  {
-    title: "Select Your Targets",
-    description: "Review the list and select businesses you want to pitch. Businesses with emails and websites get the best results.",
-    icon: React.createElement(CheckCircle2, { className: "w-6 h-6 text-primary" }),
-  },
-  {
-    title: "AI Website Analysis",
-    description: "Our AI visits each business's website to find pain points and opportunities. This info powers your personalized pitch — so better websites = better pitches.",
-    icon: React.createElement(Globe, { className: "w-6 h-6 text-primary" }),
-  },
-  {
-    title: "Review & Send Pitches",
-    description: "AI generates a unique email for each business. You can edit any pitch before sending. Click 'Approve All' to approve them, then send!",
-    icon: React.createElement(Mail, { className: "w-6 h-6 text-primary" }),
-  },
-];
 
 export const cvBuilderGuide: GuideStep[] = [
   {
@@ -81,7 +23,7 @@ export const cvBuilderGuide: GuideStep[] = [
   },
   {
     title: "Download Your CV",
-    description: "Download your polished CV as a PDF or Word document. It's formatted professionally and ready to use for applications or outreach.",
+    description: "Download your polished CV as a PDF or Word document — professionally formatted and ready for job applications.",
     icon: React.createElement(Download, { className: "w-6 h-6 text-primary" }),
   },
 ];
@@ -123,70 +65,6 @@ export const linkedInGuide: GuideStep[] = [
   {
     title: "Get Actionable Tips",
     description: "See your overall score, strengths, and exactly what to fix — headline, summary, experience bullets, skills, and more. Each tip is actionable.",
-    icon: React.createElement(Sparkles, { className: "w-6 h-6 text-primary" }),
-  },
-];
-
-export const autoPilotGuide: GuideStep[] = [
-  {
-    title: "What is AutoPilot?",
-    description: "AutoPilot automatically finds businesses, analyzes their websites, generates pitches, and sends emails — all on autopilot while you focus on your work.",
-    icon: React.createElement(Bot, { className: "w-6 h-6 text-primary" }),
-  },
-  {
-    title: "Set Your Targets",
-    description: "Configure what type of businesses you want to reach, their locations, and your daily email quota. AutoPilot will handle the rest.",
-    icon: React.createElement(Target, { className: "w-6 h-6 text-primary" }),
-  },
-  {
-    title: "Connect Email First",
-    description: "AutoPilot sends from YOUR mailbox (Gmail or SMTP). Make sure you've connected an email in Settings before launching.",
-    icon: React.createElement(Mail, { className: "w-6 h-6 text-primary" }),
-  },
-  {
-    title: "Monitor Activity",
-    description: "Track every email sent, opened, and replied to in the Activity Log. Pause or stop anytime if you want to adjust your strategy.",
-    icon: React.createElement(Eye, { className: "w-6 h-6 text-primary" }),
-  },
-];
-
-export const settingsGuide: GuideStep[] = [
-  {
-    title: "Complete Your Profile",
-    description: "Add your bio, expertise, and portfolio URL. This information is used by AI to generate better, more personalized pitches for your campaigns.",
-    icon: React.createElement(Settings, { className: "w-6 h-6 text-primary" }),
-  },
-  {
-    title: "Connect Your Email",
-    description: "Connect Gmail (easiest) or SMTP to send pitches from your own email. This improves deliverability and looks more professional to clients.",
-    icon: React.createElement(Mail, { className: "w-6 h-6 text-primary" }),
-  },
-  {
-    title: "Upload Your CV",
-    description: "Upload your CV/resume so AI can reference your skills and experience when crafting pitches. This makes emails much more relevant.",
-    icon: React.createElement(FileText, { className: "w-6 h-6 text-primary" }),
-  },
-  {
-    title: "Set Sending Preferences",
-    description: "Configure your sender name, daily send limits, and email signature. Set up email warmup to gradually build your sender reputation.",
-    icon: React.createElement(Clock, { className: "w-6 h-6 text-primary" }),
-  },
-];
-
-export const analyticsGuide: GuideStep[] = [
-  {
-    title: "Your Campaign Analytics",
-    description: "See how your outreach is performing at a glance — total emails sent, open rates, and reply rates across all your campaigns.",
-    icon: React.createElement(BarChart3, { className: "w-6 h-6 text-primary" }),
-  },
-  {
-    title: "Campaign Breakdown",
-    description: "Compare performance across campaigns to see which industries, locations, or pitch styles get the best results.",
-    icon: React.createElement(TrendingUp, { className: "w-6 h-6 text-primary" }),
-  },
-  {
-    title: "Use Data to Improve",
-    description: "Low open rates? Try better subject lines. Low replies? Refine your pitch. Analytics helps you iterate and get more clients over time.",
     icon: React.createElement(Sparkles, { className: "w-6 h-6 text-primary" }),
   },
 ];
