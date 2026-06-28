@@ -21,6 +21,12 @@ In the new project's dashboard (`uwwmwerdfpyekgshkrft`):
 2. **Storage → Buckets**: create the same buckets used by the app:
    `avatars`, `cv-uploads`, `deliverables`, `portfolio`
    (match the public/private + size settings from the old project's Storage).
+   Bucket **policies** are part of the DB and come across with the dump in
+   step 2; the **stored files themselves do not** (they live in object storage,
+   not the database). To carry existing uploads over, copy them per bucket —
+   e.g. with the Storage API / `supabase storage` CLI, or for small volumes
+   download from the old project and re-upload to the new one. New uploads work
+   immediately regardless.
 
 ---
 
@@ -139,18 +145,23 @@ or land in spam. This is the single most common cause of "no email received".
 
 ## 8. Point the frontend at the new project + deploy to Vercel
 
-Update these to the new project's values (URL + **anon key** from
-**Settings → API**). Set them as Vercel **Environment Variables** (Production +
-Preview), and mirror them in the local `.env`:
+The repo `.env` is **already updated** to the new project (URL, project id, and
+anon key). For Vercel, set the same three as **Environment Variables**
+(Production + Preview):
 
 ```
 VITE_SUPABASE_PROJECT_ID="uwwmwerdfpyekgshkrft"
 VITE_SUPABASE_URL="https://uwwmwerdfpyekgshkrft.supabase.co"
-VITE_SUPABASE_PUBLISHABLE_KEY="<new project's anon key>"
+VITE_SUPABASE_PUBLISHABLE_KEY="<new project's anon key (already in .env)>"
 ```
 
 In Vercel: import the GitHub repo, framework **Vite**, build `npm run build`,
 output `dist` (already in `vercel.json`), add the three env vars, deploy.
+
+> Order matters: because `.env` now points at the new project, only do the
+> data migration (step 2) + function deploy (step 5) **before** sending real
+> traffic to the Vercel build, so the new backend is ready when the frontend
+> switches over.
 
 ---
 
@@ -178,9 +189,19 @@ error there names the exact problem.
 
 ---
 
-### Note on other crons
-The original `send-digest` cron (migration `20260529000003`) still calls the
-function via `current_setting('app.supabase_url')`. If you want the daily digest
-to run on the new project, either set those DB settings
-(`ALTER DATABASE postgres SET app.supabase_url = '...';` etc.) or tell me and I'll
-harden it the same way as `scrape-jobs`.
+### Crons
+The `scrape-jobs`, `send-digest`, and `event-reminders` crons are now hardened
+(migrations `20260627020000` / `20260627040000`): they call their functions with
+a hardcoded project URL and no auth header, so they don't depend on the
+`app.supabase_url` / `app.service_role_key` DB settings. They take effect on
+`db push`.
+
+**Autopilot cron** (`trigger_autopilot_run`) reads its URL + secret from the
+`app_config` table instead. After migrating, insert the rows on the new project:
+
+```sql
+INSERT INTO app_config (key, value) VALUES
+  ('supabase_functions_url', 'https://uwwmwerdfpyekgshkrft.supabase.co/functions/v1'),
+  ('autopilot_cron_secret', '<the same value as the AUTOPILOT_CRON_SECRET secret>')
+ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value;
+```

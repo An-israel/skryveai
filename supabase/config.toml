@@ -21,6 +21,8 @@ project_id = "uwwmwerdfpyekgshkrft"
     verify_jwt = false
   [functions.email-webhook]
     verify_jwt = false
+  [functions.event-reminders]
+    verify_jwt = false
   [functions.generate-job-application]
     verify_jwt = false
   [functions.generate-linkedin-guide]
@@ -70,6 +72,8 @@ project_id = "uwwmwerdfpyekgshkrft"
   [functions.send-auth-email]
     verify_jwt = false
   [functions.send-daily-encouragement]
+    verify_jwt = false
+  [functions.send-digest]
     verify_jwt = false
   [functions.send-email]
     verify_jwt = false
