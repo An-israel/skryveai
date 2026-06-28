@@ -12,8 +12,8 @@ if [ -z "$TOKEN" ]; then
   exit 1
 fi
 
-# Live project ref (matches supabase/config.toml and VITE_SUPABASE_URL)
-PROJECT_REF="dgyuafltlpruhdlgwiew"
+# Live project ref (matches supabase/config.toml)
+PROJECT_REF="uwwmwerdfpyekgshkrft"
 export SUPABASE_ACCESS_TOKEN="$TOKEN"
 
 supabase login --token "$TOKEN"

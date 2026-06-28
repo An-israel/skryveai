@@ -12,8 +12,8 @@ IF "%TOKEN%"=="" (
   exit /b 1
 )
 
-REM Live project ref (matches supabase/config.toml and VITE_SUPABASE_URL)
-SET PROJECT_REF=dgyuafltlpruhdlgwiew
+REM Live project ref (matches supabase/config.toml)
+SET PROJECT_REF=uwwmwerdfpyekgshkrft
 
 SET SUPABASE_ACCESS_TOKEN=%TOKEN%
 
