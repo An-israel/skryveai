@@ -23,10 +23,20 @@ In the new project's dashboard (`uwwmwerdfpyekgshkrft`):
    (match the public/private + size settings from the old project's Storage).
    Bucket **policies** are part of the DB and come across with the dump in
    step 2; the **stored files themselves do not** (they live in object storage,
-   not the database). To carry existing uploads over, copy them per bucket —
-   e.g. with the Storage API / `supabase storage` CLI, or for small volumes
-   download from the old project and re-upload to the new one. New uploads work
-   immediately regardless.
+   not the database). To carry existing uploads over, run the helper after the
+   DB migration:
+
+   ```bash
+   OLD_SUPABASE_URL=https://dgyuafltlpruhdlgwiew.supabase.co \
+   OLD_SERVICE_KEY=<old service_role key> \
+   NEW_SUPABASE_URL=https://uwwmwerdfpyekgshkrft.supabase.co \
+   NEW_SERVICE_KEY=<new service_role key> \
+   node scripts/migrate-storage.mjs
+   ```
+
+   It copies every file in `avatars`, `cv-uploads`, `deliverables`, and
+   `portfolio` from the old project to the new one (creating the buckets if
+   needed). New uploads work immediately regardless.
 
 ---
 
