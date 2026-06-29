@@ -1,4 +1,4 @@
-// Streaming AI coach chat using Lovable AI Gateway (Gemini Flash)
+// Streaming AI coach chat using the Anthropic Messages API (Claude)
 // - Validates JWT in code (verify_jwt = false in config)
 // - Loads lesson/assignment context if provided
 // - Persists user + assistant messages to coach_messages
@@ -14,7 +14,8 @@ const corsHeaders = {
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY")!;
-const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY")!;
+const ANTHROPIC_API_KEY = Deno.env.get("ANTHROPIC_API_KEY")!;
+const MODEL = "claude-opus-4-8";
 
 const STAFF_ROLES = ["super_admin", "content_editor", "support_agent", "staff"];
 // Silent credit cost per coach message — never surfaced to the user.
@@ -211,28 +212,30 @@ CURATED VIDEO RULE (critical):
       credits_used: 0,
     });
 
-    // Build messages
+    // Build messages (Anthropic: system is a top-level param, not a message)
     const history = (body.history || []).slice(-12).map((m) => ({
       role: m.role,
       content: m.content,
     }));
     const messages = [
-      { role: "system", content: systemPrompt },
       ...history,
       { role: "user", content: body.message },
     ];
 
-    // Call Lovable AI Gateway (streaming)
+    // Call Anthropic Messages API (streaming)
     const upstream = await fetch(
-      "https://ai.gateway.lovable.dev/v1/chat/completions",
+      "https://api.anthropic.com/v1/messages",
       {
         method: "POST",
         headers: {
-          Authorization: `Bearer ${LOVABLE_API_KEY}`,
-          "Content-Type": "application/json",
+          "x-api-key": ANTHROPIC_API_KEY,
+          "anthropic-version": "2023-06-01",
+          "content-type": "application/json",
         },
         body: JSON.stringify({
-          model: "google/gemini-2.5-flash",
+          model: MODEL,
+          max_tokens: 2048,
+          system: systemPrompt,
           messages,
           stream: true,
         }),
@@ -257,6 +260,12 @@ CURATED VIDEO RULE (critical):
     const decoder = new TextDecoder();
     const encoder = new TextEncoder();
 
+    // Re-emit Anthropic's SSE as OpenAI-style chunks so the client contract is unchanged.
+    const emitDelta = (controller: ReadableStreamDefaultController, text: string) => {
+      const payload = JSON.stringify({ choices: [{ delta: { content: text } }] });
+      controller.enqueue(encoder.encode(`data: ${payload}\n\n`));
+    };
+
     const stream = new ReadableStream({
       async start(controller) {
         let buffer = "";
@@ -266,9 +275,8 @@ CURATED VIDEO RULE (critical):
             if (done) break;
             const chunk = decoder.decode(value, { stream: true });
             buffer += chunk;
-            controller.enqueue(encoder.encode(chunk));
 
-            // Parse SSE for our own capture
+            // Parse Anthropic SSE: forward text deltas, capture full text
             let nl: number;
             while ((nl = buffer.indexOf("\n")) !== -1) {
               let line = buffer.slice(0, nl);
@@ -276,11 +284,16 @@ CURATED VIDEO RULE (critical):
               if (line.endsWith("\r")) line = line.slice(0, -1);
               if (!line.startsWith("data: ")) continue;
               const payload = line.slice(6).trim();
-              if (payload === "[DONE]") continue;
+              if (!payload || payload === "[DONE]") continue;
               try {
                 const j = JSON.parse(payload);
-                const delta = j.choices?.[0]?.delta?.content;
-                if (delta) assistantText += delta;
+                if (j.type === "content_block_delta" && j.delta?.type === "text_delta") {
+                  const delta = j.delta.text;
+                  if (delta) {
+                    assistantText += delta;
+                    emitDelta(controller, delta);
+                  }
+                }
               } catch {
                 // ignore parse partials
               }
@@ -289,6 +302,11 @@ CURATED VIDEO RULE (critical):
         } catch (e) {
           console.error("stream relay error", e);
         } finally {
+          try {
+            controller.enqueue(encoder.encode("data: [DONE]\n\n"));
+          } catch {
+            // controller may already be closing
+          }
           controller.close();
 
           // Persist assistant message + deduct credits (best-effort, after stream)
@@ -302,7 +320,7 @@ CURATED VIDEO RULE (critical):
               context: {
                 lessonId: body.lessonId || null,
                 assignmentId: body.assignmentId || null,
-                model: "google/gemini-2.5-flash",
+                model: MODEL,
               },
               credits_used: isFree ? 0 : COACH_CREDITS_COST,
             });

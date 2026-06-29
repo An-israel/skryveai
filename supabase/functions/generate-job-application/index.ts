@@ -39,19 +39,18 @@ serve(async (req) => {
       });
     }
 
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    if (!LOVABLE_API_KEY) {
+    const ANTHROPIC_API_KEY = Deno.env.get("ANTHROPIC_API_KEY");
+    if (!ANTHROPIC_API_KEY) {
       return new Response(JSON.stringify({ error: "AI service not configured" }), {
         status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    // Use the email passed from search-jobs (Firecrawl-scraped) directly
-    // No more pattern-guessing — that logic is in search-jobs only
+    // Use the email passed in by the caller directly (no pattern-guessing here)
     const extractedEmail = passedEmail || null;
     const emailVerified = passedEmail ? Boolean(passedEmailVerified) : false;
 
-    console.log(`[generate-job-application] Using email from search-jobs: ${extractedEmail} (verified: ${emailVerified})`);
+    console.log(`[generate-job-application] Using passed email: ${extractedEmail} (verified: ${emailVerified})`);
 
     // Generate cover letter with AI
     const systemPrompt = `You are an expert career consultant and professional cover letter writer. Your job is to:
@@ -89,37 +88,36 @@ Return the response using the generate_application function.`;
 
     console.log(`Generating application for ${jobTitle} at ${company}`);
 
-    const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    const aiResponse = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${LOVABLE_API_KEY}`,
-        "Content-Type": "application/json",
+        "x-api-key": ANTHROPIC_API_KEY,
+        "anthropic-version": "2023-06-01",
+        "content-type": "application/json",
       },
       body: JSON.stringify({
-        model: "google/gemini-2.5-flash",
+        model: "claude-opus-4-8",
+        max_tokens: 2048,
         temperature: 0,
+        system: systemPrompt,
         messages: [
-          { role: "system", content: systemPrompt },
           { role: "user", content: userPrompt },
         ],
         tools: [{
-          type: "function",
-          function: {
-            name: "generate_application",
-            description: "Generate a tailored job application with subject line and cover letter",
-            parameters: {
-              type: "object",
-              properties: {
-                subject: { type: "string", description: "Email subject line (compelling, under 80 chars)" },
-                coverLetter: { type: "string", description: "The full cover letter body" },
-                keyMatchingSkills: { type: "array", items: { type: "string" }, description: "3-5 matching skills" },
-              },
-              required: ["subject", "coverLetter", "keyMatchingSkills"],
-              additionalProperties: false,
+          name: "generate_application",
+          description: "Generate a tailored job application with subject line and cover letter",
+          input_schema: {
+            type: "object",
+            properties: {
+              subject: { type: "string", description: "Email subject line (compelling, under 80 chars)" },
+              coverLetter: { type: "string", description: "The full cover letter body" },
+              keyMatchingSkills: { type: "array", items: { type: "string" }, description: "3-5 matching skills" },
             },
+            required: ["subject", "coverLetter", "keyMatchingSkills"],
+            additionalProperties: false,
           },
         }],
-        tool_choice: { type: "function", function: { name: "generate_application" } },
+        tool_choice: { type: "tool", name: "generate_application" },
       }),
     });
 
@@ -135,19 +133,18 @@ Return the response using the generate_application function.`;
     }
 
     const aiData = await aiResponse.json();
-    const toolCall = aiData.choices?.[0]?.message?.tool_calls?.[0];
+    const toolUse = aiData.content?.find((b: { type: string }) => b.type === "tool_use");
+    const textBlock = aiData.content?.find((b: { type: string }) => b.type === "text");
     let application = { subject: "", coverLetter: "", keyMatchingSkills: [] as string[] };
 
-    if (toolCall?.function?.arguments) {
-      try {
-        application = JSON.parse(toolCall.function.arguments);
-      } catch {
-        application = {
-          subject: `Application for ${jobTitle} at ${company}`,
-          coverLetter: aiData.choices?.[0]?.message?.content || "",
-          keyMatchingSkills: [],
-        };
-      }
+    if (toolUse?.input) {
+      application = toolUse.input;
+    } else {
+      application = {
+        subject: `Application for ${jobTitle} at ${company}`,
+        coverLetter: textBlock?.text || "",
+        keyMatchingSkills: [],
+      };
     }
 
     console.log(`Generated application for ${jobTitle} at ${company}, email: ${extractedEmail || "none"} (verified: ${emailVerified})`);

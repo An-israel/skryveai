@@ -7,6 +7,9 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
+const ANTHROPIC_URL = "https://api.anthropic.com/v1/messages";
+const MODEL = "claude-opus-4-8";
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -31,8 +34,8 @@ serve(async (req) => {
       });
     }
 
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    if (!LOVABLE_API_KEY) {
+    const ANTHROPIC_API_KEY = Deno.env.get("ANTHROPIC_API_KEY");
+    if (!ANTHROPIC_API_KEY) {
       return new Response(JSON.stringify({ error: "AI service not configured" }), {
         status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -49,19 +52,18 @@ serve(async (req) => {
 
     console.log(`LinkedIn analysis for user ${user.id}, content length: ${profileContent.length}`);
 
-    const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    const aiResponse = await fetch(ANTHROPIC_URL, {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${LOVABLE_API_KEY}`,
-        "Content-Type": "application/json",
+        "x-api-key": ANTHROPIC_API_KEY,
+        "anthropic-version": "2023-06-01",
+        "content-type": "application/json",
       },
       body: JSON.stringify({
-        model: "google/gemini-2.5-flash-lite",
+        model: MODEL,
+        max_tokens: 4096,
         temperature: 0,
-        messages: [
-          {
-            role: "system",
-            content: `You are a LinkedIn profile optimization expert. You know exactly how LinkedIn's algorithm ranks profiles, what recruiters and clients look for, and how professionals get discovered and hired through LinkedIn.
+        system: `You are a LinkedIn profile optimization expert. You know exactly how LinkedIn's algorithm ranks profiles, what recruiters and clients look for, and how professionals get discovered and hired through LinkedIn.
 
 Analyze the profile content provided and give honest, specific, actionable feedback. Reference actual content from the profile — never give generic advice.
 
@@ -73,7 +75,7 @@ Scoring scale:
 - 0-29: Missing or very poor
 
 If information about photo, banner, connections or recommendations is not present in the content, note that as missing and score accordingly.${targetRole ? `\n\nThe user is targeting: "${targetRole}" roles — tailor the analysis to this.` : ""}`,
-          },
+        messages: [
           {
             role: "user",
             content: `Analyze this LinkedIn profile:\n\n${profileContent}`,
@@ -81,84 +83,81 @@ If information about photo, banner, connections or recommendations is not presen
         ],
         tools: [
           {
-            type: "function",
-            function: {
-              name: "linkedin_analysis",
-              description: "Return detailed LinkedIn profile analysis",
-              parameters: {
-                type: "object",
-                properties: {
-                  overallScore: { type: "number", description: "Overall score 0-100" },
-                  grade: { type: "string", description: "Letter grade: A+, A, B+, B, C+, C, D, F" },
-                  profileStrength: {
-                    type: "string",
-                    description: "LinkedIn-style label: All-Star, Expert, Advanced, Intermediate, Beginner",
-                  },
-                  breakdown: {
-                    type: "object",
-                    properties: {
-                      headline: { type: "number" },
-                      about: { type: "number" },
-                      experience: { type: "number" },
-                      skills: { type: "number" },
-                      education: { type: "number" },
-                      profileCompleteness: { type: "number" },
-                      keywordsVisibility: { type: "number" },
-                      socialProof: { type: "number" },
-                    },
-                    required: ["headline", "about", "experience", "skills", "education", "profileCompleteness", "keywordsVisibility", "socialProof"],
-                    additionalProperties: false,
-                  },
-                  sectionFeedback: {
-                    type: "object",
-                    description: "Specific feedback per section referencing actual profile content",
-                    properties: {
-                      headline: { type: "string" },
-                      about: { type: "string" },
-                      experience: { type: "string" },
-                      skills: { type: "string" },
-                      education: { type: "string" },
-                      profileCompleteness: { type: "string" },
-                      keywordsVisibility: { type: "string" },
-                      socialProof: { type: "string" },
-                    },
-                    required: ["headline", "about", "experience", "skills", "education", "profileCompleteness", "keywordsVisibility", "socialProof"],
-                    additionalProperties: false,
-                  },
-                  quickWins: {
-                    type: "array",
-                    items: { type: "string" },
-                    description: "3-5 improvements that take under 10 minutes each",
-                  },
-                  biggerImprovements: {
-                    type: "array",
-                    items: { type: "string" },
-                    description: "3-5 deeper improvements with high impact on visibility and leads",
-                  },
-                  missingElements: {
-                    type: "array",
-                    items: { type: "string" },
-                    description: "Key profile elements that are completely absent",
-                  },
-                  headlineSuggestion: {
-                    type: "string",
-                    description: "A specific rewritten headline based on the actual profile content",
-                  },
-                  aboutSuggestion: {
-                    type: "string",
-                    description: "Improved opening 2-3 sentences for the About section",
-                  },
+            name: "linkedin_analysis",
+            description: "Return detailed LinkedIn profile analysis",
+            input_schema: {
+              type: "object",
+              properties: {
+                overallScore: { type: "number", description: "Overall score 0-100" },
+                grade: { type: "string", description: "Letter grade: A+, A, B+, B, C+, C, D, F" },
+                profileStrength: {
+                  type: "string",
+                  description: "LinkedIn-style label: All-Star, Expert, Advanced, Intermediate, Beginner",
                 },
-                required: [
-                  "overallScore", "grade", "profileStrength", "breakdown", "sectionFeedback",
-                  "quickWins", "biggerImprovements", "missingElements", "headlineSuggestion", "aboutSuggestion",
-                ],
-                additionalProperties: false,
+                breakdown: {
+                  type: "object",
+                  properties: {
+                    headline: { type: "number" },
+                    about: { type: "number" },
+                    experience: { type: "number" },
+                    skills: { type: "number" },
+                    education: { type: "number" },
+                    profileCompleteness: { type: "number" },
+                    keywordsVisibility: { type: "number" },
+                    socialProof: { type: "number" },
+                  },
+                  required: ["headline", "about", "experience", "skills", "education", "profileCompleteness", "keywordsVisibility", "socialProof"],
+                  additionalProperties: false,
+                },
+                sectionFeedback: {
+                  type: "object",
+                  description: "Specific feedback per section referencing actual profile content",
+                  properties: {
+                    headline: { type: "string" },
+                    about: { type: "string" },
+                    experience: { type: "string" },
+                    skills: { type: "string" },
+                    education: { type: "string" },
+                    profileCompleteness: { type: "string" },
+                    keywordsVisibility: { type: "string" },
+                    socialProof: { type: "string" },
+                  },
+                  required: ["headline", "about", "experience", "skills", "education", "profileCompleteness", "keywordsVisibility", "socialProof"],
+                  additionalProperties: false,
+                },
+                quickWins: {
+                  type: "array",
+                  items: { type: "string" },
+                  description: "3-5 improvements that take under 10 minutes each",
+                },
+                biggerImprovements: {
+                  type: "array",
+                  items: { type: "string" },
+                  description: "3-5 deeper improvements with high impact on visibility and leads",
+                },
+                missingElements: {
+                  type: "array",
+                  items: { type: "string" },
+                  description: "Key profile elements that are completely absent",
+                },
+                headlineSuggestion: {
+                  type: "string",
+                  description: "A specific rewritten headline based on the actual profile content",
+                },
+                aboutSuggestion: {
+                  type: "string",
+                  description: "Improved opening 2-3 sentences for the About section",
+                },
               },
+              required: [
+                "overallScore", "grade", "profileStrength", "breakdown", "sectionFeedback",
+                "quickWins", "biggerImprovements", "missingElements", "headlineSuggestion", "aboutSuggestion",
+              ],
+              additionalProperties: false,
             },
           },
         ],
-        tool_choice: { type: "function", function: { name: "linkedin_analysis" } },
+        tool_choice: { type: "tool", name: "linkedin_analysis" },
       }),
     });
 
@@ -172,10 +171,10 @@ If information about photo, banner, connections or recommendations is not presen
     }
 
     const aiData = await aiResponse.json();
-    const toolCall = aiData.choices?.[0]?.message?.tool_calls?.[0];
-    if (!toolCall?.function?.arguments) throw new Error("No analysis returned");
+    const toolUse = aiData.content?.find((b: { type: string }) => b.type === "tool_use");
+    if (!toolUse?.input) throw new Error("No analysis returned");
 
-    const result = JSON.parse(toolCall.function.arguments);
+    const result = toolUse.input;
     console.log(`Analysis done: score=${result.overallScore} grade=${result.grade}`);
 
     return new Response(JSON.stringify(result), {

@@ -23,9 +23,9 @@ serve(async (req) => {
 
     const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
     const SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+    const ANTHROPIC_API_KEY = Deno.env.get("ANTHROPIC_API_KEY");
 
-    if (!LOVABLE_API_KEY) {
+    if (!ANTHROPIC_API_KEY) {
       return new Response(JSON.stringify({ error: "AI service not configured" }), {
         status: 500,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -65,17 +65,19 @@ CRITICAL: Use only facts from the CV provided. Do not invent experience, skills,
       ? `Write a cover letter for this candidate applying for the following role.\n\nCANDIDATE CV:\n${cvText}\n\nJOB DESCRIPTION:\n${jobDescription}\n\nTailor the cover letter specifically to this job description using keywords and requirements from it.`
       : `Write a general cover letter for this candidate that showcases their strongest skills and achievements and can be customised per application.\n\nCANDIDATE CV:\n${cvText}`;
 
-    const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    const aiResponse = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${LOVABLE_API_KEY}`,
-        "Content-Type": "application/json",
+        "x-api-key": ANTHROPIC_API_KEY,
+        "anthropic-version": "2023-06-01",
+        "content-type": "application/json",
       },
       body: JSON.stringify({
-        model: "google/gemini-2.5-flash",
+        model: "claude-opus-4-8",
+        max_tokens: 1500,
         temperature: 0.3,
+        system: systemPrompt,
         messages: [
-          { role: "system", content: systemPrompt },
           { role: "user", content: userPrompt },
         ],
       }),
@@ -92,7 +94,7 @@ CRITICAL: Use only facts from the CV provided. Do not invent experience, skills,
     }
 
     const aiData = await aiResponse.json();
-    const coverLetter = aiData.choices?.[0]?.message?.content?.trim();
+    const coverLetter = aiData.content?.[0]?.text?.trim();
 
     if (!coverLetter) throw new Error("No cover letter returned from AI");
 
