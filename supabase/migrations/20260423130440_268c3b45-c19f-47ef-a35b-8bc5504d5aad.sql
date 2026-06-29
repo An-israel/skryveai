@@ -285,6 +285,7 @@ INSERT INTO storage.buckets (id, name, public)
 VALUES ('learning-submissions', 'learning-submissions', false)
 ON CONFLICT (id) DO NOTHING;
 
+DROP POLICY IF EXISTS "Users upload own submission files" ON storage.objects;
 CREATE POLICY "Users upload own submission files"
   ON storage.objects FOR INSERT
   WITH CHECK (
@@ -292,6 +293,7 @@ CREATE POLICY "Users upload own submission files"
     AND auth.uid()::text = (storage.foldername(name))[1]
   );
 
+DROP POLICY IF EXISTS "Users view own submission files" ON storage.objects;
 CREATE POLICY "Users view own submission files"
   ON storage.objects FOR SELECT
   USING (
@@ -299,6 +301,7 @@ CREATE POLICY "Users view own submission files"
     AND auth.uid()::text = (storage.foldername(name))[1]
   );
 
+DROP POLICY IF EXISTS "Users delete own submission files" ON storage.objects;
 CREATE POLICY "Users delete own submission files"
   ON storage.objects FOR DELETE
   USING (
@@ -306,6 +309,7 @@ CREATE POLICY "Users delete own submission files"
     AND auth.uid()::text = (storage.foldername(name))[1]
   );
 
+DROP POLICY IF EXISTS "Admins view all submission files" ON storage.objects;
 CREATE POLICY "Admins view all submission files"
   ON storage.objects FOR SELECT
   USING (
