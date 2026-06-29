@@ -17,7 +17,7 @@ ALTER TABLE public.talent_profiles
 
 -- Subscriptions table
 CREATE TABLE IF NOT EXISTS public.subscriptions (
-  id              uuid PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id              uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id         uuid NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
   plan            text NOT NULL DEFAULT 'free',  -- 'free' | 'pro' | 'business'
   status          text NOT NULL DEFAULT 'active', -- 'active' | 'cancelled' | 'past_due'
@@ -32,7 +32,7 @@ CREATE TABLE IF NOT EXISTS public.subscriptions (
 
 -- Billing history
 CREATE TABLE IF NOT EXISTS public.billing_history (
-  id          uuid PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id          uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id     uuid NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
   plan        text NOT NULL,
   amount      numeric(10,2) NOT NULL,
