@@ -3,7 +3,8 @@ import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import {
   Menu, X, ArrowRight, Twitter, Linkedin, Instagram,
-  Briefcase, Users,
+  Briefcase, Users, Search, Sparkles, GraduationCap, CalendarDays,
+  FileText, Target,
 } from "lucide-react";
 import { LandingFeed } from "@/components/landing/LandingFeed";
 
@@ -120,6 +121,90 @@ function Navbar() {
         </div>
       )}
     </nav>
+  );
+}
+
+/* ─── Features ────────────────────────────────────────────── */
+const PILLARS = [
+  {
+    icon: Search,
+    title: "Job aggregator + AI applications",
+    desc: "Fresh remote jobs from 10+ platforms in one daily feed. Apply in one click with an AI proposal tailored to each role.",
+  },
+  {
+    icon: Briefcase,
+    title: "Two-sided marketplace",
+    desc: "Clients post projects, AI matches them to the right talent. Chat, accept offers, deliver work, and get paid securely.",
+  },
+  {
+    icon: GraduationCap,
+    title: "Learning platform",
+    desc: "Structured courses with an AI coach, graded assignments, and certificates — then put new skills straight to work.",
+  },
+  {
+    icon: CalendarDays,
+    title: "Events hub",
+    desc: "Workshops, Q&As, and networking — online and in-person — to grow your skills and your network.",
+  },
+];
+
+const TOOLS = [
+  { icon: FileText, title: "AI CV Builder",        desc: "Build or optimize an ATS-ready CV in minutes." },
+  { icon: Target,   title: "ATS Score Checker",    desc: "Score your CV against any job and fix the gaps." },
+  { icon: Linkedin, title: "LinkedIn Analyzer",    desc: "Get a scored profile review and a rewrite plan." },
+];
+
+function Features() {
+  return (
+    <section id="features" className="bg-[#09090b] py-24 border-t border-white/[0.06] scroll-mt-16">
+      <div className="max-w-6xl mx-auto px-5">
+
+        <motion.div {...fadeUp()} className="mb-16 text-center max-w-2xl mx-auto">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.15em] text-[#2563EB] mb-4">Everything in one place</p>
+          <h2 className="text-4xl md:text-5xl font-extrabold text-white tracking-[-0.03em] leading-[1.05]">
+            One platform for your whole career
+          </h2>
+          <p className="text-[15px] md:text-[16px] text-white/40 leading-relaxed mt-4">
+            Find work, get hired, sharpen your skills, and grow your network — without juggling a dozen tools.
+          </p>
+        </motion.div>
+
+        {/* Four pillars */}
+        <div className="grid sm:grid-cols-2 gap-4 mb-4">
+          {PILLARS.map(({ icon: Icon, title, desc }, i) => (
+            <motion.div
+              key={title}
+              {...fadeUp(i * 0.06)}
+              className="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-7 hover:border-white/[0.12] transition-colors"
+            >
+              <div className="w-9 h-9 rounded-lg bg-[#2563EB]/15 flex items-center justify-center mb-5">
+                <Icon className="w-5 h-5 text-[#2563EB]" />
+              </div>
+              <h3 className="text-[16px] font-semibold text-white mb-1.5">{title}</h3>
+              <p className="text-[13px] text-white/40 leading-relaxed">{desc}</p>
+            </motion.div>
+          ))}
+        </div>
+
+        {/* Free tools */}
+        <div className="grid sm:grid-cols-3 gap-4">
+          {TOOLS.map(({ icon: Icon, title, desc }, i) => (
+            <motion.div
+              key={title}
+              {...fadeUp(i * 0.06)}
+              className="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-6 hover:border-white/[0.12] transition-colors"
+            >
+              <div className="flex items-center gap-2.5 mb-2">
+                <Icon className="w-4 h-4 text-[#2563EB]" />
+                <h3 className="text-[14px] font-semibold text-white">{title}</h3>
+                <span className="ml-auto text-[10px] font-semibold uppercase tracking-wide text-white/30">Free</span>
+              </div>
+              <p className="text-[13px] text-white/40 leading-relaxed">{desc}</p>
+            </motion.div>
+          ))}
+        </div>
+      </div>
+    </section>
   );
 }
 
@@ -368,6 +453,7 @@ export default function Landing() {
     <div className="min-h-screen bg-[#09090b]">
       <Navbar />
       <LandingFeed />
+      <Features />
       <HowItWorks />
       <Testimonials />
       <CTA />
