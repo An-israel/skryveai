@@ -1,6 +1,6 @@
 -- Enable pg_cron and pg_net for scheduled edge function calls
-create extension if not exists pg_cron with schema extensions;
-create extension if not exists pg_net with schema extensions;
+do $$ begin create extension if not exists pg_cron with schema extensions; exception when others then null; end $$;
+do $$ begin create extension if not exists pg_net with schema extensions; exception when others then null; end $$;
 
 -- Config table to store the Supabase project URL (admin sets this once)
 create table if not exists public.app_config (

@@ -1,4 +1,5 @@
 -- Storage policies for learning-submissions bucket (private, user-owned folders)
+DROP POLICY IF EXISTS "Users upload own learning submissions" ON storage.objects;
 CREATE POLICY "Users upload own learning submissions"
 ON storage.objects FOR INSERT
 WITH CHECK (
@@ -6,6 +7,7 @@ WITH CHECK (
   AND auth.uid()::text = (storage.foldername(name))[1]
 );
 
+DROP POLICY IF EXISTS "Users view own learning submissions" ON storage.objects;
 CREATE POLICY "Users view own learning submissions"
 ON storage.objects FOR SELECT
 USING (
@@ -16,6 +18,7 @@ USING (
   )
 );
 
+DROP POLICY IF EXISTS "Users update own learning submissions" ON storage.objects;
 CREATE POLICY "Users update own learning submissions"
 ON storage.objects FOR UPDATE
 USING (
@@ -23,6 +26,7 @@ USING (
   AND auth.uid()::text = (storage.foldername(name))[1]
 );
 
+DROP POLICY IF EXISTS "Users delete own learning submissions" ON storage.objects;
 CREATE POLICY "Users delete own learning submissions"
 ON storage.objects FOR DELETE
 USING (
