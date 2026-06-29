@@ -1,4 +1,4 @@
-// Assignment review using Lovable AI Gateway (Gemini 2.5 Pro)
+// Assignment review using the Anthropic Messages API (Claude)
 // - Validates JWT in code
 // - Loads assignment + user submission, calls Gemini Pro for rubric grading
 // - Persists score, status, strengths, improvements, ai_feedback to learning_submissions
@@ -15,7 +15,7 @@ const corsHeaders = {
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY")!;
-const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY")!;
+const ANTHROPIC_API_KEY = Deno.env.get("ANTHROPIC_API_KEY")!;
 
 const STAFF_ROLES = ["super_admin", "content_editor", "support_agent", "staff"];
 const REVIEW_CREDITS_COST = 0.5;
@@ -164,21 +164,22 @@ ${submissionContext || "(no content provided)"}
 Review this submission and return the JSON verdict.`;
 
     const upstream = await fetch(
-      "https://ai.gateway.lovable.dev/v1/chat/completions",
+      "https://api.anthropic.com/v1/messages",
       {
         method: "POST",
         headers: {
-          Authorization: `Bearer ${LOVABLE_API_KEY}`,
-          "Content-Type": "application/json",
+          "x-api-key": ANTHROPIC_API_KEY,
+          "anthropic-version": "2023-06-01",
+          "content-type": "application/json",
         },
         body: JSON.stringify({
-          model: "google/gemini-2.5-pro",
+          model: "claude-opus-4-8",
+          max_tokens: 2048,
           temperature: 0,
+          system: systemPrompt,
           messages: [
-            { role: "system", content: systemPrompt },
             { role: "user", content: userPrompt },
           ],
-          response_format: { type: "json_object" },
         }),
       }
     );
@@ -199,12 +200,14 @@ Review this submission and return the JSON verdict.`;
     }
 
     const aiJson = await upstream.json();
-    const raw = aiJson?.choices?.[0]?.message?.content || "{}";
+    const rawText = aiJson?.content?.find((b: { type: string }) => b.type === "text")?.text || "{}";
+    // The model is instructed to return raw JSON, but strip markdown fences defensively.
+    const cleaned = rawText.trim().replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/i, "").trim();
     let verdict: any = {};
     try {
-      verdict = typeof raw === "string" ? JSON.parse(raw) : raw;
+      verdict = JSON.parse(cleaned);
     } catch (e) {
-      console.error("verdict parse error", e, raw);
+      console.error("verdict parse error", e, rawText);
       return json({ error: "Could not parse AI verdict" }, 500);
     }
 
@@ -279,7 +282,7 @@ Review this submission and return the JSON verdict.`;
           submissionId: sub.id,
           score,
           status,
-          model: "google/gemini-2.5-pro",
+          model: "claude-opus-4-8",
         },
         credits_used: isFree ? 0 : REVIEW_CREDITS_COST,
       });

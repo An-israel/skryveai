@@ -47,8 +47,6 @@ project_id = "uwwmwerdfpyekgshkrft"
     verify_jwt = false
   [functions.scrape-jobs]
     verify_jwt = false
-  [functions.search-jobs]
-    verify_jwt = false
   [functions.send-admin-email]
     verify_jwt = false
   [functions.send-auth-email]

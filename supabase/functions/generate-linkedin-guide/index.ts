@@ -30,8 +30,8 @@ serve(async (req) => {
       });
     }
 
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    if (!LOVABLE_API_KEY) {
+    const ANTHROPIC_API_KEY = Deno.env.get("ANTHROPIC_API_KEY");
+    if (!ANTHROPIC_API_KEY) {
       return new Response(JSON.stringify({ error: "AI service not configured" }), {
         status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -80,52 +80,51 @@ Make every section specific to this person's background, skills, and career traj
 
 Return using the generate_guide function.`;
 
-    const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    const aiResponse = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${LOVABLE_API_KEY}`,
-        "Content-Type": "application/json",
+        "x-api-key": ANTHROPIC_API_KEY,
+        "anthropic-version": "2023-06-01",
+        "content-type": "application/json",
       },
       body: JSON.stringify({
-        model: "google/gemini-2.5-flash",
+        model: "claude-opus-4-8",
+        max_tokens: 8192,
         temperature: 0,
+        system: systemPrompt,
         messages: [
-          { role: "system", content: systemPrompt },
           { role: "user", content: userPrompt },
         ],
         tools: [{
-          type: "function",
-          function: {
-            name: "generate_guide",
-            description: "Generate a structured LinkedIn optimization guide",
-            parameters: {
-              type: "object",
-              properties: {
-                userName: { type: "string" },
-                sections: {
-                  type: "array",
-                  items: {
-                    type: "object",
-                    properties: {
-                      title: { type: "string", description: "Section title (e.g., 'Profile Photo', 'Headline')" },
-                      whatItIs: { type: "string", description: "What this LinkedIn section is and why it matters" },
-                      whatToPut: { type: "string", description: "Specific guidance on what content to add" },
-                      example: { type: "string", description: "Pre-written example text they can copy-paste" },
-                      proTip: { type: "string", description: "Optional pro tip for this section" },
-                    },
-                    required: ["title", "whatItIs", "whatToPut", "example"],
-                    additionalProperties: false,
+          name: "generate_guide",
+          description: "Generate a structured LinkedIn optimization guide",
+          input_schema: {
+            type: "object",
+            properties: {
+              userName: { type: "string" },
+              sections: {
+                type: "array",
+                items: {
+                  type: "object",
+                  properties: {
+                    title: { type: "string", description: "Section title (e.g., 'Profile Photo', 'Headline')" },
+                    whatItIs: { type: "string", description: "What this LinkedIn section is and why it matters" },
+                    whatToPut: { type: "string", description: "Specific guidance on what content to add" },
+                    example: { type: "string", description: "Pre-written example text they can copy-paste" },
+                    proTip: { type: "string", description: "Optional pro tip for this section" },
                   },
+                  required: ["title", "whatItIs", "whatToPut", "example"],
+                  additionalProperties: false,
                 },
-                headline: { type: "string", description: "The exact LinkedIn headline to use (max 220 chars)" },
-                aboutSection: { type: "string", description: "Full pre-written About section (max 2000 chars)" },
               },
-              required: ["userName", "sections", "headline", "aboutSection"],
-              additionalProperties: false,
+              headline: { type: "string", description: "The exact LinkedIn headline to use (max 220 chars)" },
+              aboutSection: { type: "string", description: "Full pre-written About section (max 2000 chars)" },
             },
+            required: ["userName", "sections", "headline", "aboutSection"],
+            additionalProperties: false,
           },
         }],
-        tool_choice: { type: "function", function: { name: "generate_guide" } },
+        tool_choice: { type: "tool", name: "generate_guide" },
       }),
     });
 
@@ -141,13 +140,11 @@ Return using the generate_guide function.`;
     }
 
     const aiData = await aiResponse.json();
-    const toolCall = aiData.choices?.[0]?.message?.tool_calls?.[0];
+    const toolUse = aiData.content?.find((b: { type: string }) => b.type === "tool_use");
     let guide: any = {};
 
-    if (toolCall?.function?.arguments) {
-      try { guide = JSON.parse(toolCall.function.arguments); } catch {
-        throw new Error("Failed to parse LinkedIn guide");
-      }
+    if (toolUse?.input) {
+      guide = toolUse.input;
     }
 
     console.log(`LinkedIn guide generated with ${guide.sections?.length || 0} sections`);

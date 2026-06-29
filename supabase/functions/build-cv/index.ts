@@ -30,8 +30,8 @@ serve(async (req) => {
       });
     }
 
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    if (!LOVABLE_API_KEY) {
+    const ANTHROPIC_API_KEY = Deno.env.get("ANTHROPIC_API_KEY");
+    if (!ANTHROPIC_API_KEY) {
       return new Response(JSON.stringify({ error: "AI service not configured" }), {
         status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -116,74 +116,73 @@ Return using the generate_cv function.`;
     console.log(`Building CV (mode: ${mode}) for user ${user.id}`);
 
     // First pass: generate the CV
-    const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    const aiResponse = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${LOVABLE_API_KEY}`,
-        "Content-Type": "application/json",
+        "x-api-key": ANTHROPIC_API_KEY,
+        "anthropic-version": "2023-06-01",
+        "content-type": "application/json",
       },
       body: JSON.stringify({
-        model: "google/gemini-2.5-flash",
+        model: "claude-opus-4-8",
+        max_tokens: 8192,
         temperature: 0,
+        system: systemPrompt,
         messages: [
-          { role: "system", content: systemPrompt },
           { role: "user", content: userPrompt },
         ],
         tools: [{
-          type: "function",
-          function: {
-            name: "generate_cv",
-            description: "Generate a structured professional CV",
-            parameters: {
-              type: "object",
-              properties: {
-                fullName: { type: "string", description: "Full name" },
-                contactInfo: { type: "string", description: "Phone, email, LinkedIn, location in one line" },
-                professionalSummary: { type: "string", description: "3-4 line professional summary" },
-                keyCompetencies: { type: "array", items: { type: "string" }, description: "8-12 key skills/competencies" },
-                experience: {
-                  type: "array",
-                  items: {
-                    type: "object",
-                    properties: {
-                      jobTitle: { type: "string" },
-                      company: { type: "string" },
-                      duration: { type: "string" },
-                      bullets: { type: "array", items: { type: "string" }, description: "5-6 achievement-focused bullet points" },
-                    },
-                    required: ["jobTitle", "company", "duration", "bullets"],
-                    additionalProperties: false,
+          name: "generate_cv",
+          description: "Generate a structured professional CV",
+          input_schema: {
+            type: "object",
+            properties: {
+              fullName: { type: "string", description: "Full name" },
+              contactInfo: { type: "string", description: "Phone, email, LinkedIn, location in one line" },
+              professionalSummary: { type: "string", description: "3-4 line professional summary" },
+              keyCompetencies: { type: "array", items: { type: "string" }, description: "8-12 key skills/competencies" },
+              experience: {
+                type: "array",
+                items: {
+                  type: "object",
+                  properties: {
+                    jobTitle: { type: "string" },
+                    company: { type: "string" },
+                    duration: { type: "string" },
+                    bullets: { type: "array", items: { type: "string" }, description: "5-6 achievement-focused bullet points" },
                   },
-                },
-                education: {
-                  type: "array",
-                  items: {
-                    type: "object",
-                    properties: {
-                      course: { type: "string" },
-                      institution: { type: "string" },
-                    },
-                    required: ["course", "institution"],
-                    additionalProperties: false,
-                  },
-                },
-                certifications: {
-                  type: "array",
-                  items: { type: "string" },
-                  description: "List of certifications with issuing body",
-                },
-                technicalTools: {
-                  type: "array",
-                  items: { type: "string" },
-                  description: "Relevant software, tools, and technologies",
+                  required: ["jobTitle", "company", "duration", "bullets"],
+                  additionalProperties: false,
                 },
               },
-              required: ["fullName", "contactInfo", "professionalSummary", "keyCompetencies", "experience", "education"],
-              additionalProperties: false,
+              education: {
+                type: "array",
+                items: {
+                  type: "object",
+                  properties: {
+                    course: { type: "string" },
+                    institution: { type: "string" },
+                  },
+                  required: ["course", "institution"],
+                  additionalProperties: false,
+                },
+              },
+              certifications: {
+                type: "array",
+                items: { type: "string" },
+                description: "List of certifications with issuing body",
+              },
+              technicalTools: {
+                type: "array",
+                items: { type: "string" },
+                description: "Relevant software, tools, and technologies",
+              },
             },
+            required: ["fullName", "contactInfo", "professionalSummary", "keyCompetencies", "experience", "education"],
+            additionalProperties: false,
           },
         }],
-        tool_choice: { type: "function", function: { name: "generate_cv" } },
+        tool_choice: { type: "tool", name: "generate_cv" },
       }),
     });
 
@@ -199,28 +198,27 @@ Return using the generate_cv function.`;
     }
 
     const aiData = await aiResponse.json();
-    const toolCall = aiData.choices?.[0]?.message?.tool_calls?.[0];
+    const toolUse = aiData.content?.find((b: { type: string }) => b.type === "tool_use");
     let cvData: any = {};
 
-    if (toolCall?.function?.arguments) {
-      try { cvData = JSON.parse(toolCall.function.arguments); } catch {
-        throw new Error("Failed to parse CV data");
-      }
+    if (toolUse?.input) {
+      cvData = toolUse.input;
     }
 
     // Step 2: ATS Score Check
     console.log("Running ATS score check...");
-    const atsResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    const atsResponse = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${LOVABLE_API_KEY}`,
-        "Content-Type": "application/json",
+        "x-api-key": ANTHROPIC_API_KEY,
+        "anthropic-version": "2023-06-01",
+        "content-type": "application/json",
       },
       body: JSON.stringify({
-        model: "google/gemini-2.5-flash-lite",
+        model: "claude-opus-4-8",
+        max_tokens: 2048,
         temperature: 0,
-        messages: [
-          { role: "system", content: `You are an ATS (Applicant Tracking System) scoring expert. Score the CV on these criteria:
+        system: `You are an ATS (Applicant Tracking System) scoring expert. Score the CV on these criteria:
 - Keyword optimization (does it include relevant industry keywords?)
 - Formatting (clean structure, no tables/graphics that ATS can't read)
 - Section headings (standard headings ATS recognizes)
@@ -228,49 +226,47 @@ Return using the generate_cv function.`;
 - Action verbs (strong professional language)
 - Length appropriateness (1-2 pages)
 - Contact information completeness
-Score each category 0-100 and provide an overall score. The overall score MUST be 95-100 for a well-optimized CV.` },
+Score each category 0-100 and provide an overall score. The overall score MUST be 95-100 for a well-optimized CV.`,
+        messages: [
           { role: "user", content: `Score this CV:\n${JSON.stringify(cvData, null, 2)}${jobDescription ? `\n\nTarget Job Description:\n${jobDescription}` : ""}` },
         ],
         tools: [{
-          type: "function",
-          function: {
-            name: "score_cv",
-            description: "Return ATS score breakdown",
-            parameters: {
-              type: "object",
-              properties: {
-                overallScore: { type: "number", description: "Overall ATS score 0-100" },
-                breakdown: {
-                  type: "object",
-                  properties: {
-                    keywords: { type: "number" },
-                    formatting: { type: "number" },
-                    sections: { type: "number" },
-                    achievements: { type: "number" },
-                    actionVerbs: { type: "number" },
-                    length: { type: "number" },
-                    contactInfo: { type: "number" },
-                  },
-                  required: ["keywords", "formatting", "sections", "achievements", "actionVerbs", "length", "contactInfo"],
-                  additionalProperties: false,
+          name: "score_cv",
+          description: "Return ATS score breakdown",
+          input_schema: {
+            type: "object",
+            properties: {
+              overallScore: { type: "number", description: "Overall ATS score 0-100" },
+              breakdown: {
+                type: "object",
+                properties: {
+                  keywords: { type: "number" },
+                  formatting: { type: "number" },
+                  sections: { type: "number" },
+                  achievements: { type: "number" },
+                  actionVerbs: { type: "number" },
+                  length: { type: "number" },
+                  contactInfo: { type: "number" },
                 },
-                suggestions: { type: "array", items: { type: "string" }, description: "Top 3-5 improvement suggestions" },
+                required: ["keywords", "formatting", "sections", "achievements", "actionVerbs", "length", "contactInfo"],
+                additionalProperties: false,
               },
-              required: ["overallScore", "breakdown", "suggestions"],
-              additionalProperties: false,
+              suggestions: { type: "array", items: { type: "string" }, description: "Top 3-5 improvement suggestions" },
             },
+            required: ["overallScore", "breakdown", "suggestions"],
+            additionalProperties: false,
           },
         }],
-        tool_choice: { type: "function", function: { name: "score_cv" } },
+        tool_choice: { type: "tool", name: "score_cv" },
       }),
     });
 
     let atsScore = { overallScore: 97, breakdown: {}, suggestions: [] };
     if (atsResponse.ok) {
       const atsData = await atsResponse.json();
-      const atsToolCall = atsData.choices?.[0]?.message?.tool_calls?.[0];
-      if (atsToolCall?.function?.arguments) {
-        try { atsScore = JSON.parse(atsToolCall.function.arguments); } catch { /* use default */ }
+      const atsToolUse = atsData.content?.find((b: { type: string }) => b.type === "tool_use");
+      if (atsToolUse?.input) {
+        atsScore = atsToolUse.input;
       }
     }
 
