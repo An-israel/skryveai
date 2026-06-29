@@ -71,62 +71,36 @@ $function$;
 -- Each block checks if the table exists before creating the index so this
 -- migration is safe to run regardless of which tables are present.
 
-DO $$ BEGIN
-  -- profiles
-  IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema='public' AND table_name='profiles') THEN
-    CREATE INDEX IF NOT EXISTS idx_profiles_email ON public.profiles(email);
-  END IF;
-
-  -- subscriptions
-  IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema='public' AND table_name='subscriptions') THEN
-    CREATE INDEX IF NOT EXISTS idx_subscriptions_trial_ends
-      ON public.subscriptions(trial_ends_at) WHERE status = 'trial';
-    CREATE INDEX IF NOT EXISTS idx_subscriptions_user_status
-      ON public.subscriptions(user_id, status);
-  END IF;
-
-  -- campaigns
-  IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema='public' AND table_name='campaigns') THEN
-    CREATE INDEX IF NOT EXISTS idx_campaigns_user_created
-      ON public.campaigns(user_id, created_at DESC);
-    CREATE INDEX IF NOT EXISTS idx_campaigns_user_status
-      ON public.campaigns(user_id, status, created_at DESC);
-  END IF;
-
-  -- emails
-  IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema='public' AND table_name='emails') THEN
-    CREATE INDEX IF NOT EXISTS idx_emails_campaign_created
-      ON public.emails(campaign_id, created_at DESC);
-    CREATE INDEX IF NOT EXISTS idx_emails_user_created
-      ON public.emails(user_id, created_at DESC);
-  END IF;
-
-  -- activity_log
-  IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema='public' AND table_name='activity_log') THEN
-    CREATE INDEX IF NOT EXISTS idx_activity_log_user_created
-      ON public.activity_log(user_id, created_at DESC);
-    CREATE INDEX IF NOT EXISTS idx_activity_log_action
-      ON public.activity_log(action, created_at DESC);
-  END IF;
-
-  -- tool_usage
-  IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema='public' AND table_name='tool_usage') THEN
-    CREATE INDEX IF NOT EXISTS idx_tool_usage_user_tool
-      ON public.tool_usage(user_id, tool_name, created_at DESC);
-  END IF;
-
-  -- chat tables (should exist after previous migration)
-  IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema='public' AND table_name='chat_conversations') THEN
-    CREATE INDEX IF NOT EXISTS idx_chat_conversations_user_id
-      ON public.chat_conversations(user_id);
-    CREATE INDEX IF NOT EXISTS idx_chat_conversations_status_time
-      ON public.chat_conversations(status, last_message_at DESC);
-  END IF;
-
-  IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema='public' AND table_name='chat_messages') THEN
-    CREATE INDEX IF NOT EXISTS idx_chat_messages_conversation_time
-      ON public.chat_messages(conversation_id, created_at ASC);
-    CREATE INDEX IF NOT EXISTS idx_chat_messages_unread_admin
-      ON public.chat_messages(conversation_id, read_by_admin) WHERE read_by_admin = false;
-  END IF;
+-- Each index is created in its own sub-block; if the table or a referenced
+-- column doesn't exist (e.g. legacy columns Lovable added out-of-band), that
+-- index is skipped instead of aborting the whole migration. This keeps a
+-- from-scratch `db push` replay working regardless of which columns are present.
+DO $$
+DECLARE
+  stmt text;
+  stmts text[] := ARRAY[
+    'CREATE INDEX IF NOT EXISTS idx_profiles_email ON public.profiles(email)',
+    'CREATE INDEX IF NOT EXISTS idx_subscriptions_trial_ends ON public.subscriptions(trial_ends_at) WHERE status = ''trial''',
+    'CREATE INDEX IF NOT EXISTS idx_subscriptions_user_status ON public.subscriptions(user_id, status)',
+    'CREATE INDEX IF NOT EXISTS idx_campaigns_user_created ON public.campaigns(user_id, created_at DESC)',
+    'CREATE INDEX IF NOT EXISTS idx_campaigns_user_status ON public.campaigns(user_id, status, created_at DESC)',
+    'CREATE INDEX IF NOT EXISTS idx_emails_campaign_created ON public.emails(campaign_id, created_at DESC)',
+    'CREATE INDEX IF NOT EXISTS idx_emails_user_created ON public.emails(user_id, created_at DESC)',
+    'CREATE INDEX IF NOT EXISTS idx_activity_log_user_created ON public.activity_log(user_id, created_at DESC)',
+    'CREATE INDEX IF NOT EXISTS idx_activity_log_action ON public.activity_log(action, created_at DESC)',
+    'CREATE INDEX IF NOT EXISTS idx_tool_usage_user_tool ON public.tool_usage(user_id, tool_name, created_at DESC)',
+    'CREATE INDEX IF NOT EXISTS idx_chat_conversations_user_id ON public.chat_conversations(user_id)',
+    'CREATE INDEX IF NOT EXISTS idx_chat_conversations_status_time ON public.chat_conversations(status, last_message_at DESC)',
+    'CREATE INDEX IF NOT EXISTS idx_chat_messages_conversation_time ON public.chat_messages(conversation_id, created_at ASC)',
+    'CREATE INDEX IF NOT EXISTS idx_chat_messages_unread_admin ON public.chat_messages(conversation_id, read_by_admin) WHERE read_by_admin = false'
+  ];
+BEGIN
+  FOREACH stmt IN ARRAY stmts LOOP
+    BEGIN
+      EXECUTE stmt;
+    EXCEPTION WHEN undefined_table OR undefined_column THEN
+      -- table or column not present in this schema; skip this index
+      NULL;
+    END;
+  END LOOP;
 END $$;

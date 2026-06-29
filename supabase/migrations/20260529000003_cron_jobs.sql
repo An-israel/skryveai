@@ -11,7 +11,7 @@ SELECT cron.schedule(
     body := '{}'::jsonb
   );
   $$
-) ON CONFLICT (jobname) DO NOTHING;
+);
 
 SELECT cron.schedule(
   'send-digest',
@@ -26,7 +26,7 @@ SELECT cron.schedule(
     body := '{}'::jsonb
   );
   $$
-) ON CONFLICT (jobname) DO NOTHING;
+);
 
 DO $$ BEGIN
   ALTER TABLE aggregated_jobs ADD CONSTRAINT aggregated_jobs_external_id_platform_key UNIQUE (external_id, platform);

@@ -47,4 +47,4 @@ select cron.schedule(
       ),
       body := '{}'::jsonb
   )$$
-) on conflict (jobname) do nothing;
+);
