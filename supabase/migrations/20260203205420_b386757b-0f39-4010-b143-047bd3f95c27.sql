@@ -1,5 +1,11 @@
 -- Enable realtime for email_queue table so users can see real-time updates
-ALTER PUBLICATION supabase_realtime ADD TABLE public.email_queue;
+DO $$
+BEGIN
+  IF to_regclass('public.email_queue') IS NOT NULL
+     AND NOT EXISTS (SELECT 1 FROM pg_publication_tables WHERE pubname='supabase_realtime' AND schemaname='public' AND tablename='email_queue') THEN
+    ALTER PUBLICATION supabase_realtime ADD TABLE public.email_queue;
+  END IF;
+END $$;
 
 -- Create a database trigger to automatically create profile, subscription, and user_settings when a new user signs up
 -- This handles the RLS policy issue by using SECURITY DEFINER to bypass RLS

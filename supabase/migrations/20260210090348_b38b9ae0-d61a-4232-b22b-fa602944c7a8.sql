@@ -34,4 +34,10 @@ CREATE INDEX idx_followups_scheduled ON public.email_followups(status, scheduled
 CREATE INDEX idx_followups_email ON public.email_followups(email_id);
 
 -- Enable realtime for follow-up tracking
-ALTER PUBLICATION supabase_realtime ADD TABLE public.email_followups;
+DO $$
+BEGIN
+  IF to_regclass('public.email_followups') IS NOT NULL
+     AND NOT EXISTS (SELECT 1 FROM pg_publication_tables WHERE pubname='supabase_realtime' AND schemaname='public' AND tablename='email_followups') THEN
+    ALTER PUBLICATION supabase_realtime ADD TABLE public.email_followups;
+  END IF;
+END $$;

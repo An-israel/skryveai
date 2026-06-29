@@ -94,8 +94,17 @@ CREATE POLICY "Admins can update all messages"
   USING (public.is_admin(auth.uid()));
 
 -- ─── Enable Realtime ─────────────────────────────────────────────────────────
-ALTER PUBLICATION supabase_realtime ADD TABLE public.chat_conversations;
-ALTER PUBLICATION supabase_realtime ADD TABLE public.chat_messages;
+DO $$
+BEGIN
+  IF to_regclass('public.chat_conversations') IS NOT NULL
+     AND NOT EXISTS (SELECT 1 FROM pg_publication_tables WHERE pubname='supabase_realtime' AND schemaname='public' AND tablename='chat_conversations') THEN
+    ALTER PUBLICATION supabase_realtime ADD TABLE public.chat_conversations;
+  END IF;
+  IF to_regclass('public.chat_messages') IS NOT NULL
+     AND NOT EXISTS (SELECT 1 FROM pg_publication_tables WHERE pubname='supabase_realtime' AND schemaname='public' AND tablename='chat_messages') THEN
+    ALTER PUBLICATION supabase_realtime ADD TABLE public.chat_messages;
+  END IF;
+END $$;
 
 -- ─── Update trial period to 7 days ──────────────────────────────────────────
 CREATE OR REPLACE FUNCTION public.handle_new_user()

@@ -126,5 +126,14 @@ CREATE TRIGGER update_business_email_enrichment_updated_at
   FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
 
 -- Enable realtime for jobs table so frontend can subscribe to progress
-ALTER PUBLICATION supabase_realtime ADD TABLE public.email_finder_jobs;
-ALTER PUBLICATION supabase_realtime ADD TABLE public.business_email_enrichment;
+DO $$
+BEGIN
+  IF to_regclass('public.email_finder_jobs') IS NOT NULL
+     AND NOT EXISTS (SELECT 1 FROM pg_publication_tables WHERE pubname='supabase_realtime' AND schemaname='public' AND tablename='email_finder_jobs') THEN
+    ALTER PUBLICATION supabase_realtime ADD TABLE public.email_finder_jobs;
+  END IF;
+  IF to_regclass('public.business_email_enrichment') IS NOT NULL
+     AND NOT EXISTS (SELECT 1 FROM pg_publication_tables WHERE pubname='supabase_realtime' AND schemaname='public' AND tablename='business_email_enrichment') THEN
+    ALTER PUBLICATION supabase_realtime ADD TABLE public.business_email_enrichment;
+  END IF;
+END $$;
