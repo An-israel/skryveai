@@ -52,7 +52,7 @@ exception when duplicate_object then null; end $$;
 
 -- talent_profiles
 create table if not exists public.talent_profiles (
-  id                       uuid primary key default uuid_generate_v4(),
+  id                       uuid primary key default gen_random_uuid(),
   user_id                  uuid not null unique references auth.users(id) on delete cascade,
   full_name                text,
   location                 text,
@@ -76,7 +76,7 @@ create table if not exists public.talent_profiles (
 
 -- client_profiles
 create table if not exists public.client_profiles (
-  id            uuid primary key default uuid_generate_v4(),
+  id            uuid primary key default gen_random_uuid(),
   user_id       uuid not null unique references auth.users(id) on delete cascade,
   company_name  text,
   industry      text,
@@ -94,7 +94,7 @@ create table if not exists public.client_profiles (
 
 -- portfolio_items
 create table if not exists public.portfolio_items (
-  id             uuid primary key default uuid_generate_v4(),
+  id             uuid primary key default gen_random_uuid(),
   talent_id      uuid not null references public.talent_profiles(id) on delete cascade,
   title          text not null,
   description    text,
@@ -111,7 +111,7 @@ create table if not exists public.portfolio_items (
 
 -- job_posts
 create table if not exists public.job_posts (
-  id               uuid primary key default uuid_generate_v4(),
+  id               uuid primary key default gen_random_uuid(),
   client_id        uuid not null references public.client_profiles(id) on delete cascade,
   title            text not null,
   description      text not null,
@@ -133,7 +133,7 @@ create table if not exists public.job_posts (
 
 -- applications
 create table if not exists public.applications (
-  id                  uuid primary key default uuid_generate_v4(),
+  id                  uuid primary key default gen_random_uuid(),
   job_id              uuid not null references public.job_posts(id) on delete cascade,
   talent_id           uuid not null references public.talent_profiles(id) on delete cascade,
   proposal_text       text,
@@ -148,7 +148,7 @@ create table if not exists public.applications (
 
 -- offers
 create table if not exists public.offers (
-  id          uuid primary key default uuid_generate_v4(),
+  id          uuid primary key default gen_random_uuid(),
   job_id      uuid references public.job_posts(id) on delete set null,
   client_id   uuid not null references public.client_profiles(id) on delete cascade,
   talent_id   uuid not null references public.talent_profiles(id) on delete cascade,
@@ -165,7 +165,7 @@ create table if not exists public.offers (
 
 -- projects
 create table if not exists public.projects (
-  id           uuid primary key default uuid_generate_v4(),
+  id           uuid primary key default gen_random_uuid(),
   offer_id     uuid unique references public.offers(id) on delete set null,
   job_id       uuid references public.job_posts(id) on delete set null,
   client_id    uuid not null references public.client_profiles(id) on delete cascade,
@@ -179,7 +179,7 @@ create table if not exists public.projects (
 
 -- deliverables
 create table if not exists public.deliverables (
-  id           uuid primary key default uuid_generate_v4(),
+  id           uuid primary key default gen_random_uuid(),
   project_id   uuid not null references public.projects(id) on delete cascade,
   talent_id    uuid not null references public.talent_profiles(id) on delete cascade,
   file_url     text,
@@ -191,7 +191,7 @@ create table if not exists public.deliverables (
 
 -- reviews
 create table if not exists public.reviews (
-  id          uuid primary key default uuid_generate_v4(),
+  id          uuid primary key default gen_random_uuid(),
   project_id  uuid not null references public.projects(id) on delete cascade,
   reviewer_id uuid not null references auth.users(id) on delete cascade,
   reviewee_id uuid not null references auth.users(id) on delete cascade,
@@ -207,7 +207,7 @@ create table if not exists public.reviews (
 
 -- aggregated_jobs
 create table if not exists public.aggregated_jobs (
-  id           uuid primary key default uuid_generate_v4(),
+  id           uuid primary key default gen_random_uuid(),
   external_id  text not null,
   platform     skryve_agg_platform not null,
   title        text not null,
@@ -225,7 +225,7 @@ create table if not exists public.aggregated_jobs (
 
 -- job_preferences (talent's personalised feed settings)
 create table if not exists public.job_preferences (
-  id                   uuid primary key default uuid_generate_v4(),
+  id                   uuid primary key default gen_random_uuid(),
   talent_id            uuid not null unique references public.talent_profiles(id) on delete cascade,
   primary_skill        text,
   secondary_skills     text[]  not null default '{}',
@@ -241,7 +241,7 @@ create table if not exists public.job_preferences (
 
 -- saved_jobs (bookmarks across both marketplace and aggregator)
 create table if not exists public.saved_jobs (
-  id         uuid primary key default uuid_generate_v4(),
+  id         uuid primary key default gen_random_uuid(),
   talent_id  uuid not null references public.talent_profiles(id) on delete cascade,
   job_id     uuid references public.job_posts(id) on delete cascade,
   agg_job_id uuid references public.aggregated_jobs(id) on delete cascade,
@@ -255,7 +255,7 @@ create table if not exists public.saved_jobs (
 
 -- applications_tracker (manual tracking for external applications)
 create table if not exists public.applications_tracker (
-  id             uuid primary key default uuid_generate_v4(),
+  id             uuid primary key default gen_random_uuid(),
   talent_id      uuid not null references public.talent_profiles(id) on delete cascade,
   job_title      text not null,
   platform       text,
@@ -275,7 +275,7 @@ create table if not exists public.applications_tracker (
 
 -- events
 create table if not exists public.events (
-  id               uuid primary key default uuid_generate_v4(),
+  id               uuid primary key default gen_random_uuid(),
   organizer_id     uuid not null references auth.users(id) on delete cascade,
   title            text not null,
   description      text,
@@ -299,7 +299,7 @@ create table if not exists public.events (
 
 -- event_rsvps
 create table if not exists public.event_rsvps (
-  id             uuid primary key default uuid_generate_v4(),
+  id             uuid primary key default gen_random_uuid(),
   event_id       uuid not null references public.events(id) on delete cascade,
   user_id        uuid not null references auth.users(id) on delete cascade,
   payment_status skryve_payment_status not null default 'pending',
@@ -313,7 +313,7 @@ create table if not exists public.event_rsvps (
 
 -- courses
 create table if not exists public.courses (
-  id             uuid primary key default uuid_generate_v4(),
+  id             uuid primary key default gen_random_uuid(),
   title          text not null,
   description    text,
   skill_category text,
@@ -331,7 +331,7 @@ create table if not exists public.courses (
 
 -- course_lessons
 create table if not exists public.course_lessons (
-  id               uuid primary key default uuid_generate_v4(),
+  id               uuid primary key default gen_random_uuid(),
   course_id        uuid not null references public.courses(id) on delete cascade,
   module_name      text,
   title            text not null,
@@ -345,7 +345,7 @@ create table if not exists public.course_lessons (
 
 -- enrollments
 create table if not exists public.enrollments (
-  id               uuid primary key default uuid_generate_v4(),
+  id               uuid primary key default gen_random_uuid(),
   course_id        uuid not null references public.courses(id) on delete cascade,
   talent_id        uuid not null references public.talent_profiles(id) on delete cascade,
   payment_status   skryve_payment_status not null default 'paid',
@@ -357,7 +357,7 @@ create table if not exists public.enrollments (
 
 -- lesson_progress
 create table if not exists public.lesson_progress (
-  id           uuid primary key default uuid_generate_v4(),
+  id           uuid primary key default gen_random_uuid(),
   enrollment_id uuid not null references public.enrollments(id) on delete cascade,
   lesson_id    uuid not null references public.course_lessons(id) on delete cascade,
   is_completed boolean     not null default false,
@@ -367,7 +367,7 @@ create table if not exists public.lesson_progress (
 
 -- certificates
 create table if not exists public.certificates (
-  id              uuid primary key default uuid_generate_v4(),
+  id              uuid primary key default gen_random_uuid(),
   course_id       uuid not null references public.courses(id) on delete cascade,
   talent_id       uuid not null references public.talent_profiles(id) on delete cascade,
   issued_at       timestamptz not null default now(),
@@ -381,7 +381,7 @@ create table if not exists public.certificates (
 
 -- skryve_cvs (prefixed to avoid any conflict with existing cv data)
 create table if not exists public.skryve_cvs (
-  id                 uuid primary key default uuid_generate_v4(),
+  id                 uuid primary key default gen_random_uuid(),
   talent_id          uuid not null references public.talent_profiles(id) on delete cascade,
   title              text not null default 'My CV',
   template_name      text not null default 'classic',
@@ -403,7 +403,7 @@ create table if not exists public.skryve_cvs (
 
 -- marketplace_conversations
 create table if not exists public.marketplace_conversations (
-  id              uuid primary key default uuid_generate_v4(),
+  id              uuid primary key default gen_random_uuid(),
   talent_id       uuid not null references public.talent_profiles(id) on delete cascade,
   client_id       uuid not null references public.client_profiles(id) on delete cascade,
   job_id          uuid references public.job_posts(id) on delete set null,
@@ -414,7 +414,7 @@ create table if not exists public.marketplace_conversations (
 
 -- marketplace_messages
 create table if not exists public.marketplace_messages (
-  id              uuid primary key default uuid_generate_v4(),
+  id              uuid primary key default gen_random_uuid(),
   conversation_id uuid not null references public.marketplace_conversations(id) on delete cascade,
   sender_id       uuid not null references auth.users(id) on delete cascade,
   content         text not null,

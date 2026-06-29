@@ -6,7 +6,7 @@ ALTER TABLE projects ADD COLUMN IF NOT EXISTS deadline date;
 ALTER TABLE projects ADD COLUMN IF NOT EXISTS title text;
 
 CREATE TABLE IF NOT EXISTS public.project_milestones (
-  id          uuid primary key default uuid_generate_v4(),
+  id          uuid primary key default gen_random_uuid(),
   project_id  uuid not null references public.projects(id) on delete cascade,
   title       text not null,
   description text,
@@ -17,7 +17,7 @@ CREATE TABLE IF NOT EXISTS public.project_milestones (
 );
 
 CREATE TABLE IF NOT EXISTS public.project_deliverables (
-  id               uuid primary key default uuid_generate_v4(),
+  id               uuid primary key default gen_random_uuid(),
   project_id       uuid not null references public.projects(id) on delete cascade,
   file_url         text,
   file_name        text,
@@ -30,7 +30,7 @@ CREATE TABLE IF NOT EXISTS public.project_deliverables (
 );
 
 CREATE TABLE IF NOT EXISTS public.talent_reviews (
-  id                    uuid primary key default uuid_generate_v4(),
+  id                    uuid primary key default gen_random_uuid(),
   project_id            uuid references public.projects(id) on delete set null,
   reviewer_id           uuid,
   reviewee_id           uuid,

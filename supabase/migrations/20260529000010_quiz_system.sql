@@ -1,6 +1,6 @@
 -- quizzes: one per module (optional, toggled per course)
 CREATE TABLE IF NOT EXISTS public.quizzes (
-  id           uuid PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id           uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   course_id    uuid NOT NULL REFERENCES public.courses(id) ON DELETE CASCADE,
   module_name  text NOT NULL,
   title        text NOT NULL,
@@ -10,7 +10,7 @@ CREATE TABLE IF NOT EXISTS public.quizzes (
 
 -- quiz_questions
 CREATE TABLE IF NOT EXISTS public.quiz_questions (
-  id             uuid PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id             uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   quiz_id        uuid NOT NULL REFERENCES public.quizzes(id) ON DELETE CASCADE,
   question       text NOT NULL,
   question_type  text NOT NULL DEFAULT 'multiple_choice', -- 'multiple_choice' | 'true_false'
@@ -22,7 +22,7 @@ CREATE TABLE IF NOT EXISTS public.quiz_questions (
 
 -- quiz_attempts
 CREATE TABLE IF NOT EXISTS public.quiz_attempts (
-  id          uuid PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id          uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   quiz_id     uuid NOT NULL REFERENCES public.quizzes(id) ON DELETE CASCADE,
   talent_id   uuid NOT NULL REFERENCES public.talent_profiles(id) ON DELETE CASCADE,
   score       int  NOT NULL DEFAULT 0,

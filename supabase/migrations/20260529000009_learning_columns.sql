@@ -20,7 +20,7 @@ ALTER TABLE public.lesson_progress
 
 -- course_reviews table
 CREATE TABLE IF NOT EXISTS public.course_reviews (
-  id         uuid PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id         uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   course_id  uuid NOT NULL REFERENCES public.courses(id) ON DELETE CASCADE,
   talent_id  uuid NOT NULL REFERENCES public.talent_profiles(id) ON DELETE CASCADE,
   rating     int  NOT NULL CHECK (rating BETWEEN 1 AND 5),
