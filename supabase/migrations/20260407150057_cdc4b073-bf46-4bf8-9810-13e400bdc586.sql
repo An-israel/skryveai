@@ -174,9 +174,9 @@ BEGIN
 END;
 $function$;
 
--- Ensure trigger exists
-DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
-CREATE TRIGGER on_auth_user_created
+-- Ensure trigger exists. CREATE OR REPLACE avoids DROP TRIGGER, which needs
+-- ownership of auth.users (Supabase's postgres role only has TRIGGER privilege).
+CREATE OR REPLACE TRIGGER on_auth_user_created
   AFTER INSERT ON auth.users
   FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
 
