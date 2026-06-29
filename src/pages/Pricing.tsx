@@ -128,7 +128,7 @@ export default function Pricing() {
         <div className="text-center mb-8">
           <h1 className="text-2xl sm:text-4xl font-bold mb-3">Simple, Transparent Pricing</h1>
           <p className="text-base sm:text-xl text-muted-foreground">
-            Start with a free trial. No credit card required.
+            Start free, no card required. Upgrade when you're ready to grow.
           </p>
           <Badge variant="secondary" className="mt-3">
             Showing prices in {pricing?.currencyName || "your currency"}
@@ -149,22 +149,50 @@ export default function Pricing() {
         </div>
 
         {tab === "individual" ? (
-          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
+            {/* Free */}
+            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.05 }}>
+              <Card className="relative h-full">
+                <CardHeader>
+                  <CardTitle className="text-lg sm:text-xl">Free</CardTitle>
+                  <CardDescription>Explore everything, no card needed</CardDescription>
+                  <div className="mt-4">
+                    <span className="text-3xl sm:text-4xl font-bold">{pricing?.symbol || "₦"}0</span>
+                    <span className="text-muted-foreground">/forever</span>
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-1">Get started in seconds</p>
+                </CardHeader>
+                <CardContent>
+                  <ul className="space-y-2.5 mb-6">
+                    {["Browse & apply to jobs from 10+ platforms", "5 AI job proposals / month", "Create your talent profile", "1 AI CV build / month", "1 ATS scan / month", "Free courses & events"].map(f => (
+                      <li key={f} className="flex items-start gap-2">
+                        <Check className="w-4 h-4 text-primary mt-0.5 shrink-0" />
+                        <span className="text-sm">{f}</span>
+                      </li>
+                    ))}
+                  </ul>
+                  <Button onClick={() => navigate("/signup")} className="w-full" variant="outline">
+                    Start Free
+                  </Button>
+                </CardContent>
+              </Card>
+            </motion.div>
+
             {/* Basic */}
             <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}>
               <Card className="relative h-full">
                 <CardHeader>
                   <CardTitle className="text-lg sm:text-xl">Basic</CardTitle>
-                  <CardDescription>For freelancers just starting out</CardDescription>
+                  <CardDescription>For active job seekers</CardDescription>
                   <div className="mt-4">
                     <span className="text-3xl sm:text-4xl font-bold">{p?.basic.monthly.display || "₦5,000"}</span>
                     <span className="text-muted-foreground">/month</span>
                   </div>
-                  <p className="text-xs text-muted-foreground mt-1">50 credits/month • Up to 250 emails/month</p>
+                  <p className="text-xs text-muted-foreground mt-1">50 AI credits / month</p>
                 </CardHeader>
                 <CardContent>
                   <ul className="space-y-2.5 mb-6">
-                    {["AI-powered business discovery", "Find Clients mode only", "Automated website analysis", "Personalized pitch generation", "Email sending & tracking"].map(f => (
+                    {["Everything in Free", "Unlimited AI job proposals", "Full AI CV builder + downloads", "Unlimited ATS scans", "LinkedIn profile analyzer", "Apply to marketplace projects"].map(f => (
                       <li key={f} className="flex items-start gap-2">
                         <Check className="w-4 h-4 text-primary mt-0.5 shrink-0" />
                         <span className="text-sm">{f}</span>
@@ -186,13 +214,13 @@ export default function Pricing() {
                   <Badge className="bg-primary gap-1"><Star className="w-3 h-3" /> Most Popular</Badge>
                 </div>
                 <CardHeader>
-                  <CardTitle className="text-lg sm:text-xl">Popular</CardTitle>
-                  <CardDescription>Full access to all tools</CardDescription>
+                  <CardTitle className="text-lg sm:text-xl">Pro</CardTitle>
+                  <CardDescription>Everything to get hired faster</CardDescription>
                   <div className="mt-4">
                     <span className="text-3xl sm:text-4xl font-bold">{p?.popular.monthly.display || "₦7,000"}</span>
                     <span className="text-muted-foreground">/month</span>
                   </div>
-                  <p className="text-xs text-muted-foreground mt-1">100 credits/month • Up to 500 emails/month</p>
+                  <p className="text-xs text-muted-foreground mt-1">100 AI credits / month</p>
                   {p?.popular.yearly && (
                     <p className="text-xs text-primary font-medium mt-1">
                       or {p.popular.yearly.display}/year — save {p.popular.yearly.savings}%
@@ -201,7 +229,7 @@ export default function Pricing() {
                 </CardHeader>
                 <CardContent>
                   <ul className="space-y-2.5 mb-6">
-                    {["AI-powered business discovery", "All campaign modes", "Find Clients + Pitch a Client", "Find Investors mode", "Automated website analysis", "Personalized pitch generation", "Email sending & tracking", "Reply detection", "Campaign analytics", "Auto follow-up emails", "⚡ Auto-Pilot Mode"].map(f => (
+                    {["Everything in Basic", "Priority visibility to clients", "Full learning platform + AI coach", "Assignment reviews & certificates", "AI LinkedIn optimization guide", "Priority support"].map(f => (
                       <li key={f} className="flex items-start gap-2">
                         <Check className="w-4 h-4 text-primary mt-0.5 shrink-0" />
                         <span className="text-sm">{f}</span>
@@ -235,11 +263,11 @@ export default function Pricing() {
                     <span className="text-3xl sm:text-4xl font-bold">{p?.unlimited.monthly.display || "₦15,000"}</span>
                     <span className="text-muted-foreground">/month</span>
                   </div>
-                  <p className="text-xs text-muted-foreground mt-1">Unlimited credits</p>
+                  <p className="text-xs text-muted-foreground mt-1">Unlimited AI credits</p>
                 </CardHeader>
                 <CardContent>
                   <ul className="space-y-2.5 mb-6">
-                    {["Everything in Popular", "Unlimited credits", "⚡ Auto-Pilot Mode", "Priority support", "All future features", "No campaign limits"].map(f => (
+                    {["Everything in Pro", "Unlimited AI credits", "Top placement in client searches", "Early access to new features", "Dedicated priority support"].map(f => (
                       <li key={f} className="flex items-start gap-2">
                         <Check className="w-4 h-4 text-primary mt-0.5 shrink-0" />
                         <span className="text-sm">{f}</span>
@@ -264,7 +292,7 @@ export default function Pricing() {
                   <CardTitle className="text-lg sm:text-xl flex items-center gap-2">
                     <Users className="w-5 h-5" /> Basic Team
                   </CardTitle>
-                  <CardDescription>For small agencies</CardDescription>
+                  <CardDescription>For small teams & agencies</CardDescription>
                   <div className="mt-4">
                     <span className="text-3xl sm:text-4xl font-bold">{p?.team_basic.monthly.display || "₦18,000"}</span>
                     <span className="text-muted-foreground">/month</span>
@@ -278,14 +306,13 @@ export default function Pricing() {
                 <CardContent>
                   <ul className="space-y-2.5 mb-6">
                     {[
-                      "Team of up to 7 members",
-                      "300 credits/month shared",
-                      "Up to 1,500 emails/month",
-                      "5 expertise profiles",
-                      "All campaign modes",
-                      "Invite team via email",
-                      "Shared campaign analytics",
-                      "Auto follow-up emails",
+                      "Up to 7 team members",
+                      "300 shared AI credits / month",
+                      "5 team talent profiles",
+                      "Apply to & manage projects together",
+                      "Shared client messaging",
+                      "Team analytics dashboard",
+                      "Priority support",
                     ].map(f => (
                       <li key={f} className="flex items-start gap-2">
                         <Check className="w-4 h-4 text-primary mt-0.5 shrink-0" />
@@ -330,15 +357,13 @@ export default function Pricing() {
                 <CardContent>
                   <ul className="space-y-2.5 mb-6">
                     {[
-                      "Team of up to 15 members",
-                      "500 credits/month shared",
-                      "Up to 2,500 emails/month",
-                      "12 expertise profiles",
-                      "All campaign modes",
-                      "Invite team via email",
-                      "Shared campaign analytics",
-                      "Priority support",
-                      "Auto follow-up emails",
+                      "Up to 15 team members",
+                      "500 shared AI credits / month",
+                      "12 team talent profiles",
+                      "Everything in Basic Team",
+                      "Bulk proposals & applications",
+                      "Advanced team analytics",
+                      "Dedicated account manager",
                     ].map(f => (
                       <li key={f} className="flex items-start gap-2">
                         <Check className="w-4 h-4 text-primary mt-0.5 shrink-0" />
@@ -362,7 +387,7 @@ export default function Pricing() {
         )}
 
         <p className="text-center text-sm text-muted-foreground mt-8">
-          All plans include a 7-day free trial. Cancel anytime.
+          Free forever on the Free plan. Paid plans are billed monthly or yearly — cancel anytime.
         </p>
       </div>
     </div>

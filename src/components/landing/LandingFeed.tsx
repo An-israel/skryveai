@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Link } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Briefcase, BookOpen, CalendarDays, MapPin, Clock, ArrowRight,
@@ -168,6 +169,20 @@ export function LandingFeed() {
           <p className="text-[15px] md:text-[17px] text-white/40 leading-relaxed">
             Browse real opportunities before you sign up. When you're ready to apply, register, or start learning, creating a free account takes seconds.
           </p>
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-3 mt-7">
+            <Link
+              to="/signup"
+              className="flex items-center gap-2 px-6 py-3 rounded-xl bg-white text-[#09090b] text-[14px] font-bold hover:bg-white/90 transition-all shadow-lg"
+            >
+              Find work <ArrowRight className="w-4 h-4" />
+            </Link>
+            <Link
+              to="/signup?role=client"
+              className="flex items-center gap-2 px-6 py-3 rounded-xl border border-white/[0.15] text-white/70 text-[14px] font-medium hover:border-white/30 hover:text-white transition-all bg-white/[0.03]"
+            >
+              Hire talent
+            </Link>
+          </div>
         </motion.div>
 
         {/* Tabs */}
