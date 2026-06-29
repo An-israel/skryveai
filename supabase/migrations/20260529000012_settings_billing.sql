@@ -53,7 +53,7 @@ DO $$ BEGIN CREATE POLICY "bill_own" ON public.billing_history FOR SELECT USING 
 -- Index
 CREATE INDEX IF NOT EXISTS idx_subscriptions_user ON public.subscriptions(user_id);
 CREATE INDEX IF NOT EXISTS idx_billing_user ON public.billing_history(user_id, created_at DESC);
-CREATE INDEX IF NOT EXISTS idx_notifications_user_unread ON public.notifications(user_id, is_read, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_notifications_user_unread ON public.notifications(user_id, read, created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_mkt_conv_talent ON public.marketplace_conversations(talent_id, last_message_at DESC);
 CREATE INDEX IF NOT EXISTS idx_mkt_conv_client ON public.marketplace_conversations(client_id, last_message_at DESC);
 CREATE INDEX IF NOT EXISTS idx_mkt_msg_conv ON public.marketplace_messages(conversation_id, sent_at ASC);
