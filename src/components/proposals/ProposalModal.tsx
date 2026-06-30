@@ -5,6 +5,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
+import { TailorCVButton } from "@/components/cv/TailorCVButton";
 import {
   Loader2,
   RefreshCw,
@@ -83,7 +84,14 @@ export function ProposalModal({ open, onClose, job, onTrack }: ProposalModalProp
       if (error) throw error;
       setProposal(data?.proposal || "");
     } catch (e: any) {
-      toast({ title: "Generation failed", description: e.message, variant: "destructive" });
+      let description = e?.message || "Please try again.";
+      try {
+        if (e?.context?.json) {
+          const body = await e.context.json();
+          if (body?.message) description = body.message;
+        }
+      } catch { /* ignore */ }
+      toast({ title: "Generation failed", description, variant: "destructive" });
     } finally {
       setGenerating(false);
     }
@@ -221,10 +229,20 @@ export function ProposalModal({ open, onClose, job, onTrack }: ProposalModalProp
                     </Button>
                   </div>
 
-                  <Button className="w-full" onClick={handleTrack} disabled={!proposal}>
-                    <BookmarkPlus className="w-4 h-4 mr-2" />
-                    Track This Application
-                  </Button>
+                  <div className="flex gap-2">
+                    <Button className="flex-1" onClick={handleTrack} disabled={!proposal}>
+                      <BookmarkPlus className="w-4 h-4 mr-2" />
+                      Track This Application
+                    </Button>
+                    {job && (
+                      <TailorCVButton
+                        jobTitle={job.title}
+                        jobDescription={job.description}
+                        requiredSkills={job.skill_tags}
+                        variant="outline"
+                      />
+                    )}
+                  </div>
                 </>
               )}
             </div>

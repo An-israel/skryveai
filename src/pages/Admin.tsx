@@ -28,6 +28,7 @@ import { PageToggleManager } from "@/components/admin/PageToggleManager";
 import { AdminBlogManager } from "@/components/admin/AdminBlogManager";
 import { EventsManager } from "@/components/admin/EventsManager";
 import { SkillsManager } from "@/components/admin/SkillsManager";
+import { UsageManager } from "@/components/admin/UsageManager";
 
 interface AdminStats {
   totalUsers: number;
@@ -49,7 +50,7 @@ interface CMSPage {
 }
 
 // Role-based tab definitions
-type TabId = "users" | "pages" | "images" | "staff" | "activity" | "credits" | "analytics" | "reports" | "page-toggle" | "blog" | "events" | "skills";
+type TabId = "users" | "pages" | "images" | "staff" | "activity" | "credits" | "analytics" | "reports" | "page-toggle" | "blog" | "events" | "skills" | "usage";
 
 const TAB_PERMISSIONS: Record<TabId, string[]> = {
   users: ["super_admin", "support_agent"],
@@ -64,6 +65,7 @@ const TAB_PERMISSIONS: Record<TabId, string[]> = {
   blog: ["super_admin", "content_editor"],
   events: ["super_admin", "content_editor", "staff"],
   skills: ["super_admin", "content_editor"],
+  usage: ["super_admin"],
 };
 
 export default function Admin() {
@@ -574,6 +576,7 @@ export default function Admin() {
                 blog: <FileText className="w-3.5 h-3.5 shrink-0" />,
                 events: <CalendarDays className="w-3.5 h-3.5 shrink-0" />,
                 skills: <GraduationCap className="w-3.5 h-3.5 shrink-0" />,
+                usage: <Activity className="w-3.5 h-3.5 shrink-0" />,
               };
               const labels: Record<TabId, string> = {
                 users: "Users",
@@ -588,6 +591,7 @@ export default function Admin() {
                 blog: "Blog",
                 events: "Events",
                 skills: "Skills",
+                usage: "Usage",
               };
               return (
                 <TabsTrigger key={tab} value={tab} className="gap-1 text-xs sm:text-sm px-2 py-1.5">
@@ -1057,6 +1061,11 @@ export default function Admin() {
             <TabsContent value="events">
               <EventsManager />
             </TabsContent>
+          )}
+
+          {/* Usage & Rate Limits Tab */}
+          {hasTabAccess("usage") && (
+            <TabsContent value="usage"><UsageManager /></TabsContent>
           )}
 
           {/* Skills / Learn Manager Tab */}

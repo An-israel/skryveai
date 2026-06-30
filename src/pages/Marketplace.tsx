@@ -80,11 +80,6 @@ const scoreJob = (job: any, skills: string[]) => {
   return Math.min(score, 95);
 };
 
-const calcAvgRating = (reviews: any[] | undefined) => {
-  if (!reviews?.length) return null;
-  return reviews.reduce((sum: number, r: any) => sum + (r.rating || 0), 0) / reviews.length;
-};
-
 function StarRating({ rating }: { rating: number | null }) {
   if (rating === null) return null;
   return (
@@ -346,7 +341,7 @@ export default function Marketplace() {
       .select(`
         *,
         client_profiles(company_name, logo_url, industry, is_verified, user_id, total_hires,
-          client_reviews:reviews(rating)
+          rating_avg, total_reviews
         )
       `, { count: "exact" })
       .eq("status", "active")
@@ -375,7 +370,7 @@ export default function Marketplace() {
     const scored = (data || []).map((job: any) => ({
       ...job,
       matchScore: scoreJob(job, userSkills),
-      clientRating: calcAvgRating(job.client_profiles?.client_reviews),
+      clientRating: job.client_profiles?.total_reviews > 0 ? job.client_profiles.rating_avg : null,
     }));
 
     if (sortBy === "match") scored.sort((a: any, b: any) => b.matchScore - a.matchScore);

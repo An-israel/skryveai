@@ -20,7 +20,8 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Star, Users, ChevronDown } from "lucide-react";
+import { Star, Users, ChevronDown, MessageSquare, Briefcase } from "lucide-react";
+import { matchesSkillQuery } from "@/lib/skills";
 
 const AVAILABILITY_BADGE: Record<string, { label: string; className: string }> = {
   available: { label: "Available", className: "bg-green-500/10 text-green-600 border-green-500/20" },
@@ -70,9 +71,8 @@ export default function BrowseTalent() {
     const { data } = await (supabase as any)
       .from("talent_profiles")
       .select(
-        "id, full_name, profile_photo_url, primary_skill, secondary_skills, experience_level, hourly_rate, rate_currency, bio, availability_status, created_at"
+        "id, user_id, full_name, profile_photo_url, primary_skill, secondary_skills, experience_level, hourly_rate, rate_currency, bio, availability_status, rating_avg, total_reviews, completed_projects_count, created_at"
       )
-      .not("full_name", "is", null)
       .order("created_at", { ascending: false });
     setTalents(data || []);
     setLoading(false);
@@ -95,6 +95,29 @@ export default function BrowseTalent() {
     setClientJobs(jobs || []);
   };
 
+  const handleMessage = async (talentUserId: string | null) => {
+    if (!user) {
+      navigate("/login");
+      return;
+    }
+    if (!talentUserId) {
+      toast({ title: "Unable to message this talent", variant: "destructive" });
+      return;
+    }
+    if (talentUserId === user.id) {
+      toast({ title: "That's you!", description: "You can't message yourself." });
+      return;
+    }
+    const { data, error } = await (supabase as any).rpc("get_or_create_direct_conversation", {
+      _other: talentUserId,
+    });
+    if (error || !data) {
+      toast({ title: "Couldn't start conversation", description: error?.message, variant: "destructive" });
+      return;
+    }
+    navigate(`/dm/${data}`);
+  };
+
   const handleInvite = async (talentId: string, jobId: string, jobTitle: string, talentUserId: string) => {
     try {
       notifyUser({
@@ -114,8 +137,8 @@ export default function BrowseTalent() {
   const filteredTalents = talents
     .filter((t) => {
       if (skillFilter) {
-        const skills = [t.primary_skill, ...(t.secondary_skills || [])].filter(Boolean).join(" ").toLowerCase();
-        if (!skills.includes(skillFilter.toLowerCase())) return false;
+        const skills = [t.primary_skill, t.full_name, ...(t.secondary_skills || [])].filter(Boolean).join(" ");
+        if (!matchesSkillQuery(skills, skillFilter)) return false;
       }
       if (levelFilter !== "all" && t.experience_level !== levelFilter) return false;
       if (availabilityFilter !== "all" && t.availability_status !== availabilityFilter) return false;
@@ -141,9 +164,15 @@ export default function BrowseTalent() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="font-display text-2xl font-bold">Find Talent</h1>
-        <p className="text-muted-foreground text-sm mt-1">Discover skilled professionals — hire them for your projects or collaborate with them on yours.</p>
+      <div className="flex items-start justify-between gap-3 flex-wrap">
+        <div>
+          <h1 className="font-display text-2xl font-bold">Collab</h1>
+          <p className="text-muted-foreground text-sm mt-1">Discover skilled professionals — message them, collaborate on projects, or hire them.</p>
+        </div>
+        <Button variant="outline" size="sm" className="gap-2" onClick={() => navigate("/dm")}>
+          <MessageSquare className="w-4 h-4" />
+          My conversations
+        </Button>
       </div>
 
       <div className="flex flex-wrap gap-3 items-end">
@@ -236,9 +265,12 @@ export default function BrowseTalent() {
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           {filteredTalents.map((talent) => {
             const avail = AVAILABILITY_BADGE[talent.availability_status || "available"];
+            const displayName = talent.full_name || "Talent";
             const profileSlug =
               talent.full_name?.toLowerCase().replace(/\s+/g, "-") || talent.id;
             const rate = formatRate(talent.hourly_rate, talent.rate_currency);
+            const hasRating = (talent.total_reviews || 0) > 0 && talent.rating_avg != null;
+            const projects = talent.completed_projects_count || 0;
 
             return (
               <div
@@ -250,16 +282,16 @@ export default function BrowseTalent() {
                     {talent.profile_photo_url ? (
                       <img
                         src={talent.profile_photo_url}
-                        alt={talent.full_name}
+                        alt={displayName}
                         className="w-full h-full object-cover"
                       />
                     ) : (
-                      getInitials(talent.full_name)
+                      getInitials(displayName)
                     )}
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
-                      <p className="font-semibold text-sm">{talent.full_name}</p>
+                      <p className="font-semibold text-sm">{displayName}</p>
                       {avail && (
                         <Badge variant="outline" className={`text-[10px] px-1.5 py-0 ${avail.className}`}>
                           {avail.label}
@@ -288,10 +320,24 @@ export default function BrowseTalent() {
                   ) : (
                     <span className="text-muted-foreground text-xs">Rate not set</span>
                   )}
-                  <div className="flex items-center gap-1 text-amber-400">
-                    <Star className="w-3.5 h-3.5 fill-current" />
-                    <span className="text-xs text-foreground font-medium">5.0</span>
-                  </div>
+                  {hasRating ? (
+                    <div className="flex items-center gap-1 text-amber-400" title={`${talent.total_reviews} review${talent.total_reviews === 1 ? "" : "s"}`}>
+                      <Star className="w-3.5 h-3.5 fill-current" />
+                      <span className="text-xs text-foreground font-medium">
+                        {Number(talent.rating_avg).toFixed(1)}
+                      </span>
+                      <span className="text-[10px] text-muted-foreground">({talent.total_reviews})</span>
+                    </div>
+                  ) : (
+                    <Badge variant="secondary" className="text-[10px] px-1.5 py-0">New</Badge>
+                  )}
+                </div>
+
+                <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
+                  <Briefcase className="w-3 h-3" />
+                  {projects > 0
+                    ? `${projects} project${projects === 1 ? "" : "s"} completed`
+                    : "No completed projects yet"}
                 </div>
 
                 <div className="flex gap-2 mt-auto pt-1">
@@ -303,6 +349,19 @@ export default function BrowseTalent() {
                   >
                     View Profile
                   </Button>
+
+                  {talent.user_id && talent.user_id !== user?.id && (
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      className="gap-1"
+                      onClick={() => handleMessage(talent.user_id)}
+                      title="Message this talent"
+                    >
+                      <MessageSquare className="w-3.5 h-3.5" />
+                      <span className="hidden sm:inline">Message</span>
+                    </Button>
+                  )}
 
                   {clientJobs.length > 0 && (
                     <DropdownMenu>

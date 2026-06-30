@@ -405,11 +405,22 @@ export default function LearnAssignment() {
     try {
       const u = new URL(url);
       if (u.hostname.includes("youtube") || u.hostname === "youtu.be") {
-        const vid = u.searchParams.get("v") ?? u.pathname.slice(1);
+        // Already an embed URL — leave it alone.
+        if (u.pathname.startsWith("/embed/")) return url;
+        // youtu.be/<id>, youtube.com/watch?v=<id>, or youtube.com/shorts/<id>
+        const vid =
+          u.searchParams.get("v") ??
+          (u.pathname.startsWith("/shorts/")
+            ? u.pathname.split("/")[2]
+            : u.pathname.slice(1));
         return `https://www.youtube.com/embed/${vid}`;
       }
       if (u.hostname.includes("vimeo")) {
         return `https://player.vimeo.com/video${u.pathname}`;
+      }
+      if (u.hostname.includes("loom")) {
+        // Convert loom.com/share/<id> → loom.com/embed/<id>
+        return url.replace("/share/", "/embed/");
       }
     } catch {}
     return url;

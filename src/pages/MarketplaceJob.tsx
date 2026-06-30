@@ -20,6 +20,7 @@ import {
   AlertCircle,
 } from "lucide-react";
 import { ApplicationDrawer } from "@/components/marketplace/ApplicationDrawer";
+import { TailorCVButton } from "@/components/cv/TailorCVButton";
 
 const scoreJob = (job: any, skills: string[]) => {
   if (!skills.length) return 0;
@@ -32,11 +33,6 @@ const scoreJob = (job: any, skills: string[]) => {
     else if (tags.some((t: string) => t.includes(s) || s.includes(t))) score += 15;
   }
   return Math.min(score, 95);
-};
-
-const calcAvgRating = (reviews: any[] | undefined) => {
-  if (!reviews?.length) return null;
-  return reviews.reduce((sum: number, r: any) => sum + (r.rating || 0), 0) / reviews.length;
 };
 
 const formatBudget = (job: any) => {
@@ -141,8 +137,7 @@ export default function MarketplaceJob() {
             *,
             client_profiles(
               id, company_name, industry, logo_url, is_verified, created_at, user_id,
-              total_hires,
-              client_reviews:reviews(rating)
+              total_hires, rating_avg, total_reviews
             )
           `)
           .eq("id", jobId)
@@ -216,7 +211,7 @@ export default function MarketplaceJob() {
   );
 
   const client = job.client_profiles;
-  const clientRating = calcAvgRating(client?.client_reviews);
+  const clientRating = client?.total_reviews > 0 ? client.rating_avg : null;
   const companyName = client?.company_name || "Unknown Client";
   const initials = companyName.slice(0, 2).toUpperCase();
   const deadline = job.deadline ? new Date(job.deadline) : null;
@@ -358,7 +353,7 @@ export default function MarketplaceJob() {
                       <Star className="w-4 h-4 fill-amber-400 text-amber-400" />
                       <span className="font-medium">{clientRating.toFixed(1)}</span>
                       <span className="text-muted-foreground">
-                        ({client.client_reviews?.length || 0} reviews)
+                        ({client.total_reviews || 0} reviews)
                       </span>
                     </div>
                   )}
@@ -425,13 +420,22 @@ export default function MarketplaceJob() {
                     <span>This job is no longer accepting applications</span>
                   </div>
                 ) : (
-                  <Button
-                    className="w-full"
-                    onClick={() => setShowApplicationDrawer(true)}
-                    disabled={job.status !== "active"}
-                  >
-                    Apply Now
-                  </Button>
+                  <div className="space-y-2">
+                    <Button
+                      className="w-full"
+                      onClick={() => setShowApplicationDrawer(true)}
+                      disabled={job.status !== "active"}
+                    >
+                      Apply Now
+                    </Button>
+                    <TailorCVButton
+                      jobTitle={job.title}
+                      jobDescription={job.description || ""}
+                      requiredSkills={requiredSkills}
+                      variant="outline"
+                      className="w-full"
+                    />
+                  </div>
                 )}
 
                 <div className="flex gap-2">
