@@ -142,8 +142,8 @@ export default function BrowseTalent() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="font-display text-2xl font-bold">Browse Talent</h1>
-        <p className="text-muted-foreground text-sm mt-1">Find skilled freelancers for your projects.</p>
+        <h1 className="font-display text-2xl font-bold">Find Talent</h1>
+        <p className="text-muted-foreground text-sm mt-1">Discover skilled professionals — hire them for your projects or collaborate with them on yours.</p>
       </div>
 
       <div className="flex flex-wrap gap-3 items-end">
