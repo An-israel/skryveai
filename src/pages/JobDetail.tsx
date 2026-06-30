@@ -5,8 +5,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { ProposalModal } from "@/components/proposals/ProposalModal";
-import { TailorCVButton } from "@/components/cv/TailorCVButton";
+import { ApplyWizard } from "@/components/jobs/ApplyWizard";
 import {
   ArrowLeft, Heart, ExternalLink,
   MapPin, Briefcase, DollarSign, Calendar
@@ -106,7 +105,7 @@ export default function JobDetail() {
   const [talentId, setTalentId] = useState<string | null>(null);
   const [userName, setUserName] = useState("");
   const [hourlyRate, setHourlyRate] = useState("");
-  const [proposalOpen, setProposalOpen] = useState(false);
+  const [applyOpen, setApplyOpen] = useState(false);
 
   useEffect(() => {
     if (!jobId) return;
@@ -257,14 +256,9 @@ export default function JobDetail() {
         </div>
 
         <div className="flex gap-2 flex-wrap">
-          <Button onClick={() => setProposalOpen(true)} className="flex-1 sm:flex-none">
-            Generate Proposal
+          <Button onClick={() => setApplyOpen(true)} className="flex-1 sm:flex-none">
+            Apply for Job
           </Button>
-          <TailorCVButton
-            jobTitle={job.title}
-            jobDescription={job.description || ""}
-            requiredSkills={job.skill_tags}
-          />
           <Button
             variant="outline"
             onClick={handleToggleSave}
@@ -278,7 +272,7 @@ export default function JobDetail() {
             onClick={() => window.open(job.external_url, "_blank")}
           >
             <ExternalLink className="w-4 h-4 mr-1.5" />
-            Apply on {job.platform}
+            View original posting
           </Button>
         </div>
       </div>
@@ -314,17 +308,18 @@ export default function JobDetail() {
         </div>
       )}
 
-      <ProposalModal
-        open={proposalOpen}
-        onClose={() => setProposalOpen(false)}
-        job={job ? {
+      <ApplyWizard
+        open={applyOpen}
+        onClose={() => setApplyOpen(false)}
+        mode="external"
+        job={{
           id: job.id,
           title: job.title,
-          platform: job.platform,
           description: job.description || "",
-          skill_tags: job.skill_tags,
-          external_url: job.external_url,
-        } : null}
+          requiredSkills: job.skill_tags,
+          platform: job.platform,
+          externalUrl: job.external_url,
+        }}
       />
     </div>
   );
