@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
+import { enforceToolLimit, limitResponse } from "../_shared/usage-limits.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -40,6 +41,10 @@ serve(async (req) => {
         status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
+
+    // Per-plan rate limit (#8)
+    const gate = await enforceToolLimit(serviceClient, user.id, "linkedin");
+    if (!gate.allowed) return limitResponse(gate, corsHeaders);
 
     const { profileContent, targetRole } = await req.json();
 

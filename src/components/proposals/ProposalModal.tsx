@@ -84,7 +84,14 @@ export function ProposalModal({ open, onClose, job, onTrack }: ProposalModalProp
       if (error) throw error;
       setProposal(data?.proposal || "");
     } catch (e: any) {
-      toast({ title: "Generation failed", description: e.message, variant: "destructive" });
+      let description = e?.message || "Please try again.";
+      try {
+        if (e?.context?.json) {
+          const body = await e.context.json();
+          if (body?.message) description = body.message;
+        }
+      } catch { /* ignore */ }
+      toast({ title: "Generation failed", description, variant: "destructive" });
     } finally {
       setGenerating(false);
     }

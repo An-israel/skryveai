@@ -225,11 +225,15 @@ export function TailorCVButton({
       setOpen(false);
       navigate(`/cv-builder/${inserted.id}`);
     } catch (e: any) {
-      toast({
-        title: "Tailoring failed",
-        description: e?.message || "Please try again.",
-        variant: "destructive",
-      });
+      let description = e?.message || "Please try again.";
+      // Surface a friendly rate-limit message from the edge function's 429 body.
+      try {
+        if (e?.context?.json) {
+          const body = await e.context.json();
+          if (body?.message) description = body.message;
+        }
+      } catch { /* ignore */ }
+      toast({ title: "Tailoring failed", description, variant: "destructive" });
     } finally {
       setTailoring(false);
     }

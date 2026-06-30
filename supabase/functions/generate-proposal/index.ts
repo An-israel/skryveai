@@ -1,4 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
+import { enforceToolLimit, limitResponse } from "../_shared/usage-limits.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -8,12 +10,35 @@ const corsHeaders = {
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
+  // ── Auth + per-plan rate limit (#8) ──────────────────────────────────────
+  const authHeader = req.headers.get("authorization");
+  if (!authHeader?.startsWith("Bearer ")) {
+    return new Response(JSON.stringify({ error: "Unauthorized" }), {
+      status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
+  const serviceClient = createClient(
+    Deno.env.get("SUPABASE_URL")!,
+    Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+  );
+  const { data: { user }, error: authError } = await serviceClient.auth.getUser(
+    authHeader.replace("Bearer ", "")
+  );
+  if (authError || !user) {
+    return new Response(JSON.stringify({ error: "Unauthorized" }), {
+      status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
+
   const { jobTitle, jobDescription, requiredSkills, talentName, talentBio, talentSkills, experienceLevel, action } = await req.json();
 
   const ANTHROPIC_KEY = Deno.env.get("ANTHROPIC_API_KEY");
   if (!ANTHROPIC_KEY) {
     return new Response(JSON.stringify({ error: "ANTHROPIC_API_KEY not configured" }), { status: 500, headers: corsHeaders });
   }
+
+  const gate = await enforceToolLimit(serviceClient, user.id, "proposals");
+  if (!gate.allowed) return limitResponse(gate, corsHeaders);
 
   let userContent = `Job Title: ${jobTitle}\n\nJob Description: ${jobDescription?.slice(0, 800) || "Not provided"}\n\nRequired Skills: ${(requiredSkills || []).join(", ")}\n\nTalent Name: ${talentName}\nTalent Bio: ${talentBio?.slice(0, 400) || "Not provided"}\nTalent Skills: ${(talentSkills || []).join(", ")}\nExperience Level: ${experienceLevel || "Intermediate"}`;
 

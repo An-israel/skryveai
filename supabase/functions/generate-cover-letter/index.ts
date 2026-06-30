@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
+import { enforceToolLimit, limitResponse } from "../_shared/usage-limits.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -41,6 +42,10 @@ serve(async (req) => {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
+
+    // Per-plan rate limit (#8) — counts toward the applications quota
+    const gate = await enforceToolLimit(serviceClient, user.id, "applications");
+    if (!gate.allowed) return limitResponse(gate, corsHeaders);
 
     const { cvText, jobDescription } = await req.json();
 
