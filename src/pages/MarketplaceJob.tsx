@@ -19,8 +19,7 @@ import {
   CheckCircle2,
   AlertCircle,
 } from "lucide-react";
-import { ApplicationDrawer } from "@/components/marketplace/ApplicationDrawer";
-import { TailorCVButton } from "@/components/cv/TailorCVButton";
+import { ApplyWizard } from "@/components/jobs/ApplyWizard";
 
 const scoreJob = (job: any, skills: string[]) => {
   if (!skills.length) return 0;
@@ -122,7 +121,7 @@ export default function MarketplaceJob() {
   const [userSkills, setUserSkills] = useState<string[]>([]);
   const [isSaved, setIsSaved] = useState(false);
   const [talentProfileId, setTalentProfileId] = useState<string | null>(null);
-  const [showApplicationDrawer, setShowApplicationDrawer] = useState(false);
+  const [applyOpen, setApplyOpen] = useState(false);
 
   useEffect(() => {
     const load = async () => {
@@ -420,22 +419,13 @@ export default function MarketplaceJob() {
                     <span>This job is no longer accepting applications</span>
                   </div>
                 ) : (
-                  <div className="space-y-2">
-                    <Button
-                      className="w-full"
-                      onClick={() => setShowApplicationDrawer(true)}
-                      disabled={job.status !== "active"}
-                    >
-                      Apply Now
-                    </Button>
-                    <TailorCVButton
-                      jobTitle={job.title}
-                      jobDescription={job.description || ""}
-                      requiredSkills={requiredSkills}
-                      variant="outline"
-                      className="w-full"
-                    />
-                  </div>
+                  <Button
+                    className="w-full"
+                    onClick={() => setApplyOpen(true)}
+                    disabled={job.status !== "active"}
+                  >
+                    Apply for Job
+                  </Button>
                 )}
 
                 <div className="flex gap-2">
@@ -462,15 +452,22 @@ export default function MarketplaceJob() {
         </div>
       </div>
 
-      {user && job && (
-        <ApplicationDrawer
-          job={job}
-          user={user}
-          open={showApplicationDrawer}
-          onClose={() => setShowApplicationDrawer(false)}
-          onSuccess={() => {
-            setExistingApp({ status: "applied", created_at: new Date().toISOString() });
+      {job && (
+        <ApplyWizard
+          open={applyOpen}
+          onClose={() => setApplyOpen(false)}
+          mode="marketplace"
+          job={{
+            id: job.id,
+            title: job.title,
+            description: job.description || "",
+            requiredSkills: requiredSkills,
+            clientUserId: client?.user_id,
+            companyName: companyName,
           }}
+          onApplied={() =>
+            setExistingApp({ status: "applied", created_at: new Date().toISOString() })
+          }
         />
       )}
     </div>
