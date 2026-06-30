@@ -5,6 +5,8 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Menu, Bell, Settings, CreditCard, LogOut, User, ChevronRight } from "lucide-react";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import { RoleSwitcher } from "./RoleSwitcher";
+import type { SkryveRole } from "@/hooks/use-skryve-role";
 import { supabase } from "@/integrations/supabase/client";
 
 const ROUTES: Record<string, string[]> = {
@@ -50,9 +52,11 @@ interface AppTopBarProps {
   userAvatar?: string;
   unreadCount: number;
   onMenuClick: () => void;
+  userId?:     string;
+  role?:       SkryveRole;
 }
 
-export function AppTopBar({ userName, userAvatar, unreadCount, onMenuClick }: AppTopBarProps) {
+export function AppTopBar({ userName, userAvatar, unreadCount, onMenuClick, userId, role }: AppTopBarProps) {
   const location    = useLocation();
   const navigate    = useNavigate();
   const breadcrumbs = getBreadcrumbs(location.pathname);
@@ -106,6 +110,14 @@ export function AppTopBar({ userName, userAvatar, unreadCount, onMenuClick }: Ap
 
       {/* Right cluster */}
       <div className="flex items-center gap-0.5">
+
+        {/* Talent / Client mode switcher */}
+        {userId && (role === "talent" || role === "client") && (
+          <>
+            <RoleSwitcher userId={userId} role={role} />
+            <div className="w-px h-4 bg-border mx-1.5" />
+          </>
+        )}
 
         {/* Theme toggle */}
         <ThemeToggle />

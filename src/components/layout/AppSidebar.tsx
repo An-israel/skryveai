@@ -19,6 +19,7 @@ const talentNav: NavItem[] = [
   { label: "Dashboard",    to: "/dashboard",   icon: LayoutDashboard },
   { label: "Find Jobs",    to: "/jobs",         icon: Briefcase       },
   { label: "Marketplace",  to: "/marketplace",  icon: Store           },
+  { label: "Find Talent",  to: "/talent",       icon: Users           },
   { label: "Applications", to: "/applications", icon: ClipboardList   },
   { label: "Projects",     to: "/projects",     icon: FolderOpen      },
   { label: "Events",       to: "/events",       icon: CalendarDays    },

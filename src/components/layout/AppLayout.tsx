@@ -92,6 +92,8 @@ export function AppLayout() {
           userAvatar={userAvatar}
           unreadCount={unreadCount}
           onMenuClick={() => setMobile(true)}
+          userId={user?.id}
+          role={role}
         />
         <main className="flex-1 overflow-auto p-4 md:p-6">
           <Outlet />
