@@ -20,7 +20,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Star, Users, ChevronDown } from "lucide-react";
+import { Star, Users, ChevronDown, MessageSquare } from "lucide-react";
 
 const AVAILABILITY_BADGE: Record<string, { label: string; className: string }> = {
   available: { label: "Available", className: "bg-green-500/10 text-green-600 border-green-500/20" },
@@ -70,7 +70,7 @@ export default function BrowseTalent() {
     const { data } = await (supabase as any)
       .from("talent_profiles")
       .select(
-        "id, full_name, profile_photo_url, primary_skill, secondary_skills, experience_level, hourly_rate, rate_currency, bio, availability_status, created_at"
+        "id, user_id, full_name, profile_photo_url, primary_skill, secondary_skills, experience_level, hourly_rate, rate_currency, bio, availability_status, created_at"
       )
       .not("full_name", "is", null)
       .order("created_at", { ascending: false });
@@ -93,6 +93,29 @@ export default function BrowseTalent() {
       .eq("status", "active")
       .order("created_at", { ascending: false });
     setClientJobs(jobs || []);
+  };
+
+  const handleMessage = async (talentUserId: string | null) => {
+    if (!user) {
+      navigate("/login");
+      return;
+    }
+    if (!talentUserId) {
+      toast({ title: "Unable to message this talent", variant: "destructive" });
+      return;
+    }
+    if (talentUserId === user.id) {
+      toast({ title: "That's you!", description: "You can't message yourself." });
+      return;
+    }
+    const { data, error } = await (supabase as any).rpc("get_or_create_direct_conversation", {
+      _other: talentUserId,
+    });
+    if (error || !data) {
+      toast({ title: "Couldn't start conversation", description: error?.message, variant: "destructive" });
+      return;
+    }
+    navigate(`/dm/${data}`);
   };
 
   const handleInvite = async (talentId: string, jobId: string, jobTitle: string, talentUserId: string) => {
@@ -303,6 +326,19 @@ export default function BrowseTalent() {
                   >
                     View Profile
                   </Button>
+
+                  {talent.user_id && talent.user_id !== user?.id && (
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      className="gap-1"
+                      onClick={() => handleMessage(talent.user_id)}
+                      title="Message this talent"
+                    >
+                      <MessageSquare className="w-3.5 h-3.5" />
+                      <span className="hidden sm:inline">Message</span>
+                    </Button>
+                  )}
 
                   {clientJobs.length > 0 && (
                     <DropdownMenu>

@@ -59,6 +59,7 @@ import ATSChecker       from "./pages/ATSChecker";
 import LinkedInAnalyzer from "./pages/LinkedInAnalyzer";
 import Messages         from "./pages/Messages";
 import MessageThread    from "./pages/MessageThread";
+import DirectMessages   from "./pages/DirectMessages";
 import Notifications    from "./pages/Notifications";
 import Settings         from "./pages/Settings";
 import Billing          from "./pages/Billing";
@@ -158,6 +159,8 @@ export default function App() {
                 {/* Messaging & Notifications */}
                 <Route path="/messages"                      element={<Messages />} />
                 <Route path="/messages/:conversationId"      element={<MessageThread />} />
+                <Route path="/dm"                            element={<DirectMessages />} />
+                <Route path="/dm/:conversationId"            element={<DirectMessages />} />
                 <Route path="/notifications"                 element={<Notifications />} />
 
                 {/* Account */}

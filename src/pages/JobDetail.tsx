@@ -6,6 +6,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ProposalModal } from "@/components/proposals/ProposalModal";
+import { TailorCVButton } from "@/components/cv/TailorCVButton";
 import {
   ArrowLeft, Heart, ExternalLink,
   MapPin, Briefcase, DollarSign, Calendar
@@ -259,6 +260,11 @@ export default function JobDetail() {
           <Button onClick={() => setProposalOpen(true)} className="flex-1 sm:flex-none">
             Generate Proposal
           </Button>
+          <TailorCVButton
+            jobTitle={job.title}
+            jobDescription={job.description || ""}
+            requiredSkills={job.skill_tags}
+          />
           <Button
             variant="outline"
             onClick={handleToggleSave}

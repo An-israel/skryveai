@@ -20,6 +20,7 @@ import {
   AlertCircle,
 } from "lucide-react";
 import { ApplicationDrawer } from "@/components/marketplace/ApplicationDrawer";
+import { TailorCVButton } from "@/components/cv/TailorCVButton";
 
 const scoreJob = (job: any, skills: string[]) => {
   if (!skills.length) return 0;
@@ -425,13 +426,22 @@ export default function MarketplaceJob() {
                     <span>This job is no longer accepting applications</span>
                   </div>
                 ) : (
-                  <Button
-                    className="w-full"
-                    onClick={() => setShowApplicationDrawer(true)}
-                    disabled={job.status !== "active"}
-                  >
-                    Apply Now
-                  </Button>
+                  <div className="space-y-2">
+                    <Button
+                      className="w-full"
+                      onClick={() => setShowApplicationDrawer(true)}
+                      disabled={job.status !== "active"}
+                    >
+                      Apply Now
+                    </Button>
+                    <TailorCVButton
+                      jobTitle={job.title}
+                      jobDescription={job.description || ""}
+                      requiredSkills={requiredSkills}
+                      variant="outline"
+                      className="w-full"
+                    />
+                  </div>
                 )}
 
                 <div className="flex gap-2">

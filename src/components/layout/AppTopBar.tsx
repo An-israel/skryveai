@@ -18,6 +18,7 @@ const ROUTES: Record<string, string[]> = {
   "/marketplace/post":   ["Marketplace", "Post a Job"],
   "/marketplace/my-jobs":["Marketplace", "My Jobs"],
   "/talent":             ["Talent"],
+  "/dm":                 ["Collaborate"],
   "/applications":       ["Applications"],
   "/projects":           ["Projects"],
   "/events":             ["Events"],
