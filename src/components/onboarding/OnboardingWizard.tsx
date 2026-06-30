@@ -33,24 +33,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { SearchableMultiSelect } from "@/components/ui/searchable-multi-select";
 
-const EXPERTISE_OPTIONS = [
-  "3D Design", "Affiliate Marketing", "AI Development", "Amazon FBA", "Animation",
-  "API Development", "Backend Development", "Blockchain", "Blog Writing", "Brand Identity",
-  "Business Consulting", "Cloud Services", "Content Marketing", "Content Writing",
-  "Copywriting", "Custom Software", "Customer Support", "Cybersecurity", "Data Entry",
-  "Data Science", "DevOps", "Digital Strategy", "Dropshipping", "E-commerce", "Email Marketing",
-  "Frontend Development", "Full Stack Development", "Game Development", "Ghostwriting",
-  "Google Ads", "Graphic Design", "Growth Hacking", "GRC Consulting", "Illustration",
-  "Influencer Marketing", "IT Support", "Lead Generation", "Logo Design", "Machine Learning",
-  "Market Research", "Mobile App Development", "Motion Graphics", "Network Security",
-  "No-Code Development", "Penetration Testing", "Photography", "Podcast Production",
-  "PPC Advertising", "Product Design", "Product Listing", "Product Management",
-  "Project Management", "Proofreading", "Public Relations", "Sales", "Scriptwriting",
-  "SEO", "Shopify", "Social Media Management", "Social Media Marketing",
-  "SaaS Development", "Supply Chain", "Technical Writing", "Translation", "UI/UX Design",
-  "Video Editing", "Video Production", "Virtual Assistant", "Voice Over",
-  "Web Design", "Web Development", "Webflow", "WordPress",
-];
+import { ALL_SKILLS as EXPERTISE_OPTIONS } from "@/lib/skills";
 
 interface OnboardingWizardProps {
   userId: string;
