@@ -163,6 +163,7 @@ export default function ClientOnboarding() {
         .from('client_profiles')
         .update({ onboarding_completed: true })
         .eq('user_id', user.id);
+      await (supabase as any).from('profiles').update({ active_role: 'client' }).eq('user_id', user.id);
       navigate(destination);
     } catch (e: any) {
       toast({ title: "Error", description: e.message, variant: "destructive" });

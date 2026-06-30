@@ -210,6 +210,7 @@ export default function TalentOnboarding() {
         }, { onConflict: 'talent_id' });
       }
       await (supabase as any).from('talent_profiles').update({ onboarding_completed: true }).eq('user_id', user.id);
+      await (supabase as any).from('profiles').update({ active_role: 'talent' }).eq('user_id', user.id);
       toast({ title: "Welcome to Skryve! 🎉", description: "Your profile is live." });
       navigate('/dashboard');
     } catch (e: any) {
