@@ -3,12 +3,14 @@ import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import OnboardingShell from "./OnboardingShell";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Briefcase, Users, CalendarDays, Upload } from "lucide-react";
+import {
+  Briefcase, Users, CalendarDays, Upload, ShieldCheck, Sparkles,
+  CreditCard, Headset, ArrowLeft, ArrowRight, Loader2,
+} from "lucide-react";
 
 const HIRING_CATEGORIES = [
   "Web Dev", "Mobile Dev", "UI/UX Design", "Graphic Design", "Copywriting",
@@ -22,7 +24,20 @@ const BUDGET_OPTIONS = [
   { value: "500k_plus", label: "₦500,000+", sub: "Enterprise or long-term engagements" },
 ];
 
-const STEP_TITLES = ["Company Info", "Hiring Categories", "Typical Budget", "What's next?"];
+const STEP_TITLES = ["Tell us about your company", "What are you hiring for?", "Your typical budget", "You're all set"];
+const STEP_SUBTITLES = [
+  "This helps us present you to top talent and tailor your matches.",
+  "We'll surface the best professionals in these areas first.",
+  "So we can match you with talent in your range — change anytime.",
+  "Welcome to Skryve for Business. Where would you like to start?",
+];
+
+const CLIENT_BENEFITS = [
+  { icon: ShieldCheck, title: "Verified, vetted talent", desc: "Hire professionals with proven track records and ratings." },
+  { icon: Sparkles, title: "AI-matched shortlists", desc: "We surface the right people for your brief — instantly." },
+  { icon: CreditCard, title: "Secure escrow payments", desc: "Funds are protected and released only when you approve." },
+  { icon: Headset, title: "Priority client support", desc: "A dedicated team to help you hire with confidence." },
+];
 
 const variants = {
   enter: (dir: number) => ({ x: dir > 0 ? 40 : -40, opacity: 0 }),
@@ -368,24 +383,82 @@ export default function ClientOnboarding() {
     return false;
   };
 
-  if (step === 4) {
-    return (
-      <div className="min-h-screen bg-white flex flex-col">
-        <div className="border-b border-gray-200">
-          <div className="flex items-center justify-between px-6 py-4">
-            <div className="flex items-center gap-2">
-              <img src="/logo.png" alt="Skryve" className="h-8 w-8 object-contain" />
-              <span className="font-bold text-gray-900 text-lg">Skryve</span>
-            </div>
-            <span className="text-sm text-gray-500">Step 4 of 4</span>
+  return (
+    <div className="min-h-screen flex bg-white">
+      {/* ── Premium brand panel (desktop) ─────────────────────────── */}
+      <aside
+        className="hidden lg:flex lg:w-[42%] xl:w-[38%] flex-col justify-between p-12 text-white relative overflow-hidden"
+        style={{ background: "linear-gradient(160deg, #0B162B 0%, #15294a 55%, #1E3A5F 100%)" }}
+      >
+        <div className="absolute -right-24 -top-24 w-80 h-80 rounded-full bg-white/[0.04]" />
+        <div className="absolute -right-10 bottom-10 w-56 h-56 rounded-full bg-[#2563EB]/10 blur-2xl" />
+
+        <div className="relative z-10">
+          <div className="flex items-center gap-2 mb-12">
+            <img src="/logo.png" alt="Skryve" className="h-8 w-8 object-contain" />
+            <span className="font-bold text-xl">Skryve</span>
+            <span className="ml-2 text-[11px] font-semibold uppercase tracking-wider text-white/60 border border-white/20 rounded-full px-2 py-0.5">
+              for Business
+            </span>
           </div>
-          <div className="h-1 bg-gray-100 w-full">
-            <div className="h-1 bg-[#2563EB] transition-all duration-300" style={{ width: "100%" }} />
-          </div>
+          <h2 className="text-3xl font-extrabold leading-tight tracking-tight mb-3">
+            Hire Africa's best talent — with confidence.
+          </h2>
+          <p className="text-white/55 text-[15px] leading-relaxed max-w-sm">
+            You're a few steps from a hiring experience built around you. No noise, no friction — just the right people for your work.
+          </p>
         </div>
+
+        <ul className="relative z-10 space-y-5 my-10">
+          {CLIENT_BENEFITS.map(({ icon: Icon, title, desc }) => (
+            <li key={title} className="flex items-start gap-3.5">
+              <div className="w-9 h-9 rounded-lg bg-white/[0.08] flex items-center justify-center shrink-0">
+                <Icon className="w-[18px] h-[18px] text-[#7dd3fc]" />
+              </div>
+              <div>
+                <p className="font-semibold text-[14px]">{title}</p>
+                <p className="text-white/45 text-[13px] leading-snug">{desc}</p>
+              </div>
+            </li>
+          ))}
+        </ul>
+
+        <p className="relative z-10 text-white/35 text-[12px]">
+          Trusted by teams hiring across Africa and beyond.
+        </p>
+      </aside>
+
+      {/* ── Form panel ────────────────────────────────────────────── */}
+      <main className="flex-1 flex flex-col min-h-screen">
+        {/* mobile header */}
+        <div className="lg:hidden flex items-center gap-2 px-6 py-4 border-b border-gray-100">
+          <img src="/logo.png" alt="Skryve" className="h-7 w-7 object-contain" />
+          <span className="font-bold text-gray-900">Skryve</span>
+          <span className="ml-1.5 text-[10px] font-semibold uppercase tracking-wider text-gray-400 border border-gray-200 rounded-full px-1.5 py-0.5">
+            for Business
+          </span>
+        </div>
+
         <div className="flex-1 overflow-auto">
-          <div className="max-w-2xl mx-auto px-4 pt-8 pb-24">
-            <h1 className="text-2xl font-bold text-gray-900 mb-1">{STEP_TITLES[3]}</h1>
+          <div className="max-w-xl mx-auto w-full px-6 pt-10 pb-28">
+            {/* progress dots */}
+            <div className="flex items-center gap-2 mb-8">
+              {[1, 2, 3, 4].map((n) => (
+                <div
+                  key={n}
+                  className={`h-1.5 rounded-full transition-all duration-300 ${
+                    n === step ? "w-8 bg-[#2563EB]" : n < step ? "w-8 bg-[#2563EB]/40" : "w-8 bg-gray-200"
+                  }`}
+                />
+              ))}
+            </div>
+
+            <p className="text-[13px] font-semibold uppercase tracking-wide text-[#2563EB] mb-1">
+              Step {step} of 4
+            </p>
+            <h1 className="text-2xl font-bold text-gray-900 mb-1.5">{STEP_TITLES[step - 1]}</h1>
+            <p className="text-gray-500 mb-8">{STEP_SUBTITLES[step - 1]}</p>
+
             <AnimatePresence mode="wait" custom={direction}>
               <motion.div
                 key={step}
@@ -401,34 +474,29 @@ export default function ClientOnboarding() {
             </AnimatePresence>
           </div>
         </div>
-      </div>
-    );
-  }
 
-  return (
-    <OnboardingShell
-      step={step}
-      totalSteps={4}
-      title={STEP_TITLES[step - 1]}
-      onBack={step > 1 ? goBack : undefined}
-      onNext={goNext}
-      nextLabel={step === 3 ? "Finish Setup" : "Continue"}
-      nextDisabled={isNextDisabled()}
-      isLoading={saving}
-    >
-      <AnimatePresence mode="wait" custom={direction}>
-        <motion.div
-          key={step}
-          custom={direction}
-          variants={variants}
-          initial="enter"
-          animate="center"
-          exit="exit"
-          transition={{ duration: 0.25 }}
-        >
-          {renderStep()}
-        </motion.div>
-      </AnimatePresence>
-    </OnboardingShell>
+        {/* footer nav (not on the final action step) */}
+        {step < 4 && (
+          <div className="border-t border-gray-100 bg-white">
+            <div className="max-w-xl mx-auto w-full px-6 py-4 flex items-center justify-between">
+              {step > 1 ? (
+                <Button variant="ghost" onClick={goBack} disabled={saving} className="text-gray-600">
+                  <ArrowLeft className="w-4 h-4 mr-1.5" /> Back
+                </Button>
+              ) : <span />}
+              <Button
+                onClick={goNext}
+                disabled={isNextDisabled() || saving}
+                className="bg-[#2563EB] hover:bg-[#1d4ed8] text-white px-6"
+              >
+                {saving ? <Loader2 className="w-4 h-4 mr-1.5 animate-spin" /> : null}
+                {step === 3 ? "Finish setup" : "Continue"}
+                {!saving && <ArrowRight className="w-4 h-4 ml-1.5" />}
+              </Button>
+            </div>
+          </div>
+        )}
+      </main>
+    </div>
   );
 }
