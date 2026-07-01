@@ -21,9 +21,9 @@ export default function TermsOfService() {
           <section>
             <h2 className="text-2xl font-semibold mb-4">2. Description of Service</h2>
             <p className="text-muted-foreground">
-              SkryveAI is an AI-powered cold outreach platform that helps freelancers and businesses 
-              find potential clients, analyze websites, and send personalized outreach emails. 
-              Our Service includes business discovery, website analysis, email generation, and email delivery features.
+              Skryve is an AI-powered career platform that helps talent find jobs, build ATS-ready CVs, 
+              write proposals, learn in-demand skills, and get hired — and helps clients post jobs and hire talent. 
+              Our Service includes job matching, a talent marketplace, a CV builder, AI writing tools, courses, and messaging.
             </p>
           </section>
 
@@ -53,20 +53,21 @@ export default function TermsOfService() {
           </section>
 
           <section>
-            <h2 className="text-2xl font-semibold mb-4">5. Email Sending Responsibilities</h2>
+            <h2 className="text-2xl font-semibold mb-4">5. Content Responsibilities</h2>
             <p className="text-muted-foreground">
-              You are solely responsible for the content of emails sent through our Service. 
-              You must comply with all applicable email marketing laws, including providing accurate sender information, 
-              honoring opt-out requests, and ensuring your emails are truthful and not misleading.
+              You are solely responsible for the content you create and share through our Service — including CVs, 
+              proposals, job posts, applications, and messages. Content must be truthful, not misleading, and must 
+              accurately represent your skills, experience, and (for clients) the work you are offering.
             </p>
           </section>
 
           <section>
-            <h2 className="text-2xl font-semibold mb-4">6. Gmail Integration</h2>
+            <h2 className="text-2xl font-semibold mb-4">6. Marketplace Conduct</h2>
             <p className="text-muted-foreground">
-              When you connect your Gmail account, you authorize SkryveAI to send emails on your behalf. 
-              You remain responsible for all emails sent through your connected Gmail account. 
-              Our use of Gmail API is governed by Google's Terms of Service and our Privacy Policy.
+              Skryve facilitates connections between talent and clients but is not a party to agreements formed between them. 
+              Both sides agree to communicate honestly, honor agreed terms, and complete payments and deliverables through 
+              the platform where applicable. Fraudulent job posts, fake profiles, and off-platform payment circumvention 
+              may result in account termination.
             </p>
           </section>
 

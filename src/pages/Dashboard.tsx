@@ -7,16 +7,12 @@ import { ClientDashboard } from "@/components/dashboard/ClientDashboard";
 import { UIRefreshPopup } from "@/components/notifications/UIRefreshPopup";
 import { FeatureUpdatePopup } from "@/components/notifications/FeatureUpdatePopup";
 import { MotivationalPopup } from "@/components/notifications/MotivationalPopup";
-import { OnboardingTour } from "@/components/onboarding/OnboardingTour";
-import { OnboardingWizard } from "@/components/onboarding/OnboardingWizard";
-import { useOnboarding } from "@/hooks/use-onboarding";
 
 export default function Dashboard() {
   const [user, setUser] = useState<any>(null);
   const [authLoading, setAuthLoading] = useState(true);
   const navigate = useNavigate();
   const role = useSkryveRole(user?.id);
-  const { showTour, showWizard, markOnboardingComplete } = useOnboarding(user?.id);
 
   useEffect(() => {
     supabase.auth.getSession()
@@ -43,16 +39,6 @@ export default function Dashboard() {
       <UIRefreshPopup />
       <FeatureUpdatePopup />
       <MotivationalPopup />
-
-      {showWizard && user && (
-        <OnboardingWizard
-          userId={user.id}
-          userEmail={user.email || ""}
-          userName={user.user_metadata?.full_name || "User"}
-          onComplete={markOnboardingComplete}
-        />
-      )}
-      {showTour && !showWizard && <OnboardingTour onComplete={markOnboardingComplete} />}
 
       {role === "client" ? (
         <ClientDashboard user={user} />

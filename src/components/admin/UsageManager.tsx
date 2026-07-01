@@ -23,6 +23,7 @@ const TOOL_LABELS: Record<string, string> = {
   applications: "Applications",
   learning_coach: "Learning Coach",
   linkedin: "LinkedIn Analyzer",
+  copilot: "Apply Copilot",
 };
 
 const PLANS = ["free", "pro", "business"];

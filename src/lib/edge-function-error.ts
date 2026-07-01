@@ -23,18 +23,16 @@ export async function getEdgeFunctionErrorMessage(
       if (text) {
         try {
           const parsed = JSON.parse(text);
+          // Prefer `message` (human-readable) over `error` (often a short code
+          // like "rate_limit"), then other fallbacks.
           const msg =
-            parsed?.error ||
             parsed?.message ||
+            parsed?.error ||
             parsed?.details ||
             (typeof parsed === "string" ? parsed : null);
           if (msg && typeof msg === "string") {
-            // Translate common upstream errors into user-friendly messages
-            if (/payment_required|not enough credits|ai credits/i.test(msg)) {
-              return "AI credits exhausted on this workspace. Please top up Lovable AI credits and try again.";
-            }
-            if (/rate limit/i.test(msg)) {
-              return "Rate limit hit. Please wait a moment and try again.";
+            if (/^rate.?limit$/i.test(msg)) {
+              return "You've hit your plan's usage limit for this tool. Upgrade for unlimited access.";
             }
             return msg;
           }

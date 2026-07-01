@@ -13,7 +13,7 @@ import { ArrowLeft, Target, Loader2, CheckCircle2, AlertTriangle, ArrowRight, Sp
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/use-auth";
-import { useCredits } from "@/hooks/use-credits";
+import { getEdgeFunctionErrorMessage } from "@/lib/edge-function-error";
 import { FeatureGuide } from "@/components/onboarding/FeatureGuide";
 import { atsCheckerGuide } from "@/components/onboarding/guideConfigs";
 import { extractTextFromPdf } from "@/lib/extract-pdf-text";
@@ -39,17 +39,12 @@ export default function ATSChecker() {
   const navigate = useNavigate();
   const { toast } = useToast();
   const { user, signOut } = useAuth();
-  const { checkCredits, deductCredits } = useCredits();
 
   const handleCheck = async () => {
     if (cvContent.trim().length < 50) {
       toast({ title: "Too Short", description: "Please paste at least 50 characters of CV content.", variant: "destructive" });
       return;
     }
-
-    // Check credits before running (costs 0.3 credits)
-    const creditCheck = await checkCredits(0.3);
-    if (!creditCheck.ok) return;
 
     setIsChecking(true);
     setResult(null);
@@ -59,21 +54,16 @@ export default function ATSChecker() {
         body: { cvContent, jobDescription: jobDescription.trim() || undefined },
       });
 
-      if (error) throw new Error(error.message);
+      if (error) throw error;
       setResult(data);
-      // Deduct 0.3 credits after success
-      await deductCredits(0.3);
       toast({ title: "Score Ready!", description: `Your ATS score: ${data.overallScore}% (${data.grade})` });
       // Track usage
       if (user) {
         supabase.from("tool_usage").insert({ user_id: user.id, tool_name: "ats_checker", metadata: { score: data.overallScore, grade: data.grade } } as any).then(() => {});
       }
     } catch (error) {
-      toast({
-        title: "Check Failed",
-        description: error instanceof Error ? error.message : "Failed to check ATS score",
-        variant: "destructive",
-      });
+      const description = await getEdgeFunctionErrorMessage(error, "Failed to check ATS score");
+      toast({ title: "Check Failed", description, variant: "destructive" });
     } finally {
       setIsChecking(false);
     }

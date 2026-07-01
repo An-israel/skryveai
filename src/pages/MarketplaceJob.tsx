@@ -357,11 +357,6 @@ export default function MarketplaceJob() {
                     </div>
                   )}
 
-                  {client.user_id && (
-                    <Button variant="outline" className="w-full text-sm" asChild>
-                      <Link to={`/profile/${client.user_id}`}>View Client Profile</Link>
-                    </Button>
-                  )}
                 </CardContent>
               </Card>
             )}

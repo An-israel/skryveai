@@ -55,8 +55,8 @@ export default function Blog() {
   const blogJsonLd = {
     "@context": "https://schema.org",
     "@type": "Blog",
-    name: "SkryveAI Blog",
-    description: "Cold email, lead generation, freelancing, and AI outreach strategy from SkryveAI.",
+    name: "Skryve Blog",
+    description: "Career growth, freelancing, CV & ATS strategy, and in-demand skills from the Skryve team.",
     url: `${SITE_URL}/blog`,
     publisher: {
       "@type": "Organization",
@@ -75,15 +75,15 @@ export default function Blog() {
   return (
     <div className="min-h-screen flex flex-col bg-background">
       <Helmet>
-        <title>SkryveAI Blog — Cold Email, AI Outreach & Freelancer Growth Guides</title>
+        <title>Skryve Blog — Career Growth, Freelancing & In-Demand Skills</title>
         <meta
           name="description"
-          content="Tactical playbooks, real reply-rate data, and AI-powered outreach strategies for freelancers and startup founders. Updated weekly by the SkryveAI team."
+          content="Practical guides on landing jobs, writing winning proposals, building ATS-ready CVs, freelancing, and learning in-demand skills. Updated by the Skryve team."
         />
-        <meta name="keywords" content="cold email, AI outreach, freelancer guides, lead generation, ATS resume, LinkedIn analyzer, cold email templates, sales prospecting" />
+        <meta name="keywords" content="career growth, freelancer guides, ATS resume, CV builder, job applications, remote jobs, learn skills, LinkedIn profile, talent marketplace" />
         <link rel="canonical" href={`${SITE_URL}/blog`} />
-        <meta property="og:title" content="SkryveAI Blog — AI Outreach & Freelancer Growth" />
-        <meta property="og:description" content="Tactical playbooks for cold email, lead generation, and AI-powered outreach." />
+        <meta property="og:title" content="Skryve Blog — Career Growth & Freelancer Guides" />
+        <meta property="og:description" content="Practical guides for landing jobs, winning clients, and growing your skills." />
         <meta property="og:url" content={`${SITE_URL}/blog`} />
         <meta property="og:type" content="website" />
         <meta name="twitter:card" content="summary_large_image" />
@@ -98,13 +98,13 @@ export default function Blog() {
           <div className="container mx-auto px-4 py-16 md:py-24 text-center">
             <div className="inline-flex items-center gap-2 mb-4 px-4 py-1.5 rounded-full bg-primary/10 border border-primary/20">
               <BookOpen className="w-4 h-4 text-primary" />
-              <span className="text-sm font-medium text-primary">SkryveAI Blog</span>
+              <span className="text-sm font-medium text-primary">Skryve Blog</span>
             </div>
             <h1 className="text-4xl md:text-6xl font-bold mb-6 max-w-3xl mx-auto">
-              Cold email playbooks that actually get replies
+              Guides that get you hired
             </h1>
             <p className="text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto mb-8">
-              Tactical guides, original reply-rate data, and AI-powered outreach strategies for freelancers, agencies, and founders.
+              Practical playbooks on landing jobs, winning clients, beating ATS filters, and learning the skills the market pays for.
             </p>
             <div className="max-w-md mx-auto relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
@@ -165,13 +165,13 @@ export default function Blog() {
         {/* CTA */}
         <section className="border-t bg-primary/5">
           <div className="container mx-auto px-4 py-16 text-center">
-            <Badge variant="default" className="mb-4">Free 7-day trial</Badge>
-            <h2 className="text-3xl md:text-4xl font-bold mb-4">Stop guessing. Start sending emails that work.</h2>
+            <Badge variant="default" className="mb-4">Free to join</Badge>
+            <h2 className="text-3xl md:text-4xl font-bold mb-4">Stop guessing. Start getting hired.</h2>
             <p className="text-muted-foreground mb-8 max-w-xl mx-auto">
-              Try SkryveAI free for 7 days. AI-qualified leads, personalized pitches, automatic follow-ups.
+              Join Skryve free. Jobs matched to your skills, an AI CV builder that beats ATS filters, winning proposals, and courses that keep you sharp.
             </p>
             <Button asChild size="lg">
-              <a href="/signup">Start your free trial</a>
+              <a href="/signup">Create your free account</a>
             </Button>
           </div>
         </section>

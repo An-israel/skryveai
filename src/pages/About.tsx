@@ -18,7 +18,7 @@ const values = [
   {
     icon: Zap,
     title: "Speed with Depth",
-    description: "Fast outreach without sacrifice in quality. Deep research, delivered instantly.",
+    description: "Land opportunities faster without sacrificing quality. Deep, tailored applications — delivered in minutes, not hours.",
   },
   {
     icon: Shield,
@@ -36,10 +36,10 @@ export default function About() {
   return (
     <div className="min-h-screen">
       <SEOHead
-        title="About SkryveAI — AI-Powered Outreach for Freelancers & Startups"
-        description="Learn how SkryveAI was built to democratize cold outreach. Our AI platform helps freelancers and startups worldwide find clients, send personalized emails, build CVs, and grow their business."
+        title="About Skryve — The AI-Powered Career Platform for Talent"
+        description="Learn how Skryve was built to level the playing field for talent everywhere. Find jobs, build ATS-ready CVs, write winning proposals, learn in-demand skills, and get hired — all in one platform."
         canonical="https://skryveai.com/about"
-        keywords="about SkryveAI, AI outreach platform, freelancer tools, startup growth, cold email tool for freelancers, AI business tools"
+        keywords="about Skryve, AI career platform, freelancer tools, find jobs, CV builder, ATS checker, talent marketplace, learn skills"
       />
       <Header />
 
@@ -56,7 +56,7 @@ export default function About() {
               About <span className="text-gradient-rich">SkryveAI</span>
             </h1>
             <p className="text-xl text-muted-foreground max-w-2xl mx-auto font-medium leading-relaxed">
-              Your talent was never the problem. Now your pitch won't be either.
+              Your talent was never the problem. Now the system that hires it works for you too.
             </p>
           </motion.div>
         </div>
@@ -73,13 +73,13 @@ export default function About() {
           >
             <h2 className="font-display text-2xl md:text-3xl font-bold text-foreground tracking-tight">The Origin</h2>
             <p>
-              Somewhere right now, a brilliant freelancer is staring at an inbox full of silence. They sent 50 cold emails this week. Well-crafted, honest, genuine. They spent hours on each one — researching the company, understanding what they do, trying to make it feel real. And still — nothing.
+              Somewhere right now, a brilliant professional is staring at an inbox full of silence. They applied to 50 jobs this week. Well-crafted applications, honest, genuine. They spent hours on each one — tailoring the CV, writing the proposal, trying to stand out. And still — nothing.
             </p>
             <p>
-              The problem wasn't the skill. It was the system. Cold outreach was never built for the freelancer in Lagos, Accra, Lahore, or Manila. It was built for people who already had the network, the tools, the time, and the team to do the research at scale. Everyone else was left guessing.
+              The problem wasn't the skill. It was the system. The job market was never built for the talent in Lagos, Accra, Lahore, or Manila. It was built for people who already had the network, the tools, the mentors, and the polished CV to get past the gatekeepers. Everyone else was left guessing.
             </p>
             <p className="text-foreground font-semibold text-xl">
-              SkryveAI was built to fix that.
+              Skryve was built to fix that.
             </p>
           </motion.div>
         </div>
@@ -96,10 +96,10 @@ export default function About() {
           >
             <h2 className="font-display text-2xl md:text-3xl font-bold text-foreground tracking-tight">The Insight</h2>
             <p>
-              The freelancers landing clients consistently weren't more talented. They were better at showing up. They sent emails that proved they had done their homework — referencing a real problem the prospect had, showing they understood the business, making it impossible to ignore.
+              The people landing roles and clients consistently weren't more talented. They were better at showing up. Their CV matched the job description. Their proposal spoke to the client's actual problem. Their skills stayed sharp because they never stopped learning.
             </p>
             <p>
-              That kind of hyper-personalization used to take hours per prospect. Now it takes seconds. SkryveAI automates the research, the audit, and the pitch — so every freelancer can show up to the conversation already knowing the room.
+              That kind of preparation used to take hours per application — or a career coach most people can't afford. Now it takes minutes. Skryve puts the whole toolkit in one place: jobs matched to your skills, a CV builder that beats ATS filters, AI-written proposals, courses with a personal AI coach, and a marketplace where clients hire you directly.
             </p>
           </motion.div>
         </div>
@@ -117,7 +117,7 @@ export default function About() {
             >
               <h2 className="font-display text-2xl font-bold text-foreground mb-4">Our Mission</h2>
               <p className="text-muted-foreground leading-relaxed">
-                To make high-converting cold outreach accessible to every skilled freelancer and startup founder — regardless of where they are in the world — by automating the research, audit, and personalization that turns cold emails into real conversations.
+                To give every skilled professional — regardless of where they are in the world — the tools to find real opportunities, present themselves at their best, keep growing, and get paid for their talent.
               </p>
             </motion.div>
 
@@ -181,7 +181,7 @@ export default function About() {
           >
             <Sparkles className="w-10 h-10 mx-auto mb-4 text-primary" />
             <p className="text-xl md:text-2xl font-display font-bold text-foreground leading-relaxed">
-              SkryveAI is the great equalizer — giving every freelancer, anywhere in the world, the same unfair advantage that used to belong only to the few with access, connections, and resources.
+              Skryve is the great equalizer — giving every talent, anywhere in the world, the same unfair advantage that used to belong only to the few with access, connections, and resources.
             </p>
           </motion.div>
         </div>

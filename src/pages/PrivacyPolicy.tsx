@@ -39,8 +39,8 @@ export default function PrivacyPolicy() {
               <ul className="list-disc pl-6 text-muted-foreground space-y-2">
                 <li><strong>Account Information:</strong> Name, email address, phone number, and country when you create an account.</li>
                 <li><strong>Profile Information:</strong> Bio, expertise, portfolio URL, and CV/resume that you choose to upload.</li>
-                <li><strong>Gmail Access:</strong> With your permission, we access your Gmail account to send emails on your behalf. We only use the gmail.send scope and do not read your emails.</li>
-                <li><strong>Campaign Data:</strong> Business search queries, selected businesses, and email content you create.</li>
+                <li><strong>Career Data:</strong> CVs you build or upload, proposals, job applications, skills, work experience, and learning progress.</li>
+                <li><strong>Marketplace Data:</strong> Job posts, applications, messages, project details, and reviews you create on the platform.</li>
                 <li><strong>Payment Information:</strong> Billing details processed securely through our payment provider (Paystack).</li>
               </ul>
             </section>
@@ -52,8 +52,8 @@ export default function PrivacyPolicy() {
               </p>
               <ul className="list-disc pl-6 text-muted-foreground space-y-2">
                 <li>Provide, maintain, and improve our services</li>
-                <li>Send outreach emails on your behalf through your connected Gmail account</li>
-                <li>Generate personalized pitch content using AI</li>
+                <li>Match you with relevant jobs and talent based on your skills and preferences</li>
+                <li>Generate personalized content (CVs, proposals, coaching) using AI</li>
                 <li>Process payments and manage subscriptions</li>
                 <li>Communicate with you about updates, support, and marketing (with your consent)</li>
                 <li>Analyze usage patterns to improve user experience</li>
@@ -61,16 +61,15 @@ export default function PrivacyPolicy() {
             </section>
 
             <section>
-              <h2 className="text-2xl font-semibold mb-4">4. Gmail API Usage</h2>
+              <h2 className="text-2xl font-semibold mb-4">4. AI Processing</h2>
               <p className="text-muted-foreground leading-relaxed mb-4">
-                Our use of Google APIs adheres to the Google API Services User Data Policy, including the Limited Use requirements:
+                Some features use AI to generate content on your behalf (CV building, proposals, ATS scoring, learning coach):
               </p>
               <ul className="list-disc pl-6 text-muted-foreground space-y-2">
-                <li>We only request the gmail.send scope to send emails on your behalf</li>
-                <li>We do not read, store, or access your Gmail inbox or existing emails</li>
-                <li>Your Gmail tokens are securely stored and encrypted</li>
-                <li>We do not share your Gmail data with third parties</li>
-                <li>You can disconnect your Gmail account at any time from Settings</li>
+                <li>Content you submit to an AI feature is processed only to generate your requested output</li>
+                <li>We do not use your CVs, proposals, or messages to train AI models</li>
+                <li>AI usage is logged per tool to enforce fair-usage limits on your plan</li>
+                <li>You can stop using AI features at any time — they are always opt-in actions</li>
               </ul>
             </section>
 

@@ -13,9 +13,10 @@ import { Label } from "@/components/ui/label";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
+import ReactMarkdown from "react-markdown";
 import {
   Loader2, Sparkles, Copy, Check, FileText, Download, Wand2,
-  ExternalLink, ArrowRight, ArrowLeft, CheckCircle2, Info,
+  ExternalLink, ArrowRight, ArrowLeft, CheckCircle2, Info, Bot, Send as SendIcon,
 } from "lucide-react";
 import {
   tailorCvToJob, extractFnErrorMessage, type StoredCv,
@@ -41,6 +42,7 @@ interface ApplyWizardProps {
 }
 
 const STEPS = ["Proposal", "Tailor CV", "Apply"];
+const STEP_KEYS = ["proposal", "cv", "apply"] as const;
 
 function GuideNote({ children }: { children: React.ReactNode }) {
   return (
@@ -76,6 +78,64 @@ export function ApplyWizard({ open, onClose, mode, job, onApplied }: ApplyWizard
   const [timeline, setTimeline] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
+  // Copilot
+  const [copilotTips, setCopilotTips] = useState<Record<number, string>>({});
+  const [tipsLoading, setTipsLoading] = useState(false);
+  const [copilotQ, setCopilotQ] = useState("");
+  const [copilotA, setCopilotA] = useState("");
+  const [copilotAsking, setCopilotAsking] = useState(false);
+
+  const fetchTips = useCallback(async (forStep: number) => {
+    setTipsLoading(true);
+    try {
+      const { data } = await supabase.functions.invoke("application-copilot", {
+        body: {
+          jobTitle: job.title,
+          jobDescription: job.description,
+          requiredSkills: job.requiredSkills || [],
+          step: STEP_KEYS[forStep],
+        },
+      });
+      if (data?.reply) setCopilotTips((p) => ({ ...p, [forStep]: data.reply }));
+    } catch { /* tips are optional — never block the flow */ }
+    setTipsLoading(false);
+  }, [job]);
+
+  useEffect(() => {
+    if (!open) return;
+    setCopilotA("");
+    setCopilotQ("");
+    if (!copilotTips[step]) fetchTips(step);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, step]);
+
+  const askCopilot = async () => {
+    const q = copilotQ.trim();
+    if (!q || copilotAsking) return;
+    setCopilotAsking(true);
+    setCopilotA("");
+    try {
+      const { data, error } = await supabase.functions.invoke("application-copilot", {
+        body: {
+          jobTitle: job.title,
+          jobDescription: job.description,
+          requiredSkills: job.requiredSkills || [],
+          step: STEP_KEYS[step],
+          question: q,
+          proposal: step === 0 ? proposal : undefined,
+        },
+      });
+      if (error) throw error;
+      setCopilotA(data?.reply || "I couldn't answer that — try rephrasing.");
+      setCopilotQ("");
+    } catch (e: any) {
+      const msg = await extractFnErrorMessage(e);
+      setCopilotA(msg);
+    } finally {
+      setCopilotAsking(false);
+    }
+  };
+
   const generateProposal = useCallback(async (profile: any) => {
     setGenLoading(true);
     try {
@@ -108,6 +168,7 @@ export function ApplyWizard({ open, onClose, mode, job, onApplied }: ApplyWizard
     setProposal("");
     setTailoredCvId(null);
     setSelectedCvId("");
+    setCopilotTips({});
 
     (async () => {
       const { data: { user } } = await supabase.auth.getUser();
@@ -396,6 +457,50 @@ export function ApplyWizard({ open, onClose, mode, job, onApplied }: ApplyWizard
               )}
             </div>
           )}
+
+          {/* ── Copilot ── */}
+          <div className="mt-4 rounded-xl border border-primary/25 bg-primary/[0.04] overflow-hidden">
+            <div className="flex items-center gap-2 px-3 py-2 border-b border-primary/15">
+              <Bot className="w-4 h-4 text-primary" />
+              <span className="text-xs font-semibold text-primary">Copilot</span>
+              <span className="text-[10px] text-muted-foreground">— tips for this exact job</span>
+            </div>
+            <div className="px-3 py-2.5 text-sm">
+              {tipsLoading && !copilotTips[step] ? (
+                <div className="flex items-center gap-2 text-xs text-muted-foreground py-1">
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" /> Studying this job…
+                </div>
+              ) : copilotTips[step] ? (
+                <div className="prose prose-sm dark:prose-invert max-w-none prose-ul:my-0 prose-li:my-0.5 text-[13px]">
+                  <ReactMarkdown>{copilotTips[step]}</ReactMarkdown>
+                </div>
+              ) : (
+                <p className="text-xs text-muted-foreground">Ask me anything about applying to this job.</p>
+              )}
+
+              {copilotA && (
+                <div className="mt-2 rounded-lg bg-background border px-3 py-2 prose prose-sm dark:prose-invert max-w-none prose-p:my-1 text-[13px]">
+                  <ReactMarkdown>{copilotA}</ReactMarkdown>
+                </div>
+              )}
+
+              <div className="flex gap-2 mt-2">
+                <Input
+                  placeholder="Ask the copilot… e.g. 'What should I highlight?'"
+                  value={copilotQ}
+                  onChange={(e) => setCopilotQ(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); askCopilot(); }
+                  }}
+                  className="h-8 text-xs"
+                  disabled={copilotAsking}
+                />
+                <Button size="icon" variant="outline" className="h-8 w-8 shrink-0" onClick={askCopilot} disabled={copilotAsking || !copilotQ.trim()}>
+                  {copilotAsking ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <SendIcon className="w-3.5 h-3.5" />}
+                </Button>
+              </div>
+            </div>
+          </div>
         </div>
 
         {/* Footer nav */}

@@ -91,7 +91,7 @@ const roles: { title: string; type: string; location: string; icon: typeof Trend
     niceToHaves: [
       "Experience in a startup or early-stage company",
       "Familiarity with CRM tools (HubSpot, Intercom, Freshdesk, etc.)",
-      "Understanding of email outreach or cold outreach workflows",
+      "Understanding of talent marketplaces or career platforms",
       "Background in the African tech or freelance ecosystem",
     ],
   },

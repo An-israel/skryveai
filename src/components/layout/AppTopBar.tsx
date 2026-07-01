@@ -10,6 +10,7 @@ import type { SkryveRole } from "@/hooks/use-skryve-role";
 import { supabase } from "@/integrations/supabase/client";
 
 const ROUTES: Record<string, string[]> = {
+  "/feed":               ["Home"],
   "/dashboard":          ["Dashboard"],
   "/jobs":               ["Jobs"],
   "/jobs/preferences":   ["Jobs", "Preferences"],
