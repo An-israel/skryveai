@@ -1,6 +1,7 @@
 // Shared CV-tailoring logic: serialize a stored CV, call the build-cv edge
 // function in "optimize" mode against a job, and save a NEW tailored CV record.
 import { supabase } from "@/integrations/supabase/client";
+import { getEdgeFunctionErrorMessage } from "@/lib/edge-function-error";
 
 export interface StoredCv {
   id: string;
@@ -100,14 +101,7 @@ export function mapOptimizedToColumns(optimized: any, source: StoredCv) {
 
 /** Extract a friendly message from a Supabase functions error (e.g. the 429 rate-limit body). */
 export async function extractFnErrorMessage(e: any, fallback = "Please try again."): Promise<string> {
-  let msg = e?.message || fallback;
-  try {
-    if (e?.context?.json) {
-      const body = await e.context.json();
-      if (body?.message) msg = body.message;
-    }
-  } catch { /* ignore */ }
-  return msg;
+  return getEdgeFunctionErrorMessage(e, fallback);
 }
 
 /** Tailor a stored CV to a job and persist it as a NEW skryve_cvs row. Returns the new CV id. */

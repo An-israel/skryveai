@@ -7,16 +7,13 @@ import { ClientDashboard } from "@/components/dashboard/ClientDashboard";
 import { UIRefreshPopup } from "@/components/notifications/UIRefreshPopup";
 import { FeatureUpdatePopup } from "@/components/notifications/FeatureUpdatePopup";
 import { MotivationalPopup } from "@/components/notifications/MotivationalPopup";
-import { OnboardingTour } from "@/components/onboarding/OnboardingTour";
-import { OnboardingWizard } from "@/components/onboarding/OnboardingWizard";
-import { useOnboarding } from "@/hooks/use-onboarding";
 
 export default function Dashboard() {
   const [user, setUser] = useState<any>(null);
   const [authLoading, setAuthLoading] = useState(true);
+  const [onboardingChecked, setOnboardingChecked] = useState(false);
   const navigate = useNavigate();
   const role = useSkryveRole(user?.id);
-  const { showTour, showWizard, markOnboardingComplete } = useOnboarding(user?.id);
 
   useEffect(() => {
     supabase.auth.getSession()
@@ -36,23 +33,37 @@ export default function Dashboard() {
     return () => subscription.unsubscribe();
   }, [navigate]);
 
-  if (authLoading || !user || role === "loading") return <DashboardSkeleton />;
+  // New users who haven't finished the talent/client onboarding go there first.
+  useEffect(() => {
+    if (!user?.id) return;
+    (async () => {
+      const [{ data: tp }, { data: cp }] = await Promise.all([
+        (supabase as any)
+          .from("talent_profiles")
+          .select("onboarding_completed")
+          .eq("user_id", user.id)
+          .maybeSingle(),
+        (supabase as any)
+          .from("client_profiles")
+          .select("onboarding_completed")
+          .eq("user_id", user.id)
+          .maybeSingle(),
+      ]);
+      if (!tp?.onboarding_completed && !cp?.onboarding_completed) {
+        navigate("/onboarding", { replace: true });
+        return;
+      }
+      setOnboardingChecked(true);
+    })();
+  }, [user?.id, navigate]);
+
+  if (authLoading || !user || role === "loading" || !onboardingChecked) return <DashboardSkeleton />;
 
   return (
     <div>
       <UIRefreshPopup />
       <FeatureUpdatePopup />
       <MotivationalPopup />
-
-      {showWizard && user && (
-        <OnboardingWizard
-          userId={user.id}
-          userEmail={user.email || ""}
-          userName={user.user_metadata?.full_name || "User"}
-          onComplete={markOnboardingComplete}
-        />
-      )}
-      {showTour && !showWizard && <OnboardingTour onComplete={markOnboardingComplete} />}
 
       {role === "client" ? (
         <ClientDashboard user={user} />

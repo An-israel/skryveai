@@ -16,18 +16,18 @@ const AVAILABILITY_STYLES: Record<string, { label: string; class: string }> = {
   unavailable: { label: "Not Available", class: "bg-red-500/10 text-red-500 border-red-500/30" },
 };
 
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 export default function ProfileView() {
   const { username } = useParams<{ username: string }>();
   const navigate = useNavigate();
   const { toast } = useToast();
 
   const [currentUser, setCurrentUser] = useState<any>(null);
-  const [profileUser, setProfileUser] = useState<any>(null);
   const [talent, setTalent] = useState<any>(null);
   const [portfolio, setPortfolio] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
-  const [noTalentProfile, setNoTalentProfile] = useState(false);
   const [previewAsClient, setPreviewAsClient] = useState(false);
 
   useEffect(() => {
@@ -39,27 +39,28 @@ export default function ProfileView() {
   useEffect(() => {
     if (!username) return;
     (async () => {
-      const { data: pu } = await (supabase as any)
-        .from("profiles")
-        .select("id, full_name, username, avatar_url")
-        .eq("username", username)
-        .maybeSingle();
+      setLoading(true);
+      setNotFound(false);
 
-      if (!pu) {
-        setNotFound(true);
-        setLoading(false);
-        return;
+      // The :username param can be a talent username, an auth user id,
+      // a talent_profiles id, or a slugified full name — resolve all of them.
+      const tpq = () => (supabase as any).from("talent_profiles").select("*");
+      let tp: any = null;
+
+      if (UUID_RE.test(username)) {
+        ({ data: tp } = await tpq().eq("user_id", username).maybeSingle());
+        if (!tp) ({ data: tp } = await tpq().eq("id", username).maybeSingle());
+      } else {
+        ({ data: tp } = await tpq().eq("username", username).maybeSingle());
+        if (!tp) {
+          const nameFromSlug = username.replace(/-/g, " ");
+          const { data: matches } = await tpq().ilike("full_name", nameFromSlug).limit(1);
+          tp = matches?.[0] ?? null;
+        }
       }
-      setProfileUser(pu);
-
-      const { data: tp } = await (supabase as any)
-        .from("talent_profiles")
-        .select("*")
-        .eq("user_id", pu.id)
-        .maybeSingle();
 
       if (!tp) {
-        setNoTalentProfile(true);
+        setNotFound(true);
         setLoading(false);
         return;
       }
@@ -75,6 +76,19 @@ export default function ProfileView() {
       setLoading(false);
     })();
   }, [username]);
+
+  const handleMessage = async () => {
+    if (!currentUser) { navigate("/login"); return; }
+    if (!talent?.user_id || talent.user_id === currentUser.id) return;
+    const { data, error } = await (supabase as any).rpc("get_or_create_direct_conversation", {
+      _other: talent.user_id,
+    });
+    if (error || !data) {
+      toast({ title: "Couldn't start conversation", description: error?.message, variant: "destructive" });
+      return;
+    }
+    navigate(`/dm/${data}`);
+  };
 
   function handleShare() {
     navigator.clipboard.writeText(window.location.href);
@@ -103,16 +117,7 @@ export default function ProfileView() {
     );
   }
 
-  if (noTalentProfile) {
-    return (
-      <div className="text-center py-24">
-        <h2 className="font-display text-2xl font-bold mb-2">Profile not set up</h2>
-        <p className="text-muted-foreground">This user hasn't set up their talent profile yet.</p>
-      </div>
-    );
-  }
-
-  const isOwner = currentUser?.id === profileUser?.id && !previewAsClient;
+  const isOwner = currentUser?.id === talent?.user_id && !previewAsClient;
   const avail = AVAILABILITY_STYLES[talent?.availability_status] || AVAILABILITY_STYLES.available;
   const memberYear = talent?.created_at ? new Date(talent.created_at).getFullYear() : null;
   const social = talent?.social_links || {};
@@ -125,17 +130,17 @@ export default function ProfileView() {
           <div className="flex flex-col sm:flex-row items-start sm:items-end gap-4">
             <div className="w-20 h-20 rounded-full border-4 border-background bg-muted flex items-center justify-center overflow-hidden shrink-0">
               {talent?.profile_photo_url ? (
-                <img src={talent.profile_photo_url} alt={profileUser?.full_name} className="w-full h-full object-cover" />
+                <img src={talent.profile_photo_url} alt={talent?.full_name || "Talent"} className="w-full h-full object-cover" />
               ) : (
                 <span className="text-2xl font-bold text-muted-foreground">
-                  {(profileUser?.full_name || profileUser?.username || "?")[0].toUpperCase()}
+                  {(talent?.full_name || talent?.username || "?")[0].toUpperCase()}
                 </span>
               )}
             </div>
             <div className="flex-1 min-w-0">
               <div className="flex flex-wrap items-center gap-2">
                 <h1 className="font-display text-xl font-extrabold">
-                  {talent?.full_name || profileUser?.full_name || profileUser?.username}
+                  {talent?.full_name || talent?.username || "Talent"}
                 </h1>
                 <Badge variant="outline" className={avail.class}>{avail.label}</Badge>
               </div>
@@ -159,12 +164,9 @@ export default function ProfileView() {
                   </Button>
                 </>
               ) : (
-                <>
-                  <Button size="sm" onClick={() => navigate(`/messages?talent=${profileUser?.id}`)}>
-                    <MessageSquare className="w-4 h-4 mr-1" />Send Message
-                  </Button>
-                  <Button size="sm" variant="outline">Invite to Job</Button>
-                </>
+                <Button size="sm" onClick={handleMessage}>
+                  <MessageSquare className="w-4 h-4 mr-1" />Send Message
+                </Button>
               )}
               {previewAsClient && (
                 <Button size="sm" variant="ghost" onClick={() => setPreviewAsClient(false)}>Exit Preview</Button>
@@ -222,7 +224,9 @@ export default function ProfileView() {
               <div className="flex items-center justify-center gap-1 text-yellow-500 mb-1">
                 <Star className="w-4 h-4 fill-current" />
               </div>
-              <p className="font-semibold text-sm">{talent?.rating_avg ? Number(talent.rating_avg).toFixed(1) : "5.0"}</p>
+              <p className="font-semibold text-sm">
+                {talent?.total_reviews > 0 && talent?.rating_avg ? Number(talent.rating_avg).toFixed(1) : "New"}
+              </p>
               <p className="text-xs text-muted-foreground">Avg Rating</p>
             </div>
             {talent?.total_reviews > 0 && (

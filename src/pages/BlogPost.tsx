@@ -133,7 +133,7 @@ export default function BlogPost() {
   return (
     <div className="min-h-screen flex flex-col bg-background">
       <Helmet>
-        <title>{title} | SkryveAI Blog</title>
+        <title>{title} | Skryve Blog</title>
         <meta name="description" content={description} />
         {post.keywords && post.keywords.length > 0 && (
           <meta name="keywords" content={post.keywords.join(", ")} />
@@ -207,12 +207,12 @@ export default function BlogPost() {
 
           {/* Inline CTA */}
           <Card className="mt-12 p-8 bg-primary/5 border-primary/20 text-center">
-            <h3 className="text-2xl font-bold mb-3">Try SkryveAI free for 7 days</h3>
+            <h3 className="text-2xl font-bold mb-3">Join Skryve — it's free</h3>
             <p className="text-muted-foreground mb-6 max-w-lg mx-auto">
-              Find businesses that actually need your service. Send AI-personalized cold emails. Track replies automatically.
+              Find jobs matched to your skills. Build an ATS-ready CV in minutes. Apply with AI-written proposals and keep learning with your personal AI coach.
             </p>
             <Button asChild size="lg">
-              <Link to="/signup">Start free trial</Link>
+              <Link to="/signup">Create your free account</Link>
             </Button>
           </Card>
         </article>

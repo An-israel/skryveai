@@ -252,77 +252,13 @@ function FilterSidebar({ filters, setFilters, onApply }: FilterSidebarProps) {
   );
 }
 
-interface ProposalModalProps {
-  job: AggJob | null;
-  open: boolean;
-  onClose: () => void;
-  userName: string;
-  hourlyRate: string;
-}
-
-function ProposalModal({ job, open, onClose, userName, hourlyRate }: ProposalModalProps) {
-  const [copied, setCopied] = useState(false);
-  const [proposal, setProposal] = useState("");
-
-  useEffect(() => {
-    if (!job) return;
-    setProposal(
-      `Dear Hiring Manager,\n\nI'm applying for the "${job.title}" position. I bring strong expertise in ${(job.skill_tags || []).slice(0, 3).join(", ") || "the required skills"} and have delivered similar projects with measurable results. I'm confident I can add immediate value to your team.\n\nMy rate is ${hourlyRate || "competitive"}. I'd love to discuss how I can help.\n\nBest regards,\n${userName || "Applicant"}`
-    );
-  }, [job, userName, hourlyRate]);
-
-  const handleCopy = () => {
-    navigator.clipboard.writeText(proposal);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
-  };
-
-  return (
-    <Dialog open={open} onOpenChange={v => !v && onClose()}>
-      <DialogContent className="max-w-lg">
-        <DialogHeader>
-          <DialogTitle>Generate Proposal</DialogTitle>
-        </DialogHeader>
-        {job && (
-          <div className="space-y-4">
-            <div className="flex gap-2">
-              <Badge className={`text-xs font-semibold uppercase ${platformBadgeClass(job.platform)}`}>{job.platform}</Badge>
-              <span className="text-sm font-medium text-foreground truncate">{job.title}</span>
-            </div>
-            <Textarea
-              value={proposal}
-              onChange={e => setProposal(e.target.value)}
-              rows={10}
-              className="font-mono text-sm resize-none"
-            />
-            <div className="flex gap-2">
-              <Button onClick={handleCopy} variant="outline" className="flex-1">
-                {copied ? <Check className="w-4 h-4 mr-2" /> : <Copy className="w-4 h-4 mr-2" />}
-                {copied ? "Copied!" : "Copy Proposal"}
-              </Button>
-              <Button
-                onClick={() => window.open(job.external_url, "_blank")}
-                className="flex-1"
-              >
-                <ExternalLink className="w-4 h-4 mr-2" />
-                Apply on {job.platform}
-              </Button>
-            </div>
-          </div>
-        )}
-      </DialogContent>
-    </Dialog>
-  );
-}
-
 interface JobCardProps {
   job: AggJob;
   saved: boolean;
   onSave: (jobId: string) => void;
-  onProposal: (job: AggJob) => void;
 }
 
-function JobCard({ job, saved, onSave, onProposal }: JobCardProps) {
+function JobCard({ job, saved, onSave }: JobCardProps) {
   const navigate = useNavigate();
 
   const relativeDate = job.posted_at
@@ -385,9 +321,9 @@ function JobCard({ job, saved, onSave, onProposal }: JobCardProps) {
         <Button
           size="sm"
           className="flex-1"
-          onClick={() => onProposal(job)}
+          onClick={() => navigate(`/jobs/${job.id}`)}
         >
-          Generate Proposal
+          Apply for Job
         </Button>
         <Button
           size="sm"
@@ -424,10 +360,6 @@ export default function Jobs() {
   const [savedJobIds, setSavedJobIds] = useState<Set<string>>(new Set());
   const [userSkills, setUserSkills] = useState<string[]>([]);
   const [talentId, setTalentId] = useState<string | null>(null);
-  const [userName, setUserName] = useState("");
-  const [hourlyRate, setHourlyRate] = useState("");
-  const [proposalJob, setProposalJob] = useState<AggJob | null>(null);
-  const [proposalOpen, setProposalOpen] = useState(false);
   const [showMobileFilters, setShowMobileFilters] = useState(false);
 
   const filtersRef = useRef(filters);
@@ -450,8 +382,6 @@ export default function Jobs() {
 
       if (talent) {
         setTalentId(talent.id);
-        setUserName(talent.full_name || "");
-        setHourlyRate(talent.hourly_rate ? `$${talent.hourly_rate}/hr` : "");
         const skills = [talent.primary_skill, ...(talent.secondary_skills || [])].filter(Boolean);
         setUserSkills(skills);
 
@@ -536,11 +466,6 @@ export default function Jobs() {
       if (!error) setSavedJobIds(prev => new Set([...prev, jobId]));
       else toast({ title: "Error saving job", variant: "destructive" });
     }
-  };
-
-  const openProposal = (job: AggJob) => {
-    setProposalJob(job);
-    setProposalOpen(true);
   };
 
   const filteredJobs = jobs.filter(job => {
@@ -649,7 +574,6 @@ export default function Jobs() {
                   job={job}
                   saved={savedJobIds.has(job.id)}
                   onSave={handleSaveJob}
-                  onProposal={openProposal}
                 />
               ))}
             </div>
@@ -669,13 +593,6 @@ export default function Jobs() {
         </div>
       </div>
 
-      <ProposalModal
-        job={proposalJob}
-        open={proposalOpen}
-        onClose={() => setProposalOpen(false)}
-        userName={userName}
-        hourlyRate={hourlyRate}
-      />
     </div>
   );
 }

@@ -12,7 +12,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
 import { extractTextFromPdf } from "@/lib/extract-pdf-text";
-import { useCredits } from "@/hooks/use-credits";
 import { getEdgeFunctionErrorMessage } from "@/lib/edge-function-error";
 import { FeatureGuide } from "@/components/onboarding/FeatureGuide";
 import { linkedInGuide } from "@/components/onboarding/guideConfigs";
@@ -111,7 +110,6 @@ function ScoreRing({ score }: { score: number }) {
 
 export default function LinkedInAnalyzer() {
   const { session } = useAuth();
-  const { checkCredits, deductCredits } = useCredits();
   const { toast } = useToast();
   const navigate = useNavigate();
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -173,10 +171,6 @@ export default function LinkedInAnalyzer() {
       toast({ title: "Not enough content", description: "Upload your LinkedIn PDF or paste your profile sections", variant: "destructive" });
       return;
     }
-    // Check credits before analyzing (costs 0.3 credits)
-    const creditCheck = await checkCredits(0.3);
-    if (!creditCheck.ok) return;
-
     setIsAnalyzing(true);
     setResult(null);
     try {
@@ -185,8 +179,6 @@ export default function LinkedInAnalyzer() {
       });
       if (error) throw new Error(error.message || "Analysis failed");
       if (data?.error) throw new Error(data.error);
-      // Deduct 0.3 credits after success
-      await deductCredits(0.3);
       setResult(data as AnalysisResult);
       window.scrollTo({ top: 0, behavior: "smooth" });
       const { data: { user } } = await supabase.auth.getUser();

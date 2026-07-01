@@ -41,10 +41,10 @@ export default function Contact() {
   return (
     <div className="min-h-screen">
       <SEOHead
-        title="Contact SkryveAI — Get Help & Support"
-        description="Contact SkryveAI for questions about our AI cold outreach, CV builder, ATS checker, or LinkedIn analyzer tools. We respond within 24 hours."
+        title="Contact Skryve — Get Help & Support"
+        description="Contact Skryve for questions about finding jobs, the marketplace, CV builder, ATS checker, learning courses, or your account. We respond within 24 hours."
         canonical="https://skryveai.com/contact"
-        keywords="contact SkryveAI, SkryveAI support, AI outreach help"
+        keywords="contact Skryve, Skryve support, career platform help"
       />
       <Header />
 

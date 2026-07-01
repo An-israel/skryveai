@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import { renderToStaticMarkup } from "react-dom/server";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
@@ -188,6 +188,8 @@ export default function CVEditor() {
   const isNew = cvId === "new" || !cvId;
   const navigate = useNavigate();
   const { toast } = useToast();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const autoDownloadDone = useRef(false);
 
   const [cvData, setCvData] = useState<CVFormData>(defaultFormData);
   const [dbId, setDbId] = useState<string | null>(null);
@@ -268,6 +270,18 @@ export default function CVEditor() {
       setLoading(false);
     }
   };
+
+  // ─── ?download=1 → trigger the PDF download once loaded ────────────────────
+
+  useEffect(() => {
+    if (loading || !dbId || autoDownloadDone.current) return;
+    if (searchParams.get("download")) {
+      autoDownloadDone.current = true;
+      setSearchParams({}, { replace: true });
+      downloadPDF();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loading, dbId]);
 
   // ─── Auto-save debounce ─────────────────────────────────────────────────────
 
