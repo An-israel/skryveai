@@ -1,4 +1,4 @@
-import { Outlet, Navigate } from "react-router-dom";
+import { Outlet, Navigate, useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
 import { AppSidebar } from "./AppSidebar";
 import { AppTopBar } from "./AppTopBar";
@@ -12,6 +12,7 @@ export function AppLayout() {
   const [unreadCount, setUnread]  = useState(0);
 
   const role = useSkryveRole(user?.id);
+  const navigate = useNavigate();
 
   // ── Auth listener ────────────────────────────────────────────
   useEffect(() => {
@@ -32,6 +33,27 @@ export function AppLayout() {
     const failsafe = setTimeout(() => setLoading(false), 8000);
     return () => { subscription.unsubscribe(); clearTimeout(failsafe); };
   }, []);
+
+  // ── Onboarding gate: users with no completed profile go to onboarding ──
+  useEffect(() => {
+    if (!user?.id) return;
+    if (sessionStorage.getItem("skryve_onboarded") === user.id) return;
+    (async () => {
+      const [{ data: tp }, { data: cp }, { data: roles }] = await Promise.all([
+        (supabase as any).from("talent_profiles").select("onboarding_completed").eq("user_id", user.id).maybeSingle(),
+        (supabase as any).from("client_profiles").select("onboarding_completed").eq("user_id", user.id).maybeSingle(),
+        (supabase as any).from("user_roles").select("role").eq("user_id", user.id),
+      ]);
+      const isStaff = (roles || []).some((r: any) =>
+        ["super_admin", "content_editor", "support_agent", "staff"].includes(r.role)
+      );
+      if (isStaff || tp?.onboarding_completed || cp?.onboarding_completed) {
+        sessionStorage.setItem("skryve_onboarded", user.id);
+      } else {
+        navigate("/onboarding", { replace: true });
+      }
+    })();
+  }, [user?.id, navigate]);
 
   // ── Unread notifications count ────────────────────────────────
   useEffect(() => {

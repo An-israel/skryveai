@@ -32,6 +32,7 @@ import ClientOnboarding    from "./pages/onboarding/ClientOnboarding";
 
 // ── Authenticated pages ─────────────────────────────────────
 import Dashboard        from "./pages/Dashboard";
+import Feed             from "./pages/Feed";
 import Profile          from "./pages/Profile";
 import ProfileView      from "./pages/ProfileView";
 import Jobs             from "./pages/Jobs";
@@ -113,6 +114,7 @@ export default function App() {
               <Route element={<AppLayout />}>
 
                 {/* Core */}
+                <Route path="/feed"               element={<Feed />} />
                 <Route path="/dashboard"          element={<Dashboard />} />
                 <Route path="/profile"            element={<Profile />} />
                 <Route path="/profile/edit"       element={<Profile />} />

@@ -27,7 +27,7 @@ export default function Login() {
     const { error } = await supabase.auth.signInWithOAuth({
       provider: "google",
       options: {
-        redirectTo: window.location.origin + "/dashboard",
+        redirectTo: window.location.origin + "/feed",
       },
     });
     if (error) {
@@ -46,7 +46,7 @@ export default function Login() {
       const { error } = await supabase.auth.signInWithPassword({ email, password });
       if (error) throw error;
       toast({ title: "Welcome back!", description: "You've successfully signed in." });
-      navigate("/dashboard");
+      navigate("/feed");
     } catch (error: unknown) {
       const msg = error instanceof Error ? error.message : "";
       if (msg.toLowerCase().includes("email not confirmed") || msg.toLowerCase().includes("not confirmed")) {

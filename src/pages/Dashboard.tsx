@@ -11,7 +11,6 @@ import { MotivationalPopup } from "@/components/notifications/MotivationalPopup"
 export default function Dashboard() {
   const [user, setUser] = useState<any>(null);
   const [authLoading, setAuthLoading] = useState(true);
-  const [onboardingChecked, setOnboardingChecked] = useState(false);
   const navigate = useNavigate();
   const role = useSkryveRole(user?.id);
 
@@ -33,31 +32,7 @@ export default function Dashboard() {
     return () => subscription.unsubscribe();
   }, [navigate]);
 
-  // New users who haven't finished the talent/client onboarding go there first.
-  useEffect(() => {
-    if (!user?.id) return;
-    (async () => {
-      const [{ data: tp }, { data: cp }] = await Promise.all([
-        (supabase as any)
-          .from("talent_profiles")
-          .select("onboarding_completed")
-          .eq("user_id", user.id)
-          .maybeSingle(),
-        (supabase as any)
-          .from("client_profiles")
-          .select("onboarding_completed")
-          .eq("user_id", user.id)
-          .maybeSingle(),
-      ]);
-      if (!tp?.onboarding_completed && !cp?.onboarding_completed) {
-        navigate("/onboarding", { replace: true });
-        return;
-      }
-      setOnboardingChecked(true);
-    })();
-  }, [user?.id, navigate]);
-
-  if (authLoading || !user || role === "loading" || !onboardingChecked) return <DashboardSkeleton />;
+  if (authLoading || !user || role === "loading") return <DashboardSkeleton />;
 
   return (
     <div>

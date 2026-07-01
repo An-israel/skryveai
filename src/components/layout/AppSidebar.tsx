@@ -16,9 +16,8 @@ interface NavItem {
 }
 
 const talentNav: NavItem[] = [
+  { label: "Home",         to: "/feed",         icon: Store           },
   { label: "Dashboard",    to: "/dashboard",   icon: LayoutDashboard },
-  { label: "Find Jobs",    to: "/jobs",         icon: Briefcase       },
-  { label: "Marketplace",  to: "/marketplace",  icon: Store           },
   { label: "Collab",       to: "/talent",       icon: Handshake       },
   { label: "Applications", to: "/applications", icon: ClipboardList   },
   { label: "Projects",     to: "/projects",     icon: FolderOpen      },
