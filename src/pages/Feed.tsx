@@ -442,9 +442,17 @@ export default function Feed() {
     .sort((a, b) => {
       if (tab === "foryou") {
         if (b.matchScore !== a.matchScore) return b.matchScore - a.matchScore;
+        // Jobs rank above events/courses at equal score.
+        const aJob = a.source === "marketplace" || a.source === "aggregated" ? 1 : 0;
+        const bJob = b.source === "marketplace" || b.source === "aggregated" ? 1 : 0;
+        if (bJob !== aJob) return bJob - aJob;
       }
       return new Date(b.postedAt).getTime() - new Date(a.postedAt).getTime();
     });
+
+  const jobCount = items.filter(
+    (i) => i.source === "marketplace" || i.source === "aggregated"
+  ).length;
 
   const loadMore = async () => {
     setLoadingMore(true);
@@ -497,6 +505,13 @@ export default function Feed() {
         </div>
       ) : (
         <div className="space-y-4">
+          {jobCount === 0 && !loading && (
+            <div className="rounded-xl border border-dashed p-4 text-center text-sm text-muted-foreground">
+              <Briefcase className="w-6 h-6 mx-auto mb-2 text-muted-foreground/50" />
+              No jobs in the feed yet — client-posted jobs and listings from external
+              platforms land here automatically as they come in.
+            </div>
+          )}
           {visible.map((item) => {
             const Icon = SOURCE_ICON[item.source];
             const like = likes[item.key] || { count: 0, mine: false };
