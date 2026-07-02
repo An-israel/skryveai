@@ -10,7 +10,8 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Plus, Edit, Trash2, Eye, Star, ExternalLink } from "lucide-react";
+import { Loader2, Plus, Edit, Trash2, Eye, Star, ExternalLink, Link2 } from "lucide-react";
+import { autoLinkContent } from "@/lib/internal-links";
 
 interface BlogPost {
   id: string;
@@ -243,8 +244,34 @@ export function AdminBlogManager() {
                 <Textarea rows={2} value={editing.meta_description || ""} onChange={(e) => setEditing({ ...editing, meta_description: e.target.value })} maxLength={160} />
               </div>
               <div>
-                <Label>Content (Markdown) *</Label>
+                <div className="flex items-center justify-between mb-1">
+                  <Label>Content (Markdown) *</Label>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="h-7 gap-1.5 text-xs"
+                    onClick={() => {
+                      const { content, added } = autoLinkContent(editing.content || "");
+                      if (added.length === 0) {
+                        toast({ title: "No new internal links found", description: "Every linkable phrase is already linked or not present." });
+                        return;
+                      }
+                      setEditing({ ...editing, content });
+                      toast({
+                        title: `${added.length} internal link${added.length === 1 ? "" : "s"} added`,
+                        description: added.map((a) => `"${a.phrase}" → ${a.url}`).join(" · "),
+                      });
+                    }}
+                  >
+                    <Link2 className="w-3 h-3" />
+                    Add internal links
+                  </Button>
+                </div>
                 <Textarea rows={20} className="font-mono text-sm" value={editing.content || ""} onChange={(e) => setEditing({ ...editing, content: e.target.value })} />
+                <p className="text-[11px] text-muted-foreground mt-1">
+                  “Add internal links” scans the post for phrases like “CV builder”, “ATS checker”, “sign up”, or “Skryve” and links the first occurrence of each to the matching Skryve page — skipping headings, code, and existing links.
+                </p>
               </div>
               <div className="flex items-center gap-6">
                 <div className="flex items-center gap-2">

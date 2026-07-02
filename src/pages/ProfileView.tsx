@@ -125,7 +125,13 @@ export default function ProfileView() {
   return (
     <div className="max-w-3xl mx-auto space-y-6">
       <Card className="overflow-hidden">
-        <div className="h-24 bg-gradient-to-br from-primary/20 via-primary/10 to-transparent" />
+        {talent?.cover_photo_url ? (
+          <div className="h-32 sm:h-40 bg-muted">
+            <img src={talent.cover_photo_url} alt="Cover" className="w-full h-full object-cover" />
+          </div>
+        ) : (
+          <div className="h-24 bg-gradient-to-br from-primary/20 via-primary/10 to-transparent" />
+        )}
         <CardContent className="px-6 pb-6 -mt-10">
           <div className="flex flex-col sm:flex-row items-start sm:items-end gap-4">
             <div className="w-20 h-20 rounded-full border-4 border-background bg-muted flex items-center justify-center overflow-hidden shrink-0">
