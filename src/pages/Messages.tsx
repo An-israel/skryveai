@@ -27,8 +27,9 @@ import { useToast } from "@/hooks/use-toast";
 
 interface ConversationItem {
   id: string;
-  talent_id: string;
-  client_id: string;
+  kind: "marketplace" | "direct";
+  talent_id?: string;
+  client_id?: string;
   last_message_at: string | null;
   otherName: string;
   otherAvatar: string | null;
@@ -131,24 +132,24 @@ export default function Messages() {
   }, [navigate]);
 
   const fetchConversations = useCallback(async () => {
-    if (!talentProfileId && !clientProfileId) return;
+    if (!userId) return;
     setConvLoading(true);
 
-    const orFilters = [];
-    if (talentProfileId)
-      orFilters.push(`talent_id.eq.${talentProfileId}`);
-    if (clientProfileId)
-      orFilters.push(`client_id.eq.${clientProfileId}`);
+    // ── Marketplace (job) conversations ──
+    let convs: any[] = [];
+    if (talentProfileId || clientProfileId) {
+      const orFilters = [];
+      if (talentProfileId)
+        orFilters.push(`talent_id.eq.${talentProfileId}`);
+      if (clientProfileId)
+        orFilters.push(`client_id.eq.${clientProfileId}`);
 
-    const { data: convs, error } = await (supabase as any)
-      .from("marketplace_conversations")
-      .select("id, talent_id, client_id, last_message_at, job_id")
-      .or(orFilters.join(","))
-      .order("last_message_at", { ascending: false });
-
-    if (error || !convs) {
-      setConvLoading(false);
-      return;
+      const { data } = await (supabase as any)
+        .from("marketplace_conversations")
+        .select("id, talent_id, client_id, last_message_at, job_id")
+        .or(orFilters.join(","))
+        .order("last_message_at", { ascending: false });
+      convs = data || [];
     }
 
     // Enrich with other party's info
@@ -202,6 +203,7 @@ export default function Messages() {
 
         return {
           id: conv.id,
+          kind: "marketplace" as const,
           talent_id: conv.talent_id,
           client_id: conv.client_id,
           last_message_at: conv.last_message_at,
@@ -213,15 +215,62 @@ export default function Messages() {
       })
     );
 
-    setConversations(enriched);
+    // ── Direct (Collab) conversations ──
+    const { data: dms } = await (supabase as any)
+      .from("direct_conversations")
+      .select("id, user_a, user_b, last_message_at")
+      .order("last_message_at", { ascending: false });
+
+    const dmOtherIds = [...new Set((dms || []).map((d: any) => (d.user_a === userId ? d.user_b : d.user_a)))];
+    const dmNames: Record<string, { name: string; avatar: string | null }> = {};
+    if (dmOtherIds.length) {
+      const [{ data: tps }, { data: cps }] = await Promise.all([
+        (supabase as any).from("talent_profiles").select("user_id, full_name, profile_photo_url").in("user_id", dmOtherIds),
+        (supabase as any).from("client_profiles").select("user_id, company_name, logo_url").in("user_id", dmOtherIds),
+      ]);
+      (tps || []).forEach((t: any) => { dmNames[t.user_id] = { name: t.full_name || "Talent", avatar: t.profile_photo_url }; });
+      (cps || []).forEach((c: any) => { if (!dmNames[c.user_id]) dmNames[c.user_id] = { name: c.company_name || "Client", avatar: c.logo_url }; });
+    }
+
+    const dmItems: ConversationItem[] = await Promise.all(
+      (dms || []).map(async (d: any) => {
+        const otherId = d.user_a === userId ? d.user_b : d.user_a;
+        const prof = dmNames[otherId] || { name: "User", avatar: null };
+        const { data: lastArr } = await (supabase as any)
+          .from("direct_messages")
+          .select("body")
+          .eq("conversation_id", d.id)
+          .order("created_at", { ascending: false })
+          .limit(1);
+        const { count: unread } = await (supabase as any)
+          .from("direct_messages")
+          .select("id", { count: "exact", head: true })
+          .eq("conversation_id", d.id)
+          .is("read_at", null)
+          .neq("sender_id", userId);
+        return {
+          id: d.id,
+          kind: "direct" as const,
+          last_message_at: d.last_message_at,
+          otherName: prof.name,
+          otherAvatar: prof.avatar,
+          lastMessage: lastArr?.[0]?.body || null,
+          unreadCount: unread || 0,
+        };
+      })
+    );
+
+    const all = [...enriched, ...dmItems].sort(
+      (a, b) => new Date(b.last_message_at || 0).getTime() - new Date(a.last_message_at || 0).getTime()
+    );
+
+    setConversations(all);
     setConvLoading(false);
   }, [talentProfileId, clientProfileId, userId]);
 
   useEffect(() => {
-    if (talentProfileId !== null || clientProfileId !== null) {
-      fetchConversations();
-    }
-  }, [talentProfileId, clientProfileId, fetchConversations]);
+    if (userId) fetchConversations();
+  }, [userId, talentProfileId, clientProfileId, fetchConversations]);
 
   const fetchMessages = useCallback(
     async (convId: string) => {
@@ -498,8 +547,12 @@ export default function Messages() {
             ) : (
               filteredConvs.map((conv) => (
                 <div
-                  key={conv.id}
+                  key={`${conv.kind}-${conv.id}`}
                   onClick={() => {
+                    if (conv.kind === "direct") {
+                      navigate(`/dm/${conv.id}`);
+                      return;
+                    }
                     setActiveConvId(conv.id);
                     setMobileView("thread");
                   }}
@@ -515,8 +568,11 @@ export default function Messages() {
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center justify-between">
-                      <span className="font-medium text-sm truncate">
+                      <span className="font-medium text-sm truncate flex items-center gap-1.5">
                         {conv.otherName}
+                        <Badge variant="outline" className="text-[9px] px-1 py-0 shrink-0">
+                          {conv.kind === "direct" ? "Direct" : "Job"}
+                        </Badge>
                       </span>
                       <span className="text-xs text-muted-foreground shrink-0 ml-1">
                         {conv.last_message_at

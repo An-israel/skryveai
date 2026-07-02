@@ -81,6 +81,7 @@ export default function Admin() {
   const [userRole, setUserRole] = useState<string>("");
   const [searchQuery, setSearchQuery] = useState("");
   const [verificationFilter, setVerificationFilter] = useState<"all" | "unverified" | "verified">("all");
+  const [typeFilter, setTypeFilter] = useState<"all" | "talent" | "client">("all");
   const [checkingAll, setCheckingAll] = useState(false);
   const [showAddStaffDialog, setShowAddStaffDialog] = useState(false);
   const [newStaffEmail, setNewStaffEmail] = useState("");
@@ -208,11 +209,26 @@ export default function Admin() {
           productUsageMap.get(a.user_id)!.add("AutoPilot");
         });
         
+        // Categorize users: talent vs client (vs both)
+        const [{ data: talentRows }, { data: clientRows }] = await Promise.all([
+          (supabase as any).from("talent_profiles").select("user_id"),
+          (supabase as any).from("client_profiles").select("user_id"),
+        ]);
+        const talentIds = new Set((talentRows || []).map((t: any) => t.user_id));
+        const clientIds = new Set((clientRows || []).map((c: any) => c.user_id));
+
         const subsMap = new Map((subsData || []).map(s => [s.user_id, s]));
         const usersWithSubs = (usersData || []).map(u => ({
           ...u,
           subscriptions: subsMap.get(u.user_id) || null,
           productsUsed: Array.from(productUsageMap.get(u.user_id) || []),
+          userType: talentIds.has(u.user_id) && clientIds.has(u.user_id)
+            ? "both"
+            : clientIds.has(u.user_id)
+              ? "client"
+              : talentIds.has(u.user_id)
+                ? "talent"
+                : "none",
         }));
         setUsers(usersWithSubs);
       }
@@ -450,6 +466,7 @@ export default function Admin() {
     const matchesSearch = user.full_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
       user.email?.toLowerCase().includes(searchQuery.toLowerCase());
     if (!matchesSearch) return false;
+    if (typeFilter !== "all" && user.userType !== typeFilter && user.userType !== "both") return false;
     if (verificationFilter === "all") return true;
     const status = userAuthStatuses[user.user_id];
     if (!status) return verificationFilter === "unverified"; // unchecked = show in unverified
@@ -633,6 +650,16 @@ export default function Admin() {
                            <SelectItem value="verified">Verified</SelectItem>
                          </SelectContent>
                        </Select>
+                       <Select value={typeFilter} onValueChange={(v: "all" | "talent" | "client") => setTypeFilter(v)}>
+                         <SelectTrigger className="w-32">
+                           <SelectValue />
+                         </SelectTrigger>
+                         <SelectContent>
+                           <SelectItem value="all">All Types</SelectItem>
+                           <SelectItem value="talent">Talents</SelectItem>
+                           <SelectItem value="client">Clients</SelectItem>
+                         </SelectContent>
+                       </Select>
                        <Button variant="outline" size="sm" onClick={checkAllUsersAuth} disabled={checkingAll} className="gap-1.5">
                          {checkingAll ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle className="w-4 h-4" />}
                          Check All
@@ -648,6 +675,7 @@ export default function Admin() {
                     <TableHeader>
                       <TableRow>
                          <TableHead>Name</TableHead>
+                         <TableHead>Type</TableHead>
                          <TableHead>Email</TableHead>
                          <TableHead>Verified</TableHead>
                          <TableHead>Products Used</TableHead>
@@ -663,6 +691,20 @@ export default function Admin() {
                         return (
                         <TableRow key={user.id}>
                           <TableCell className="font-medium">{user.full_name}</TableCell>
+                          <TableCell>
+                            {user.userType === "both" ? (
+                              <div className="flex gap-1">
+                                <Badge className="text-[10px] px-1.5 py-0 bg-primary/15 text-primary border-0">Talent</Badge>
+                                <Badge className="text-[10px] px-1.5 py-0 bg-amber-500/15 text-amber-500 border-0">Client</Badge>
+                              </div>
+                            ) : user.userType === "client" ? (
+                              <Badge className="text-[10px] px-1.5 py-0 bg-amber-500/15 text-amber-500 border-0">Client</Badge>
+                            ) : user.userType === "talent" ? (
+                              <Badge className="text-[10px] px-1.5 py-0 bg-primary/15 text-primary border-0">Talent</Badge>
+                            ) : (
+                              <span className="text-xs text-muted-foreground">—</span>
+                            )}
+                          </TableCell>
                           <TableCell className="text-xs">{user.email}</TableCell>
                           <TableCell>
                             {isLoadingAuth ? (

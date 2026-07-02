@@ -47,10 +47,12 @@ const AVAILABILITY_OPTIONS = [
 export default function Profile() {
   const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const coverInputRef = useRef<HTMLInputElement>(null);
 
   const [user, setUser] = useState<any>(null);
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [uploadingCover, setUploadingCover] = useState(false);
 
   const [tab1, setTab1] = useState({
     fullName: "",
@@ -60,6 +62,7 @@ export default function Profile() {
     languages: [] as string[],
     availability: "available",
     profilePhotoUrl: "",
+    coverPhotoUrl: "",
   });
 
   const [tab2, setTab2] = useState({
@@ -97,6 +100,7 @@ export default function Profile() {
           languages:       data.languages || [],
           availability:    data.availability_status || "available",
           profilePhotoUrl: data.profile_photo_url || "",
+          coverPhotoUrl:   data.cover_photo_url || "",
         });
         setTab2({
           primarySkill:    data.primary_skill || "",
@@ -136,6 +140,31 @@ export default function Profile() {
     toast({ title: "Photo uploaded" });
   }
 
+  async function handleCoverChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file || !user) return;
+    if (file.size > 5 * 1024 * 1024) {
+      toast({ title: "File too large", description: "Cover photo must be under 5MB.", variant: "destructive" });
+      return;
+    }
+    setUploadingCover(true);
+    const ext = file.name.split(".").pop();
+    const path = `${user.id}/cover.${ext}`;
+    const { error: uploadError } = await supabase.storage
+      .from("avatars")
+      .upload(path, file, { upsert: true });
+    if (uploadError) {
+      toast({ title: "Upload failed", description: uploadError.message, variant: "destructive" });
+      setUploadingCover(false);
+      return;
+    }
+    const { data: { publicUrl } } = supabase.storage.from("avatars").getPublicUrl(path);
+    // Cache-bust so the new cover shows immediately after replacing an old one.
+    setTab1(prev => ({ ...prev, coverPhotoUrl: `${publicUrl}?v=${Date.now()}` }));
+    setUploadingCover(false);
+    toast({ title: "Cover photo uploaded", description: "Hit Save to apply it to your profile." });
+  }
+
   async function saveBasicInfo() {
     if (!user) return;
     setSaving(true);
@@ -150,6 +179,7 @@ export default function Profile() {
         languages:           tab1.languages,
         availability_status: tab1.availability,
         profile_photo_url:   tab1.profilePhotoUrl || null,
+        cover_photo_url:     tab1.coverPhotoUrl || null,
         updated_at:          new Date().toISOString(),
       }, { onConflict: "user_id" });
     setSaving(false);
@@ -216,6 +246,31 @@ export default function Profile() {
               <CardTitle className="text-base">Basic Information</CardTitle>
             </CardHeader>
             <CardContent className="space-y-5">
+              {/* Cover photo */}
+              <div className="space-y-2">
+                <Label>Cover Photo</Label>
+                <div
+                  onClick={() => coverInputRef.current?.click()}
+                  className="relative h-32 rounded-xl border-2 border-dashed border-border cursor-pointer hover:border-primary transition-colors overflow-hidden bg-gradient-to-br from-primary/20 via-primary/10 to-transparent group"
+                >
+                  {tab1.coverPhotoUrl && (
+                    <img src={tab1.coverPhotoUrl} alt="Cover" className="w-full h-full object-cover" />
+                  )}
+                  <div className={`absolute inset-0 flex items-center justify-center transition-opacity ${tab1.coverPhotoUrl ? "bg-black/40 opacity-0 group-hover:opacity-100" : ""}`}>
+                    <div className="text-center">
+                      <Upload className="w-5 h-5 mx-auto mb-1 text-white drop-shadow" />
+                      <p className="text-xs text-white drop-shadow font-medium">
+                        {uploadingCover ? "Uploading…" : tab1.coverPhotoUrl ? "Change cover photo" : "Click to upload a cover photo"}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  This banner appears at the top of your public profile. <strong>Recommended size: 1200 × 300px</strong> (4:1 wide), JPG or PNG, max 5MB. Keep important details near the center — edges may crop on small screens.
+                </p>
+                <input ref={coverInputRef} type="file" accept="image/*" className="hidden" onChange={handleCoverChange} />
+              </div>
+
               <div className="flex flex-col items-center gap-3">
                 <div
                   onClick={() => fileInputRef.current?.click()}
