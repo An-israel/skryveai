@@ -10,14 +10,15 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useSkryveRole } from "@/hooks/use-skryve-role";
 import {
   Heart, MessageCircle, Share2, Search, Loader2, Send,
-  Briefcase, CalendarDays, GraduationCap, BadgeCheck, Sparkles,
+  Briefcase, CalendarDays, GraduationCap, BadgeCheck, Sparkles, Users, MessageSquare,
 } from "lucide-react";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-type FeedSource = "marketplace" | "aggregated" | "event" | "course";
+type FeedSource = "marketplace" | "aggregated" | "event" | "course" | "talent";
 
 interface FeedItem {
   key: string;              // `${source}:${id}`
@@ -97,6 +98,7 @@ const SOURCE_ICON: Record<FeedSource, React.ComponentType<{ className?: string }
   aggregated: Briefcase,
   event: CalendarDays,
   course: GraduationCap,
+  talent: Users,
 };
 
 function detailPath(item: FeedItem): string {
@@ -105,6 +107,7 @@ function detailPath(item: FeedItem): string {
     case "aggregated": return `/jobs/${item.id}`;
     case "event": return `/events/${item.id}`;
     case "course": return `/learn/${item.id}`;
+    case "talent": return `/profile/${item.id}`; // id = talent's auth user id
   }
 }
 
@@ -124,6 +127,9 @@ export default function Feed() {
   const { toast } = useToast();
 
   const [userId, setUserId] = useState<string | null>(null);
+  const role = useSkryveRole(userId || undefined);
+  const isClient = role === "client";
+  const [activity, setActivity] = useState<any[]>([]);
   const [userSkills, setUserSkills] = useState<string[]>([]);
   const [items, setItems] = useState<FeedItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -147,10 +153,11 @@ export default function Feed() {
   // aggregated on scraped_at — different columns, so separate cursors).
   const mCursorRef = useRef<string | null>(null);
   const aCursorRef = useRef<string | null>(null);
+  const tCursorRef = useRef<string | null>(null);
   const skillsRef = useRef<string[]>([]);
   const sentinelRef = useRef<HTMLDivElement | null>(null);
 
-  // ── Load user + first page ──────────────────────────────────────────────────
+  // ── Resolve user, then load the role-appropriate feed ──────────────────────
   useEffect(() => {
     (async () => {
       const { data: { user } } = await supabase.auth.getUser();
@@ -165,12 +172,22 @@ export default function Feed() {
       const skills = tp ? [tp.primary_skill, ...(tp.secondary_skills || [])].filter(Boolean) : [];
       skillsRef.current = skills;
       setUserSkills(skills);
-
-      await loadPage(true, user.id);
-      setLoading(false);
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  useEffect(() => {
+    if (!userId || role === "loading") return;
+    (async () => {
+      setLoading(true);
+      setItems([]);
+      setHasMore(true);
+      if (role === "client") await loadClientPage(true, userId);
+      else await loadPage(true, userId);
+      setLoading(false);
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [userId, role]);
 
   const buildJobItems = (marketplace: any[], aggregated: any[]): FeedItem[] => {
     const skills = skillsRef.current;
@@ -319,6 +336,125 @@ export default function Feed() {
     setItems((prev) => (first ? page : [...prev, ...page]));
     await loadSocial(page, uid);
   }, []);
+
+  // ── Client feed: talents to hire + events + activity on own jobs ───────────
+  const loadClientPage = useCallback(async (first: boolean, uid?: string) => {
+    if (first) tCursorRef.current = null;
+
+    let tq = (supabase as any)
+      .from("talent_profiles")
+      .select("id, user_id, full_name, profile_photo_url, primary_skill, secondary_skills, experience_level, hourly_rate, rate_currency, bio, availability_status, rating_avg, total_reviews, completed_projects_count, created_at")
+      .neq("user_id", uid || userId || "")
+      .order("created_at", { ascending: false })
+      .limit(15);
+    if (tCursorRef.current) tq = tq.lt("created_at", tCursorRef.current);
+
+    const { data: tData, error: tErr } = await tq;
+    if (tErr) console.error("feed talents error:", tErr);
+
+    const sym: Record<string, string> = { NGN: "₦", USD: "$", GBP: "£", EUR: "€" };
+    const talents: FeedItem[] = ((tData || []) as any[])
+      .filter((t) => t.user_id !== "da11f0b5-0000-4000-8000-000000000001") // hide the Daily Jobs bot
+      .map((t) => ({
+        key: `talent:${t.id}`,
+        source: "talent" as const,
+        id: t.user_id,
+        sortKey: t.created_at,
+        title: t.full_name || "Talent",
+        description: t.bio || "",
+        skills: [t.primary_skill, ...(t.secondary_skills || [])].filter(Boolean).slice(0, 5),
+        meta: t.hourly_rate ? `${sym[t.rate_currency] || "₦"}${Number(t.hourly_rate).toLocaleString()}/hr` : "",
+        byline:
+          t.total_reviews > 0 && t.rating_avg
+            ? `★ ${Number(t.rating_avg).toFixed(1)} · ${t.completed_projects_count || 0} projects`
+            : `New talent · ${t.completed_projects_count || 0} projects`,
+        avatarUrl: t.profile_photo_url || null,
+        verified: false,
+        postedAt: t.created_at,
+        matchScore: 0,
+      }));
+
+    if (talents.length) tCursorRef.current = talents[talents.length - 1].sortKey;
+    if (talents.length < 5) setHasMore(false);
+
+    let page: FeedItem[] = talents;
+
+    if (first) {
+      // Activity on the client's own jobs + upcoming events.
+      const [{ data: cp }, { data: events }] = await Promise.all([
+        (supabase as any).from("client_profiles").select("id").eq("user_id", uid || userId).maybeSingle(),
+        (supabase as any)
+          .from("events")
+          .select("id, title, description, banner_url, format, date_time, price_type, ticket_price, niche_category, created_at")
+          .eq("status", "published")
+          .gte("date_time", new Date().toISOString())
+          .order("date_time", { ascending: true })
+          .limit(2),
+      ]);
+
+      if (cp?.id) {
+        const { data: myJobs } = await (supabase as any)
+          .from("job_posts").select("id, title").eq("client_id", cp.id);
+        const jobIds = (myJobs || []).map((j: any) => j.id);
+        if (jobIds.length) {
+          const { data: apps } = await (supabase as any)
+            .from("job_applications")
+            .select("id, marketplace_job_id, created_at, role_title")
+            .in("marketplace_job_id", jobIds)
+            .order("created_at", { ascending: false })
+            .limit(5);
+          setActivity(
+            (apps || []).map((a: any) => ({
+              id: a.id,
+              title: (myJobs || []).find((j: any) => j.id === a.marketplace_job_id)?.title || a.role_title,
+              at: a.created_at,
+            }))
+          );
+        }
+      }
+
+      const extras: FeedItem[] = ((events || []) as any[]).map((e) => ({
+        key: `event:${e.id}`,
+        source: "event" as const,
+        id: e.id,
+        sortKey: e.created_at,
+        title: e.title,
+        description: e.description || "",
+        skills: e.niche_category ? [e.niche_category] : [],
+        meta: `${new Date(e.date_time).toLocaleDateString(undefined, { month: "short", day: "numeric" })} · ${e.price_type === "free" ? "Free" : `₦${Number(e.ticket_price || 0).toLocaleString()}`}`,
+        byline: `Upcoming ${e.format || "event"}`,
+        avatarUrl: e.banner_url || null,
+        verified: false,
+        postedAt: e.created_at,
+        matchScore: 0,
+      }));
+
+      const merged: FeedItem[] = [];
+      let ei = 0;
+      talents.forEach((t, i) => {
+        merged.push(t);
+        if ((i + 1) % 4 === 0 && ei < extras.length) merged.push(extras[ei++]);
+      });
+      while (ei < extras.length) merged.push(extras[ei++]);
+      page = merged;
+    }
+
+    setItems((prev) => (first ? page : [...prev, ...page]));
+    await loadSocial(page, uid);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [userId]);
+
+  const messageTalent = async (talentUserId: string) => {
+    if (!userId || talentUserId === userId) return;
+    const { data, error } = await (supabase as any).rpc("get_or_create_direct_conversation", {
+      _other: talentUserId,
+    });
+    if (error || !data) {
+      toast({ title: "Couldn't start conversation", description: error?.message, variant: "destructive" });
+      return;
+    }
+    navigate(`/dm/${data}`);
+  };
 
   // ── Social counts (bulk) ────────────────────────────────────────────────────
   const loadSocial = async (page: FeedItem[], uid?: string) => {
@@ -476,9 +612,10 @@ export default function Feed() {
 
   const loadMore = useCallback(async () => {
     setLoadingMore(true);
-    await loadPage(false);
+    if (isClient) await loadClientPage(false);
+    else await loadPage(false);
     setLoadingMore(false);
-  }, [loadPage]);
+  }, [loadPage, loadClientPage, isClient]);
 
   // Infinite scroll: auto-load when the sentinel enters the viewport.
   useEffect(() => {
@@ -508,23 +645,46 @@ export default function Feed() {
             className="pl-9"
           />
         </div>
-        <div className="flex gap-1.5 overflow-x-auto">
-          {TABS.map((t) => (
-            <button
-              key={t.id}
-              onClick={() => setTab(t.id)}
-              className={`px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-colors ${
-                tab === t.id
-                  ? "bg-primary text-primary-foreground"
-                  : "bg-muted text-muted-foreground hover:text-foreground"
-              }`}
-            >
-              {t.id === "foryou" && <Sparkles className="w-3 h-3 inline mr-1 -mt-0.5" />}
-              {t.label}
-            </button>
-          ))}
-        </div>
+        {!isClient && (
+          <div className="flex gap-1.5 overflow-x-auto">
+            {TABS.map((t) => (
+              <button
+                key={t.id}
+                onClick={() => setTab(t.id)}
+                className={`px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-colors ${
+                  tab === t.id
+                    ? "bg-primary text-primary-foreground"
+                    : "bg-muted text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                {t.id === "foryou" && <Sparkles className="w-3 h-3 inline mr-1 -mt-0.5" />}
+                {t.label}
+              </button>
+            ))}
+          </div>
+        )}
       </div>
+
+      {/* Client: recent activity on their jobs */}
+      {isClient && activity.length > 0 && (
+        <div className="rounded-xl border bg-card p-4">
+          <h3 className="text-sm font-semibold mb-2 flex items-center gap-1.5">
+            <Briefcase className="w-4 h-4 text-primary" /> Activity on your jobs
+          </h3>
+          <div className="space-y-1.5">
+            {activity.map((a) => (
+              <button
+                key={a.id}
+                onClick={() => navigate("/marketplace/my-jobs")}
+                className="w-full text-left text-sm text-muted-foreground hover:text-foreground transition-colors"
+              >
+                📥 New application on <span className="font-medium text-foreground">{a.title}</span>
+                <span className="text-xs ml-1">· {formatDistanceToNow(new Date(a.at), { addSuffix: true })}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Feed */}
       {loading ? (
@@ -539,7 +699,7 @@ export default function Feed() {
         </div>
       ) : (
         <div className="space-y-4">
-          {jobCount === 0 && !loading && (
+          {!isClient && jobCount === 0 && !loading && (
             <div className="rounded-xl border border-dashed p-4 text-center text-sm text-muted-foreground">
               <Briefcase className="w-6 h-6 mx-auto mb-2 text-muted-foreground/50" />
               No jobs in the feed yet — client-posted jobs and listings from external
@@ -551,13 +711,17 @@ export default function Feed() {
             const like = likes[item.key] || { count: 0, mine: false };
             const cCount = commentCounts[item.key] || 0;
             const isJob = item.source === "marketplace" || item.source === "aggregated";
+            const isTalent = item.source === "talent";
+            // Facebook/Instagram style: events & courses with an image get a
+            // big hero image; the text sits below it.
+            const hero = (item.source === "event" || item.source === "course") && item.avatarUrl;
 
             return (
               <article key={item.key} className="bg-card border rounded-xl overflow-hidden">
                 {/* Header */}
                 <div className="flex items-center gap-3 px-4 pt-4">
                   <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center overflow-hidden shrink-0">
-                    {item.avatarUrl ? (
+                    {item.avatarUrl && !hero ? (
                       <img src={item.avatarUrl} alt={item.byline} className="w-full h-full object-cover" />
                     ) : (
                       <Icon className="w-[18px] h-[18px] text-primary" />
@@ -586,6 +750,21 @@ export default function Feed() {
                     </span>
                   )}
                 </div>
+
+                {/* Hero image — image-first, IG/FB style */}
+                {hero && (
+                  <div
+                    className="mt-3 cursor-pointer bg-muted"
+                    onClick={() => navigate(detailPath(item))}
+                  >
+                    <img
+                      src={item.avatarUrl!}
+                      alt={item.title}
+                      className="w-full max-h-[420px] object-cover"
+                      loading="lazy"
+                    />
+                  </div>
+                )}
 
                 {/* Body */}
                 <div
@@ -626,13 +805,15 @@ export default function Feed() {
                     <Heart className={`w-4 h-4 ${like.mine ? "fill-red-500" : ""}`} />
                     {like.count > 0 && like.count}
                   </button>
-                  <button
-                    onClick={() => openCommentsFor(item)}
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium text-muted-foreground hover:text-foreground transition-colors"
-                  >
-                    <MessageCircle className="w-4 h-4" />
-                    {cCount > 0 && cCount}
-                  </button>
+                  {!isTalent && (
+                    <button
+                      onClick={() => openCommentsFor(item)}
+                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium text-muted-foreground hover:text-foreground transition-colors"
+                    >
+                      <MessageCircle className="w-4 h-4" />
+                      {cCount > 0 && cCount}
+                    </button>
+                  )}
                   <button
                     onClick={() => shareItem(item)}
                     className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium text-muted-foreground hover:text-foreground transition-colors"
@@ -640,15 +821,24 @@ export default function Feed() {
                     <Share2 className="w-4 h-4" />
                   </button>
                   <div className="flex-1" />
-                  {isJob ? (
+                  {isJob && !isClient ? (
                     <Button size="sm" className="h-8" onClick={() => setApplyItem(item)}>
                       Apply for Job
                     </Button>
-                  ) : (
+                  ) : isTalent ? (
+                    <div className="flex gap-1.5">
+                      <Button size="sm" variant="outline" className="h-8" onClick={() => navigate(detailPath(item))}>
+                        View profile
+                      </Button>
+                      <Button size="sm" className="h-8 gap-1" onClick={() => messageTalent(item.id)}>
+                        <MessageSquare className="w-3.5 h-3.5" /> Message
+                      </Button>
+                    </div>
+                  ) : !isJob ? (
                     <Button size="sm" variant="outline" className="h-8" onClick={() => navigate(detailPath(item))}>
                       {item.source === "event" ? "View event" : "Start learning"}
                     </Button>
-                  )}
+                  ) : null}
                 </div>
 
                 {/* Comments */}

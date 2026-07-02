@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { notifyUser } from "@/lib/notify";
 import { useToast } from "@/hooks/use-toast";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -76,6 +77,30 @@ export default function ProfileView() {
       setLoading(false);
     })();
   }, [username]);
+
+  // Record the view; the talent is notified once per viewer per day.
+  useEffect(() => {
+    if (!currentUser?.id || !talent?.user_id || currentUser.id === talent.user_id) return;
+    (async () => {
+      const { data: isNewView } = await (supabase as any).rpc("record_profile_view", {
+        _talent_user: talent.user_id,
+      });
+      if (!isNewView) return;
+      const [{ data: cp }, { data: tp }] = await Promise.all([
+        (supabase as any).from("client_profiles").select("company_name").eq("user_id", currentUser.id).maybeSingle(),
+        (supabase as any).from("talent_profiles").select("full_name").eq("user_id", currentUser.id).maybeSingle(),
+      ]);
+      const viewerName = cp?.company_name || tp?.full_name || "Someone";
+      notifyUser({
+        userId: talent.user_id,
+        type: "profile_view",
+        title: "Your profile was viewed 👀",
+        message: `${viewerName} viewed your profile today.`,
+        link: "/profile",
+        emailCategory: "jobs",
+      });
+    })();
+  }, [currentUser?.id, talent?.user_id]);
 
   const handleMessage = async () => {
     if (!currentUser) { navigate("/login"); return; }
