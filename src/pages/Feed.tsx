@@ -23,6 +23,7 @@ interface FeedItem {
   key: string;              // `${source}:${id}`
   source: FeedSource;
   id: string;
+  sortKey: string;          // raw pagination timestamp for this source
   title: string;
   description: string;
   skills: string[];
@@ -142,8 +143,12 @@ export default function Feed() {
   // apply wizard
   const [applyItem, setApplyItem] = useState<FeedItem | null>(null);
 
-  const cursorRef = useRef<string | null>(null); // oldest job timestamp shown
+  // Per-source pagination cursors (marketplace pages on created_at,
+  // aggregated on scraped_at — different columns, so separate cursors).
+  const mCursorRef = useRef<string | null>(null);
+  const aCursorRef = useRef<string | null>(null);
   const skillsRef = useRef<string[]>([]);
+  const sentinelRef = useRef<HTMLDivElement | null>(null);
 
   // ── Load user + first page ──────────────────────────────────────────────────
   useEffect(() => {
@@ -173,6 +178,7 @@ export default function Feed() {
       key: `marketplace:${j.id}`,
       source: "marketplace" as const,
       id: j.id,
+      sortKey: j.created_at,
       title: j.title,
       description: j.description || "",
       skills: j.required_skills || [],
@@ -191,6 +197,7 @@ export default function Feed() {
       key: `aggregated:${j.id}`,
       source: "aggregated" as const,
       id: j.id,
+      sortKey: j.scraped_at,
       title: j.title,
       description: j.description || "",
       skills: j.skill_tags || [],
@@ -198,7 +205,7 @@ export default function Feed() {
       byline: j.platform,
       avatarUrl: null,
       verified: false,
-      postedAt: j.posted_at || j.created_at,
+      postedAt: j.posted_at || j.scraped_at,
       jobType: j.job_type,
       location: j.location,
       matchScore: scoreItem(j.title, j.skill_tags || [], skills),
@@ -206,12 +213,12 @@ export default function Feed() {
       platform: j.platform,
     }));
     return [...m, ...a].sort(
-      (x, y) => new Date(y.postedAt).getTime() - new Date(x.postedAt).getTime()
+      (x, y) => new Date(y.sortKey).getTime() - new Date(x.sortKey).getTime()
     );
   };
 
   const loadPage = useCallback(async (first: boolean, uid?: string) => {
-    const cursor = first ? null : cursorRef.current;
+    if (first) { mCursorRef.current = null; aCursorRef.current = null; }
 
     let mq = (supabase as any)
       .from("job_posts")
@@ -219,19 +226,30 @@ export default function Feed() {
       .eq("status", "active")
       .order("created_at", { ascending: false })
       .limit(20);
-    if (cursor) mq = mq.lt("created_at", cursor);
+    if (mCursorRef.current) mq = mq.lt("created_at", mCursorRef.current);
 
+    // NB: aggregated_jobs has scraped_at (not created_at); posted_at can be
+    // null, so page on scraped_at which is always set.
     let aq = (supabase as any)
       .from("aggregated_jobs")
-      .select("id, title, description, budget, job_type, location, posted_at, created_at, platform, external_url, skill_tags")
+      .select("id, title, description, budget, job_type, location, posted_at, scraped_at, platform, external_url, skill_tags")
       .eq("is_active", true)
-      .order("posted_at", { ascending: false })
+      .order("scraped_at", { ascending: false })
       .limit(20);
-    if (cursor) aq = aq.lt("posted_at", cursor);
+    if (aCursorRef.current) aq = aq.lt("scraped_at", aCursorRef.current);
 
-    const [{ data: mData }, { data: aData }] = await Promise.all([mq, aq]);
+    const [{ data: mData, error: mErr }, { data: aData, error: aErr }] = await Promise.all([mq, aq]);
+    if (mErr) console.error("feed job_posts error:", mErr);
+    if (aErr) console.error("feed aggregated_jobs error:", aErr);
     const jobs = buildJobItems(mData || [], aData || []).slice(0, 20);
-    if (jobs.length) cursorRef.current = jobs[jobs.length - 1].postedAt;
+
+    // Advance each source's cursor past the items actually shown; anything
+    // fetched but trimmed off the page tail will be re-fetched next page.
+    const mShown = jobs.filter((j) => j.source === "marketplace");
+    if (mShown.length) mCursorRef.current = mShown[mShown.length - 1].sortKey;
+    const aShown = jobs.filter((j) => j.source === "aggregated");
+    if (aShown.length) aCursorRef.current = aShown[aShown.length - 1].sortKey;
+
     if (jobs.length < 5) setHasMore(false);
 
     let page: FeedItem[] = jobs;
@@ -259,6 +277,7 @@ export default function Feed() {
           key: `event:${e.id}`,
           source: "event" as const,
           id: e.id,
+          sortKey: e.created_at,
           title: e.title,
           description: e.description || "",
           skills: e.niche_category ? [e.niche_category] : [],
@@ -273,6 +292,7 @@ export default function Feed() {
           key: `course:${c.id}`,
           source: "course" as const,
           id: c.id,
+          sortKey: c.created_at,
           title: c.title,
           description: c.description || "",
           skills: c.skill_category ? [c.skill_category] : [],
@@ -454,11 +474,25 @@ export default function Feed() {
     (i) => i.source === "marketplace" || i.source === "aggregated"
   ).length;
 
-  const loadMore = async () => {
+  const loadMore = useCallback(async () => {
     setLoadingMore(true);
     await loadPage(false);
     setLoadingMore(false);
-  };
+  }, [loadPage]);
+
+  // Infinite scroll: auto-load when the sentinel enters the viewport.
+  useEffect(() => {
+    const el = sentinelRef.current;
+    if (!el || loading || !hasMore) return;
+    const obs = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting && !loadingMore) loadMore();
+      },
+      { rootMargin: "600px" }
+    );
+    obs.observe(el);
+    return () => obs.disconnect();
+  }, [loading, hasMore, loadingMore, loadMore]);
 
   // ── Render ──────────────────────────────────────────────────────────────────
   return (
@@ -660,10 +694,13 @@ export default function Feed() {
           })}
 
           {hasMore && (
-            <Button variant="outline" className="w-full" onClick={loadMore} disabled={loadingMore}>
-              {loadingMore ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
-              Load more
-            </Button>
+            <>
+              <div ref={sentinelRef} className="h-1" />
+              <Button variant="outline" className="w-full" onClick={loadMore} disabled={loadingMore}>
+                {loadingMore ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
+                Load more
+              </Button>
+            </>
           )}
         </div>
       )}
