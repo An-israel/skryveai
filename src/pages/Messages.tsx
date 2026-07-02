@@ -21,8 +21,11 @@ import {
   CheckCheck,
   User,
   Plus,
+  Paperclip,
+  X,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { notifyUser } from "@/lib/notify";
 import { useToast } from "@/hooks/use-toast";
 
 interface ConversationItem {
@@ -43,8 +46,46 @@ interface Message {
   sender_id: string;
   content: string;
   attachment_url: string | null;
+  attachment_name: string | null;
   is_read: boolean;
   sent_at: string;
+}
+
+const IMAGE_RE = /\.(png|jpe?g|gif|webp|avif)$/i;
+
+/** Shared bubble attachment renderer: inline image or a file chip. */
+export function MessageAttachment({ url, name, own }: { url: string; name?: string | null; own: boolean }) {
+  const isImage = IMAGE_RE.test(name || url);
+  if (isImage) {
+    return (
+      <a href={url} target="_blank" rel="noopener noreferrer" className="block mt-1">
+        <img src={url} alt={name || "attachment"} className="rounded-lg max-h-64 max-w-full object-cover" loading="lazy" />
+      </a>
+    );
+  }
+  return (
+    <a
+      href={url}
+      target="_blank"
+      rel="noopener noreferrer"
+      className={`flex items-center gap-2 mt-1 px-3 py-2 rounded-lg text-xs font-medium ${
+        own ? "bg-blue-700/60 text-white" : "bg-background border text-foreground"
+      }`}
+    >
+      <Paperclip className="w-3.5 h-3.5 shrink-0" />
+      <span className="truncate max-w-[200px]">{name || "Attachment"}</span>
+    </a>
+  );
+}
+
+/** Upload a chat file to storage; returns its public URL. */
+export async function uploadChatFile(convId: string, file: File): Promise<string> {
+  if (file.size > 10 * 1024 * 1024) throw new Error("File too large (max 10MB)");
+  const path = `${convId}/${Date.now()}-${file.name.replace(/[^\w.\-]+/g, "_")}`;
+  const { error } = await supabase.storage.from("chat-attachments").upload(path, file);
+  if (error) throw error;
+  const { data } = supabase.storage.from("chat-attachments").getPublicUrl(path);
+  return data.publicUrl;
 }
 
 function getInitials(name: string) {
@@ -91,6 +132,8 @@ export default function Messages() {
   const [msgLoading, setMsgLoading] = useState(false);
   const [inputText, setInputText] = useState("");
   const [sending, setSending] = useState(false);
+  const [attachFile, setAttachFile] = useState<File | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [showNewMsg, setShowNewMsg] = useState(false);
   const [searchUsers, setSearchUsers] = useState("");
@@ -277,7 +320,7 @@ export default function Messages() {
       setMsgLoading(true);
       const { data, error } = await (supabase as any)
         .from("marketplace_messages")
-        .select("id, conversation_id, sender_id, content, attachment_url, is_read, sent_at")
+        .select("id, conversation_id, sender_id, content, attachment_url, attachment_name, is_read, sent_at")
         .eq("conversation_id", convId)
         .order("sent_at", { ascending: true });
 
@@ -347,10 +390,24 @@ export default function Messages() {
   }, [activeConvId, userId]);
 
   const sendMessage = async () => {
-    if (!inputText.trim() || !activeConvId || !userId) return;
+    if ((!inputText.trim() && !attachFile) || !activeConvId || !userId) return;
     setSending(true);
     const content = inputText.trim();
     setInputText("");
+
+    let attachmentUrl: string | null = null;
+    let attachmentName: string | null = null;
+    try {
+      if (attachFile) {
+        attachmentUrl = await uploadChatFile(activeConvId, attachFile);
+        attachmentName = attachFile.name;
+      }
+    } catch (e: any) {
+      toast({ title: "Attachment upload failed", description: e.message, variant: "destructive" });
+      setInputText(content);
+      setSending(false);
+      return;
+    }
 
     const { error } = await (supabase as any)
       .from("marketplace_messages")
@@ -358,21 +415,54 @@ export default function Messages() {
         conversation_id: activeConvId,
         sender_id: userId,
         content,
+        attachment_url: attachmentUrl,
+        attachment_name: attachmentName,
         is_read: false,
         sent_at: new Date().toISOString(),
       });
 
     if (!error) {
+      setAttachFile(null);
       await (supabase as any)
         .from("marketplace_conversations")
         .update({ last_message_at: new Date().toISOString() })
         .eq("id", activeConvId);
       fetchConversations();
+      notifyRecipient(content || `📎 ${attachmentName}`);
     } else {
       toast({ title: "Failed to send message", variant: "destructive" });
       setInputText(content);
     }
     setSending(false);
+  };
+
+  // In-app + email notification for the other side of the active thread.
+  const notifyRecipient = async (preview: string) => {
+    const conv = activeConv;
+    if (!conv || conv.kind !== "marketplace") return;
+    try {
+      const iAmClient = clientProfileId && conv.client_id === clientProfileId;
+      let recipientUserId: string | null = null;
+      if (iAmClient) {
+        const { data: tp } = await (supabase as any)
+          .from("talent_profiles").select("user_id").eq("id", conv.talent_id).maybeSingle();
+        recipientUserId = tp?.user_id || null;
+      } else {
+        const { data: cp } = await (supabase as any)
+          .from("client_profiles").select("user_id").eq("id", conv.client_id).maybeSingle();
+        recipientUserId = cp?.user_id || null;
+      }
+      if (recipientUserId && recipientUserId !== userId) {
+        notifyUser({
+          userId: recipientUserId,
+          type: "message",
+          title: "New message on Skryve 💬",
+          message: preview.slice(0, 120),
+          link: "/messages",
+          emailCategory: "messages",
+        });
+      }
+    } catch { /* never block the send */ }
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -670,9 +760,14 @@ export default function Messages() {
                               : "bg-muted text-foreground rounded-bl-sm"
                           }`}
                         >
-                          <p className="whitespace-pre-wrap break-words">
-                            {msg.content}
-                          </p>
+                          {msg.content && (
+                            <p className="whitespace-pre-wrap break-words">
+                              {msg.content}
+                            </p>
+                          )}
+                          {msg.attachment_url && (
+                            <MessageAttachment url={msg.attachment_url} name={msg.attachment_name} own={isOwn} />
+                          )}
                           <div
                             className={`flex items-center gap-1 mt-1 ${
                               isOwn ? "justify-end" : "justify-start"
@@ -709,7 +804,33 @@ export default function Messages() {
 
               {/* Input */}
               <div className="px-4 py-3 border-t shrink-0">
+                {attachFile && (
+                  <div className="flex items-center gap-2 mb-2 px-3 py-1.5 bg-muted rounded-lg text-xs w-fit">
+                    <Paperclip className="w-3.5 h-3.5" />
+                    <span className="truncate max-w-[240px]">{attachFile.name}</span>
+                    <button onClick={() => setAttachFile(null)} className="hover:text-destructive">
+                      <X className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                )}
                 <div className="flex gap-2">
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    className="hidden"
+                    accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.csv,.zip"
+                    onChange={(e) => setAttachFile(e.target.files?.[0] || null)}
+                  />
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    className="shrink-0"
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={sending}
+                    title="Attach a file"
+                  >
+                    <Paperclip className="w-4 h-4" />
+                  </Button>
                   <Input
                     placeholder="Type a message..."
                     value={inputText}
@@ -719,7 +840,7 @@ export default function Messages() {
                   />
                   <Button
                     onClick={sendMessage}
-                    disabled={!inputText.trim() || sending}
+                    disabled={(!inputText.trim() && !attachFile) || sending}
                     size="icon"
                     className="shrink-0"
                   >

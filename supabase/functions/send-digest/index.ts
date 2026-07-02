@@ -6,6 +6,10 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+// System account that delivers the digest as an in-app DM (see the
+// engagement_features migration).
+const DAILY_JOBS_BOT = "da11f0b5-0000-4000-8000-000000000001";
+
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
@@ -117,6 +121,35 @@ serve(async (req) => {
     });
 
     if (emailRes.ok) sent++;
+
+    // Also deliver the digest as a "Daily Jobs" DM inside the app.
+    try {
+      const siteUrl = Deno.env.get("SITE_URL") || "https://www.skryveai.com";
+      const top = scored.slice(0, 5);
+      const dmBody =
+        `☀️ Your ${scored.length} job matches for today:\n\n` +
+        top.map((job: any, i: number) =>
+          `${i + 1}. ${job.title} (${job.matchScore}% match${job.budget ? ` · ${job.budget}` : ""})\n${siteUrl}/jobs/${job.id}`
+        ).join("\n\n") +
+        (scored.length > top.length ? `\n\n…and ${scored.length - top.length} more in your feed: ${siteUrl}/feed` : "");
+
+      await supabase.rpc("system_send_dm", {
+        _from: DAILY_JOBS_BOT,
+        _to: talentProfile.user_id,
+        _body: dmBody,
+      });
+      // In-app notification pointing at the DM thread.
+      await supabase.from("notifications").insert({
+        user_id: talentProfile.user_id,
+        type: "daily_jobs",
+        title: "Daily Jobs",
+        message: `${scored.length} new job matches for you today`,
+        link: "/messages",
+        read: false,
+      });
+    } catch (e) {
+      console.error("daily jobs DM failed:", e);
+    }
   }
 
   return new Response(JSON.stringify({ sent }), { headers: corsHeaders });

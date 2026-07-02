@@ -13,9 +13,13 @@ import {
   Check,
   CheckCheck,
   Users,
+  Paperclip,
+  X,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { notifyUser } from "@/lib/notify";
 import { useToast } from "@/hooks/use-toast";
+import { MessageAttachment, uploadChatFile } from "@/pages/Messages";
 
 interface DirectConversationItem {
   id: string;
@@ -32,6 +36,8 @@ interface DirectMessage {
   conversation_id: string;
   sender_id: string;
   body: string;
+  attachment_url: string | null;
+  attachment_name: string | null;
   read_at: string | null;
   created_at: string;
 }
@@ -103,6 +109,8 @@ export default function DirectMessages() {
   const [msgLoading, setMsgLoading] = useState(false);
   const [inputText, setInputText] = useState("");
   const [sending, setSending] = useState(false);
+  const [attachFile, setAttachFile] = useState<File | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [mobileView, setMobileView] = useState<"list" | "thread">(
     conversationId ? "thread" : "list"
   );
@@ -190,7 +198,7 @@ export default function DirectMessages() {
       setMsgLoading(true);
       const { data, error } = await (supabase as any)
         .from("direct_messages")
-        .select("id, conversation_id, sender_id, body, read_at, created_at")
+        .select("id, conversation_id, sender_id, body, attachment_url, attachment_name, read_at, created_at")
         .eq("conversation_id", convId)
         .order("created_at", { ascending: true });
 
@@ -255,23 +263,52 @@ export default function DirectMessages() {
   const activeConv = conversations.find((c) => c.id === activeConvId) || null;
 
   const sendMessage = async () => {
-    if (!inputText.trim() || !activeConvId || !userId) return;
+    if ((!inputText.trim() && !attachFile) || !activeConvId || !userId) return;
     setSending(true);
     const body = inputText.trim();
     setInputText("");
+
+    let attachmentUrl: string | null = null;
+    let attachmentName: string | null = null;
+    try {
+      if (attachFile) {
+        attachmentUrl = await uploadChatFile(activeConvId, attachFile);
+        attachmentName = attachFile.name;
+      }
+    } catch (e: any) {
+      toast({ title: "Attachment upload failed", description: e.message, variant: "destructive" });
+      setInputText(body);
+      setSending(false);
+      return;
+    }
 
     const { error } = await (supabase as any).from("direct_messages").insert({
       conversation_id: activeConvId,
       sender_id: userId,
       body,
+      attachment_url: attachmentUrl,
+      attachment_name: attachmentName,
     });
 
     if (!error) {
+      setAttachFile(null);
       await (supabase as any)
         .from("direct_conversations")
         .update({ last_message_at: new Date().toISOString() })
         .eq("id", activeConvId);
       fetchConversations();
+      // In-app + email notification for the other participant.
+      const other = activeConv?.otherUserId;
+      if (other && other !== userId) {
+        notifyUser({
+          userId: other,
+          type: "message",
+          title: "New message on Skryve 💬",
+          message: (body || `📎 ${attachmentName}`).slice(0, 120),
+          link: `/dm/${activeConvId}`,
+          emailCategory: "messages",
+        });
+      }
     } else {
       toast({ title: "Failed to send message", variant: "destructive" });
       setInputText(body);
@@ -448,7 +485,10 @@ export default function DirectMessages() {
                               : "bg-muted text-foreground rounded-bl-sm"
                           }`}
                         >
-                          <p className="whitespace-pre-wrap break-words">{msg.body}</p>
+                          {msg.body && <p className="whitespace-pre-wrap break-words">{msg.body}</p>}
+                          {msg.attachment_url && (
+                            <MessageAttachment url={msg.attachment_url} name={msg.attachment_name} own={isOwn} />
+                          )}
                           <div
                             className={`flex items-center gap-1 mt-1 ${
                               isOwn ? "justify-end" : "justify-start"
@@ -482,7 +522,33 @@ export default function DirectMessages() {
               </div>
 
               <div className="px-4 py-3 border-t shrink-0">
+                {attachFile && (
+                  <div className="flex items-center gap-2 mb-2 px-3 py-1.5 bg-muted rounded-lg text-xs w-fit">
+                    <Paperclip className="w-3.5 h-3.5" />
+                    <span className="truncate max-w-[240px]">{attachFile.name}</span>
+                    <button onClick={() => setAttachFile(null)} className="hover:text-destructive">
+                      <X className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                )}
                 <div className="flex gap-2">
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    className="hidden"
+                    accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.csv,.zip"
+                    onChange={(e) => setAttachFile(e.target.files?.[0] || null)}
+                  />
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    className="shrink-0"
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={sending}
+                    title="Attach a file"
+                  >
+                    <Paperclip className="w-4 h-4" />
+                  </Button>
                   <Input
                     placeholder="Type a message..."
                     value={inputText}
@@ -492,7 +558,7 @@ export default function DirectMessages() {
                   />
                   <Button
                     onClick={sendMessage}
-                    disabled={!inputText.trim() || sending}
+                    disabled={(!inputText.trim() && !attachFile) || sending}
                     size="icon"
                     className="shrink-0"
                   >

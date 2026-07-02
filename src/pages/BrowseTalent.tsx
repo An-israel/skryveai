@@ -20,7 +20,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Star, Users, ChevronDown, MessageSquare, Briefcase } from "lucide-react";
+import { Star, Users, ChevronDown, MessageSquare, Briefcase, BadgeCheck, Lock, Building2 } from "lucide-react";
 import { matchesSkillQuery } from "@/lib/skills";
 
 const AVAILABILITY_BADGE: Record<string, { label: string; className: string }> = {
@@ -49,6 +49,12 @@ export default function BrowseTalent() {
   const [clientJobs, setClientJobs] = useState<any[]>([]);
   const [user, setUser] = useState<any>(null);
 
+  // Clients directory (talent -> client messaging is a paid feature)
+  const [view, setView] = useState<"talents" | "clients">("talents");
+  const [clients, setClients] = useState<any[]>([]);
+  const [clientsLoading, setClientsLoading] = useState(false);
+  const [isPaid, setIsPaid] = useState(false);
+
   const [skillFilter, setSkillFilter] = useState("");
   const [levelFilter, setLevelFilter] = useState("all");
   const [availabilityFilter, setAvailabilityFilter] = useState("all");
@@ -61,10 +67,55 @@ export default function BrowseTalent() {
       if (session?.user) {
         setUser(session.user);
         fetchClientJobs(session.user.id);
+        // Messaging clients requires a paid plan.
+        (supabase as any)
+          .from("subscriptions")
+          .select("plan, status")
+          .eq("user_id", session.user.id)
+          .eq("status", "active")
+          .maybeSingle()
+          .then(({ data }: any) => {
+            setIsPaid(data?.plan === "pro" || data?.plan === "business");
+          });
       }
     });
     fetchTalents();
   }, []);
+
+  useEffect(() => {
+    if (view !== "clients" || clients.length) return;
+    (async () => {
+      setClientsLoading(true);
+      const { data } = await (supabase as any)
+        .from("client_profiles")
+        .select("id, user_id, company_name, industry, location, logo_url, is_verified, total_hires, rating_avg, total_reviews, created_at")
+        .not("company_name", "is", null)
+        .order("created_at", { ascending: false });
+      setClients((data || []).filter((c: any) => c.user_id !== user?.id));
+      setClientsLoading(false);
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [view]);
+
+  const handleMessageClient = async (clientUserId: string) => {
+    if (!user) { navigate("/login"); return; }
+    if (!isPaid) {
+      toast({
+        title: "Upgrade to message clients",
+        description: "Reaching out to clients directly is a Pro feature. Replying to clients who message you is always free.",
+      });
+      navigate("/billing");
+      return;
+    }
+    const { data, error } = await (supabase as any).rpc("get_or_create_direct_conversation", {
+      _other: clientUserId,
+    });
+    if (error || !data) {
+      toast({ title: "Couldn't start conversation", description: error?.message, variant: "destructive" });
+      return;
+    }
+    navigate(`/dm/${data}`);
+  };
 
   const fetchTalents = async () => {
     setLoading(true);
@@ -174,6 +225,88 @@ export default function BrowseTalent() {
           My conversations
         </Button>
       </div>
+
+      {/* Talents / Clients toggle */}
+      <div className="flex gap-1.5">
+        <button
+          onClick={() => setView("talents")}
+          className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
+            view === "talents" ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground hover:text-foreground"
+          }`}
+        >
+          <Users className="w-3 h-3 inline mr-1 -mt-0.5" /> Talents
+        </button>
+        <button
+          onClick={() => setView("clients")}
+          className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
+            view === "clients" ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground hover:text-foreground"
+          }`}
+        >
+          <Building2 className="w-3 h-3 inline mr-1 -mt-0.5" /> Clients
+        </button>
+      </div>
+
+      {view === "clients" && (
+        <>
+          {clientsLoading ? (
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+              {[1, 2, 3].map((i) => <Skeleton key={i} className="h-40 rounded-xl" />)}
+            </div>
+          ) : clients.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-20 text-center">
+              <Building2 className="w-12 h-12 text-muted-foreground/40 mb-4" />
+              <h3 className="font-semibold mb-2">No clients yet</h3>
+              <p className="text-sm text-muted-foreground">Clients appear here as they join Skryve.</p>
+            </div>
+          ) : (
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+              {clients.map((c) => (
+                <div key={c.id} className="border rounded-xl p-4 bg-card hover:border-primary/40 transition-colors flex flex-col gap-3">
+                  <div className="flex items-start gap-3">
+                    <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center font-bold text-sm shrink-0 overflow-hidden">
+                      {c.logo_url ? (
+                        <img src={c.logo_url} alt={c.company_name} className="w-full h-full object-cover" />
+                      ) : (
+                        (c.company_name || "?").slice(0, 2).toUpperCase()
+                      )}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <p className="font-semibold text-sm">{c.company_name}</p>
+                        {c.is_verified && <BadgeCheck className="w-3.5 h-3.5 text-blue-500" />}
+                      </div>
+                      {c.industry && <p className="text-xs text-muted-foreground mt-0.5">{c.industry}</p>}
+                      {c.location && <p className="text-[11px] text-muted-foreground">{c.location}</p>}
+                    </div>
+                  </div>
+                  <div className="flex items-center justify-between text-xs text-muted-foreground">
+                    <span>{c.total_hires || 0} hire{(c.total_hires || 0) === 1 ? "" : "s"}</span>
+                    {c.total_reviews > 0 && c.rating_avg ? (
+                      <span className="flex items-center gap-1 text-amber-400">
+                        <Star className="w-3 h-3 fill-current" />
+                        <span className="text-foreground font-medium">{Number(c.rating_avg).toFixed(1)}</span>
+                      </span>
+                    ) : (
+                      <Badge variant="secondary" className="text-[10px] px-1.5 py-0">New</Badge>
+                    )}
+                  </div>
+                  <Button
+                    size="sm"
+                    variant={isPaid ? "default" : "secondary"}
+                    className="gap-1.5 mt-auto"
+                    onClick={() => handleMessageClient(c.user_id)}
+                  >
+                    {isPaid ? <MessageSquare className="w-3.5 h-3.5" /> : <Lock className="w-3.5 h-3.5" />}
+                    {isPaid ? "Message" : "Message (Pro)"}
+                  </Button>
+                </div>
+              ))}
+            </div>
+          )}
+        </>
+      )}
+
+      {view === "talents" && (<>
 
       <div className="flex flex-wrap gap-3 items-end">
         <div className="flex-1 min-w-[160px]">
@@ -390,6 +523,7 @@ export default function BrowseTalent() {
           })}
         </div>
       )}
+      </>)}
     </div>
   );
 }

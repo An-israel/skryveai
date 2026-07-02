@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
 import { motion } from "framer-motion";
 import {
   Menu, X, ArrowRight, Twitter, Linkedin, Instagram,
@@ -449,6 +450,15 @@ function Footer() {
 
 /* ─── Page ────────────────────────────────────────────────── */
 export default function Landing() {
+  const navigate = useNavigate();
+
+  // Signed-in users skip the landing page and go straight to their feed.
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session?.user) navigate("/feed", { replace: true });
+    });
+  }, [navigate]);
+
   return (
     <div className="min-h-screen bg-[#09090b]">
       <Navbar />

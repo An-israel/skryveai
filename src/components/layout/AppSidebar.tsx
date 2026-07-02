@@ -28,6 +28,7 @@ const talentNav: NavItem[] = [
 ];
 
 const clientNav: NavItem[] = [
+  { label: "Home",          to: "/feed",              icon: Store           },
   { label: "Dashboard",     to: "/dashboard",         icon: LayoutDashboard },
   { label: "Post a Job",    to: "/marketplace/post",  icon: PlusCircle      },
   { label: "Browse Talent", to: "/talent",            icon: Users           },
