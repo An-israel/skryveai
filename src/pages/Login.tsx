@@ -77,7 +77,7 @@ export default function Login() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center px-4 py-12 bg-gray-50">
+    <div className="min-h-screen flex items-center justify-center px-4 py-12 bg-muted/40">
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -128,10 +128,10 @@ export default function Login() {
 
             <div className="relative">
               <div className="absolute inset-0 flex items-center">
-                <span className="w-full border-t border-gray-200" />
+                <span className="w-full border-t border-border" />
               </div>
               <div className="relative flex justify-center text-xs">
-                <span className="bg-white px-3 text-gray-400">or</span>
+                <span className="bg-card px-3 text-muted-foreground">or</span>
               </div>
             </div>
 
@@ -142,7 +142,7 @@ export default function Login() {
             )}
 
             {emailNotVerified && (
-              <Alert className="border-amber-400/50 bg-amber-50">
+              <Alert className="border-amber-400/50 bg-amber-50 dark:bg-amber-950/30">
                 <Mail className="h-4 w-4 text-amber-600" />
                 <AlertDescription className="text-amber-800">
                   Please verify your email before signing in.{" "}
@@ -162,7 +162,7 @@ export default function Login() {
               <div className="space-y-2">
                 <Label htmlFor="email">Email</Label>
                 <div className="relative">
-                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                   <Input
                     id="email"
                     type="email"
@@ -206,7 +206,7 @@ export default function Login() {
               </Button>
             </form>
 
-            <p className="text-center text-sm text-gray-500">
+            <p className="text-center text-sm text-muted-foreground">
               Don't have an account?{" "}
               <Link to="/signup" className="text-[#2563EB] hover:underline font-medium">
                 Create Account

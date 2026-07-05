@@ -11,7 +11,7 @@ interface SEOHeadProps {
   noindex?: boolean;
 }
 
-const DEFAULT_IMAGE = "https://storage.googleapis.com/gpt-engineer-file-uploads/eZbDQEygJ7QfLDNkEaOIRNnhMmf1/social-images/social-1773477930211-Screenshot_2026-03-14_094448.webp";
+const DEFAULT_IMAGE = "https://skryveai.com/og-image.png";
 
 export function SEOHead({
   title,
