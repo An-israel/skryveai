@@ -47,24 +47,24 @@ const EVENTS = [
 /* ─── Cards ───────────────────────────────────────────────── */
 function GigCard({ gig, onApply }: { gig: typeof GIGS[number]; onApply: () => void }) {
   return (
-    <div className="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-5 flex flex-col hover:border-white/[0.12] transition-colors">
+    <div className="rounded-2xl border border-border bg-card p-5 flex flex-col hover:border-border transition-colors">
       <div className="flex items-center justify-between mb-3">
-        <span className="text-[11px] text-white/30">{gig.posted}</span>
+        <span className="text-[11px] text-muted-foreground/80">{gig.posted}</span>
         <span className="text-[11px] font-mono text-[#2563EB]">{gig.budget}</span>
       </div>
-      <h3 className="text-[15px] font-semibold text-white mb-1 leading-snug">{gig.title}</h3>
-      <p className="text-[12px] text-white/40 mb-3">{gig.company}</p>
-      <div className="flex items-center gap-1.5 text-[11px] text-white/35 mb-4">
+      <h3 className="text-[15px] font-semibold text-foreground mb-1 leading-snug">{gig.title}</h3>
+      <p className="text-[12px] text-muted-foreground mb-3">{gig.company}</p>
+      <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground mb-4">
         <MapPin className="w-3 h-3" /> {gig.location}
       </div>
       <div className="flex flex-wrap gap-1.5 mb-5">
         {gig.tags.map((t) => (
-          <span key={t} className="px-2 py-0.5 rounded-md bg-white/[0.05] text-[11px] text-white/50">{t}</span>
+          <span key={t} className="px-2 py-0.5 rounded-md bg-muted text-[11px] text-muted-foreground">{t}</span>
         ))}
       </div>
       <button
         onClick={onApply}
-        className="mt-auto flex items-center justify-center gap-1.5 w-full py-2.5 rounded-lg border border-white/[0.1] text-[13px] font-medium text-white/80 hover:bg-white hover:text-[#09090b] transition-all"
+        className="mt-auto flex items-center justify-center gap-1.5 w-full py-2.5 rounded-lg border border-border text-[13px] font-medium text-foreground/80 hover:bg-foreground hover:text-background transition-all"
       >
         Apply now <ArrowRight className="w-3.5 h-3.5" />
       </button>
@@ -74,19 +74,19 @@ function GigCard({ gig, onApply }: { gig: typeof GIGS[number]; onApply: () => vo
 
 function CourseCard({ course, onStart }: { course: typeof COURSES[number]; onStart: () => void }) {
   return (
-    <div className="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-5 flex flex-col hover:border-white/[0.12] transition-colors">
+    <div className="rounded-2xl border border-border bg-card p-5 flex flex-col hover:border-border transition-colors">
       <div className="flex items-center justify-between mb-3">
         <span className="px-2 py-0.5 rounded-md bg-[#2563EB]/15 text-[11px] font-medium text-[#2563EB]">{course.level}</span>
-        <span className="flex items-center gap-1 text-[11px] text-white/35"><Users className="w-3 h-3" /> {course.students}</span>
+        <span className="flex items-center gap-1 text-[11px] text-muted-foreground"><Users className="w-3 h-3" /> {course.students}</span>
       </div>
-      <h3 className="text-[15px] font-semibold text-white mb-3 leading-snug">{course.title}</h3>
-      <div className="flex items-center gap-4 text-[11px] text-white/35 mb-5">
+      <h3 className="text-[15px] font-semibold text-foreground mb-3 leading-snug">{course.title}</h3>
+      <div className="flex items-center gap-4 text-[11px] text-muted-foreground mb-5">
         <span className="flex items-center gap-1"><PlayCircle className="w-3 h-3" /> {course.lessons} lessons</span>
         <span className="flex items-center gap-1"><Clock className="w-3 h-3" /> {course.duration}</span>
       </div>
       <button
         onClick={onStart}
-        className="mt-auto flex items-center justify-center gap-1.5 w-full py-2.5 rounded-lg border border-white/[0.1] text-[13px] font-medium text-white/80 hover:bg-white hover:text-[#09090b] transition-all"
+        className="mt-auto flex items-center justify-center gap-1.5 w-full py-2.5 rounded-lg border border-border text-[13px] font-medium text-foreground/80 hover:bg-foreground hover:text-background transition-all"
       >
         Start learning <ArrowRight className="w-3.5 h-3.5" />
       </button>
@@ -96,19 +96,19 @@ function CourseCard({ course, onStart }: { course: typeof COURSES[number]; onSta
 
 function EventCard({ event, onRegister }: { event: typeof EVENTS[number]; onRegister: () => void }) {
   return (
-    <div className="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-5 flex flex-col hover:border-white/[0.12] transition-colors">
+    <div className="rounded-2xl border border-border bg-card p-5 flex flex-col hover:border-border transition-colors">
       <div className="flex items-center justify-between mb-3">
-        <span className="px-2 py-0.5 rounded-md bg-white/[0.05] text-[11px] font-medium text-white/50">{event.format}</span>
-        <span className="flex items-center gap-1 text-[11px] text-white/35"><Users className="w-3 h-3" /> {event.attendees} going</span>
+        <span className="px-2 py-0.5 rounded-md bg-muted text-[11px] font-medium text-muted-foreground">{event.format}</span>
+        <span className="flex items-center gap-1 text-[11px] text-muted-foreground"><Users className="w-3 h-3" /> {event.attendees} going</span>
       </div>
-      <h3 className="text-[15px] font-semibold text-white mb-3 leading-snug">{event.title}</h3>
-      <div className="flex items-center gap-4 text-[11px] text-white/35 mb-5">
+      <h3 className="text-[15px] font-semibold text-foreground mb-3 leading-snug">{event.title}</h3>
+      <div className="flex items-center gap-4 text-[11px] text-muted-foreground mb-5">
         <span className="flex items-center gap-1"><CalendarDays className="w-3 h-3" /> {event.date}</span>
         <span className="flex items-center gap-1"><Clock className="w-3 h-3" /> {event.time}</span>
       </div>
       <button
         onClick={onRegister}
-        className="mt-auto flex items-center justify-center gap-1.5 w-full py-2.5 rounded-lg border border-white/[0.1] text-[13px] font-medium text-white/80 hover:bg-white hover:text-[#09090b] transition-all"
+        className="mt-auto flex items-center justify-center gap-1.5 w-full py-2.5 rounded-lg border border-border text-[13px] font-medium text-foreground/80 hover:bg-foreground hover:text-background transition-all"
       >
         Register <ArrowRight className="w-3.5 h-3.5" />
       </button>
@@ -128,7 +128,7 @@ export function LandingFeed() {
   };
 
   return (
-    <section className="relative bg-[#09090b] overflow-hidden pt-28 pb-20 md:pt-36 md:pb-28">
+    <section className="relative bg-background overflow-hidden pt-28 pb-20 md:pt-36 md:pb-28">
 
       {/* Dot grid */}
       <div
@@ -149,11 +149,11 @@ export function LandingFeed() {
           transition={{ duration: 0.55, ease: [0.22, 1, 0.36, 1] }}
           className="mb-10 text-center max-w-2xl mx-auto"
         >
-          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full border border-white/[0.1] bg-white/[0.04] text-white/60 text-[12px] font-medium mb-6 backdrop-blur-sm">
+          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full border border-border bg-muted text-muted-foreground text-[12px] font-medium mb-6 backdrop-blur-sm">
             <span className="w-1.5 h-1.5 rounded-full bg-[#2563EB] animate-pulse" />
             Now live — the freelance OS for Africa
           </div>
-          <h1 className="text-3xl md:text-5xl lg:text-6xl font-extrabold text-white tracking-[-0.03em] leading-[1.05] mb-4">
+          <h1 className="text-3xl md:text-5xl lg:text-6xl font-extrabold text-foreground tracking-[-0.03em] leading-[1.05] mb-4">
             Your next gig, skill, or event —{" "}
             <span
               className="text-transparent"
@@ -166,19 +166,19 @@ export function LandingFeed() {
               already here
             </span>
           </h1>
-          <p className="text-[15px] md:text-[17px] text-white/40 leading-relaxed">
+          <p className="text-[15px] md:text-[17px] text-muted-foreground leading-relaxed">
             Browse real opportunities before you sign up. When you're ready to apply, register, or start learning, creating a free account takes seconds.
           </p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-3 mt-7">
             <Link
               to="/signup"
-              className="flex items-center gap-2 px-6 py-3 rounded-xl bg-white text-[#09090b] text-[14px] font-bold hover:bg-white/90 transition-all shadow-lg"
+              className="flex items-center gap-2 px-6 py-3 rounded-xl bg-foreground text-background text-[14px] font-bold hover:bg-foreground/90 transition-all shadow-lg"
             >
               Find work <ArrowRight className="w-4 h-4" />
             </Link>
             <Link
               to="/signup?role=client"
-              className="flex items-center gap-2 px-6 py-3 rounded-xl border border-white/[0.15] text-white/70 text-[14px] font-medium hover:border-white/30 hover:text-white transition-all bg-white/[0.03]"
+              className="flex items-center gap-2 px-6 py-3 rounded-xl border border-border text-foreground/80 text-[14px] font-medium hover:border-border hover:text-foreground transition-all bg-card"
             >
               Hire talent
             </Link>
@@ -193,8 +193,8 @@ export function LandingFeed() {
               onClick={() => setTab(key)}
               className={`flex items-center gap-2 px-4 py-2 rounded-full text-[13px] font-semibold transition-all ${
                 tab === key
-                  ? "bg-white text-[#09090b]"
-                  : "text-white/50 border border-white/[0.1] hover:text-white hover:border-white/25"
+                  ? "bg-foreground text-background"
+                  : "text-muted-foreground border border-border hover:text-foreground hover:border-foreground/25"
               }`}
             >
               <Icon className="w-3.5 h-3.5" />

@@ -101,7 +101,7 @@ export default function Signup() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center px-4 py-12 bg-gray-50">
+    <div className="min-h-screen flex items-center justify-center px-4 py-12 bg-muted/40">
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -126,14 +126,14 @@ export default function Signup() {
             <CardDescription>Join Skryve — it's free to get started</CardDescription>
           </CardHeader>
           <CardContent className="space-y-5">
-            <div className="flex rounded-full border border-gray-200 p-1 bg-gray-100 gap-1">
+            <div className="flex rounded-full border border-border p-1 bg-muted gap-1">
               <button
                 type="button"
                 onClick={() => setSelectedRole("talent")}
                 className={`flex-1 py-2 px-4 rounded-full text-sm font-semibold transition-all ${
                   selectedRole === "talent"
                     ? "bg-[#2563EB] text-white shadow"
-                    : "text-gray-500 hover:text-gray-700"
+                    : "text-muted-foreground hover:text-foreground/80"
                 }`}
               >
                 I am a Talent
@@ -144,7 +144,7 @@ export default function Signup() {
                 className={`flex-1 py-2 px-4 rounded-full text-sm font-semibold transition-all ${
                   selectedRole === "client"
                     ? "bg-[#2563EB] text-white shadow"
-                    : "text-gray-500 hover:text-gray-700"
+                    : "text-muted-foreground hover:text-foreground/80"
                 }`}
               >
                 I am a Client
@@ -185,10 +185,10 @@ export default function Signup() {
 
             <div className="relative">
               <div className="absolute inset-0 flex items-center">
-                <span className="w-full border-t border-gray-200" />
+                <span className="w-full border-t border-border" />
               </div>
               <div className="relative flex justify-center text-xs">
-                <span className="bg-white px-3 text-gray-400">or</span>
+                <span className="bg-card px-3 text-muted-foreground">or</span>
               </div>
             </div>
 
@@ -196,7 +196,7 @@ export default function Signup() {
               <div className="space-y-2">
                 <Label htmlFor="fullName">Full Name</Label>
                 <div className="relative">
-                  <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                  <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                   <Input
                     id="fullName"
                     type="text"
@@ -212,7 +212,7 @@ export default function Signup() {
               <div className="space-y-2">
                 <Label htmlFor="email">Email</Label>
                 <div className="relative">
-                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                   <Input
                     id="email"
                     type="email"
@@ -235,7 +235,7 @@ export default function Signup() {
                   minLength={6}
                   required
                 />
-                <p className="text-xs text-gray-400">Must be at least 6 characters</p>
+                <p className="text-xs text-muted-foreground">Must be at least 6 characters</p>
               </div>
 
               <div className="flex items-start gap-3">
@@ -245,7 +245,7 @@ export default function Signup() {
                   onCheckedChange={(v) => setAgreed(v === true)}
                   className="mt-0.5"
                 />
-                <Label htmlFor="terms" className="text-sm text-gray-600 leading-relaxed cursor-pointer">
+                <Label htmlFor="terms" className="text-sm text-muted-foreground leading-relaxed cursor-pointer">
                   I agree to the{" "}
                   <Link to="/terms" className="text-[#2563EB] hover:underline">Terms of Service</Link>
                   {" "}and{" "}
@@ -270,7 +270,7 @@ export default function Signup() {
               </Button>
             </form>
 
-            <p className="text-center text-sm text-gray-500">
+            <p className="text-center text-sm text-muted-foreground">
               Already have an account?{" "}
               <Link to="/login" className="text-[#2563EB] hover:underline font-medium">
                 Sign In

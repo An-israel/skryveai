@@ -154,6 +154,11 @@ export default function Feed() {
   const mCursorRef = useRef<string | null>(null);
   const aCursorRef = useRef<string | null>(null);
   const tCursorRef = useRef<string | null>(null);
+  // Events/courses queue, sprinkled into every page (not just the first).
+  const extrasQueueRef = useRef<FeedItem[]>([]);
+  const evCursorRef = useRef<string | null>(null);
+  const coCursorRef = useRef<string | null>(null);
+  const extrasDoneRef = useRef(false);
   const skillsRef = useRef<string[]>([]);
   const sentinelRef = useRef<HTMLDivElement | null>(null);
 
@@ -234,8 +239,118 @@ export default function Feed() {
     );
   };
 
+  // Keep a rolling queue of events + courses to sprinkle between jobs.
+  const refillExtras = useCallback(async (includeCourses: boolean) => {
+    if (extrasDoneRef.current || extrasQueueRef.current.length >= 3) return;
+
+    let eq = (supabase as any)
+      .from("events")
+      .select("id, title, description, banner_url, format, date_time, price_type, ticket_price, niche_category, created_at")
+      .eq("status", "published")
+      .gte("date_time", new Date().toISOString())
+      .order("date_time", { ascending: true })
+      .limit(3);
+    if (evCursorRef.current) eq = eq.gt("date_time", evCursorRef.current);
+
+    let cq = null;
+    if (includeCourses) {
+      cq = (supabase as any)
+        .from("courses")
+        .select("id, title, description, skill_category, level, lesson_count, thumbnail_url, enrolled_count, created_at")
+        .eq("is_published", true)
+        .order("created_at", { ascending: false })
+        .limit(3);
+      if (coCursorRef.current) cq = cq.lt("created_at", coCursorRef.current);
+    }
+
+    const [{ data: events }, coRes] = await Promise.all([eq, cq ?? Promise.resolve({ data: [] })]);
+    const courses = (coRes as any)?.data || [];
+
+    if (events?.length) evCursorRef.current = events[events.length - 1].date_time;
+    if (courses.length) coCursorRef.current = courses[courses.length - 1].created_at;
+    if (!events?.length && !courses.length) { extrasDoneRef.current = true; return; }
+
+    const evItems: FeedItem[] = ((events || []) as any[]).map((e) => ({
+      key: `event:${e.id}`,
+      source: "event" as const,
+      id: e.id,
+      sortKey: e.created_at,
+      title: e.title,
+      description: e.description || "",
+      skills: e.niche_category ? [e.niche_category] : [],
+      meta: `${new Date(e.date_time).toLocaleDateString(undefined, { month: "short", day: "numeric" })} · ${e.price_type === "free" ? "Free" : `₦${Number(e.ticket_price || 0).toLocaleString()}`}`,
+      byline: `Upcoming ${e.format || "event"}`,
+      avatarUrl: e.banner_url || null,
+      verified: false,
+      postedAt: e.created_at,
+      matchScore: 0,
+    }));
+    const coItems: FeedItem[] = (courses as any[]).map((c) => ({
+      key: `course:${c.id}`,
+      source: "course" as const,
+      id: c.id,
+      sortKey: c.created_at,
+      title: c.title,
+      description: c.description || "",
+      skills: c.skill_category ? [c.skill_category] : [],
+      meta: `${c.lesson_count || 0} lessons · ${c.enrolled_count || 0} enrolled`,
+      byline: "Recommended course",
+      avatarUrl: c.thumbnail_url || null,
+      verified: false,
+      postedAt: c.created_at,
+      matchScore: 0,
+    }));
+
+    // Alternate events and courses in the queue for variety.
+    const merged: FeedItem[] = [];
+    const max = Math.max(evItems.length, coItems.length);
+    for (let i = 0; i < max; i++) {
+      if (evItems[i]) merged.push(evItems[i]);
+      if (coItems[i]) merged.push(coItems[i]);
+    }
+    extrasQueueRef.current.push(...merged);
+  }, []);
+
+  /** Merge two recency-sorted job lists without letting one source clump. */
+  const weaveJobs = (jobs: FeedItem[]): FeedItem[] => {
+    const m = jobs.filter((j) => j.source === "marketplace");
+    const a = jobs.filter((j) => j.source === "aggregated");
+    const out: FeedItem[] = [];
+    let run = 0;
+    let lastSrc: string | null = null;
+    while (m.length || a.length) {
+      let pick: FeedItem;
+      const preferOther = run >= 3 && lastSrc;
+      if (preferOther && lastSrc === "marketplace" && a.length) pick = a.shift()!;
+      else if (preferOther && lastSrc === "aggregated" && m.length) pick = m.shift()!;
+      else if (!m.length) pick = a.shift()!;
+      else if (!a.length) pick = m.shift()!;
+      else pick = new Date(m[0].sortKey) >= new Date(a[0].sortKey) ? m.shift()! : a.shift()!;
+      run = pick.source === lastSrc ? run + 1 : 1;
+      lastSrc = pick.source;
+      out.push(pick);
+    }
+    return out;
+  };
+
+  /** Insert one queued event/course after every 4th item. */
+  const sprinkleExtras = (page: FeedItem[]): FeedItem[] => {
+    const out: FeedItem[] = [];
+    page.forEach((item, i) => {
+      out.push(item);
+      if ((i + 1) % 4 === 0 && extrasQueueRef.current.length) {
+        out.push(extrasQueueRef.current.shift()!);
+      }
+    });
+    return out;
+  };
+
   const loadPage = useCallback(async (first: boolean, uid?: string) => {
-    if (first) { mCursorRef.current = null; aCursorRef.current = null; }
+    if (first) {
+      mCursorRef.current = null; aCursorRef.current = null;
+      extrasQueueRef.current = []; evCursorRef.current = null;
+      coCursorRef.current = null; extrasDoneRef.current = false;
+    }
 
     let mq = (supabase as any)
       .from("job_posts")
@@ -258,7 +373,7 @@ export default function Feed() {
     const [{ data: mData, error: mErr }, { data: aData, error: aErr }] = await Promise.all([mq, aq]);
     if (mErr) console.error("feed job_posts error:", mErr);
     if (aErr) console.error("feed aggregated_jobs error:", aErr);
-    const jobs = buildJobItems(mData || [], aData || []).slice(0, 20);
+    const jobs = weaveJobs(buildJobItems(mData || [], aData || [])).slice(0, 20);
 
     // Advance each source's cursor past the items actually shown; anything
     // fetched but trimmed off the page tail will be re-fetched next page.
@@ -269,69 +384,8 @@ export default function Feed() {
 
     if (jobs.length < 5) setHasMore(false);
 
-    let page: FeedItem[] = jobs;
-
-    // Sprinkle events + courses into the first page, Facebook-style.
-    if (first) {
-      const [{ data: events }, { data: courses }] = await Promise.all([
-        (supabase as any)
-          .from("events")
-          .select("id, title, description, banner_url, format, date_time, price_type, ticket_price, niche_category, created_at")
-          .eq("status", "published")
-          .gte("date_time", new Date().toISOString())
-          .order("date_time", { ascending: true })
-          .limit(2),
-        (supabase as any)
-          .from("courses")
-          .select("id, title, description, skill_category, level, lesson_count, thumbnail_url, enrolled_count, created_at")
-          .eq("is_published", true)
-          .order("enrolled_count", { ascending: false })
-          .limit(2),
-      ]);
-
-      const extras: FeedItem[] = [
-        ...((events || []) as any[]).map((e) => ({
-          key: `event:${e.id}`,
-          source: "event" as const,
-          id: e.id,
-          sortKey: e.created_at,
-          title: e.title,
-          description: e.description || "",
-          skills: e.niche_category ? [e.niche_category] : [],
-          meta: `${new Date(e.date_time).toLocaleDateString(undefined, { month: "short", day: "numeric" })} · ${e.price_type === "free" ? "Free" : `₦${Number(e.ticket_price || 0).toLocaleString()}`}`,
-          byline: `Upcoming ${e.format || "event"}`,
-          avatarUrl: e.banner_url || null,
-          verified: false,
-          postedAt: e.created_at,
-          matchScore: 0,
-        })),
-        ...((courses || []) as any[]).map((c) => ({
-          key: `course:${c.id}`,
-          source: "course" as const,
-          id: c.id,
-          sortKey: c.created_at,
-          title: c.title,
-          description: c.description || "",
-          skills: c.skill_category ? [c.skill_category] : [],
-          meta: `${c.lesson_count || 0} lessons · ${c.enrolled_count || 0} enrolled`,
-          byline: "Recommended course",
-          avatarUrl: c.thumbnail_url || null,
-          verified: false,
-          postedAt: c.created_at,
-          matchScore: 0,
-        })),
-      ];
-
-      // Interleave: an extra after every 3rd job.
-      const merged: FeedItem[] = [];
-      let ei = 0;
-      jobs.forEach((j, i) => {
-        merged.push(j);
-        if ((i + 1) % 3 === 0 && ei < extras.length) merged.push(extras[ei++]);
-      });
-      while (ei < extras.length) merged.push(extras[ei++]);
-      page = merged;
-    }
+    await refillExtras(true);
+    const page: FeedItem[] = sprinkleExtras(jobs);
 
     setItems((prev) => (first ? page : [...prev, ...page]));
     await loadSocial(page, uid);
@@ -339,7 +393,11 @@ export default function Feed() {
 
   // ── Client feed: talents to hire + events + activity on own jobs ───────────
   const loadClientPage = useCallback(async (first: boolean, uid?: string) => {
-    if (first) tCursorRef.current = null;
+    if (first) {
+      tCursorRef.current = null;
+      extrasQueueRef.current = []; evCursorRef.current = null;
+      coCursorRef.current = null; extrasDoneRef.current = false;
+    }
 
     let tq = (supabase as any)
       .from("talent_profiles")
@@ -377,21 +435,10 @@ export default function Feed() {
     if (talents.length) tCursorRef.current = talents[talents.length - 1].sortKey;
     if (talents.length < 5) setHasMore(false);
 
-    let page: FeedItem[] = talents;
-
     if (first) {
-      // Activity on the client's own jobs + upcoming events.
-      const [{ data: cp }, { data: events }] = await Promise.all([
-        (supabase as any).from("client_profiles").select("id").eq("user_id", uid || userId).maybeSingle(),
-        (supabase as any)
-          .from("events")
-          .select("id, title, description, banner_url, format, date_time, price_type, ticket_price, niche_category, created_at")
-          .eq("status", "published")
-          .gte("date_time", new Date().toISOString())
-          .order("date_time", { ascending: true })
-          .limit(2),
-      ]);
-
+      // Activity on the client's own jobs.
+      const { data: cp } = await (supabase as any)
+        .from("client_profiles").select("id").eq("user_id", uid || userId).maybeSingle();
       if (cp?.id) {
         const { data: myJobs } = await (supabase as any)
           .from("job_posts").select("id, title").eq("client_id", cp.id);
@@ -412,32 +459,10 @@ export default function Feed() {
           );
         }
       }
-
-      const extras: FeedItem[] = ((events || []) as any[]).map((e) => ({
-        key: `event:${e.id}`,
-        source: "event" as const,
-        id: e.id,
-        sortKey: e.created_at,
-        title: e.title,
-        description: e.description || "",
-        skills: e.niche_category ? [e.niche_category] : [],
-        meta: `${new Date(e.date_time).toLocaleDateString(undefined, { month: "short", day: "numeric" })} · ${e.price_type === "free" ? "Free" : `₦${Number(e.ticket_price || 0).toLocaleString()}`}`,
-        byline: `Upcoming ${e.format || "event"}`,
-        avatarUrl: e.banner_url || null,
-        verified: false,
-        postedAt: e.created_at,
-        matchScore: 0,
-      }));
-
-      const merged: FeedItem[] = [];
-      let ei = 0;
-      talents.forEach((t, i) => {
-        merged.push(t);
-        if ((i + 1) % 4 === 0 && ei < extras.length) merged.push(extras[ei++]);
-      });
-      while (ei < extras.length) merged.push(extras[ei++]);
-      page = merged;
     }
+
+    await refillExtras(false);
+    const page: FeedItem[] = sprinkleExtras(talents);
 
     setItems((prev) => (first ? page : [...prev, ...page]));
     await loadSocial(page, uid);
@@ -635,7 +660,7 @@ export default function Feed() {
   return (
     <div className="max-w-2xl mx-auto space-y-4">
       {/* Search + tabs */}
-      <div className="sticky top-12 z-20 bg-background/95 backdrop-blur pt-1 pb-2 space-y-2 -mx-1 px-1">
+      <div className="sticky top-0 z-20 bg-background/95 backdrop-blur pt-1 pb-2 space-y-2 -mx-1 px-1">
         <div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
           <Input

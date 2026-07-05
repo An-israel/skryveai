@@ -32,7 +32,7 @@ function Navbar() {
     <nav
       className={`fixed top-0 inset-x-0 z-50 transition-all duration-300 ${
         scrolled
-          ? "bg-[#09090b]/95 backdrop-blur-md border-b border-white/[0.06]"
+          ? "bg-background/95 backdrop-blur-md border-b border-border"
           : "bg-transparent"
       }`}
     >
@@ -40,7 +40,7 @@ function Navbar() {
         {/* Logo */}
         <Link to="/" className="flex items-center gap-2.5 shrink-0">
           <img src="/logo.png" alt="Skryve" className="w-6 h-6 object-contain" />
-          <span className="font-bold text-[15px] text-white tracking-tight">Skryve</span>
+          <span className="font-bold text-[15px] text-foreground tracking-tight">Skryve</span>
         </Link>
 
         {/* Desktop nav */}
@@ -54,7 +54,7 @@ function Navbar() {
             <Link
               key={label}
               to={href}
-              className="text-[13px] font-medium text-white/50 hover:text-white transition-colors"
+              className="text-[13px] font-medium text-muted-foreground hover:text-foreground transition-colors"
             >
               {label}
             </Link>
@@ -65,13 +65,13 @@ function Navbar() {
         <div className="hidden md:flex items-center gap-2">
           <Link
             to="/login"
-            className="px-3.5 py-1.5 rounded-lg text-[13px] font-medium text-white/60 hover:text-white hover:bg-white/8 transition-all"
+            className="px-3.5 py-1.5 rounded-lg text-[13px] font-medium text-muted-foreground hover:text-foreground hover:bg-muted transition-all"
           >
             Sign in
           </Link>
           <Link
             to="/signup"
-            className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-white text-[#09090b] text-[13px] font-semibold hover:bg-white/90 transition-all"
+            className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-foreground text-background text-[13px] font-semibold hover:bg-foreground/90 transition-all"
           >
             Get started <ArrowRight className="w-3.5 h-3.5" />
           </Link>
@@ -79,7 +79,7 @@ function Navbar() {
 
         {/* Mobile toggle */}
         <button
-          className="md:hidden p-2 text-white/60 hover:text-white transition-colors"
+          className="md:hidden p-2 text-muted-foreground hover:text-foreground transition-colors"
           onClick={() => setOpen((v) => !v)}
         >
           {open ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
@@ -88,7 +88,7 @@ function Navbar() {
 
       {/* Mobile menu */}
       {open && (
-        <div className="md:hidden bg-[#09090b]/98 border-t border-white/[0.06] px-5 py-5 flex flex-col gap-4">
+        <div className="md:hidden bg-background/98 border-t border-border px-5 py-5 flex flex-col gap-4">
           {[
             { label: "Features", href: "#features" },
             { label: "Pricing",  href: "/pricing"  },
@@ -97,23 +97,23 @@ function Navbar() {
             <Link
               key={label}
               to={href}
-              className="text-[14px] font-medium text-white/60 hover:text-white transition-colors"
+              className="text-[14px] font-medium text-muted-foreground hover:text-foreground transition-colors"
               onClick={() => setOpen(false)}
             >
               {label}
             </Link>
           ))}
-          <div className="flex flex-col gap-2 pt-3 border-t border-white/[0.06]">
+          <div className="flex flex-col gap-2 pt-3 border-t border-border">
             <Link
               to="/login"
-              className="text-center py-2 rounded-lg border border-white/[0.12] text-[13px] text-white/70"
+              className="text-center py-2 rounded-lg border border-border text-[13px] text-foreground/80"
               onClick={() => setOpen(false)}
             >
               Sign in
             </Link>
             <Link
               to="/signup"
-              className="text-center py-2 rounded-lg bg-white text-[#09090b] text-[13px] font-semibold"
+              className="text-center py-2 rounded-lg bg-foreground text-background text-[13px] font-semibold"
               onClick={() => setOpen(false)}
             >
               Get started free
@@ -157,15 +157,15 @@ const TOOLS = [
 
 function Features() {
   return (
-    <section id="features" className="bg-[#09090b] py-24 border-t border-white/[0.06] scroll-mt-16">
+    <section id="features" className="bg-background py-24 border-t border-border scroll-mt-16">
       <div className="max-w-6xl mx-auto px-5">
 
         <motion.div {...fadeUp()} className="mb-16 text-center max-w-2xl mx-auto">
           <p className="text-[11px] font-semibold uppercase tracking-[0.15em] text-[#2563EB] mb-4">Everything in one place</p>
-          <h2 className="text-4xl md:text-5xl font-extrabold text-white tracking-[-0.03em] leading-[1.05]">
+          <h2 className="text-4xl md:text-5xl font-extrabold text-foreground tracking-[-0.03em] leading-[1.05]">
             One platform for your whole career
           </h2>
-          <p className="text-[15px] md:text-[16px] text-white/40 leading-relaxed mt-4">
+          <p className="text-[15px] md:text-[16px] text-muted-foreground leading-relaxed mt-4">
             Find work, get hired, sharpen your skills, and grow your network — without juggling a dozen tools.
           </p>
         </motion.div>
@@ -176,13 +176,13 @@ function Features() {
             <motion.div
               key={title}
               {...fadeUp(i * 0.06)}
-              className="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-7 hover:border-white/[0.12] transition-colors"
+              className="rounded-2xl border border-border bg-card p-7 hover:border-border transition-colors"
             >
               <div className="w-9 h-9 rounded-lg bg-[#2563EB]/15 flex items-center justify-center mb-5">
                 <Icon className="w-5 h-5 text-[#2563EB]" />
               </div>
-              <h3 className="text-[16px] font-semibold text-white mb-1.5">{title}</h3>
-              <p className="text-[13px] text-white/40 leading-relaxed">{desc}</p>
+              <h3 className="text-[16px] font-semibold text-foreground mb-1.5">{title}</h3>
+              <p className="text-[13px] text-muted-foreground leading-relaxed">{desc}</p>
             </motion.div>
           ))}
         </div>
@@ -193,14 +193,14 @@ function Features() {
             <motion.div
               key={title}
               {...fadeUp(i * 0.06)}
-              className="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-6 hover:border-white/[0.12] transition-colors"
+              className="rounded-2xl border border-border bg-card p-6 hover:border-border transition-colors"
             >
               <div className="flex items-center gap-2.5 mb-2">
                 <Icon className="w-4 h-4 text-[#2563EB]" />
-                <h3 className="text-[14px] font-semibold text-white">{title}</h3>
-                <span className="ml-auto text-[10px] font-semibold uppercase tracking-wide text-white/30">Free</span>
+                <h3 className="text-[14px] font-semibold text-foreground">{title}</h3>
+                <span className="ml-auto text-[10px] font-semibold uppercase tracking-wide text-muted-foreground/80">Free</span>
               </div>
-              <p className="text-[13px] text-white/40 leading-relaxed">{desc}</p>
+              <p className="text-[13px] text-muted-foreground leading-relaxed">{desc}</p>
             </motion.div>
           ))}
         </div>
@@ -225,12 +225,12 @@ function HowItWorks() {
   ];
 
   return (
-    <section className="bg-[#09090b] py-24 border-t border-white/[0.06]">
+    <section className="bg-background py-24 border-t border-border">
       <div className="max-w-6xl mx-auto px-5">
 
         <motion.div {...fadeUp()} className="mb-16 text-center">
           <p className="text-[11px] font-semibold uppercase tracking-[0.15em] text-[#2563EB] mb-4">How it works</p>
-          <h2 className="text-4xl md:text-5xl font-extrabold text-white tracking-[-0.03em] leading-[1.05]">
+          <h2 className="text-4xl md:text-5xl font-extrabold text-foreground tracking-[-0.03em] leading-[1.05]">
             Up and running in minutes
           </h2>
         </motion.div>
@@ -239,21 +239,21 @@ function HowItWorks() {
           {/* Talent */}
           <motion.div
             {...fadeUp(0.05)}
-            className="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-8"
+            className="rounded-2xl border border-border bg-card p-8"
           >
             <div className="flex items-center gap-2.5 mb-8">
               <div className="w-6 h-6 rounded-md bg-[#2563EB]/15 flex items-center justify-center">
                 <Users className="w-3.5 h-3.5 text-[#2563EB]" />
               </div>
-              <span className="text-[13px] font-semibold text-white">For Talents</span>
+              <span className="text-[13px] font-semibold text-foreground">For Talents</span>
             </div>
             <ol className="space-y-6">
               {talentSteps.map(({ n, title, desc }) => (
                 <li key={n} className="flex items-start gap-4">
-                  <span className="font-mono text-[12px] font-semibold text-white/25 shrink-0 pt-0.5 w-6">{n}</span>
+                  <span className="font-mono text-[12px] font-semibold text-muted-foreground/60 shrink-0 pt-0.5 w-6">{n}</span>
                   <div>
-                    <p className="text-[14px] font-semibold text-white/90 mb-0.5">{title}</p>
-                    <p className="text-[13px] text-white/35 leading-relaxed">{desc}</p>
+                    <p className="text-[14px] font-semibold text-foreground/90 mb-0.5">{title}</p>
+                    <p className="text-[13px] text-muted-foreground leading-relaxed">{desc}</p>
                   </div>
                 </li>
               ))}
@@ -263,21 +263,21 @@ function HowItWorks() {
           {/* Client */}
           <motion.div
             {...fadeUp(0.1)}
-            className="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-8"
+            className="rounded-2xl border border-border bg-card p-8"
           >
             <div className="flex items-center gap-2.5 mb-8">
               <div className="w-6 h-6 rounded-md bg-purple-500/15 flex items-center justify-center">
                 <Briefcase className="w-3.5 h-3.5 text-purple-400" />
               </div>
-              <span className="text-[13px] font-semibold text-white">For Clients</span>
+              <span className="text-[13px] font-semibold text-foreground">For Clients</span>
             </div>
             <ol className="space-y-6">
               {clientSteps.map(({ n, title, desc }) => (
                 <li key={n} className="flex items-start gap-4">
-                  <span className="font-mono text-[12px] font-semibold text-white/25 shrink-0 pt-0.5 w-6">{n}</span>
+                  <span className="font-mono text-[12px] font-semibold text-muted-foreground/60 shrink-0 pt-0.5 w-6">{n}</span>
                   <div>
-                    <p className="text-[14px] font-semibold text-white/90 mb-0.5">{title}</p>
-                    <p className="text-[13px] text-white/35 leading-relaxed">{desc}</p>
+                    <p className="text-[14px] font-semibold text-foreground/90 mb-0.5">{title}</p>
+                    <p className="text-[13px] text-muted-foreground leading-relaxed">{desc}</p>
                   </div>
                 </li>
               ))}
@@ -310,12 +310,12 @@ const TESTIMONIALS = [
 
 function Testimonials() {
   return (
-    <section className="bg-[#09090b] py-24 border-t border-white/[0.06]">
+    <section className="bg-background py-24 border-t border-border">
       <div className="max-w-6xl mx-auto px-5">
 
         <motion.div {...fadeUp()} className="mb-14 text-center">
           <p className="text-[11px] font-semibold uppercase tracking-[0.15em] text-[#2563EB] mb-4">Testimonials</p>
-          <h2 className="text-4xl md:text-5xl font-extrabold text-white tracking-[-0.03em]">
+          <h2 className="text-4xl md:text-5xl font-extrabold text-foreground tracking-[-0.03em]">
             Trusted by professionals
           </h2>
         </motion.div>
@@ -325,18 +325,18 @@ function Testimonials() {
             <motion.div
               key={name}
               {...fadeUp(i * 0.07)}
-              className="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-7 flex flex-col"
+              className="rounded-2xl border border-border bg-card p-7 flex flex-col"
             >
-              <p className="text-[14px] text-white/55 leading-relaxed flex-1 mb-6">
+              <p className="text-[14px] text-muted-foreground leading-relaxed flex-1 mb-6">
                 "{quote}"
               </p>
-              <div className="flex items-center gap-3 pt-5 border-t border-white/[0.06]">
+              <div className="flex items-center gap-3 pt-5 border-t border-border">
                 <div className="w-8 h-8 rounded-full bg-[#2563EB]/15 flex items-center justify-center text-[12px] font-bold text-[#2563EB]">
                   {name[0]}
                 </div>
                 <div>
-                  <p className="text-[13px] font-semibold text-white">{name}</p>
-                  <p className="text-[11px] text-white/35">{role}</p>
+                  <p className="text-[13px] font-semibold text-foreground">{name}</p>
+                  <p className="text-[11px] text-muted-foreground">{role}</p>
                 </div>
               </div>
             </motion.div>
@@ -350,11 +350,11 @@ function Testimonials() {
 /* ─── CTA ─────────────────────────────────────────────────── */
 function CTA() {
   return (
-    <section className="bg-[#09090b] py-24 border-t border-white/[0.06]">
+    <section className="bg-background py-24 border-t border-border">
       <div className="max-w-6xl mx-auto px-5">
         <motion.div
           {...fadeUp()}
-          className="relative rounded-3xl overflow-hidden border border-white/[0.08] p-14 md:p-20 text-center"
+          className="relative rounded-3xl overflow-hidden border border-border p-14 md:p-20 text-center"
           style={{
             background: "radial-gradient(ellipse 80% 60% at 50% 0%, rgba(37,99,235,0.15) 0%, transparent 70%), #0d0d0d",
           }}
@@ -368,22 +368,22 @@ function CTA() {
             }}
           />
           <div className="relative z-10">
-            <h2 className="text-4xl md:text-5xl lg:text-6xl font-extrabold text-white tracking-[-0.04em] leading-[1.0] mb-5">
+            <h2 className="text-4xl md:text-5xl lg:text-6xl font-extrabold text-foreground tracking-[-0.04em] leading-[1.0] mb-5">
               Ready to get started?<br />It's free.
             </h2>
-            <p className="text-[16px] text-white/40 max-w-md mx-auto mb-10">
+            <p className="text-[16px] text-muted-foreground max-w-md mx-auto mb-10">
               Join thousands of talents and clients building their futures on Skryve.
             </p>
             <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
               <Link
                 to="/signup"
-                className="flex items-center gap-2 px-7 py-3.5 rounded-xl bg-white text-[#09090b] text-[14px] font-bold hover:bg-white/90 transition-all shadow-lg"
+                className="flex items-center gap-2 px-7 py-3.5 rounded-xl bg-foreground text-background text-[14px] font-bold hover:bg-foreground/90 transition-all shadow-lg"
               >
                 Find work <ArrowRight className="w-4 h-4" />
               </Link>
               <Link
                 to="/signup?role=client"
-                className="flex items-center gap-2 px-7 py-3.5 rounded-xl border border-white/[0.15] text-white/70 text-[14px] font-medium hover:border-white/30 hover:text-white transition-all bg-white/[0.03]"
+                className="flex items-center gap-2 px-7 py-3.5 rounded-xl border border-border text-foreground/80 text-[14px] font-medium hover:border-border hover:text-foreground transition-all bg-card"
               >
                 Hire talent
               </Link>
@@ -398,15 +398,15 @@ function CTA() {
 /* ─── Footer ──────────────────────────────────────────────── */
 function Footer() {
   return (
-    <footer className="bg-[#09090b] border-t border-white/[0.06] py-12">
+    <footer className="bg-background border-t border-border py-12">
       <div className="max-w-6xl mx-auto px-5">
         <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-8 mb-10">
           <Link to="/" className="flex items-center gap-2.5 shrink-0">
             <img src="/logo.png" alt="Skryve" className="w-6 h-6 object-contain" />
-            <span className="font-bold text-[15px] text-white">Skryve</span>
+            <span className="font-bold text-[15px] text-foreground">Skryve</span>
           </Link>
 
-          <nav className="grid grid-cols-2 sm:grid-cols-3 gap-x-12 gap-y-3 text-[13px] text-white/35">
+          <nav className="grid grid-cols-2 sm:grid-cols-3 gap-x-12 gap-y-3 text-[13px] text-muted-foreground">
             {[
               { label: "About",          href: "/about"          },
               { label: "Blog",           href: "/blog"           },
@@ -415,7 +415,7 @@ function Footer() {
               { label: "Privacy Policy", href: "/privacy-policy" },
               { label: "Terms",          href: "/terms"          },
             ].map(({ label, href }) => (
-              <Link key={label} to={href} className="hover:text-white transition-colors">{label}</Link>
+              <Link key={label} to={href} className="hover:text-foreground transition-colors">{label}</Link>
             ))}
           </nav>
 
@@ -431,7 +431,7 @@ function Footer() {
                 target="_blank"
                 rel="noopener noreferrer"
                 aria-label={label}
-                className="text-white/25 hover:text-white/60 transition-colors"
+                className="text-muted-foreground/60 hover:text-muted-foreground transition-colors"
               >
                 <Icon className="w-4 h-4" />
               </a>
@@ -439,7 +439,7 @@ function Footer() {
           </div>
         </div>
 
-        <div className="border-t border-white/[0.06] pt-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-[12px] text-white/25">
+        <div className="border-t border-border pt-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-[12px] text-muted-foreground/60">
           <p>© {new Date().getFullYear()} Skryve. All rights reserved.</p>
           <p>Built for the modern African professional.</p>
         </div>
@@ -460,7 +460,7 @@ export default function Landing() {
   }, [navigate]);
 
   return (
-    <div className="min-h-screen bg-[#09090b]">
+    <div className="min-h-screen bg-background">
       <Navbar />
       <LandingFeed />
       <Features />
