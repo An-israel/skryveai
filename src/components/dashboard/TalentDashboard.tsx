@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { formatDistanceToNow, format } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
+import { RoleWorkspace } from "./RoleWorkspace";
 import {
   Briefcase, FileText, BookOpen, User, ArrowRight,
   ExternalLink, CheckCircle2, Circle, Zap, TrendingUp,
@@ -375,6 +376,9 @@ export function TalentDashboard({ user }: { user: any }) {
 
       {/* Stat row */}
       <StatBar userId={user.id} />
+
+      {/* Role-tailored workspace */}
+      <RoleWorkspace userId={user.id} />
 
       {/* Main two-col */}
       <div className="grid grid-cols-1 lg:grid-cols-5 gap-4">
