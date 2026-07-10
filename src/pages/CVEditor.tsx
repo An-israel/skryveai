@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useParams, useNavigate, useSearchParams } from "react-router-dom";
-import { renderToStaticMarkup } from "react-dom/server";
+import { createPortal } from "react-dom";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -19,7 +19,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Separator } from "@/components/ui/separator";
 import {
   Plus, Trash2, Sparkles, Download, Save, ChevronUp, ChevronDown,
-  Loader2, X, Check, AlertCircle, FileDown, ArrowLeft
+  Loader2, X, Check, AlertCircle, Linkedin, ArrowLeft
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -219,6 +219,7 @@ export default function CVEditor() {
 
   // Skill input
   const [skillInput, setSkillInput] = useState("");
+  const [printing, setPrinting] = useState(false);
 
   // ─── Load on mount ──────────────────────────────────────────────────────────
 
@@ -501,43 +502,44 @@ export default function CVEditor() {
 
   // ─── PDF Download ────────────────────────────────────────────────────────────
 
-  const downloadPDF = () => {
-    const previewData: CVData = {
-      personal_info: cvData.personal_info,
-      summary: cvData.summary,
-      experiences: cvData.experiences,
-      education: cvData.education,
-      skills: cvData.skills,
-      certifications: cvData.certifications,
-      projects: cvData.projects,
+  // Print the CV using the app's own compiled styles (no popup, no external
+  // Tailwind CDN — both of which were silently breaking the download).
+  const downloadPDF = () => setPrinting(true);
+
+  useEffect(() => {
+    if (!printing) return;
+    document.body.classList.add("printing-cv");
+    const done = () => {
+      document.body.classList.remove("printing-cv");
+      setPrinting(false);
+      if (dbId) {
+        (supabase as any)
+          .from("skryve_cvs")
+          .update({ last_downloaded_at: new Date().toISOString() })
+          .eq("id", dbId)
+          .then(() => {});
+      }
     };
+    window.addEventListener("afterprint", done, { once: true });
+    // Let the portal paint before invoking the print dialog.
+    const t = setTimeout(() => window.print(), 200);
+    return () => { clearTimeout(t); window.removeEventListener("afterprint", done); };
+  }, [printing, dbId]);
 
-    const html = renderToStaticMarkup(
-      <CVPreview data={previewData} template={cvData.template_name} />
-    );
-
-    const win = window.open("", "_blank");
-    if (!win) {
-      toast({ title: "Please allow popups to download PDF", variant: "destructive" });
-      return;
-    }
-
-    win.document.write(`<!DOCTYPE html><html><head>
-      <meta charset="utf-8"/>
-      <script src="https://cdn.tailwindcss.com"><\/script>
-      <style>@page{margin:0.5in}body{margin:0}@media print{*{-webkit-print-color-adjust:exact;print-color-adjust:exact}}</style>
-    </head><body>${html}</body></html>`);
-    win.document.close();
-    setTimeout(() => { win.print(); }, 800);
-
-    // Track download
-    if (dbId) {
-      (supabase as any)
-        .from("skryve_cvs")
-        .update({ last_downloaded_at: new Date().toISOString() })
-        .eq("id", dbId)
-        .then(() => {});
-    }
+  // Serialize the CV to plain text and hand it to the LinkedIn optimizer.
+  const openLinkedInGuide = () => {
+    const pi = cvData.personal_info;
+    const text = [
+      `${pi.fullName || ""} — ${pi.title || ""}`.trim(),
+      pi.location, pi.linkedin,
+      cvData.summary && `\nSummary:\n${cvData.summary}`,
+      cvData.skills.length && `\nSkills: ${cvData.skills.join(", ")}`,
+      cvData.experiences.length && "\nExperience:\n" + cvData.experiences
+        .map((e) => `- ${e.jobTitle} at ${e.company}\n  ${(e.bullets || []).filter(Boolean).join("\n  ")}`)
+        .join("\n"),
+      cvData.education.length && "\nEducation:\n" + cvData.education.map((ed) => `- ${ed.degree} at ${ed.school}`).join("\n"),
+    ].filter(Boolean).join("\n");
+    navigate("/linkedin-analyzer", { state: { profileContent: text, targetRole: pi.title || "" } });
   };
 
   // ─── Skill input ─────────────────────────────────────────────────────────────
@@ -649,10 +651,10 @@ export default function CVEditor() {
         <Button
           size="sm"
           variant="outline"
-          onClick={() => toast({ title: "DOCX download coming soon!" })}
+          onClick={openLinkedInGuide}
         >
-          <FileDown className="w-3 h-3 mr-1" />
-          DOCX
+          <Linkedin className="w-3 h-3 mr-1" />
+          LinkedIn Guide
         </Button>
       </div>
 
@@ -1386,6 +1388,14 @@ export default function CVEditor() {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Print target — uses the app's own compiled styles */}
+      {printing && createPortal(
+        <div className="print-cv">
+          <CVPreview data={previewData} template={cvData.template_name} />
+        </div>,
+        document.body
+      )}
     </div>
   );
 }

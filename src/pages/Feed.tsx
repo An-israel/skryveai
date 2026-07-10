@@ -36,6 +36,7 @@ interface FeedItem {
   jobType?: string | null;
   location?: string | null;
   matchScore: number;
+  jitter: number;           // per-load randomness → feed reshuffles on refresh
   externalUrl?: string;
   platform?: string;
   clientUserId?: string;
@@ -212,6 +213,7 @@ export default function Feed() {
       jobType: j.job_type,
       location: j.location_type,
       matchScore: scoreItem(j.title, j.required_skills || [], skills),
+      jitter: Math.random(),
       clientUserId: j.client_profiles?.user_id,
       companyName: j.client_profiles?.company_name || "",
     }));
@@ -231,6 +233,7 @@ export default function Feed() {
       jobType: j.job_type,
       location: j.location,
       matchScore: scoreItem(j.title, j.skill_tags || [], skills),
+      jitter: Math.random(),
       externalUrl: j.external_url,
       platform: j.platform,
     }));
@@ -284,6 +287,7 @@ export default function Feed() {
       verified: false,
       postedAt: e.created_at,
       matchScore: 0,
+      jitter: Math.random(),
     }));
     const coItems: FeedItem[] = (courses as any[]).map((c) => ({
       key: `course:${c.id}`,
@@ -299,6 +303,7 @@ export default function Feed() {
       verified: false,
       postedAt: c.created_at,
       matchScore: 0,
+      jitter: Math.random(),
     }));
 
     // Alternate events and courses in the queue for variety.
@@ -366,9 +371,15 @@ export default function Feed() {
       .from("aggregated_jobs")
       .select("id, title, description, budget, job_type, location, posted_at, scraped_at, platform, external_url, skill_tags")
       .eq("is_active", true)
-      .order("scraped_at", { ascending: false })
-      .limit(20);
-    if (aCursorRef.current) aq = aq.lt("scraped_at", aCursorRef.current);
+      .order("scraped_at", { ascending: false });
+    if (aCursorRef.current) {
+      aq = aq.lt("scraped_at", aCursorRef.current).limit(20);
+    } else {
+      // First page: start at a random offset into the pool so a different
+      // slice of jobs surfaces on every refresh.
+      const start = Math.floor(Math.random() * 180);
+      aq = aq.range(start, start + 24);
+    }
 
     const [{ data: mData, error: mErr }, { data: aData, error: aErr }] = await Promise.all([mq, aq]);
     if (mErr) console.error("feed job_posts error:", mErr);
@@ -403,6 +414,7 @@ export default function Feed() {
       .from("talent_profiles")
       .select("id, user_id, full_name, profile_photo_url, primary_skill, secondary_skills, experience_level, hourly_rate, rate_currency, bio, availability_status, rating_avg, total_reviews, completed_projects_count, created_at")
       .neq("user_id", uid || userId || "")
+      .eq("is_bot", false)
       .order("created_at", { ascending: false })
       .limit(15);
     if (tCursorRef.current) tq = tq.lt("created_at", tCursorRef.current);
@@ -430,6 +442,7 @@ export default function Feed() {
         verified: false,
         postedAt: t.created_at,
         matchScore: 0,
+      jitter: Math.random(),
       }));
 
     if (talents.length) tCursorRef.current = talents[talents.length - 1].sortKey;
@@ -627,6 +640,8 @@ export default function Feed() {
         const aJob = a.source === "marketplace" || a.source === "aggregated" ? 1 : 0;
         const bJob = b.source === "marketplace" || b.source === "aggregated" ? 1 : 0;
         if (bJob !== aJob) return bJob - aJob;
+        // Reshuffle equal-priority items on every refresh.
+        return a.jitter - b.jitter;
       }
       return new Date(b.postedAt).getTime() - new Date(a.postedAt).getTime();
     });

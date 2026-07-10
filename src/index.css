@@ -458,3 +458,11 @@
     background: linear-gradient(90deg, transparent, hsl(var(--primary) / 0.2), transparent);
   }
 }
+
+/* ── CV print: show only the CV, using the app's compiled styles ── */
+.print-cv { display: none; }
+@media print {
+  body.printing-cv #root { display: none !important; }
+  body.printing-cv .print-cv { display: block !important; }
+  @page { margin: 0.5in; }
+}

@@ -124,6 +124,7 @@ export default function BrowseTalent() {
       .select(
         "id, user_id, full_name, profile_photo_url, primary_skill, secondary_skills, experience_level, hourly_rate, rate_currency, bio, availability_status, rating_avg, total_reviews, completed_projects_count, created_at"
       )
+      .eq("is_bot", false)
       .order("created_at", { ascending: false });
     setTalents(data || []);
     setLoading(false);
