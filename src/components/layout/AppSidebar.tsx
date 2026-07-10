@@ -4,7 +4,7 @@ import {
   LayoutDashboard, Briefcase, Store, ClipboardList, FolderOpen,
   CalendarDays, BookOpen, MessageSquare, FileText, Users,
   PlusCircle, Settings, LogOut, Bell, ChevronRight,
-  Sparkles, Handshake,
+  Sparkles, Handshake, Moon, PenSquare,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import type { SkryveRole } from "@/hooks/use-skryve-role";
@@ -20,11 +20,13 @@ const talentNav: NavItem[] = [
   { label: "Dashboard",    to: "/dashboard",   icon: LayoutDashboard },
   { label: "Collab",       to: "/talent",       icon: Handshake       },
   { label: "Applications", to: "/applications", icon: ClipboardList   },
+  { label: "Sonder",       to: "/sonder",       icon: Moon            },
   { label: "Projects",     to: "/projects",     icon: FolderOpen      },
   { label: "Events",       to: "/events",       icon: CalendarDays    },
   { label: "Learn",        to: "/learn",        icon: BookOpen        },
   { label: "Messages",     to: "/messages",     icon: MessageSquare   },
   { label: "CV Builder",   to: "/cv-builder",   icon: FileText        },
+  { label: "Studio",       to: "/studio",       icon: PenSquare       },
 ];
 
 const clientNav: NavItem[] = [

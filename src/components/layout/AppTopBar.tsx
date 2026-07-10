@@ -31,6 +31,8 @@ const ROUTES: Record<string, string[]> = {
   "/cv-builder/new":     ["CV Builder", "New CV"],
   "/ats-checker":        ["Tools", "ATS Checker"],
   "/linkedin-analyzer":  ["Tools", "LinkedIn Analyzer"],
+  "/sonder":             ["Sonder"],
+  "/studio":             ["Studio"],
   "/messages":           ["Messages"],
   "/notifications":      ["Notifications"],
   "/settings":           ["Settings"],

@@ -58,6 +58,8 @@ import CVBuilder        from "./pages/CVBuilder";
 import CVEditor         from "./pages/CVEditor";
 import ATSChecker       from "./pages/ATSChecker";
 import LinkedInAnalyzer from "./pages/LinkedInAnalyzer";
+import Sonder           from "./pages/Sonder";
+import BlogStudio       from "./pages/BlogStudio";
 import Messages         from "./pages/Messages";
 import MessageThread    from "./pages/MessageThread";
 import DirectMessages   from "./pages/DirectMessages";
@@ -157,6 +159,8 @@ export default function App() {
                 <Route path="/cv-builder/:cvId"     element={<CVEditor />} />
                 <Route path="/ats-checker"          element={<ATSChecker />} />
                 <Route path="/linkedin-analyzer"    element={<LinkedInAnalyzer />} />
+                <Route path="/sonder"               element={<Sonder />} />
+                <Route path="/studio"               element={<BlogStudio />} />
 
                 {/* Messaging & Notifications */}
                 <Route path="/messages"                      element={<Messages />} />
