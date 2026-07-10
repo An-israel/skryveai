@@ -1,6 +1,8 @@
 import { useState, useEffect, useRef, useCallback } from "react";
+import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { useEntitlements } from "@/hooks/use-entitlements";
 import { MarkdownRenderer } from "@/components/blog/MarkdownRenderer";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -45,6 +47,8 @@ function wordCount(s: string): number {
 
 export default function BlogStudio() {
   const { toast } = useToast();
+  const navigate = useNavigate();
+  const { isAdmin, loading: entLoading } = useEntitlements();
   const [userId, setUserId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [posts, setPosts] = useState<Post[]>([]);
@@ -186,7 +190,23 @@ export default function BlogStudio() {
     if (userId) await loadPosts(userId);
   };
 
-  if (loading) return <div className="max-w-6xl mx-auto"><Skeleton className="h-96 rounded-xl" /></div>;
+  if (loading || entLoading) return <div className="max-w-6xl mx-auto"><Skeleton className="h-96 rounded-xl" /></div>;
+
+  // Studio is an admin-only authoring tool.
+  if (!isAdmin) {
+    return (
+      <div className="max-w-md mx-auto text-center py-20 space-y-4">
+        <div className="w-14 h-14 rounded-2xl bg-muted flex items-center justify-center mx-auto">
+          <PenSquare className="w-7 h-7 text-muted-foreground" />
+        </div>
+        <div>
+          <h1 className="font-display text-lg font-bold">Studio is for admins</h1>
+          <p className="text-sm text-muted-foreground mt-1">The blog authoring tool is restricted to the Skryve team.</p>
+        </div>
+        <Button variant="outline" onClick={() => navigate("/blog")}>Read the blog</Button>
+      </div>
+    );
+  }
 
   const tools = [
     { icon: Bold, label: "Bold", run: () => wrap("**", "**", "bold text") },
