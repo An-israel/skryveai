@@ -1,6 +1,8 @@
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { useNavigate } from "react-router-dom";
+import { useEntitlements } from "@/hooks/use-entitlements";
 import { ApplyWizard } from "@/components/jobs/ApplyWizard";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -13,7 +15,7 @@ import {
 } from "@/components/ui/select";
 import {
   Moon, Sparkles, Loader2, Play, X, Plus, CheckCircle2, AlertCircle,
-  SkipForward, ExternalLink, Briefcase,
+  SkipForward, ExternalLink, Briefcase, Lock, ArrowRight, Check,
 } from "lucide-react";
 
 type Status = "ready" | "needs_review" | "skipped" | "submitted";
@@ -40,6 +42,8 @@ const TABS: { id: Status; label: string; icon: any }[] = [
 
 export default function Sonder() {
   const { toast } = useToast();
+  const navigate = useNavigate();
+  const { isPaid, loading: entLoading } = useEntitlements();
   const [userId, setUserId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [pref, setPref] = useState<any>(null);
@@ -92,6 +96,7 @@ export default function Sonder() {
 
   const savePreferences = async () => {
     if (!userId) return;
+    if (!isPaid) { navigate("/pricing"); return; }
     if (!titles.length) { toast({ title: "Add at least one target role", variant: "destructive" }); return; }
     setSaving(true);
     const { error } = await (supabase as any).from("sonder_preferences").upsert({
@@ -113,6 +118,7 @@ export default function Sonder() {
 
   const runNow = async () => {
     if (!userId) return;
+    if (!isPaid) { navigate("/pricing"); return; }
     setRunning(true);
     try {
       const { data, error } = await supabase.functions.invoke("sonder-agent", { body: { userId } });
@@ -149,7 +155,7 @@ export default function Sonder() {
     setTitleInput("");
   };
 
-  if (loading) return <div className="max-w-3xl mx-auto space-y-4"><Skeleton className="h-40 rounded-xl" /><Skeleton className="h-64 rounded-xl" /></div>;
+  if (loading || entLoading) return <div className="max-w-3xl mx-auto space-y-4"><Skeleton className="h-40 rounded-xl" /><Skeleton className="h-64 rounded-xl" /></div>;
 
   // ── Setup / preferences ──
   const showSetup = !pref || !pref.active;
@@ -170,7 +176,7 @@ export default function Sonder() {
             <h1 className="font-display text-xl font-bold flex items-center gap-2">Sonder <Badge className="bg-white/15 text-white text-[10px]">AGENT</Badge></h1>
             <p className="text-sm text-white/70">Applies to jobs while you sleep. You review &amp; submit each one.</p>
           </div>
-          {pref?.active && (
+          {isPaid && pref?.active && (
             <Button variant="secondary" size="sm" onClick={runNow} disabled={running}>
               {running ? <Loader2 className="w-4 h-4 mr-1.5 animate-spin" /> : <Play className="w-4 h-4 mr-1.5" />}
               Run now
@@ -179,7 +185,29 @@ export default function Sonder() {
         </div>
       </div>
 
-      {showSetup ? (
+      {!isPaid ? (
+        <div className="rounded-xl border bg-card p-6 space-y-5 text-center">
+          <div className="w-14 h-14 rounded-2xl bg-amber-500/10 text-amber-500 flex items-center justify-center mx-auto">
+            <Lock className="w-7 h-7" />
+          </div>
+          <div>
+            <h2 className="font-display text-lg font-bold">Sonder is a Pro feature</h2>
+            <p className="text-sm text-muted-foreground mt-1 max-w-md mx-auto">
+              Upgrade to let Sonder source, tailor and pre-fill job applications for you every night. You just review and submit each morning.
+            </p>
+          </div>
+          <ul className="text-sm text-left max-w-sm mx-auto space-y-2">
+            {["Applications prepared while you sleep", "Cover letters tailored to each role", "Review & submit in-app — nothing auto-sends", "Sourced from companies worldwide"].map((f) => (
+              <li key={f} className="flex items-start gap-2">
+                <Check className="w-4 h-4 text-green-600 mt-0.5 shrink-0" /> <span>{f}</span>
+              </li>
+            ))}
+          </ul>
+          <Button className="w-full sm:w-auto" onClick={() => navigate("/pricing")}>
+            Upgrade to Pro <ArrowRight className="w-4 h-4 ml-1.5" />
+          </Button>
+        </div>
+      ) : showSetup ? (
         <div className="rounded-xl border bg-card p-6 space-y-5">
           <div>
             <h2 className="font-semibold flex items-center gap-2"><Sparkles className="w-4 h-4 text-primary" /> Set up your agent</h2>

@@ -7,6 +7,7 @@ import {
   Sparkles, Handshake, Moon, PenSquare,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/use-auth";
 import type { SkryveRole } from "@/hooks/use-skryve-role";
 
 interface NavItem {
@@ -26,7 +27,11 @@ const talentNav: NavItem[] = [
   { label: "Learn",        to: "/learn",        icon: BookOpen        },
   { label: "Messages",     to: "/messages",     icon: MessageSquare   },
   { label: "CV Builder",   to: "/cv-builder",   icon: FileText        },
-  { label: "Studio",       to: "/studio",       icon: PenSquare       },
+];
+
+// Admin-only tools appended for staff regardless of talent/client role.
+const adminNav: NavItem[] = [
+  { label: "Studio", to: "/studio", icon: PenSquare },
 ];
 
 const clientNav: NavItem[] = [
@@ -79,7 +84,8 @@ function NavItem({ label, to, icon: Icon, unreadCount = 0, onClose }: NavItem & 
 
 function SidebarContent({ role, userName, userAvatar, unreadCount, onClose }: Omit<AppSidebarProps, "mobileOpen" | "onMobileClose"> & { onClose?: () => void }) {
   const navigate = useNavigate();
-  const nav = role === "client" ? clientNav : talentNav;
+  const { isStaffAdmin } = useAuth(false);
+  const nav = [...(role === "client" ? clientNav : talentNav), ...(isStaffAdmin ? adminNav : [])];
 
   const handleLogout = async () => {
     await supabase.auth.signOut();

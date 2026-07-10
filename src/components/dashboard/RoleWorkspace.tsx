@@ -27,16 +27,16 @@ const ROLES: RoleConfig[] = [
     title: "Content Writer Workspace",
     icon: PenSquare,
     accent: "from-rose-500/15 to-orange-500/10 text-rose-500",
-    blurb: "Draft, format and publish articles — then land writing gigs.",
+    blurb: "Build a portfolio, sharpen your craft, and land writing gigs.",
     actions: [
-      { label: "Open Studio", to: "/studio", icon: PenSquare },
+      { label: "Your portfolio", to: "/profile/portfolio", icon: FileText },
       { label: "Writing jobs", to: "/jobs", icon: Briefcase },
-      { label: "Build your CV", to: "/cv-builder", icon: FileText },
+      { label: "Build your CV", to: "/cv-builder", icon: PenSquare },
       { label: "Improve your craft", to: "/learn", icon: BookOpen },
     ],
     tips: [
-      "Publish 1–2 portfolio pieces in Studio to show range.",
-      "Pitch with a link to a live post, not an attachment.",
+      "Add 1–2 writing samples to your portfolio to show range.",
+      "Pitch with a link to a live piece, not an attachment.",
     ],
   },
   {
@@ -67,7 +67,7 @@ const ROLES: RoleConfig[] = [
     actions: [
       { label: "Growth roles", to: "/jobs", icon: Briefcase },
       { label: "Analytics course", to: "/learn", icon: BarChart3 },
-      { label: "Case studies in Studio", to: "/studio", icon: PenSquare },
+      { label: "Find collaborators", to: "/talent", icon: Users },
       { label: "Network at events", to: "/events", icon: CalendarDays },
     ],
     tips: [
@@ -83,13 +83,13 @@ const ROLES: RoleConfig[] = [
     accent: "from-violet-500/15 to-fuchsia-500/10 text-violet-500",
     blurb: "Plan campaigns, build a content calendar, and win marketing gigs.",
     actions: [
-      { label: "Content calendar (Studio)", to: "/studio", icon: PenSquare },
       { label: "Marketing jobs", to: "/jobs", icon: Briefcase },
       { label: "Sharpen your skills", to: "/learn", icon: Target },
+      { label: "Network at events", to: "/events", icon: CalendarDays },
       { label: "Find collaborators", to: "/talent", icon: Users },
     ],
     tips: [
-      "Batch a month of content in Studio, then schedule the drops.",
+      "Plan a month of content, then batch and schedule the drops.",
       "Show ROI in your pitch: reach, conversions, and cost per result.",
     ],
   },
@@ -104,7 +104,7 @@ const DEFAULT: RoleConfig = {
   blurb: "Tools tuned to what you do — jobs, learning and your portfolio.",
   actions: [
     { label: "Browse jobs", to: "/jobs", icon: Briefcase },
-    { label: "Write in Studio", to: "/studio", icon: PenSquare },
+    { label: "Your portfolio", to: "/profile/portfolio", icon: PenSquare },
     { label: "Build your CV", to: "/cv-builder", icon: FileText },
     { label: "Keep learning", to: "/learn", icon: BookOpen },
   ],

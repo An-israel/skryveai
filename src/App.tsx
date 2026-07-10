@@ -6,6 +6,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { ThemeProvider } from "next-themes";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { ChatWidget } from "@/components/chat/ChatWidget";
+import { SonderWidget } from "@/components/sonder/SonderWidget";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 
 // ── Public pages ────────────────────────────────────────────
@@ -94,6 +95,7 @@ export default function App() {
           <Sonner />
           <BrowserRouter>
             <ChatWidget />
+            <SonderWidget />
             <Routes>
 
               {/* ── Public / marketing / auth ── */}
