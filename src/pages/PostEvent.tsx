@@ -35,7 +35,26 @@ const NICHE_OPTIONS = [
   "Design", "Engineering", "Marketing", "Product", "Data Science",
   "DevOps", "Blockchain", "AI/ML", "Startup", "Finance", "Healthcare",
 ];
-const TIMEZONES = ["UTC", "America/New_York", "America/Los_Angeles", "Europe/London", "Africa/Lagos", "Asia/Kolkata"];
+const TIMEZONES = [
+  { value: "Africa/Lagos", label: "WAT — West Africa (Lagos)" },
+  { value: "Africa/Nairobi", label: "EAT — East Africa (Nairobi)" },
+  { value: "Africa/Johannesburg", label: "SAST — South Africa" },
+  { value: "Africa/Cairo", label: "EET — Egypt" },
+  { value: "UTC", label: "UTC / GMT" },
+  { value: "Europe/London", label: "GMT/BST — London" },
+  { value: "Europe/Paris", label: "CET — Central Europe" },
+  { value: "America/New_York", label: "EST/EDT — US Eastern" },
+  { value: "America/Chicago", label: "CST/CDT — US Central" },
+  { value: "America/Denver", label: "MST/MDT — US Mountain" },
+  { value: "America/Los_Angeles", label: "PST/PDT — US Pacific" },
+  { value: "America/Sao_Paulo", label: "BRT — Brazil" },
+  { value: "Asia/Dubai", label: "GST — Gulf (Dubai)" },
+  { value: "Asia/Kolkata", label: "IST — India" },
+  { value: "Asia/Singapore", label: "SGT — Singapore" },
+  { value: "Asia/Shanghai", label: "CST — China" },
+  { value: "Asia/Tokyo", label: "JST — Japan" },
+  { value: "Australia/Sydney", label: "AEST — Sydney" },
+];
 
 const STEPS = ["Basic Info", "Date & Location", "Pricing", "Preview"];
 
@@ -58,6 +77,8 @@ export default function PostEvent() {
   const [step, setStep] = useState(0);
   const [saving, setSaving] = useState(false);
   const [bannerUploading, setBannerUploading] = useState(false);
+  const [isHost, setIsHost] = useState(true);
+  const [hostName, setHostName] = useState("");
 
   // Step 1
   const [title, setTitle] = useState("");
@@ -141,6 +162,8 @@ export default function PostEvent() {
         niche_category: niche || null,
         date_time: new Date(dateTime).toISOString(),
         timezone,
+        is_host: isHost,
+        host_name: isHost ? null : (hostName || null),
         duration_minutes: durationMinutes ? parseInt(durationMinutes) : null,
         platform_name: isOnline ? platformName || null : null,
         event_link: isOnline ? eventLink || null : null,
@@ -335,7 +358,7 @@ export default function PostEvent() {
                     <Select value={timezone} onValueChange={setTimezone}>
                       <SelectTrigger><SelectValue /></SelectTrigger>
                       <SelectContent>
-                        {TIMEZONES.map((tz) => <SelectItem key={tz} value={tz}>{tz}</SelectItem>)}
+                        {TIMEZONES.map((tz) => <SelectItem key={tz.value} value={tz.value}>{tz.label}</SelectItem>)}
                       </SelectContent>
                     </Select>
                   </div>
@@ -349,6 +372,20 @@ export default function PostEvent() {
                 <div className="flex items-center gap-3 py-2">
                   <Switch checked={isOnline} onCheckedChange={setIsOnline} />
                   <Label>{isOnline ? "Online Event" : "In-Person Event"}</Label>
+                </div>
+
+                <div className="space-y-2 border-t pt-4">
+                  <div className="flex items-center gap-3">
+                    <Switch checked={isHost} onCheckedChange={setIsHost} />
+                    <Label>{isHost ? "I'm hosting this event" : "Someone else is hosting"}</Label>
+                  </div>
+                  {!isHost && (
+                    <Input
+                      placeholder="Host / organizer name (e.g. AIESEC Enugu)"
+                      value={hostName}
+                      onChange={(e) => setHostName(e.target.value)}
+                    />
+                  )}
                 </div>
 
                 {isOnline ? (

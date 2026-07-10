@@ -484,6 +484,7 @@ export default function Messages() {
         (supabase as any)
           .from("talent_profiles")
           .select("id, full_name, profile_photo_url, user_id")
+          .eq("is_bot", false)
           .ilike("full_name", `%${searchUsers}%`)
           .limit(10),
         (supabase as any)

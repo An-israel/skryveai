@@ -1,4 +1,5 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
+import { useLocation } from "react-router-dom";
 import { SEOHead } from "@/components/SEOHead";
 import { motion, AnimatePresence } from "framer-motion";
 import { NextStepsCard } from "@/components/shared/NextStepsCard";
@@ -114,8 +115,19 @@ export default function LinkedInAnalyzer() {
   const navigate = useNavigate();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  const location = useLocation();
   const [targetRole, setTargetRole] = useState("");
   const [profileContent, setProfileContent] = useState("");
+
+  // Prefill from the CV builder's "LinkedIn Guide" button.
+  useEffect(() => {
+    const st = location.state as { profileContent?: string; targetRole?: string } | null;
+    if (st?.profileContent) {
+      setProfileContent(st.profileContent);
+      if (st.targetRole) setTargetRole(st.targetRole);
+      window.history.replaceState({}, "");
+    }
+  }, [location.state]);
   const [uploadedFileName, setUploadedFileName] = useState("");
   const [isParsingFile, setIsParsingFile] = useState(false);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
