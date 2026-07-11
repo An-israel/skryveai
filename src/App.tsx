@@ -8,6 +8,7 @@ import { AppLayout } from "@/components/layout/AppLayout";
 import { ChatWidget } from "@/components/chat/ChatWidget";
 import { SonderWidget } from "@/components/sonder/SonderWidget";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
+import { GamificationProvider } from "@/context/GamificationProvider";
 
 // ── Public pages ────────────────────────────────────────────
 import Landing          from "./pages/Landing";
@@ -94,6 +95,7 @@ export default function App() {
           <Toaster />
           <Sonner />
           <BrowserRouter>
+            <GamificationProvider>
             <ChatWidget />
             <SonderWidget />
             <Routes>
@@ -195,6 +197,7 @@ export default function App() {
               <Route path="*" element={<NotFound />} />
 
             </Routes>
+            </GamificationProvider>
           </BrowserRouter>
         </TooltipProvider>
       </QueryClientProvider>
