@@ -208,7 +208,7 @@ SELECT * FROM (VALUES
   ('FAQ: Getting hired on Skryve (AEO)',                 'faq',        'how to get hired freelance',       2, 2, 8,  81),
   ('Freelancing vs Full-Time: honest breakdown',         'pillar',     'freelancing vs full-time',         3, 3, 9,  90),
   ('How Much Do Freelancers Earn in 2026?',              'data',       'how much do freelancers earn',     3, 3, 9,  91),
-  ('Skryve vs [3rd competitor] comparison',              'comparison', 'Upwork alternative comparison',    1, 3, 10, 100),
+  ('Skryve vs Freelancer.com: honest comparison',        'comparison', 'Freelancer.com alternative',       1, 3, 10, 100),
   ('How to Start Freelancing (beginner pillar)',         'pillar',     'how to start freelancing',         3, 3, 10, 101),
   ('AI Tools Every Freelancer Should Use 2026',          'listicle',   'AI tools for freelancers',         3, 3, 11, 110),
   ('Update + expand Month 1 comparison pages',           'freshness',  'refresh existing',                 NULL, 3, 11, 111),

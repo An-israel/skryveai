@@ -13,6 +13,7 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
+import { getEdgeFunctionErrorMessage } from "@/lib/edge-function-error";
 import type { TiptipData } from "@/pages/Tiptip";
 import {
   type TiptipContent, type ContentStatus,
@@ -37,6 +38,24 @@ export function ContentTab({ data, loading, reload }: { data: TiptipData; loadin
     const { data: created } = await createContent({ title: "Untitled piece", kind: "article", status: "idea" });
     await reload();
     if (created) setEditing(created);
+  }
+
+  // Generate every not-yet-written Month 1 piece, one at a time (each call is a
+  // full article, so we go sequentially to respect API cost + rate limits).
+  async function bulkGenerateMonth1() {
+    const todo = data.content.filter((c) => c.calendar_month === 1 && c.status === "idea");
+    if (todo.length === 0) return toast({ title: "Month 1 is already drafted" });
+    if (!confirm(`Generate ${todo.length} Month 1 pieces with AI? This runs one at a time and may take a few minutes.`)) return;
+    setBusy("bulk");
+    let done = 0, failed = 0;
+    for (const c of todo) {
+      try { await generate(c.id, "article"); done++; }
+      catch { failed++; }
+      toast({ title: `Generating Month 1… ${done + failed}/${todo.length}`, description: c.title });
+    }
+    await reload();
+    setBusy(null);
+    toast({ title: "Month 1 batch done", description: `${done} drafted${failed ? `, ${failed} failed` : ""}.` });
   }
 
   async function save() {
@@ -67,7 +86,10 @@ export function ContentTab({ data, loading, reload }: { data: TiptipData; loadin
         toast({ title: "Mentions drafted", description: "Check the Brand Mentions tab." });
       }
     } catch (e) {
-      toast({ title: "Generation failed", description: (e as Error).message, variant: "destructive" });
+      const description = await getEdgeFunctionErrorMessage(
+        e, "The tiptip-generate function isn't reachable. Make sure it's deployed and ANTHROPIC_API_KEY is set.",
+      );
+      toast({ title: "Generation failed", description, variant: "destructive" });
     } finally {
       setBusy(null);
     }
@@ -110,7 +132,13 @@ export function ContentTab({ data, loading, reload }: { data: TiptipData; loadin
             </button>
           ))}
         </div>
-        <Button size="sm" onClick={newPiece}><Plus className="w-4 h-4 mr-1" /> New piece</Button>
+        <div className="flex gap-2">
+          <Button size="sm" variant="outline" disabled={!!busy} onClick={bulkGenerateMonth1}>
+            {busy === "bulk" ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <Sparkles className="w-4 h-4 mr-1" />}
+            Generate Month 1
+          </Button>
+          <Button size="sm" onClick={newPiece}><Plus className="w-4 h-4 mr-1" /> New piece</Button>
+        </div>
       </div>
 
       {loading ? (

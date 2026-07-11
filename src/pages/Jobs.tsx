@@ -1,6 +1,8 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { SEOHead } from "@/components/SEOHead";
+import { breadcrumbSchema, SITE_URL } from "@/components/schema/jsonld";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
@@ -478,6 +480,14 @@ export default function Jobs() {
   const goodCount = jobs.filter(j => j.matchScore >= 60 && j.matchScore < 80).length;
 
   return (
+    <>
+    <SEOHead
+      title="Freelance Jobs — Remote Work from Every Platform"
+      description="Browse thousands of freelance and remote jobs aggregated from across the web, matched to your skills. Apply with AI-written proposals on Skryve."
+      canonical={`${SITE_URL}/jobs`}
+      keywords="freelance jobs, remote jobs, freelance job aggregator, find freelance work"
+      jsonLd={breadcrumbSchema([{ name: "Home", url: "/" }, { name: "Freelance Jobs", url: "/jobs" }])}
+    />
     <div className="max-w-7xl mx-auto px-4 py-6">
       <div className="flex items-center justify-between mb-6">
         <div>
@@ -594,5 +604,6 @@ export default function Jobs() {
       </div>
 
     </div>
+    </>
   );
 }

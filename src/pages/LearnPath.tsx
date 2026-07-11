@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useParams, Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { SEOHead } from "@/components/SEOHead";
+import { courseSchema, SITE_URL } from "@/components/schema/jsonld";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -335,6 +337,13 @@ export default function LearnPath() {
   const isEnrolled = !!enrollment;
 
   return (
+    <>
+    <SEOHead
+      title={course.title}
+      description={(course.description || `Learn ${course.title} on Skryve.`).slice(0, 160)}
+      canonical={`${SITE_URL}/learn/${course.id}`}
+      jsonLd={courseSchema({ name: course.title, description: course.description || undefined })}
+    />
     <div className="max-w-7xl mx-auto px-4 pb-12 pt-2">
       {/* Back */}
       <Button variant="ghost" size="sm" asChild className="mb-4 -ml-2">
@@ -675,5 +684,6 @@ export default function LearnPath() {
         </div>
       </div>
     </div>
+    </>
   );
 }
