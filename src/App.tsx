@@ -9,6 +9,7 @@ import { ChatWidget } from "@/components/chat/ChatWidget";
 import { SonderWidget } from "@/components/sonder/SonderWidget";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { GamificationProvider } from "@/context/GamificationProvider";
+import { SiteSchema } from "@/components/schema/SiteSchema";
 
 // ── Public pages ────────────────────────────────────────────
 import Landing          from "./pages/Landing";
@@ -71,6 +72,7 @@ import Billing          from "./pages/Billing";
 import TeamManagement   from "./pages/TeamManagement";
 import Referrals        from "./pages/Referrals";
 import Admin            from "./pages/Admin";
+import Tiptip           from "./pages/Tiptip";
 import SkillLearningAnalytics from "./pages/admin/SkillLearningAnalytics";
 import PaymentCallback  from "./pages/PaymentCallback";
 import PortfolioManager from "./pages/PortfolioManager";
@@ -96,6 +98,7 @@ export default function App() {
           <Sonner />
           <BrowserRouter>
             <GamificationProvider>
+            <SiteSchema />
             <ChatWidget />
             <SonderWidget />
             <Routes>
@@ -181,6 +184,7 @@ export default function App() {
 
                 {/* Admin */}
                 <Route path="/admin"               element={<Admin />} />
+                <Route path="/tiptip"              element={<Tiptip />} />
                 <Route path="/admin/skill-learning" element={<SkillLearningAnalytics />} />
               </Route>
 
