@@ -4,6 +4,7 @@
 // mode "mentions" -> drafts brand-mention posts into tiptip_brand_mentions.
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
+import { enforceRateLimit, rateLimitResponse } from "../_shared/rate-limit.ts";
 
 const OWNER_EMAIL = "aniekaneazy@gmail.com";
 
@@ -24,14 +25,22 @@ function jsonError(msg: string, status = 400) {
   });
 }
 
-// Pull the first well-formed JSON object out of a model response.
+// Pull the first well-formed JSON object out of a model response, tolerating
+// code fences and trailing commas.
 function extractJson(text: string): any {
   const fenced = text.match(/```(?:json)?\s*([\s\S]*?)```/);
   const raw = fenced ? fenced[1] : text;
   const start = raw.indexOf("{");
   const end = raw.lastIndexOf("}");
-  if (start === -1 || end === -1) throw new Error("no JSON in model output");
-  return JSON.parse(raw.slice(start, end + 1));
+  if (start === -1 || end === -1) {
+    throw new Error(`model did not return JSON (got: ${text.slice(0, 120)}…)`);
+  }
+  const slice = raw.slice(start, end + 1).replace(/,(\s*[}\]])/g, "$1");
+  try {
+    return JSON.parse(slice);
+  } catch (_e) {
+    throw new Error("model output was not valid JSON (it may have been truncated — try again)");
+  }
 }
 
 async function callClaude(system: string, user: string, maxTokens: number) {
@@ -65,6 +74,10 @@ serve(async (req) => {
   const { data: { user }, error: authErr } = await service.auth.getUser(authHeader.replace("Bearer ", ""));
   if (authErr || !user) return jsonError("Unauthorized", 401);
   if ((user.email || "").toLowerCase() !== OWNER_EMAIL) return jsonError("Forbidden", 403);
+
+  // Anti-abuse: generous sliding window (a human never hits this).
+  const rl = await enforceRateLimit(service, `tiptip:${user.id}`, 20, 60);
+  if (!rl.allowed) return rateLimitResponse(corsHeaders, rl.retryAfter);
 
   let payload: { content_id?: string; mode?: string };
   try { payload = await req.json(); } catch { return jsonError("Invalid body"); }
@@ -112,7 +125,7 @@ Return ONLY JSON with these exact keys:
     const user = `Write the "${content.kind}" piece titled "${content.title}".
 Primary target keyword/question: ${content.target_keyword || content.title}.
 Keyword tier: ${content.keyword_tier || "n/a"}. Make it genuinely useful and citation-worthy.`;
-    const out = await callClaude(system, user, 4096);
+    const out = await callClaude(system, user, 8000);
     const a = extractJson(out);
 
     const slug = String(a.slug || content.title)

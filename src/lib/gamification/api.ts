@@ -115,3 +115,20 @@ export async function popCelebrations(): Promise<GamAchievement[]> {
   if (error || !Array.isArray(data)) return [];
   return data as GamAchievement[];
 }
+
+export interface LeaderboardRow {
+  rank: number;
+  user_id: string;
+  name: string;
+  avatar: string | null;
+  current_level: number;
+  level_name: string;
+  total_points: number;
+}
+
+/** Top talents by points — public trust signals only (name, level, points). */
+export async function fetchLeaderboard(limit = 20): Promise<LeaderboardRow[]> {
+  const { data, error } = await rpc("gam_leaderboard", { _limit: limit });
+  if (error || !Array.isArray(data)) return [];
+  return data as LeaderboardRow[];
+}

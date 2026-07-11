@@ -1,7 +1,12 @@
 // Weekly summary: what's ready to publish, what's next, and progress at a glance.
+import { useState } from "react";
 import { Link } from "react-router-dom";
-import { CheckCircle2, FileText, Rocket, ListTodo } from "lucide-react";
+import { CheckCircle2, FileText, Rocket, ListTodo, Mail, Loader2 } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
+import { Button } from "@/components/ui/button";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
+import { getEdgeFunctionErrorMessage } from "@/lib/edge-function-error";
 import type { TiptipData } from "@/pages/Tiptip";
 import { StatusPill } from "./shared";
 
@@ -18,6 +23,22 @@ function Stat({ label, value, icon: Icon }: { label: string; value: number; icon
 }
 
 export function OverviewTab({ data, loading }: { data: TiptipData; loading: boolean }) {
+  const { toast } = useToast();
+  const [emailing, setEmailing] = useState(false);
+
+  async function emailSummary() {
+    setEmailing(true);
+    try {
+      const { error } = await supabase.functions.invoke("tiptip-weekly-summary");
+      if (error) throw error;
+      toast({ title: "Summary sent", description: "Check your inbox." });
+    } catch (e) {
+      toast({ title: "Couldn't send", description: await getEdgeFunctionErrorMessage(e), variant: "destructive" });
+    } finally {
+      setEmailing(false);
+    }
+  }
+
   if (loading) return <div className="text-sm text-muted-foreground">Loading…</div>;
 
   const { content, mentions, tasks } = data;
@@ -31,6 +52,12 @@ export function OverviewTab({ data, loading }: { data: TiptipData; loading: bool
 
   return (
     <div className="space-y-6">
+      <div className="flex justify-end">
+        <Button size="sm" variant="outline" disabled={emailing} onClick={emailSummary}>
+          {emailing ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <Mail className="w-4 h-4 mr-1" />}
+          Email me this summary
+        </Button>
+      </div>
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         <Stat label="Ready to publish" value={ready.length} icon={Rocket} />
         <Stat label="Published" value={published.length} icon={CheckCircle2} />

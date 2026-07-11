@@ -13,6 +13,7 @@ import { ProfileCompletionCard } from "@/components/gamification/ProfileCompleti
 import { LevelProgressCard, StreakCard, RoadToFirstHire } from "@/components/gamification/LevelStreakCards";
 import { BadgesGallery } from "@/components/gamification/BadgesGallery";
 import { AchievementsFeed } from "@/components/gamification/AchievementsFeed";
+import { LeaderboardCard } from "@/components/gamification/LeaderboardCard";
 
 /* ─── Skeleton ─────────────────────────────────────────── */
 export function DashboardSkeleton() {
@@ -347,6 +348,9 @@ export function TalentDashboard({ user }: { user: any }) {
         <RecentApplications userId={user.id} />
         <UpcomingEvents />
       </div>
+
+      {/* Leaderboard */}
+      <LeaderboardCard currentUserId={user.id} />
 
       {/* Quick actions */}
       <QuickActions />
