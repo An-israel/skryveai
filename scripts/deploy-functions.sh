@@ -55,6 +55,9 @@ SUPPORTING=(
   manage-push
   get-exchange-rates
   generate-sitemap
+  tiptip-generate
+  tiptip-weekly-summary
+  send-reengagement
 )
 
 echo "── Critical functions ────────────────────────────────"
