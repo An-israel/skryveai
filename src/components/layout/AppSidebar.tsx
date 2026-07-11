@@ -1,5 +1,7 @@
+import { useEffect, useState } from "react";
 import { NavLink, useNavigate } from "react-router-dom";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
+import { TIPTIP_OWNER_EMAIL } from "@/lib/tiptip/api";
 import {
   LayoutDashboard, Briefcase, Store, ClipboardList, FolderOpen,
   CalendarDays, BookOpen, MessageSquare, FileText, Users,
@@ -86,6 +88,13 @@ function SidebarContent({ role, userName, userAvatar, unreadCount, onClose }: Om
   const navigate = useNavigate();
   const { isStaffAdmin } = useAuth(false);
   const nav = [...(role === "client" ? clientNav : talentNav), ...(isStaffAdmin ? adminNav : [])];
+  const [isOwner, setIsOwner] = useState(false);
+
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      setIsOwner((user?.email || "").toLowerCase() === TIPTIP_OWNER_EMAIL);
+    });
+  }, []);
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
@@ -133,6 +142,7 @@ function SidebarContent({ role, userName, userAvatar, unreadCount, onClose }: Om
       {/* Bottom utilities */}
       <div className="h-px bg-sidebar-border shrink-0" />
       <div className="py-3 px-2 space-y-px shrink-0">
+        {isOwner && <NavItem label="tiptip" to="/tiptip" icon={Sparkles} onClose={onClose} />}
         <NavItem label="Notifications" to="/notifications" icon={Bell} unreadCount={unreadCount} onClose={onClose} />
         <NavItem label="Settings" to="/settings" icon={Settings} onClose={onClose} />
       </div>

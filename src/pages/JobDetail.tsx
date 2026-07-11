@@ -6,6 +6,8 @@ import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ApplyWizard } from "@/components/jobs/ApplyWizard";
+import { SEOHead } from "@/components/SEOHead";
+import { jobPostingSchema, SITE_URL } from "@/components/schema/jsonld";
 import {
   ArrowLeft, Heart, ExternalLink,
   MapPin, Briefcase, DollarSign, Calendar
@@ -208,7 +210,24 @@ export default function JobDetail() {
     ? format(new Date(job.posted_at), "MMM d, yyyy")
     : null;
 
+  const jobJsonLd = jobPostingSchema({
+    title: job.title,
+    description: job.description || job.title,
+    datePosted: job.posted_at || undefined,
+    location: job.location || undefined,
+    employmentType: (job.job_type || "contractor").toUpperCase().replace(/[^A-Z]/g, "_"),
+    company: job.platform,
+  });
+
   return (
+    <>
+    <SEOHead
+      title={job.title}
+      description={(job.description || `${job.title} — apply on Skryve.`).slice(0, 160)}
+      canonical={`${SITE_URL}/jobs/${job.id}`}
+      ogType="article"
+      jsonLd={jobJsonLd}
+    />
     <div className="max-w-3xl mx-auto px-4 py-8">
       <Button variant="ghost" size="icon" onClick={() => navigate(-1)} className="mb-6 -ml-2">
         <ArrowLeft className="w-4 h-4" />
@@ -322,5 +341,6 @@ export default function JobDetail() {
         }}
       />
     </div>
+    </>
   );
 }
