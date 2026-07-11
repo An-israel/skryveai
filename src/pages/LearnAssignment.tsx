@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
+import { useGamification } from "@/hooks/useGamification";
 import {
   CheckCircle,
   PlayCircle,
@@ -71,6 +72,7 @@ export default function LearnAssignment() {
   const { courseId, lessonId } = useParams<{ courseId: string; lessonId: string }>();
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { award, streak } = useGamification();
 
   // Data state
   const [lessons, setLessons] = useState<Lesson[]>([]);
@@ -220,6 +222,11 @@ export default function LearnAssignment() {
     const newCompleted = completedLessonIds.size + 1;
     const newPercent = Math.round((newCompleted / lessons.length) * 100);
 
+    // Gamification: reward real learning progress (+ keep the learning streak alive).
+    void award("lesson_complete");
+    void streak("learning");
+    if (newPercent === 100) void award("course_complete");
+
     await (supabase as any)
       .from("enrollments")
       .update({ progress_percent: newPercent })
@@ -293,7 +300,7 @@ export default function LearnAssignment() {
         setTimeout(() => navigate(`/learn/${courseId}/${nextLesson.id}`), 3000);
       }
     }
-  }, [enrollment, lessonId, completedLessonIds, lessons, currentLesson, courseId, navigate, toast]);
+  }, [enrollment, lessonId, completedLessonIds, lessons, currentLesson, courseId, navigate, toast, award, streak]);
 
   // ── Video tracking ────────────────────────────────────────────────────────
 

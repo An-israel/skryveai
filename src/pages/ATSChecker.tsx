@@ -15,6 +15,8 @@ import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/use-auth";
 import { getEdgeFunctionErrorMessage } from "@/lib/edge-function-error";
 import { FeatureGuide } from "@/components/onboarding/FeatureGuide";
+import { RemainingCredits, LimitReachedCard } from "@/components/limits/LimitsUI";
+import { useLimits } from "@/hooks/useLimits";
 import { atsCheckerGuide } from "@/components/onboarding/guideConfigs";
 import { extractTextFromPdf } from "@/lib/extract-pdf-text";
 import { Link } from "react-router-dom";
@@ -35,6 +37,8 @@ export default function ATSChecker() {
   const [result, setResult] = useState<ATSResult | null>(null);
   const [uploadedFileName, setUploadedFileName] = useState("");
   const [isParsingFile, setIsParsingFile] = useState(false);
+  const [limitHit, setLimitHit] = useState(false);
+  const { reload: reloadLimits } = useLimits();
 
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -48,6 +52,7 @@ export default function ATSChecker() {
 
     setIsChecking(true);
     setResult(null);
+    setLimitHit(false);
 
     try {
       const { data, error } = await supabase.functions.invoke("check-ats-score", {
@@ -61,9 +66,17 @@ export default function ATSChecker() {
       if (user) {
         supabase.from("tool_usage").insert({ user_id: user.id, tool_name: "ats_checker", metadata: { score: data.overallScore, grade: data.grade } } as any).then(() => {});
       }
+      void reloadLimits();
     } catch (error) {
-      const description = await getEdgeFunctionErrorMessage(error, "Failed to check ATS score");
-      toast({ title: "Check Failed", description, variant: "destructive" });
+      // A 429 means the daily/monthly AI credits are used up — show the warm
+      // limit-reached state (a nudge with a free "wait" path), not a red error.
+      if ((error as { context?: Response })?.context?.status === 429) {
+        setLimitHit(true);
+        void reloadLimits();
+      } else {
+        const description = await getEdgeFunctionErrorMessage(error, "Failed to check ATS score");
+        toast({ title: "Check Failed", description, variant: "destructive" });
+      }
     } finally {
       setIsChecking(false);
     }
@@ -226,13 +239,22 @@ export default function ATSChecker() {
                   />
                 </div>
 
-                <Button onClick={handleCheck} className="w-full" size="lg" disabled={isChecking || cvContent.trim().length < 50}>
-                  {isChecking ? (
-                    <><Loader2 className="w-5 h-5 mr-2 animate-spin" /> Analyzing...</>
-                  ) : (
-                    <><Target className="w-5 h-5 mr-2" /> Check ATS Score</>
-                  )}
-                </Button>
+                {limitHit ? (
+                  <LimitReachedCard tool="ats_checker" onWait={() => setLimitHit(false)} />
+                ) : (
+                  <>
+                    <Button onClick={handleCheck} className="w-full" size="lg" disabled={isChecking || cvContent.trim().length < 50}>
+                      {isChecking ? (
+                        <><Loader2 className="w-5 h-5 mr-2 animate-spin" /> Analyzing...</>
+                      ) : (
+                        <><Target className="w-5 h-5 mr-2" /> Check ATS Score</>
+                      )}
+                    </Button>
+                    <div className="flex justify-center">
+                      <RemainingCredits tool="ats_checker" />
+                    </div>
+                  </>
+                )}
               </CardContent>
             </Card>
           ) : (

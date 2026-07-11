@@ -8,8 +8,10 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   MapPin, Star, Calendar, Briefcase, MessageSquare, Share2, Eye,
-  Globe, Linkedin, Twitter, Github, ImageIcon, ExternalLink,
+  Globe, Linkedin, Twitter, Github, ImageIcon, ExternalLink, Trophy,
 } from "lucide-react";
+import { fetchPublicProfile } from "@/lib/gamification/api";
+import { EarnedBadgeStrip } from "@/components/gamification/BadgesGallery";
 
 const AVAILABILITY_STYLES: Record<string, { label: string; class: string }> = {
   available:   { label: "Available",     class: "bg-green-500/10 text-green-500 border-green-500/30" },
@@ -30,6 +32,7 @@ export default function ProfileView() {
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
   const [previewAsClient, setPreviewAsClient] = useState(false);
+  const [gam, setGam] = useState<{ current_level: number; level_name: string; badges: any[] } | null>(null);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -101,6 +104,12 @@ export default function ProfileView() {
       });
     })();
   }, [currentUser?.id, talent?.user_id]);
+
+  // Public trust signals: level + earned badges (safe subset — no earnings/ratings).
+  useEffect(() => {
+    if (!talent?.user_id) return;
+    fetchPublicProfile(talent.user_id).then((d) => setGam(d));
+  }, [talent?.user_id]);
 
   const handleMessage = async () => {
     if (!currentUser) { navigate("/login"); return; }
@@ -174,7 +183,17 @@ export default function ProfileView() {
                   {talent?.full_name || talent?.username || "Talent"}
                 </h1>
                 <Badge variant="outline" className={avail.class}>{avail.label}</Badge>
+                {gam && gam.current_level > 1 && (
+                  <Badge variant="outline" className="bg-primary/10 text-primary border-primary/30 gap-1">
+                    <Trophy className="w-3 h-3" />{gam.level_name}
+                  </Badge>
+                )}
               </div>
+              {gam && gam.badges.length > 0 && (
+                <div className="mt-2">
+                  <EarnedBadgeStrip badges={gam.badges} />
+                </div>
+              )}
               {talent?.tagline && (
                 <p className="text-sm text-muted-foreground mt-0.5">{talent.tagline}</p>
               )}

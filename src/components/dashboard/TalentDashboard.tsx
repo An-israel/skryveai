@@ -8,6 +8,11 @@ import {
   ExternalLink, CheckCircle2, Circle, Zap, TrendingUp,
   MessageSquare, CalendarDays, ChevronRight,
 } from "lucide-react";
+import { useGamification } from "@/hooks/useGamification";
+import { ProfileCompletionCard } from "@/components/gamification/ProfileCompletionCard";
+import { LevelProgressCard, StreakCard, RoadToFirstHire } from "@/components/gamification/LevelStreakCards";
+import { BadgesGallery } from "@/components/gamification/BadgesGallery";
+import { AchievementsFeed } from "@/components/gamification/AchievementsFeed";
 
 /* ─── Skeleton ─────────────────────────────────────────── */
 export function DashboardSkeleton() {
@@ -143,76 +148,17 @@ function JobsFeed() {
   );
 }
 
-/* ─── Profile Completion ────────────────────────────────── */
-function ProfileStrength({ userId }: { userId: string }) {
-  const [items, setItems] = useState({ photo: false, bio: false, skill: false, rate: false, cv: false });
-
-  useEffect(() => {
-    (async () => {
-      const { data: p } = await (supabase as any)
-        .from("talent_profiles")
-        .select("bio, profile_photo_url, primary_skill, hourly_rate")
-        .eq("user_id", userId)
-        .maybeSingle();
-      const { data: cv } = await (supabase as any)
-        .from("skryve_cvs")
-        .select("id").eq("user_id", userId).maybeSingle();
-      setItems({
-        photo: !!p?.profile_photo_url, bio: !!p?.bio,
-        skill: !!p?.primary_skill, rate: !!p?.hourly_rate, cv: !!cv,
-      });
-    })();
-  }, [userId]);
-
-  const checks = [
-    { key: "photo" as const, label: "Profile photo",   href: "/profile" },
-    { key: "bio"   as const, label: "Write a bio",     href: "/profile" },
-    { key: "skill" as const, label: "Set primary skill", href: "/profile" },
-    { key: "rate"  as const, label: "Set hourly rate", href: "/profile" },
-    { key: "cv"    as const, label: "Build a CV",      href: "/cv-builder" },
-  ];
-
-  const done = Object.values(items).filter(Boolean).length;
-  const pct  = Math.round((done / 5) * 100);
+/* ─── Achievements + badges (from the gamification engine) ─ */
+function GamificationSection() {
+  const { stats } = useGamification();
+  if (!stats) return null;
+  const hasActivity = stats.recent.length > 0 || stats.badges.some((b) => b.earned);
+  if (!hasActivity) return null;
 
   return (
-    <div className="border border-border rounded-xl bg-card overflow-hidden">
-      <div className="px-5 py-3.5 border-b border-border flex items-center justify-between">
-        <span className="text-[13px] font-semibold text-foreground">Profile strength</span>
-        <span className="font-mono text-[13px] text-primary">{pct}%</span>
-      </div>
-
-      {/* Progress bar */}
-      <div className="h-px bg-border mx-5">
-        <div
-          className="h-px bg-primary transition-all duration-700"
-          style={{ width: `${pct}%` }}
-        />
-      </div>
-
-      <div className="px-5 py-3 space-y-0.5">
-        {checks.map(({ key, label, href }) => (
-          <div key={key} className="flex items-center gap-2.5 py-1.5">
-            {items[key]
-              ? <CheckCircle2 className="w-3.5 h-3.5 text-primary shrink-0" />
-              : <Circle className="w-3.5 h-3.5 text-muted-foreground/40 shrink-0" />
-            }
-            {items[key]
-              ? <span className="text-[13px] text-muted-foreground line-through">{label}</span>
-              : <Link to={href} className="text-[13px] text-foreground hover:text-primary transition-colors">{label}</Link>
-            }
-          </div>
-        ))}
-      </div>
-
-      <div className="px-5 pb-4">
-        <Link
-          to="/profile"
-          className="flex items-center justify-center gap-1.5 w-full py-1.5 rounded-lg border border-border text-[13px] font-medium text-foreground hover:border-primary/50 hover:text-primary transition-all"
-        >
-          Complete profile <ArrowRight className="w-3.5 h-3.5" />
-        </Link>
-      </div>
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <BadgesGallery badges={stats.badges} />
+      <AchievementsFeed items={stats.recent} />
     </div>
   );
 }
@@ -386,9 +332,15 @@ export function TalentDashboard({ user }: { user: any }) {
           <JobsFeed />
         </div>
         <div className="lg:col-span-2 space-y-4">
-          <ProfileStrength userId={user.id} />
+          <LevelProgressCard />
+          <StreakCard />
+          <ProfileCompletionCard userId={user.id} />
+          <RoadToFirstHire userId={user.id} />
         </div>
       </div>
+
+      {/* Achievements + badges */}
+      <GamificationSection />
 
       {/* Bottom row */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
