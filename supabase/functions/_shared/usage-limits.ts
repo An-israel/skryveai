@@ -8,6 +8,15 @@
 // deno-lint-ignore no-explicit-any
 type SupabaseClient = any;
 
+import { enforceRateLimit } from "./rate-limit.ts";
+
+// Global anti-abuse ceiling across ALL AI tools, per user. Generous enough that
+// a real human never hits it, but it stops a runaway loop or abusive script from
+// spiking the API bill. Applied inside enforceToolLimit so every gated tool is
+// covered without per-function changes.
+const AI_BURST_PER_MIN = 30;
+const AI_MAX_PER_DAY = 200;
+
 export interface ToolGate {
   allowed: boolean;
   plan: string;
@@ -15,6 +24,7 @@ export interface ToolGate {
   limit: number | null;
   used: number;
   remaining: number | null;
+  reason?: "plan" | "rate";
 }
 
 function monthStartISO(): string {
@@ -33,6 +43,17 @@ export async function enforceToolLimit(
   userId: string,
   tool: string
 ): Promise<ToolGate> {
+  // 0. Global anti-abuse ceiling (per user, across every AI tool). Fail-open on
+  // limiter errors — never let it break a legitimate request.
+  const burst = await enforceRateLimit(serviceClient, `ai:${userId}`, AI_BURST_PER_MIN, 60);
+  if (!burst.allowed) {
+    return { allowed: false, plan: "free", tool, limit: null, used: 0, remaining: 0, reason: "rate" };
+  }
+  const daily = await enforceRateLimit(serviceClient, `aiday:${userId}`, AI_MAX_PER_DAY, 86400);
+  if (!daily.allowed) {
+    return { allowed: false, plan: "free", tool, limit: null, used: 0, remaining: 0, reason: "rate" };
+  }
+
   // 1. Plan. The subscriptions.plan column is a legacy enum
   // (monthly/yearly/lifetime) in some environments, so only an explicit
   // 'pro'/'business' counts as paid; everything else is treated as 'free'.
@@ -104,6 +125,16 @@ export async function enforceToolLimit(
 
 /** Build a 429 response describing the hit limit. */
 export function limitResponse(gate: ToolGate, corsHeaders: Record<string, string>): Response {
+  if (gate.reason === "rate") {
+    return new Response(
+      JSON.stringify({
+        error: "rate_limit",
+        message: "You're doing that a lot in a short time. Please wait a moment and try again.",
+        reason: "rate",
+      }),
+      { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json", "Retry-After": "60" } }
+    );
+  }
   return new Response(
     JSON.stringify({
       error: "rate_limit",
