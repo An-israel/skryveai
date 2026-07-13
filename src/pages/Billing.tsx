@@ -91,8 +91,8 @@ const PLANS = [
   {
     id: "business",
     name: "Business",
-    price: 12999,
-    priceLabel: "₦12,999/mo",
+    price: 25000,
+    priceLabel: "₦25,000/mo",
     features: [
       "Unlimited applications",
       "Unlimited saved jobs",

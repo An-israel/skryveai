@@ -12,7 +12,7 @@ const FIRST_NUDGE_MS = 12 * 1000;      // first appearance after page settles
 
 export function SonderWidget() {
   const navigate = useNavigate();
-  const { user, isPaid, loading } = useEntitlements();
+  const { user, canUseSonder, loading } = useEntitlements();
   const [open, setOpen] = useState(false);   // bubble visible
   const [panel, setPanel] = useState(false); // full mini-panel expanded
 
@@ -22,12 +22,12 @@ export function SonderWidget() {
 
   // Periodically pop the greeting bubble.
   const scheduleNudges = useCallback(() => {
-    const interval = isPaid ? NUDGE_MS_PAID : NUDGE_MS_FREE;
+    const interval = canUseSonder ? NUDGE_MS_PAID : NUDGE_MS_FREE;
     const first = setTimeout(() => setOpen(true), FIRST_NUDGE_MS);
     // Don't interrupt a panel the user has actively opened; otherwise nudge.
     const timer = setInterval(() => setPanel((p) => { if (!p) setOpen(true); return p; }), interval);
     return () => { clearTimeout(first); clearInterval(timer); };
-  }, [isPaid]);
+  }, [canUseSonder]);
 
   useEffect(() => {
     if (!user) return;
@@ -78,7 +78,7 @@ export function SonderWidget() {
                 for jobs for you while you sleep — you just review and submit each one in the morning.
               </p>
 
-              {isPaid ? (
+              {canUseSonder ? (
                 <>
                   <p className="text-xs text-muted-foreground">Tell me when to start and I'll get to work tonight.</p>
                   <button
@@ -124,7 +124,7 @@ export function SonderWidget() {
         title="Sonder — apply while you sleep"
       >
         <Moon className="w-6 h-6" />
-        {!isPaid && (
+        {!canUseSonder && (
           <span className="absolute -top-1 -right-1 w-5 h-5 bg-amber-500 text-white rounded-full flex items-center justify-center">
             <Lock className="w-2.5 h-2.5" />
           </span>
