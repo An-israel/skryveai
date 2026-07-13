@@ -43,7 +43,7 @@ const TABS: { id: Status; label: string; icon: any }[] = [
 export default function Sonder() {
   const { toast } = useToast();
   const navigate = useNavigate();
-  const { isPaid, loading: entLoading } = useEntitlements();
+  const { canUseSonder, loading: entLoading } = useEntitlements();
   const [userId, setUserId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [pref, setPref] = useState<any>(null);
@@ -96,7 +96,7 @@ export default function Sonder() {
 
   const savePreferences = async () => {
     if (!userId) return;
-    if (!isPaid) { navigate("/pricing"); return; }
+    if (!canUseSonder) { navigate("/pricing"); return; }
     if (!titles.length) { toast({ title: "Add at least one target role", variant: "destructive" }); return; }
     setSaving(true);
     const { error } = await (supabase as any).from("sonder_preferences").upsert({
@@ -118,7 +118,7 @@ export default function Sonder() {
 
   const runNow = async () => {
     if (!userId) return;
-    if (!isPaid) { navigate("/pricing"); return; }
+    if (!canUseSonder) { navigate("/pricing"); return; }
     setRunning(true);
     try {
       const { data, error } = await supabase.functions.invoke("sonder-agent", { body: { userId } });
@@ -176,7 +176,7 @@ export default function Sonder() {
             <h1 className="font-display text-xl font-bold flex items-center gap-2">Sonder <Badge className="bg-white/15 text-white text-[10px]">AGENT</Badge></h1>
             <p className="text-sm text-white/70">Applies to jobs while you sleep. You review &amp; submit each one.</p>
           </div>
-          {isPaid && pref?.active && (
+          {canUseSonder && pref?.active && (
             <Button variant="secondary" size="sm" onClick={runNow} disabled={running}>
               {running ? <Loader2 className="w-4 h-4 mr-1.5 animate-spin" /> : <Play className="w-4 h-4 mr-1.5" />}
               Run now
@@ -185,7 +185,7 @@ export default function Sonder() {
         </div>
       </div>
 
-      {!isPaid ? (
+      {!canUseSonder ? (
         <div className="rounded-xl border bg-card p-6 space-y-5 text-center">
           <div className="w-14 h-14 rounded-2xl bg-amber-500/10 text-amber-500 flex items-center justify-center mx-auto">
             <Lock className="w-7 h-7" />

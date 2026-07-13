@@ -18,6 +18,7 @@ const PRICING_NGN: Record<string, number> = {
   monthly: 700000,
   yearly: 7400000,
   unlimited: 1500000,
+  business: 2500000,          // ₦25,000/mo — Business plan (unlocks Sonder)
   team_basic: 1800000,
   team_basic_yearly: 18400000,
   team_pro: 3000000,
@@ -30,6 +31,7 @@ const PRICING_NGN_NONAF: Record<string, number> = {
   monthly: 1200000,
   yearly: 12600000,
   unlimited: 2000000,
+  business: 3000000,          // ₦30,000/mo — Business plan (non-African)
   team_basic: 2300000,
   team_basic_yearly: 23500000,
   team_pro: 3500000,
@@ -42,6 +44,7 @@ const PRICING_USD: Record<string, number> = {
   monthly: 800,
   yearly: 8400,
   unlimited: 1300,
+  business: 1700,             // ~$17 — Business plan
   team_basic: 1500,
   team_basic_yearly: 15300,
   team_pro: 2500,
@@ -53,6 +56,7 @@ const PLAN_CREDITS: Record<string, number> = {
   monthly: 100,
   yearly: 1200,
   unlimited: -1,
+  business: -1,
   team_basic: 300,
   team_basic_yearly: 3600,
   team_pro: -1,
