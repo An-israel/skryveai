@@ -101,12 +101,12 @@ export function ApplyWizard({ open, onClose, mode, job, onApplied }: ApplyWizard
     setTipsLoading(false);
   }, [job]);
 
+  // Reset the answer box when the step changes. Tips are NOT auto-generated —
+  // they're an Opex/AI cost, so we only fetch them when the user asks (below).
   useEffect(() => {
     if (!open) return;
     setCopilotA("");
     setCopilotQ("");
-    if (!copilotTips[step]) fetchTips(step);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, step]);
 
   const askCopilot = async () => {
@@ -475,7 +475,12 @@ export function ApplyWizard({ open, onClose, mode, job, onApplied }: ApplyWizard
                   <ReactMarkdown>{copilotTips[step]}</ReactMarkdown>
                 </div>
               ) : (
-                <p className="text-xs text-muted-foreground">Ask me anything about applying to this job.</p>
+                <button
+                  onClick={() => fetchTips(step)}
+                  className="inline-flex items-center gap-1.5 text-xs font-medium text-primary hover:underline"
+                >
+                  <Sparkles className="w-3.5 h-3.5" /> Get AI tips for this step
+                </button>
               )}
 
               {copilotA && (

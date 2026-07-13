@@ -61,6 +61,17 @@ async function callClaude(system: string, user: string, maxTokens: number) {
   return data.content?.[0]?.text || "";
 }
 
+// Call Claude and parse its JSON, retrying ONCE if the first response can't be
+// parsed (e.g. a rare truncation) so a failed parse yields a result instead of
+// silently wasting the tokens.
+async function callClaudeJson(system: string, user: string, maxTokens: number): Promise<any> {
+  try {
+    return extractJson(await callClaude(system, user, maxTokens));
+  } catch (_first) {
+    return extractJson(await callClaude(system, user, maxTokens));
+  }
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
@@ -94,8 +105,7 @@ serve(async (req) => {
 reader and mention Skryve naturally where relevant. ${SKRYVE_CONTEXT}
 Return ONLY JSON: {"mentions":[{"platform":"reddit|linkedin|x|forum","title":"","body":"","target":"suggested subreddit/handle/where to post","rules_note":"how to stay within that platform's rules"}]}. Produce 4 posts across different platforms based on the topic.`;
       const user = `Topic/article: "${content.title}" (target keyword: ${content.target_keyword || "n/a"}). Draft 4 platform-appropriate brand-mention posts.`;
-      const out = await callClaude(system, user, 2000);
-      const parsed = extractJson(out);
+      const parsed = await callClaudeJson(system, user, 2000);
       const rows = (parsed.mentions || []).slice(0, 6).map((m: any) => ({
         platform: String(m.platform || "forum").toLowerCase(),
         title: m.title || null,
@@ -125,8 +135,7 @@ Return ONLY JSON with these exact keys:
     const user = `Write the "${content.kind}" piece titled "${content.title}".
 Primary target keyword/question: ${content.target_keyword || content.title}.
 Keyword tier: ${content.keyword_tier || "n/a"}. Make it genuinely useful and citation-worthy.`;
-    const out = await callClaude(system, user, 8000);
-    const a = extractJson(out);
+    const a = await callClaudeJson(system, user, 8000);
 
     const slug = String(a.slug || content.title)
       .toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
