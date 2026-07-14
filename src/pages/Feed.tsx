@@ -55,6 +55,23 @@ interface FeedComment {
 
 const CURRENCY: Record<string, string> = { NGN: "₦", USD: "$", GBP: "£", EUR: "€" };
 
+// Scraped job descriptions arrive as (often double-encoded) HTML. Decode the
+// entities and strip the tags so the feed shows clean, readable plain text.
+function cleanJobText(raw?: string): string {
+  if (!raw) return "";
+  if (typeof document === "undefined") {
+    return raw.replace(/<[^>]*>/g, " ").replace(/&[a-z#0-9]+;/gi, " ").replace(/\s+/g, " ").trim();
+  }
+  const ta = document.createElement("textarea");
+  ta.innerHTML = raw;          // decode &lt; -> < (handles the double-encoding)
+  const div = document.createElement("div");
+  div.innerHTML = ta.value;    // parse the now-real HTML tags
+  let text = div.textContent || div.innerText || "";
+  ta.innerHTML = text;         // decode any residual entities (&#39; -> ')
+  text = ta.value;
+  return text.replace(/\s+/g, " ").trim();
+}
+
 function formatJobPostBudget(job: any): string {
   const sym = CURRENCY[job.budget_currency || "NGN"] || "₦";
   if (job.budget_type === "fixed") {
@@ -203,7 +220,7 @@ export default function Feed() {
       id: j.id,
       sortKey: j.created_at,
       title: j.title,
-      description: j.description || "",
+      description: cleanJobText(j.description),
       skills: j.required_skills || [],
       meta: formatJobPostBudget(j),
       byline: j.client_profiles?.company_name || "Skryve Client",
@@ -223,7 +240,7 @@ export default function Feed() {
       id: j.id,
       sortKey: j.scraped_at,
       title: j.title,
-      description: j.description || "",
+      description: cleanJobText(j.description),
       skills: j.skill_tags || [],
       meta: j.budget || "",
       byline: j.platform,
@@ -237,8 +254,10 @@ export default function Feed() {
       externalUrl: j.external_url,
       platform: j.platform,
     }));
+    // Order the feed by when each job was POSTED (freshest first) so jobs from
+    // the last 24h surface at the top. sortKey stays scraped_at for paging.
     return [...m, ...a].sort(
-      (x, y) => new Date(y.sortKey).getTime() - new Date(x.sortKey).getTime()
+      (x, y) => new Date(y.postedAt).getTime() - new Date(x.postedAt).getTime()
     );
   };
 
@@ -365,20 +384,20 @@ export default function Feed() {
       .limit(20);
     if (mCursorRef.current) mq = mq.lt("created_at", mCursorRef.current);
 
-    // NB: aggregated_jobs has scraped_at (not created_at); posted_at can be
-    // null, so page on scraped_at which is always set.
+    // Only show jobs POSTED in the last week (fall back to scrape time when the
+    // source didn't give a posted date). Freshest surface first — no more stale
+    // 20-day-old listings. We page on scraped_at, which is always set.
+    const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
     let aq = (supabase as any)
       .from("aggregated_jobs")
       .select("id, title, description, budget, job_type, location, posted_at, scraped_at, platform, external_url, skill_tags")
       .eq("is_active", true)
+      .or(`posted_at.gte.${weekAgo},and(posted_at.is.null,scraped_at.gte.${weekAgo})`)
       .order("scraped_at", { ascending: false });
     if (aCursorRef.current) {
       aq = aq.lt("scraped_at", aCursorRef.current).limit(20);
     } else {
-      // First page: start at a random offset into the pool so a different
-      // slice of jobs surfaces on every refresh.
-      const start = Math.floor(Math.random() * 180);
-      aq = aq.range(start, start + 24);
+      aq = aq.limit(30);
     }
 
     const [{ data: mData, error: mErr }, { data: aData, error: aErr }] = await Promise.all([mq, aq]);
