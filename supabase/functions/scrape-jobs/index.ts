@@ -394,7 +394,7 @@ serve(async (req) => {
     scraped: 0,
     kept: 0,
     inserted: 0,
-    translated: 0,
+    dropped_non_english: 0,
     per_source: {} as Record<string, number>,
     removed: 0,
     errors: [] as string[],
@@ -406,7 +406,7 @@ serve(async (req) => {
   // Collect the jobs we intend to keep from every source first, so translation
   // can run once across the whole batch.
   const nowIso = new Date().toISOString();
-  const toUpsert: AggJob[] = [];
+  let toUpsert: AggJob[] = [];
   for (let i = 0; i < settled.length; i++) {
     const source = SOURCES[i];
     const outcome = settled[i];
@@ -425,23 +425,12 @@ serve(async (req) => {
     toUpsert.push(...kept);
   }
 
-  // Translate anything that looks non-English into English (capped per run).
-  if (anthropicKey) {
-    const candidates: { i: number; title: string; description: string }[] = [];
-    for (let i = 0; i < toUpsert.length && candidates.length < MAX_TRANSLATIONS; i++) {
-      const j = toUpsert[i];
-      if (looksNonEnglish(j.title, j.description || "")) {
-        candidates.push({ i, title: j.title, description: j.description || "" });
-      }
-    }
-    if (candidates.length) {
-      const translated = await translateBatch(anthropicKey, candidates);
-      for (const [i, t] of translated) {
-        toUpsert[i].title = t.title;
-        if (t.description) toUpsert[i].description = t.description.slice(0, 800);
-        results.translated++;
-      }
-    }
+  // English-only: drop anything that looks non-English rather than paying to
+  // translate it. Cheap heuristic, no AI cost.
+  {
+    const before = toUpsert.length;
+    toUpsert = toUpsert.filter((j) => !looksNonEnglish(j.title, j.description || ""));
+    results.dropped_non_english = before - toUpsert.length;
   }
 
   // Upsert in chunks to keep each request small.

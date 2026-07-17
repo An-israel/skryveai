@@ -55,6 +55,19 @@ interface FeedComment {
 
 const CURRENCY: Record<string, string> = { NGN: "₦", USD: "$", GBP: "£", EUR: "€" };
 
+// Cheap language heuristic (mirrors the scraper): flag listings that carry
+// non-English diacritics/function words and lack English stop-word density, so
+// we can hide German/French/etc. jobs still sitting in the DB. No AI, no cost.
+const EN_STOP = /\b(the|and|for|with|you|are|our|will|your|work|team|experience|responsibilities|requirements|about|role)\b/gi;
+const FOREIGN_HINT = /[äöüßàâçéèêëîïôûùñãõ]|\b(und|oder|für|mit|der|die|das|wir|deine|erfahrung|aufgaben|nous|vous|votre|et|le|la|les|des|para|con|una|trabajo|equipo|voor|een|het|werk)\b/i;
+function looksNonEnglish(title: string, desc: string): boolean {
+  const text = `${title} ${desc}`.trim();
+  if (text.length < 12) return false;
+  const enMatches = (text.match(EN_STOP) || []).length;
+  const density = enMatches / Math.max(text.split(/\s+/).length, 1);
+  return FOREIGN_HINT.test(text) && density < 0.06;
+}
+
 // Scraped job descriptions arrive as (often double-encoded) HTML. Decode the
 // entities and strip the tags so the feed shows clean, readable plain text.
 function cleanJobText(raw?: string): string {
@@ -234,7 +247,9 @@ export default function Feed() {
       clientUserId: j.client_profiles?.user_id,
       companyName: j.client_profiles?.company_name || "",
     }));
-    const a: FeedItem[] = (aggregated || []).map((j: any) => ({
+    const a: FeedItem[] = (aggregated || [])
+      .filter((j: any) => !looksNonEnglish(j.title || "", cleanJobText(j.description)))
+      .map((j: any) => ({
       key: `aggregated:${j.id}`,
       source: "aggregated" as const,
       id: j.id,

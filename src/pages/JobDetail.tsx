@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { ApplyWizard } from "@/components/jobs/ApplyWizard";
 import { SEOHead } from "@/components/SEOHead";
 import { jobPostingSchema, SITE_URL } from "@/components/schema/jsonld";
+import { cleanJobText } from "@/lib/job-text";
 import {
   ArrowLeft, Heart, ExternalLink,
   MapPin, Briefcase, DollarSign, Calendar
@@ -210,9 +211,12 @@ export default function JobDetail() {
     ? format(new Date(job.posted_at), "MMM d, yyyy")
     : null;
 
+  // Scraped descriptions are (double-encoded) HTML — clean to readable text.
+  const cleanDesc = cleanJobText(job.description);
+
   const jobJsonLd = jobPostingSchema({
     title: job.title,
-    description: job.description || job.title,
+    description: cleanDesc || job.title,
     datePosted: job.posted_at || undefined,
     location: job.location || undefined,
     employmentType: (job.job_type || "contractor").toUpperCase().replace(/[^A-Z]/g, "_"),
@@ -223,7 +227,7 @@ export default function JobDetail() {
     <>
     <SEOHead
       title={job.title}
-      description={(job.description || `${job.title} — apply on Skryve.`).slice(0, 160)}
+      description={(cleanDesc || `${job.title} — apply on Skryve.`).slice(0, 160)}
       canonical={`${SITE_URL}/jobs/${job.id}`}
       ogType="article"
       jsonLd={jobJsonLd}
@@ -300,7 +304,7 @@ export default function JobDetail() {
         <div className="bg-card border border-border rounded-xl p-6 mb-4">
           <h2 className="font-semibold text-foreground mb-3">Job Description</h2>
           <p className="text-sm text-foreground/80 whitespace-pre-wrap leading-relaxed">
-            {job.description}
+            {cleanDesc}
           </p>
         </div>
       )}

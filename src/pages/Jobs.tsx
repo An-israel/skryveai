@@ -3,6 +3,7 @@ import { useNavigate, Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { SEOHead } from "@/components/SEOHead";
 import { breadcrumbSchema, SITE_URL } from "@/components/schema/jsonld";
+import { cleanJobText, looksNonEnglish } from "@/lib/job-text";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
@@ -411,6 +412,8 @@ export default function Jobs() {
       .from("aggregated_jobs")
       .select("*", { count: "exact" })
       .eq("is_active", true)
+      // Never show anything posted more than a week ago.
+      .gte("posted_at", new Date(Date.now() - 7 * 86400000).toISOString())
       .order("posted_at", { ascending: false });
 
     if (currentFilters.search) query = query.ilike("title", `%${currentFilters.search}%`);
@@ -427,10 +430,14 @@ export default function Jobs() {
     if (error) { setLoading(false); return; }
 
     const currentSkills = userSkills;
-    const scored: AggJob[] = (data || []).map((job: any) => ({
-      ...job,
-      matchScore: scoreJob(job, currentSkills),
-    }));
+    const scored: AggJob[] = (data || [])
+      // English-only + clean the scraped HTML descriptions.
+      .map((job: any) => ({ ...job, description: cleanJobText(job.description) }))
+      .filter((job: any) => !looksNonEnglish(job.title || "", job.description || ""))
+      .map((job: any) => ({
+        ...job,
+        matchScore: scoreJob(job, currentSkills),
+      }));
 
     setJobs(reset ? scored : [...jobsRef.current, ...scored]);
     setHasMore((data || []).length === pageSize && (currentPage + 1) * pageSize < (count || 0));
