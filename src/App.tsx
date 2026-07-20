@@ -59,6 +59,7 @@ import CourseComplete   from "./pages/CourseComplete";
 import CertificatePage  from "./pages/CertificatePage";
 import CertificateVerify from "./pages/CertificateVerify";
 import CVBuilder        from "./pages/CVBuilder";
+import CVImport         from "./pages/CVImport";
 import CVEditor         from "./pages/CVEditor";
 import ATSChecker       from "./pages/ATSChecker";
 import LinkedInAnalyzer from "./pages/LinkedInAnalyzer";
@@ -164,6 +165,7 @@ export default function App() {
                 <Route path="/learn/:courseId/certificate"       element={<CertificatePage />} />
 
                 {/* Tools */}
+                <Route path="/cv-import"            element={<CVImport />} />
                 <Route path="/cv-builder"           element={<CVBuilder />} />
                 <Route path="/cv-builder/new"       element={<CVEditor />} />
                 <Route path="/cv-builder/:cvId"     element={<CVEditor />} />
