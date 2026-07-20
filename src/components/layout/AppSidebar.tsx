@@ -6,7 +6,7 @@ import {
   LayoutDashboard, Briefcase, Store, ClipboardList, FolderOpen,
   CalendarDays, BookOpen, MessageSquare, FileText, Users,
   PlusCircle, Settings, LogOut, Bell, ChevronRight,
-  Sparkles, Handshake, Moon, PenSquare,
+  Sparkles, Handshake, Moon, PenSquare, Coins,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
@@ -29,6 +29,7 @@ const talentNav: NavItem[] = [
   { label: "Learn",        to: "/learn",        icon: BookOpen        },
   { label: "Messages",     to: "/messages",     icon: MessageSquare   },
   { label: "CV Builder",   to: "/cv-builder",   icon: FileText        },
+  { label: "Wallet",       to: "/wallet",       icon: Coins           },
 ];
 
 // Admin-only tools appended for staff regardless of talent/client role.
@@ -46,6 +47,7 @@ const clientNav: NavItem[] = [
   { label: "Projects",      to: "/projects",          icon: FolderOpen      },
   { label: "Events",        to: "/events",            icon: CalendarDays    },
   { label: "Messages",      to: "/messages",          icon: MessageSquare   },
+  { label: "Wallet",        to: "/wallet",            icon: Coins           },
 ];
 
 interface AppSidebarProps {

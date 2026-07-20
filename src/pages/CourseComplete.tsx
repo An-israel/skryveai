@@ -6,6 +6,8 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
+import { toast as sonner } from "sonner";
+import { earnCredits } from "@/lib/credits/api";
 import {
   Award,
   Briefcase,
@@ -16,6 +18,19 @@ import {
   Linkedin,
   ChevronRight,
 } from "lucide-react";
+
+// Award credits for course completion and the certificate. Idempotent per
+// reference on the server; toasts only when a credit is actually granted.
+async function awardCourseCredits(courseId?: string, certificateId?: string | null) {
+  if (courseId) {
+    const r = await earnCredits("course_completed", courseId);
+    if (r.ok && r.credited) sonner.success(`+${r.credited} credits`, { description: "Course completed" });
+  }
+  if (certificateId) {
+    const r = await earnCredits("certificate_earned", certificateId);
+    if (r.ok && r.credited) sonner.success(`+${r.credited} credits`, { description: "Certificate earned" });
+  }
+}
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -144,7 +159,9 @@ export default function CourseComplete() {
       .eq("talent_id", profile?.id)
       .single();
 
+    let certificateId: string | null = null;
     if (cert) {
+      certificateId = cert.id;
       setCertId(cert.id);
     } else {
       const { data: newCert } = await (supabase as any)
@@ -156,8 +173,13 @@ export default function CourseComplete() {
         })
         .select("id")
         .single();
-      if (newCert) setCertId(newCert.id);
+      if (newCert) { certificateId = newCert.id; setCertId(newCert.id); }
     }
+
+    // Reward credits for finishing the course + earning the certificate.
+    // Both earns are idempotent per reference server-side, so re-visiting this
+    // page never double-pays.
+    void awardCourseCredits(courseId, certificateId);
 
     // Fetch matching jobs
     const { data: jobsData } = await (supabase as any)

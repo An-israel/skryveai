@@ -9,6 +9,7 @@ import { ChatWidget } from "@/components/chat/ChatWidget";
 import { SonderWidget } from "@/components/sonder/SonderWidget";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { GamificationProvider } from "@/context/GamificationProvider";
+import { DailyCheckIn } from "@/components/credits/DailyCheckIn";
 import { SiteSchema } from "@/components/schema/SiteSchema";
 
 // ── Public pages ────────────────────────────────────────────
@@ -71,6 +72,7 @@ import Settings         from "./pages/Settings";
 import Billing          from "./pages/Billing";
 import TeamManagement   from "./pages/TeamManagement";
 import Referrals        from "./pages/Referrals";
+import Wallet           from "./pages/Wallet";
 import Admin            from "./pages/Admin";
 import Tiptip           from "./pages/Tiptip";
 import SkillLearningAnalytics from "./pages/admin/SkillLearningAnalytics";
@@ -99,6 +101,7 @@ export default function App() {
           <BrowserRouter>
             <GamificationProvider>
             <SiteSchema />
+            <DailyCheckIn />
             <ChatWidget />
             <SonderWidget />
             <Routes>
@@ -180,6 +183,7 @@ export default function App() {
                 <Route path="/settings"   element={<Settings />} />
                 <Route path="/billing"    element={<Billing />} />
                 <Route path="/referrals"  element={<Referrals />} />
+                <Route path="/wallet"     element={<Wallet />} />
                 <Route path="/team"       element={<TeamManagement />} />
 
                 {/* Admin */}
