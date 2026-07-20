@@ -9,6 +9,7 @@ import { ChatWidget } from "@/components/chat/ChatWidget";
 import { SonderWidget } from "@/components/sonder/SonderWidget";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { GamificationProvider } from "@/context/GamificationProvider";
+import { DailyCheckIn } from "@/components/credits/DailyCheckIn";
 import { SiteSchema } from "@/components/schema/SiteSchema";
 
 // ── Public pages ────────────────────────────────────────────
@@ -58,6 +59,7 @@ import CourseComplete   from "./pages/CourseComplete";
 import CertificatePage  from "./pages/CertificatePage";
 import CertificateVerify from "./pages/CertificateVerify";
 import CVBuilder        from "./pages/CVBuilder";
+import CVImport         from "./pages/CVImport";
 import CVEditor         from "./pages/CVEditor";
 import ATSChecker       from "./pages/ATSChecker";
 import LinkedInAnalyzer from "./pages/LinkedInAnalyzer";
@@ -71,6 +73,7 @@ import Settings         from "./pages/Settings";
 import Billing          from "./pages/Billing";
 import TeamManagement   from "./pages/TeamManagement";
 import Referrals        from "./pages/Referrals";
+import Wallet           from "./pages/Wallet";
 import Admin            from "./pages/Admin";
 import Tiptip           from "./pages/Tiptip";
 import SkillLearningAnalytics from "./pages/admin/SkillLearningAnalytics";
@@ -99,6 +102,7 @@ export default function App() {
           <BrowserRouter>
             <GamificationProvider>
             <SiteSchema />
+            <DailyCheckIn />
             <ChatWidget />
             <SonderWidget />
             <Routes>
@@ -161,6 +165,7 @@ export default function App() {
                 <Route path="/learn/:courseId/certificate"       element={<CertificatePage />} />
 
                 {/* Tools */}
+                <Route path="/cv-import"            element={<CVImport />} />
                 <Route path="/cv-builder"           element={<CVBuilder />} />
                 <Route path="/cv-builder/new"       element={<CVEditor />} />
                 <Route path="/cv-builder/:cvId"     element={<CVEditor />} />
@@ -180,6 +185,7 @@ export default function App() {
                 <Route path="/settings"   element={<Settings />} />
                 <Route path="/billing"    element={<Billing />} />
                 <Route path="/referrals"  element={<Referrals />} />
+                <Route path="/wallet"     element={<Wallet />} />
                 <Route path="/team"       element={<TeamManagement />} />
 
                 {/* Admin */}

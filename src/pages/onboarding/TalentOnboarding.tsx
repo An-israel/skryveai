@@ -11,7 +11,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Switch } from "@/components/ui/switch";
-import { Loader2, X, Upload } from "lucide-react";
+import { Loader2, X, Upload, Sparkles, ArrowRight } from "lucide-react";
 
 import { ALL_SKILLS as EXPERTISE_OPTIONS, searchSkills } from "@/lib/skills";
 
@@ -266,6 +266,24 @@ export default function TalentOnboarding() {
       case 1:
         return (
           <div className="space-y-6">
+            {/* Fast path: let the CV do the work. */}
+            <button
+              type="button"
+              onClick={() => navigate("/cv-import")}
+              className="w-full flex items-center gap-3 rounded-xl border border-[#2563EB]/30 bg-blue-50 p-4 text-left transition-colors hover:border-[#2563EB] hover:bg-blue-100"
+            >
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-[#2563EB]/10">
+                <Sparkles className="h-5 w-5 text-[#2563EB]" />
+              </div>
+              <div className="flex-1">
+                <p className="font-semibold text-gray-900">Have a CV? Set up your profile in seconds</p>
+                <p className="text-sm text-gray-500">Upload it and we'll fill everything in for you.</p>
+              </div>
+              <ArrowRight className="h-5 w-5 text-[#2563EB]" />
+            </button>
+            <div className="relative py-1 text-center">
+              <span className="bg-white px-2 text-xs uppercase tracking-wide text-gray-400">or fill in manually</span>
+            </div>
             <div className="flex flex-col items-center gap-3">
               <input
                 ref={avatarInputRef}
