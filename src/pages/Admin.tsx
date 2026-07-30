@@ -571,6 +571,34 @@ export default function Admin() {
           )}
         </div>
 
+        {/* Growth tools — waitlist + vetting review */}
+        <div className="mb-6 grid gap-3 sm:grid-cols-2">
+          <button
+            onClick={() => navigate("/admin/waitlist")}
+            className="flex items-center gap-3 rounded-xl border bg-card p-4 text-left transition-colors hover:border-primary/50"
+          >
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/10">
+              <Coins className="h-5 w-5 text-primary" />
+            </div>
+            <div>
+              <p className="font-semibold">Waitlist</p>
+              <p className="text-xs text-muted-foreground">Signups, growth & referrals</p>
+            </div>
+          </button>
+          <button
+            onClick={() => navigate("/admin/vetting")}
+            className="flex items-center gap-3 rounded-xl border bg-card p-4 text-left transition-colors hover:border-primary/50"
+          >
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/10">
+              <ShieldCheck className="h-5 w-5 text-primary" />
+            </div>
+            <div>
+              <p className="font-semibold">Vetting review</p>
+              <p className="text-xs text-muted-foreground">Approve skill tests & badges</p>
+            </div>
+          </button>
+        </div>
+
         {/* Job aggregator control */}
         <div className="mb-6">
           <JobAggregatorCard />

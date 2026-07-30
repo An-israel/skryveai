@@ -76,7 +76,15 @@ export default function Vetting() {
     setBusy(true);
     const res = await startVetting(skill);
     setBusy(false);
-    if (!res.ok) { toast.error("Couldn't start. Try again."); return; }
+    if (!res.ok) {
+      const detail = "error" in res ? res.error : undefined;
+      // A missing function/table means the DB migrations aren't applied yet.
+      const isSetup = detail && /(does not exist|schema cache|not find|relation)/i.test(detail);
+      toast.error(isSetup ? "Vetting isn't set up on the server yet." : "Couldn't start. Try again.", {
+        description: detail,
+      });
+      return;
+    }
     const list = await reload();
     const app = list.find((a) => a.skill_category === skill);
     if (app) await openApp(app);

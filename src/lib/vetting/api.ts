@@ -54,7 +54,7 @@ export async function fetchBriefsFor(skill: string): Promise<TestBrief[]> {
 
 export async function startVetting(skill: string) {
   const { data, error } = await rpc("vetting_start", { _skill_category: skill });
-  if (error) return { ok: false as const };
+  if (error) return { ok: false as const, error: error.message as string };
   return data as { ok: boolean; application_id?: string; status?: VettingStatus };
 }
 
