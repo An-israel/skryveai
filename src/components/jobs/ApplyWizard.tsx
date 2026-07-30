@@ -16,11 +16,12 @@ import {
 import ReactMarkdown from "react-markdown";
 import {
   Loader2, Sparkles, Copy, Check, FileText, Download, Wand2,
-  ExternalLink, ArrowRight, ArrowLeft, CheckCircle2, Info, Bot, Send as SendIcon,
+  ExternalLink, ArrowRight, ArrowLeft, CheckCircle2, Info, Bot, Send as SendIcon, ShieldCheck,
 } from "lucide-react";
 import {
   tailorCvToJob, extractFnErrorMessage, type StoredCv,
 } from "@/lib/tailor-cv";
+import { fetchVettingAccess, type VettingAccess } from "@/lib/events/api";
 
 type Mode = "external" | "marketplace";
 
@@ -58,6 +59,12 @@ export function ApplyWizard({ open, onClose, mode, job, onApplied }: ApplyWizard
   const { toast } = useToast();
 
   const [step, setStep] = useState(0);
+  // Vetting gate (two-path): real app users must be vetted to apply; event
+  // registrants are exempt; if the gate is off, everyone passes. Fails open.
+  const [gate, setGate] = useState<VettingAccess | null>(null);
+  useEffect(() => {
+    if (open) fetchVettingAccess().then(setGate);
+  }, [open]);
   const [userId, setUserId] = useState<string | null>(null);
   const [talent, setTalent] = useState<any>(null);
 
@@ -295,6 +302,31 @@ export function ApplyWizard({ open, onClose, mode, job, onApplied }: ApplyWizard
   };
 
   const wordCount = proposal.trim().split(/\s+/).filter(Boolean).length;
+
+  // Vetting gate: block applying for non-vetted, non-exempt users when the gate is on.
+  if (open && gate && !gate.allowed) {
+    return (
+      <Dialog open={open} onOpenChange={onClose}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2"><ShieldCheck className="w-5 h-5 text-primary" />Get vetted to start applying</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 pt-1">
+            <p className="text-sm text-muted-foreground">
+              To apply for jobs and be matched with international clients, complete Skryve vetting —
+              a quick skill test and a professionalism check. It's what makes clients trust and hire you.
+            </p>
+            <div className="flex gap-2">
+              <Button className="flex-1" onClick={() => { onClose(); navigate("/vetting"); }}>
+                Get vetted <ArrowRight className="w-4 h-4 ml-1" />
+              </Button>
+              <Button variant="outline" onClick={onClose}>Maybe later</Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+    );
+  }
 
   return (
     <Dialog open={open} onOpenChange={onClose}>

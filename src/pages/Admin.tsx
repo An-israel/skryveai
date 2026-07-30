@@ -571,8 +571,20 @@ export default function Admin() {
           )}
         </div>
 
-        {/* Growth tools — waitlist + vetting review */}
-        <div className="mb-6 grid gap-3 sm:grid-cols-2">
+        {/* Growth tools — events, waitlist + vetting review */}
+        <div className="mb-6 grid gap-3 sm:grid-cols-3">
+          <button
+            onClick={() => navigate("/admin/events")}
+            className="flex items-center gap-3 rounded-xl border bg-card p-4 text-left transition-colors hover:border-primary/50"
+          >
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/10">
+              <CalendarDays className="h-5 w-5 text-primary" />
+            </div>
+            <div>
+              <p className="font-semibold">Events & Waitlist</p>
+              <p className="text-xs text-muted-foreground">Webinars, links & dashboard</p>
+            </div>
+          </button>
           <button
             onClick={() => navigate("/admin/waitlist")}
             className="flex items-center gap-3 rounded-xl border bg-card p-4 text-left transition-colors hover:border-primary/50"
