@@ -17,7 +17,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Textarea } from "@/components/ui/textarea";
 import {
   Briefcase, Heart, ExternalLink, Search, SlidersHorizontal,
-  Loader2, Copy, Check, ChevronRight, Settings2
+  Loader2, Copy, Check, ChevronRight, Settings2, Globe
 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 
@@ -55,6 +55,7 @@ interface Filters {
   dateFilter: "today" | "week";
   jobTypes: string[];
   locationPref: string;
+  remoteOnly: boolean;
 }
 
 interface AggJob {
@@ -357,6 +358,7 @@ export default function Jobs() {
     dateFilter: "today",
     jobTypes: [],
     locationPref: "",
+    remoteOnly: false,
   });
   const [page, setPage] = useState(0);
   const [hasMore, setHasMore] = useState(true);
@@ -414,8 +416,12 @@ export default function Jobs() {
       .eq("is_active", true)
       // Never show anything posted more than a week ago.
       .gte("posted_at", new Date(Date.now() - 7 * 86400000).toISOString())
+      // International/remote roles surface first — that's the freelancer's hook.
+      .order("is_international", { ascending: false })
       .order("posted_at", { ascending: false });
 
+    // "Remote / international only" toggle.
+    if (currentFilters.remoteOnly) query = query.or("is_international.eq.true,is_remote.eq.true");
     if (currentFilters.search) query = query.ilike("title", `%${currentFilters.search}%`);
     if (currentFilters.skill) query = query.contains("skill_tags", [currentFilters.skill.toLowerCase()]);
     if (currentFilters.platformFilter.length) query = query.in("platform", currentFilters.platformFilter);
@@ -543,6 +549,29 @@ export default function Jobs() {
         </aside>
 
         <div className="flex-1 min-w-0">
+          {/* International/remote emphasis — the freelancer's real hook. */}
+          <button
+            onClick={() => {
+              setFilters(f => ({ ...f, remoteOnly: !f.remoteOnly }));
+              setTimeout(applyFilters, 0);
+            }}
+            className={`mb-4 flex w-full items-center gap-3 rounded-xl border p-3 text-left transition-colors sm:w-auto ${
+              filters.remoteOnly
+                ? "border-primary bg-primary/10"
+                : "border-border bg-card hover:border-primary/50"
+            }`}
+          >
+            <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg ${filters.remoteOnly ? "bg-primary/20" : "bg-muted"}`}>
+              <Globe className={`h-5 w-5 ${filters.remoteOnly ? "text-primary" : "text-muted-foreground"}`} />
+            </div>
+            <div className="flex-1">
+              <p className="text-sm font-semibold text-foreground">International & remote only</p>
+              <p className="text-xs text-muted-foreground">Work for companies abroad — {filters.remoteOnly ? "on" : "off"}</p>
+            </div>
+            <span className={`relative inline-flex h-5 w-9 shrink-0 items-center rounded-full transition-colors ${filters.remoteOnly ? "bg-primary" : "bg-muted-foreground/30"}`}>
+              <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${filters.remoteOnly ? "translate-x-4" : "translate-x-0.5"}`} />
+            </span>
+          </button>
           <Tabs value={activeTab} onValueChange={v => setActiveTab(v as "high" | "good" | "all")}>
             <TabsList className="mb-4">
               <TabsTrigger value="high" className="gap-1.5">

@@ -26,7 +26,6 @@ const talentNav: NavItem[] = [
   { label: "Sonder",       to: "/sonder",       icon: Moon            },
   { label: "Projects",     to: "/projects",     icon: FolderOpen      },
   { label: "Events",       to: "/events",       icon: CalendarDays    },
-  { label: "Learn",        to: "/learn",        icon: BookOpen        },
   { label: "Messages",     to: "/messages",     icon: MessageSquare   },
   { label: "CV Builder",   to: "/cv-builder",   icon: FileText        },
   { label: "Wallet",       to: "/wallet",       icon: Coins           },
@@ -144,6 +143,8 @@ function SidebarContent({ role, userName, userAvatar, unreadCount, onClose }: Om
       {/* Bottom utilities */}
       <div className="h-px bg-sidebar-border shrink-0" />
       <div className="py-3 px-2 space-y-px shrink-0">
+        {/* Learning is a supporting feature, not the hero — kept here, out of the primary nav. */}
+        {role !== "client" && <NavItem label="Learn" to="/learn" icon={BookOpen} onClose={onClose} />}
         {isOwner && <NavItem label="tiptip" to="/tiptip" icon={Sparkles} onClose={onClose} />}
         <NavItem label="Notifications" to="/notifications" icon={Bell} unreadCount={unreadCount} onClose={onClose} />
         <NavItem label="Settings" to="/settings" icon={Settings} onClose={onClose} />
