@@ -42,10 +42,16 @@ export async function registerForEvent(input: {
 }): Promise<RegisterResult> {
   const { data, error } = await supabase.functions.invoke("event-register", { body: input });
   if (error) {
-    // Try to surface the function's error body.
-    let msg = "Couldn't complete registration.";
+    // Try to surface the function's own error body.
+    let msg = "";
     const ctx = (error as { context?: Response }).context;
+    const status = ctx?.status;
     if (ctx?.clone) { try { const j = await ctx.clone().json(); if (j?.error) msg = j.error; } catch { /* ignore */ } }
+    if (!msg) {
+      msg = status === 404
+        ? "Registration isn't switched on yet — the event-register function needs deploying."
+        : "Couldn't complete registration. Please try again.";
+    }
     return { ok: false, error: msg };
   }
   return (data ?? { ok: false }) as RegisterResult;
