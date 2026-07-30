@@ -28,6 +28,7 @@ import VerifyEmail      from "./pages/VerifyEmail";
 import PrivacyPolicy    from "./pages/PrivacyPolicy";
 import TermsOfService   from "./pages/TermsOfService";
 import NotFound         from "./pages/NotFound";
+import Waitlist         from "./pages/Waitlist";
 
 // ── Onboarding pages ────────────────────────────────────────
 import OnboardingDispatcher from "./pages/onboarding/OnboardingDispatcher";
@@ -112,6 +113,7 @@ export default function App() {
               <Route path="/login"           element={<Public><Login /></Public>} />
               <Route path="/signup"          element={<Public><Signup /></Public>} />
               <Route path="/pricing"         element={<Public><Pricing /></Public>} />
+              <Route path="/waitlist"        element={<Public><Waitlist /></Public>} />
               <Route path="/about"           element={<Public><About /></Public>} />
               <Route path="/contact"         element={<Public><Contact /></Public>} />
               <Route path="/careers"         element={<Public><Careers /></Public>} />
