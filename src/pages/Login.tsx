@@ -10,6 +10,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Mail, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { sendMagicLink } from "@/lib/events/api";
 
 export default function Login() {
   const [email, setEmail] = useState("");
@@ -70,20 +71,11 @@ export default function Login() {
     if (!email) { toast({ title: "Enter your email above first", variant: "destructive" }); return; }
     setMagicLoading(true);
     setInlineError(null);
-    try {
-      const params = new URLSearchParams(window.location.search);
-      const next = params.get("next") || "/feed";
-      const { error } = await supabase.auth.signInWithOtp({
-        email,
-        options: { shouldCreateUser: false, emailRedirectTo: `${window.location.origin}${next}` },
-      });
-      if (error) throw error;
-      setMagicSent(true);
-    } catch (error: unknown) {
-      setInlineError(error instanceof Error ? error.message : "Couldn't send the sign-in link.");
-    } finally {
-      setMagicLoading(false);
-    }
+    const next = new URLSearchParams(window.location.search).get("next") || "/feed";
+    const res = await sendMagicLink(email, next);
+    setMagicLoading(false);
+    if (res.ok) setMagicSent(true);
+    else setInlineError(res.error || "Couldn't send the sign-in link.");
   };
 
   const handleResendVerification = async () => {

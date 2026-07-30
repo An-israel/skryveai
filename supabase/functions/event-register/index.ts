@@ -6,6 +6,11 @@
 // must happen server-side. Consent is required (legal basis for later emails).
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
+import { Resend } from "https://esm.sh/resend@2.0.0";
+import { magicEmailHtml } from "../_shared/magic-email.ts";
+
+const FROM = "Skryve <welcome@skryveai.com>";
+const ROOT = "https://skryveai.com";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -117,6 +122,37 @@ serve(async (req) => {
       await svc.from("webinars").update({ registration_count: count ?? 0 }).eq("id", webinar.id);
     }
 
+    // Send the confirmation email (event details + community link + a one-click
+    // sign-in link) via Resend — the reliable path. Best-effort; never fail the
+    // registration if the email hiccups.
+    let emailSent = false;
+    try {
+      const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
+      if (RESEND_API_KEY) {
+        const { data: linkData } = await svc.auth.admin.generateLink({
+          type: "magiclink", email, options: { redirectTo: `${ROOT}/vetting` },
+        });
+        const actionLink = linkData?.properties?.action_link;
+        if (actionLink) {
+          const resend = new Resend(RESEND_API_KEY);
+          const { error: sendErr } = await resend.emails.send({
+            from: FROM,
+            to: [email],
+            subject: `You're registered — ${webinar.title}`,
+            html: magicEmailHtml(actionLink, {
+              eventTitle: webinar.title,
+              communityLink: webinar.community_link ?? undefined,
+              communityType: webinar.community_type ?? undefined,
+            }),
+          });
+          emailSent = !sendErr;
+          if (sendErr) console.error("event confirmation email failed:", sendErr);
+        }
+      }
+    } catch (e) {
+      console.error("event confirmation email threw:", e);
+    }
+
     return json({
       ok: true,
       is_new_account: isNewAccount,
@@ -125,6 +161,7 @@ serve(async (req) => {
       community_type: webinar.community_type,
       event_title: webinar.title,
       account_email: email,
+      email_sent: emailSent,
     });
   } catch (e) {
     console.error("event-register fatal:", e);

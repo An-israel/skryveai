@@ -61,6 +61,22 @@ export async function markCommunityClick(registrationId: string) {
   await rpc("event_mark_community_click", { _registration_id: registrationId });
 }
 
+/**
+ * Email a passwordless magic sign-in link via Resend (reliable path), optionally
+ * redirecting to `next` after sign-in. Returns an error message on failure.
+ */
+export async function sendMagicLink(email: string, next = "/feed"): Promise<{ ok: boolean; error?: string }> {
+  const { data, error } = await supabase.functions.invoke("send-magic-link", { body: { email, next } });
+  if (error) {
+    let msg = "";
+    const ctx = (error as { context?: Response }).context;
+    if (ctx?.clone) { try { const j = await ctx.clone().json(); if (j?.error) msg = j.error; } catch { /* ignore */ } }
+    if (!msg) msg = ctx?.status === 404 ? "Sign-in email isn't switched on yet — the send-magic-link function needs deploying." : "Couldn't send the sign-in link.";
+    return { ok: false, error: msg };
+  }
+  return { ok: (data as { ok?: boolean } | null)?.ok !== false };
+}
+
 // ── Admin ────────────────────────────────────────────────────────────────────
 export async function listWebinars(): Promise<Webinar[]> {
   const { data, error } = await rpc("webinar_list_admin");

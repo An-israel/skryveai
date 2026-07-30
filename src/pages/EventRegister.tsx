@@ -6,10 +6,9 @@ import {
 } from "lucide-react";
 import { SKILL_CATEGORIES } from "@/lib/skills";
 import {
-  fetchWebinarBySlug, registerForEvent, markCommunityClick,
+  fetchWebinarBySlug, registerForEvent, markCommunityClick, sendMagicLink,
   type Webinar, type RegisterResult,
 } from "@/lib/events/api";
-import { supabase } from "@/integrations/supabase/client";
 
 export default function EventRegister() {
   const { slug = "" } = useParams();
@@ -159,21 +158,18 @@ function SuccessScreen({ result }: { result: RegisterResult }) {
   const type = result.community_type === "telegram" ? "Telegram" : "WhatsApp";
   const [vetSending, setVetSending] = useState(false);
   const [vetSent, setVetSent] = useState(false);
+  const [vetError, setVetError] = useState<string | null>(null);
 
-  // Passwordless: email them a one-click sign-in link straight into vetting.
+  // Passwordless: email a one-click sign-in link (via Resend) straight to vetting.
   const startVetting = async () => {
     const email = result.account_email;
     if (!email) return;
     setVetSending(true);
-    try {
-      await supabase.auth.signInWithOtp({
-        email,
-        options: { shouldCreateUser: false, emailRedirectTo: `${window.location.origin}/vetting` },
-      });
-      setVetSent(true);
-    } finally {
-      setVetSending(false);
-    }
+    setVetError(null);
+    const res = await sendMagicLink(email, "/vetting");
+    setVetSending(false);
+    if (res.ok) setVetSent(true);
+    else setVetError(res.error || "Couldn't send the link.");
   };
   return (
     <div className="rounded-3xl bg-white p-6 text-gray-900 shadow-2xl ring-1 ring-black/5 sm:p-8">
@@ -216,6 +212,7 @@ function SuccessScreen({ result }: { result: RegisterResult }) {
               </button>
               <span className="text-sm text-gray-400">Maybe later — the {type} group is enough for now.</span>
             </div>
+            {vetError && <p className="mt-2 text-sm text-red-600">{vetError}</p>}
           </>
         )}
       </div>
