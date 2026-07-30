@@ -78,6 +78,7 @@ import Wallet           from "./pages/Wallet";
 import Admin            from "./pages/Admin";
 import Tiptip           from "./pages/Tiptip";
 import SkillLearningAnalytics from "./pages/admin/SkillLearningAnalytics";
+import WaitlistAdmin     from "./pages/admin/WaitlistAdmin";
 import PaymentCallback  from "./pages/PaymentCallback";
 import PortfolioManager from "./pages/PortfolioManager";
 import PostJob          from "./pages/PostJob";
@@ -194,6 +195,7 @@ export default function App() {
                 <Route path="/admin"               element={<Admin />} />
                 <Route path="/tiptip"              element={<Tiptip />} />
                 <Route path="/admin/skill-learning" element={<SkillLearningAnalytics />} />
+                <Route path="/admin/waitlist"      element={<WaitlistAdmin />} />
               </Route>
 
               {/* ── Onboarding — no sidebar layout ── */}
