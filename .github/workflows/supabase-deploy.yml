@@ -1,0 +1,53 @@
+name: Deploy to Supabase
+
+# Applies database migrations and deploys edge functions to the production
+# Supabase project. This is what makes merged DB changes actually "go live" —
+# Vercel deploys the frontend, but the database needs this step.
+#
+# Runs automatically when migrations/functions change on main, and can be run
+# by hand (workflow_dispatch) to catch up all pending migrations at once.
+#
+# Required repo secrets (Settings → Secrets and variables → Actions):
+#   SUPABASE_ACCESS_TOKEN  — a personal access token from
+#                            https://supabase.com/dashboard/account/tokens
+#   SUPABASE_DB_PASSWORD   — the project's database password
+#                            (Dashboard → Project Settings → Database)
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'supabase/migrations/**'
+      - 'supabase/functions/**'
+      - 'supabase/config.toml'
+  workflow_dispatch: {}
+
+concurrency:
+  group: supabase-deploy
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    env:
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+      SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+      PROJECT_REF: uwwmwerdfpyekgshkrft
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Supabase CLI
+        uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      - name: Link project
+        run: supabase link --project-ref "$PROJECT_REF"
+
+      # Migrations first — the critical step. If a later step fails, the schema
+      # is still up to date.
+      - name: Apply database migrations
+        run: supabase db push
+
+      - name: Deploy edge functions
+        run: supabase functions deploy
