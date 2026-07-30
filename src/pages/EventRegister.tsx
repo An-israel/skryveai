@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useParams, useNavigate, Link } from "react-router-dom";
+import { useParams, Link } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
 import {
   CalendarDays, User, Loader2, CheckCircle2, ArrowRight, MessageCircle, ShieldCheck, Users2,
@@ -9,10 +9,10 @@ import {
   fetchWebinarBySlug, registerForEvent, markCommunityClick,
   type Webinar, type RegisterResult,
 } from "@/lib/events/api";
+import { supabase } from "@/integrations/supabase/client";
 
 export default function EventRegister() {
   const { slug = "" } = useParams();
-  const navigate = useNavigate();
   const [webinar, setWebinar] = useState<Webinar | null>(null);
   const [loading, setLoading] = useState(true);
   const [result, setResult] = useState<RegisterResult | null>(null);
@@ -94,7 +94,7 @@ export default function EventRegister() {
 
       <main className="mx-auto max-w-2xl px-5 pb-16">
         {result ? (
-          <SuccessScreen result={result} onVet={() => navigate("/login")} />
+          <SuccessScreen result={result} />
         ) : (
           <>
             {webinar.cover_image_url && (
@@ -154,9 +154,27 @@ export default function EventRegister() {
   );
 }
 
-function SuccessScreen({ result, onVet }: { result: RegisterResult; onVet: () => void }) {
+function SuccessScreen({ result }: { result: RegisterResult }) {
   const link = result.community_link;
   const type = result.community_type === "telegram" ? "Telegram" : "WhatsApp";
+  const [vetSending, setVetSending] = useState(false);
+  const [vetSent, setVetSent] = useState(false);
+
+  // Passwordless: email them a one-click sign-in link straight into vetting.
+  const startVetting = async () => {
+    const email = result.account_email;
+    if (!email) return;
+    setVetSending(true);
+    try {
+      await supabase.auth.signInWithOtp({
+        email,
+        options: { shouldCreateUser: false, emailRedirectTo: `${window.location.origin}/vetting` },
+      });
+      setVetSent(true);
+    } finally {
+      setVetSending(false);
+    }
+  };
   return (
     <div className="rounded-3xl bg-white p-6 text-gray-900 shadow-2xl ring-1 ring-black/5 sm:p-8">
       <div className="text-center">
@@ -182,11 +200,24 @@ function SuccessScreen({ result, onVet }: { result: RegisterResult; onVet: () =>
       {/* Vetting offer — skippable */}
       <div className="mt-6 rounded-xl border border-dashed border-gray-300 p-4">
         <p className="flex items-center gap-1.5 font-semibold"><ShieldCheck className="h-4 w-4 text-[#2563EB]" />Want to get hired through Skryve?</p>
-        <p className="mt-1 text-sm text-gray-500">Get vetted and start receiving international opportunities. You have a free Skryve account now — set your password to log in.</p>
-        <div className="mt-3 flex items-center gap-3">
-          <button onClick={onVet} className="rounded-lg bg-[#2563EB] px-4 py-2 text-sm font-semibold text-white hover:bg-[#1d4fd7]">Start vetting</button>
-          <span className="text-sm text-gray-400">Maybe later — the {type} group is enough for now.</span>
-        </div>
+        {vetSent ? (
+          <p className="mt-2 rounded-lg bg-emerald-50 px-3 py-2 text-sm text-emerald-700">
+            Check your email — we sent a one-click link to sign in and start vetting. No password needed.
+          </p>
+        ) : (
+          <>
+            <p className="mt-1 text-sm text-gray-500">
+              Get vetted and start receiving international opportunities. We'll email you a one-click sign-in link — no password to set up.
+            </p>
+            <div className="mt-3 flex items-center gap-3">
+              <button onClick={startVetting} disabled={vetSending}
+                className="flex items-center gap-2 rounded-lg bg-[#2563EB] px-4 py-2 text-sm font-semibold text-white hover:bg-[#1d4fd7] disabled:opacity-70">
+                {vetSending ? <><Loader2 className="h-4 w-4 animate-spin" />Sending…</> : "Start vetting"}
+              </button>
+              <span className="text-sm text-gray-400">Maybe later — the {type} group is enough for now.</span>
+            </div>
+          </>
+        )}
       </div>
 
       <div className="mt-5 flex items-center justify-center gap-1.5 text-xs text-gray-400">

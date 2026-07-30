@@ -61,6 +61,31 @@ export default function Login() {
     }
   };
 
+  const [magicLoading, setMagicLoading] = useState(false);
+  const [magicSent, setMagicSent] = useState(false);
+
+  // Passwordless sign-in. Event registrants never set a password, so this is how
+  // they (and anyone) can get in: click the emailed link and you're signed in.
+  const handleMagicLink = async () => {
+    if (!email) { toast({ title: "Enter your email above first", variant: "destructive" }); return; }
+    setMagicLoading(true);
+    setInlineError(null);
+    try {
+      const params = new URLSearchParams(window.location.search);
+      const next = params.get("next") || "/feed";
+      const { error } = await supabase.auth.signInWithOtp({
+        email,
+        options: { shouldCreateUser: false, emailRedirectTo: `${window.location.origin}${next}` },
+      });
+      if (error) throw error;
+      setMagicSent(true);
+    } catch (error: unknown) {
+      setInlineError(error instanceof Error ? error.message : "Couldn't send the sign-in link.");
+    } finally {
+      setMagicLoading(false);
+    }
+  };
+
   const handleResendVerification = async () => {
     if (!email) {
       toast({ title: "Enter your email above first", variant: "destructive" });
@@ -205,6 +230,27 @@ export default function Login() {
                 )}
               </Button>
             </form>
+
+            {magicSent ? (
+              <p className="rounded-lg bg-emerald-50 dark:bg-emerald-500/10 px-3 py-2 text-center text-sm text-emerald-700 dark:text-emerald-300">
+                Check your email — we sent you a one-click sign-in link.
+              </p>
+            ) : (
+              <>
+                <div className="relative py-1 text-center">
+                  <span className="bg-card px-2 text-xs uppercase tracking-wide text-muted-foreground">or</span>
+                </div>
+                <Button
+                  type="button" variant="outline" className="w-full" size="lg"
+                  disabled={magicLoading} onClick={handleMagicLink}
+                >
+                  {magicLoading ? <><Loader2 className="w-4 h-4 animate-spin mr-2" />Sending link…</> : "Email me a sign-in link (no password)"}
+                </Button>
+                <p className="text-center text-xs text-muted-foreground">
+                  Registered through an event? Use this — you don't have a password yet.
+                </p>
+              </>
+            )}
 
             <p className="text-center text-sm text-muted-foreground">
               Don't have an account?{" "}
