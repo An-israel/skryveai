@@ -139,8 +139,8 @@ const PILLARS = [
   },
   {
     icon: GraduationCap,
-    title: "Learning platform",
-    desc: "Structured courses with an AI coach, graded assignments, and certificates — then put new skills straight to work.",
+    title: "Skill up for international work",
+    desc: "Optional courses and certificates to help you qualify for the remote roles clients abroad are hiring for.",
   },
   {
     icon: CalendarDays,

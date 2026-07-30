@@ -9,6 +9,7 @@ import { ChatWidget } from "@/components/chat/ChatWidget";
 import { SonderWidget } from "@/components/sonder/SonderWidget";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { GamificationProvider } from "@/context/GamificationProvider";
+import { DailyCheckIn } from "@/components/credits/DailyCheckIn";
 import { SiteSchema } from "@/components/schema/SiteSchema";
 
 // ── Public pages ────────────────────────────────────────────
@@ -27,6 +28,8 @@ import VerifyEmail      from "./pages/VerifyEmail";
 import PrivacyPolicy    from "./pages/PrivacyPolicy";
 import TermsOfService   from "./pages/TermsOfService";
 import NotFound         from "./pages/NotFound";
+import Waitlist         from "./pages/Waitlist";
+import VettingTrust     from "./pages/VettingTrust";
 
 // ── Onboarding pages ────────────────────────────────────────
 import OnboardingDispatcher from "./pages/onboarding/OnboardingDispatcher";
@@ -58,6 +61,8 @@ import CourseComplete   from "./pages/CourseComplete";
 import CertificatePage  from "./pages/CertificatePage";
 import CertificateVerify from "./pages/CertificateVerify";
 import CVBuilder        from "./pages/CVBuilder";
+import CVImport         from "./pages/CVImport";
+import Vetting          from "./pages/Vetting";
 import CVEditor         from "./pages/CVEditor";
 import ATSChecker       from "./pages/ATSChecker";
 import LinkedInAnalyzer from "./pages/LinkedInAnalyzer";
@@ -71,9 +76,12 @@ import Settings         from "./pages/Settings";
 import Billing          from "./pages/Billing";
 import TeamManagement   from "./pages/TeamManagement";
 import Referrals        from "./pages/Referrals";
+import Wallet           from "./pages/Wallet";
 import Admin            from "./pages/Admin";
 import Tiptip           from "./pages/Tiptip";
 import SkillLearningAnalytics from "./pages/admin/SkillLearningAnalytics";
+import WaitlistAdmin     from "./pages/admin/WaitlistAdmin";
+import VettingReview     from "./pages/admin/VettingReview";
 import PaymentCallback  from "./pages/PaymentCallback";
 import PortfolioManager from "./pages/PortfolioManager";
 import PostJob          from "./pages/PostJob";
@@ -99,6 +107,7 @@ export default function App() {
           <BrowserRouter>
             <GamificationProvider>
             <SiteSchema />
+            <DailyCheckIn />
             <ChatWidget />
             <SonderWidget />
             <Routes>
@@ -108,6 +117,8 @@ export default function App() {
               <Route path="/login"           element={<Public><Login /></Public>} />
               <Route path="/signup"          element={<Public><Signup /></Public>} />
               <Route path="/pricing"         element={<Public><Pricing /></Public>} />
+              <Route path="/waitlist"        element={<Public><Waitlist /></Public>} />
+              <Route path="/vetting/how-it-works" element={<Public><VettingTrust /></Public>} />
               <Route path="/about"           element={<Public><About /></Public>} />
               <Route path="/contact"         element={<Public><Contact /></Public>} />
               <Route path="/careers"         element={<Public><Careers /></Public>} />
@@ -161,6 +172,8 @@ export default function App() {
                 <Route path="/learn/:courseId/certificate"       element={<CertificatePage />} />
 
                 {/* Tools */}
+                <Route path="/cv-import"            element={<CVImport />} />
+                <Route path="/vetting"              element={<Vetting />} />
                 <Route path="/cv-builder"           element={<CVBuilder />} />
                 <Route path="/cv-builder/new"       element={<CVEditor />} />
                 <Route path="/cv-builder/:cvId"     element={<CVEditor />} />
@@ -180,12 +193,15 @@ export default function App() {
                 <Route path="/settings"   element={<Settings />} />
                 <Route path="/billing"    element={<Billing />} />
                 <Route path="/referrals"  element={<Referrals />} />
+                <Route path="/wallet"     element={<Wallet />} />
                 <Route path="/team"       element={<TeamManagement />} />
 
                 {/* Admin */}
                 <Route path="/admin"               element={<Admin />} />
                 <Route path="/tiptip"              element={<Tiptip />} />
                 <Route path="/admin/skill-learning" element={<SkillLearningAnalytics />} />
+                <Route path="/admin/waitlist"      element={<WaitlistAdmin />} />
+                <Route path="/admin/vetting"       element={<VettingReview />} />
               </Route>
 
               {/* ── Onboarding — no sidebar layout ── */}

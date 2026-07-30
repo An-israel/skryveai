@@ -6,6 +6,7 @@ import {
   Users, PlayCircle,
 } from "lucide-react";
 import { AuthGateModal } from "./AuthGateModal";
+import { positioning } from "@/config/positioning";
 
 /* ─── Tabs ────────────────────────────────────────────────── */
 type TabKey = "gigs" | "learn" | "events";
@@ -151,10 +152,10 @@ export function LandingFeed() {
         >
           <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full border border-border bg-muted text-muted-foreground text-[12px] font-medium mb-6 backdrop-blur-sm">
             <span className="w-1.5 h-1.5 rounded-full bg-[#2563EB] animate-pulse" />
-            Now live — the freelance OS for Africa
+            {positioning.heroBadge}
           </div>
           <h1 className="text-3xl md:text-5xl lg:text-6xl font-extrabold text-foreground tracking-[-0.03em] leading-[1.05] mb-4">
-            Your next gig, skill, or event —{" "}
+            {positioning.heroLead}{" "}
             <span
               className="text-transparent"
               style={{
@@ -163,24 +164,25 @@ export function LandingFeed() {
                 backgroundClip: "text",
               }}
             >
-              already here
-            </span>
+              {positioning.heroHighlight}
+            </span>{" "}
+            {positioning.heroTrail}
           </h1>
           <p className="text-[15px] md:text-[17px] text-muted-foreground leading-relaxed">
-            Browse real opportunities before you sign up. When you're ready to apply, register, or start learning, creating a free account takes seconds.
+            {positioning.heroSub}
           </p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-3 mt-7">
             <Link
-              to="/signup"
+              to={positioning.primaryCta.to}
               className="flex items-center gap-2 px-6 py-3 rounded-xl bg-foreground text-background text-[14px] font-bold hover:bg-foreground/90 transition-all shadow-lg"
             >
-              Find work <ArrowRight className="w-4 h-4" />
+              {positioning.primaryCta.label} <ArrowRight className="w-4 h-4" />
             </Link>
             <Link
-              to="/signup?role=client"
+              to={positioning.secondaryCta.to}
               className="flex items-center gap-2 px-6 py-3 rounded-xl border border-border text-foreground/80 text-[14px] font-medium hover:border-border hover:text-foreground transition-all bg-card"
             >
-              Hire talent
+              {positioning.secondaryCta.label}
             </Link>
           </div>
         </motion.div>

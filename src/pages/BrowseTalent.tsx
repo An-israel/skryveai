@@ -22,6 +22,7 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 import { Star, Users, ChevronDown, MessageSquare, Briefcase, BadgeCheck, Lock, Building2 } from "lucide-react";
 import { matchesSkillQuery } from "@/lib/skills";
+import { VettedBadge } from "@/components/vetting/VettedBadge";
 
 const AVAILABILITY_BADGE: Record<string, { label: string; className: string }> = {
   available: { label: "Available", className: "bg-green-500/10 text-green-600 border-green-500/20" },
@@ -55,6 +56,8 @@ export default function BrowseTalent() {
   const [clientsLoading, setClientsLoading] = useState(false);
   const [isPaid, setIsPaid] = useState(false);
 
+  const [vettedMap, setVettedMap] = useState<Record<string, string[]>>({});
+  const [vettedOnly, setVettedOnly] = useState(false);
   const [skillFilter, setSkillFilter] = useState("");
   const [levelFilter, setLevelFilter] = useState("all");
   const [availabilityFilter, setAvailabilityFilter] = useState("all");
@@ -127,6 +130,24 @@ export default function BrowseTalent() {
       .eq("is_bot", false)
       .order("created_at", { ascending: false });
     setTalents(data || []);
+
+    // Vetted badges are the trust signal clients care about — load them for the
+    // listed talents and key by user_id.
+    const ids = (data || []).map((t: any) => t.user_id).filter(Boolean);
+    if (ids.length) {
+      const { data: badges } = await (supabase as any)
+        .from("vetting_badges")
+        .select("user_id, skill_category, level")
+        .eq("is_vetted", true)
+        .in("user_id", ids);
+      const map: Record<string, string[]> = {};
+      (badges || []).forEach((b: any) => {
+        (map[b.user_id] = map[b.user_id] || []).push(b.skill_category);
+      });
+      setVettedMap(map);
+    } else {
+      setVettedMap({});
+    }
     setLoading(false);
   };
 
@@ -196,15 +217,20 @@ export default function BrowseTalent() {
       if (availabilityFilter !== "all" && t.availability_status !== availabilityFilter) return false;
       if (minRate && t.hourly_rate != null && Number(t.hourly_rate) < Number(minRate)) return false;
       if (maxRate && t.hourly_rate != null && Number(t.hourly_rate) > Number(maxRate)) return false;
+      if (vettedOnly && !(vettedMap[t.user_id]?.length)) return false;
       return true;
     })
     .sort((a, b) => {
+      // Vetted talent always ranks first — that's the whole value to a client.
+      const av = vettedMap[a.user_id]?.length ? 1 : 0;
+      const bv = vettedMap[b.user_id]?.length ? 1 : 0;
+      if (av !== bv) return bv - av;
       if (sortBy === "rate_low") return (a.hourly_rate || 0) - (b.hourly_rate || 0);
       if (sortBy === "rate_high") return (b.hourly_rate || 0) - (a.hourly_rate || 0);
       return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
     });
 
-  const hasFilters = skillFilter || levelFilter !== "all" || availabilityFilter !== "all" || minRate || maxRate;
+  const hasFilters = skillFilter || levelFilter !== "all" || availabilityFilter !== "all" || minRate || maxRate || vettedOnly;
 
   const clearFilters = () => {
     setSkillFilter("");
@@ -317,6 +343,16 @@ export default function BrowseTalent() {
             onChange={(e) => setSkillFilter(e.target.value)}
           />
         </div>
+
+        <button
+          type="button"
+          onClick={() => setVettedOnly((v) => !v)}
+          className={`flex items-center gap-1.5 rounded-md border px-3 py-2 text-sm font-medium transition-colors ${
+            vettedOnly ? "border-emerald-500 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300" : "border-input hover:border-primary/50"
+          }`}
+        >
+          <BadgeCheck className="h-4 w-4" /> Vetted only
+        </button>
 
         <Select value={levelFilter} onValueChange={setLevelFilter}>
           <SelectTrigger className="w-40">
@@ -434,6 +470,13 @@ export default function BrowseTalent() {
                     </div>
                     {talent.primary_skill && (
                       <p className="text-xs text-muted-foreground mt-0.5">{talent.primary_skill}</p>
+                    )}
+                    {vettedMap[talent.user_id]?.length > 0 && (
+                      <div className="mt-1 flex flex-wrap gap-1">
+                        {vettedMap[talent.user_id].slice(0, 2).map((s) => (
+                          <VettedBadge key={s} skill={s} size="sm" linkToTrust />
+                        ))}
+                      </div>
                     )}
                   </div>
                 </div>
