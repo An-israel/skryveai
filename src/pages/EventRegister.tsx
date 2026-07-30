@@ -48,13 +48,29 @@ export default function EventRegister() {
   const fmtDate = (iso?: string | null) =>
     iso ? new Date(iso).toLocaleString(undefined, { dateStyle: "full", timeStyle: "short" }) : null;
 
+  // Modern ambient background shared across states.
+  const Backdrop = () => (
+    <div className="pointer-events-none absolute inset-0 -z-10 overflow-hidden">
+      <div className="absolute -top-48 left-1/2 h-[560px] w-[880px] -translate-x-1/2 rounded-full bg-[#2563EB]/25 blur-[130px]" />
+      <div className="absolute -bottom-32 -right-24 h-[440px] w-[440px] rounded-full bg-[#7C3AED]/20 blur-[130px]" />
+      <div className="absolute -bottom-24 -left-24 h-[360px] w-[360px] rounded-full bg-[#0EA5E9]/15 blur-[120px]" />
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_-10%,rgba(37,99,235,0.18),transparent_55%)]" />
+    </div>
+  );
+
   if (loading) {
-    return <div className="flex min-h-screen items-center justify-center bg-[#1E3A5F]"><Loader2 className="h-8 w-8 animate-spin text-white" /></div>;
+    return (
+      <div className="relative flex min-h-screen items-center justify-center bg-[#070B16]">
+        <Backdrop />
+        <Loader2 className="h-8 w-8 animate-spin text-white/80" />
+      </div>
+    );
   }
 
   if (!webinar) {
     return (
-      <div className="flex min-h-screen flex-col items-center justify-center bg-[#1E3A5F] px-5 text-center text-white">
+      <div className="relative flex min-h-screen flex-col items-center justify-center bg-[#070B16] px-5 text-center text-white">
+        <Backdrop />
         <p className="text-lg font-semibold">This event isn't available.</p>
         <Link to="/" className="mt-4 rounded-lg bg-white/10 px-4 py-2 text-sm hover:bg-white/20">Go to Skryve</Link>
       </div>
@@ -62,7 +78,8 @@ export default function EventRegister() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-[#1E3A5F] to-[#132840] text-white">
+    <div className="relative min-h-screen bg-[#070B16] text-white">
+      <Backdrop />
       <Helmet>
         <title>{webinar.title} — Skryve</title>
         <meta name="description" content={webinar.description?.slice(0, 155) || "Register for this free Skryve event."} />
@@ -93,7 +110,7 @@ export default function EventRegister() {
             </div>
             {webinar.description && <p className="mt-4 whitespace-pre-wrap text-white/80">{webinar.description}</p>}
 
-            <form onSubmit={submit} className="mt-7 rounded-2xl bg-white p-6 text-gray-900 shadow-2xl">
+            <form onSubmit={submit} className="mt-7 rounded-3xl bg-white p-6 text-gray-900 shadow-2xl ring-1 ring-black/5 sm:p-7">
               <h2 className="text-xl font-bold">Register free</h2>
               <p className="mb-4 text-sm text-gray-500">Save your spot — takes 20 seconds.</p>
               <div className="space-y-3">
@@ -141,7 +158,7 @@ function SuccessScreen({ result, onVet }: { result: RegisterResult; onVet: () =>
   const link = result.community_link;
   const type = result.community_type === "telegram" ? "Telegram" : "WhatsApp";
   return (
-    <div className="rounded-2xl bg-white p-6 text-gray-900 shadow-2xl sm:p-8">
+    <div className="rounded-3xl bg-white p-6 text-gray-900 shadow-2xl ring-1 ring-black/5 sm:p-8">
       <div className="text-center">
         <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-green-100">
           <CheckCircle2 className="h-8 w-8 text-[#059669]" />

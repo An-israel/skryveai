@@ -5,8 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { ThemeProvider } from "next-themes";
 import { AppLayout } from "@/components/layout/AppLayout";
-import { ChatWidget } from "@/components/chat/ChatWidget";
-import { SonderWidget } from "@/components/sonder/SonderWidget";
+import { FloatingWidgets } from "@/components/layout/FloatingWidgets";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { GamificationProvider } from "@/context/GamificationProvider";
 import { DailyCheckIn } from "@/components/credits/DailyCheckIn";
@@ -110,8 +109,7 @@ export default function App() {
             <GamificationProvider>
             <SiteSchema />
             <DailyCheckIn />
-            <ChatWidget />
-            <SonderWidget />
+            <FloatingWidgets />
             <Routes>
 
               {/* ── Public / marketing / auth ── */}
