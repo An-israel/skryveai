@@ -29,6 +29,7 @@ import PrivacyPolicy    from "./pages/PrivacyPolicy";
 import TermsOfService   from "./pages/TermsOfService";
 import NotFound         from "./pages/NotFound";
 import Waitlist         from "./pages/Waitlist";
+import EventRegister    from "./pages/EventRegister";
 import VettingTrust     from "./pages/VettingTrust";
 
 // ── Onboarding pages ────────────────────────────────────────
@@ -81,6 +82,7 @@ import Admin            from "./pages/Admin";
 import Tiptip           from "./pages/Tiptip";
 import SkillLearningAnalytics from "./pages/admin/SkillLearningAnalytics";
 import WaitlistAdmin     from "./pages/admin/WaitlistAdmin";
+import WebinarManager    from "./pages/admin/WebinarManager";
 import VettingReview     from "./pages/admin/VettingReview";
 import PaymentCallback  from "./pages/PaymentCallback";
 import PortfolioManager from "./pages/PortfolioManager";
@@ -118,6 +120,7 @@ export default function App() {
               <Route path="/signup"          element={<Public><Signup /></Public>} />
               <Route path="/pricing"         element={<Public><Pricing /></Public>} />
               <Route path="/waitlist"        element={<Public><Waitlist /></Public>} />
+              <Route path="/e/:slug"         element={<Public><EventRegister /></Public>} />
               <Route path="/vetting/how-it-works" element={<Public><VettingTrust /></Public>} />
               <Route path="/about"           element={<Public><About /></Public>} />
               <Route path="/contact"         element={<Public><Contact /></Public>} />
@@ -201,6 +204,7 @@ export default function App() {
                 <Route path="/tiptip"              element={<Tiptip />} />
                 <Route path="/admin/skill-learning" element={<SkillLearningAnalytics />} />
                 <Route path="/admin/waitlist"      element={<WaitlistAdmin />} />
+                <Route path="/admin/events"        element={<WebinarManager />} />
                 <Route path="/admin/vetting"       element={<VettingReview />} />
               </Route>
 
