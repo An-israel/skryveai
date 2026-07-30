@@ -6,7 +6,7 @@ import {
   LayoutDashboard, Briefcase, Store, ClipboardList, FolderOpen,
   CalendarDays, BookOpen, MessageSquare, FileText, Users,
   PlusCircle, Settings, LogOut, Bell, ChevronRight,
-  Sparkles, Handshake, Moon, PenSquare, Coins,
+  Sparkles, Handshake, Moon, PenSquare, Coins, ShieldCheck,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
@@ -21,6 +21,7 @@ interface NavItem {
 const talentNav: NavItem[] = [
   { label: "Home",         to: "/feed",         icon: Store           },
   { label: "Dashboard",    to: "/dashboard",   icon: LayoutDashboard },
+  { label: "Get Vetted",   to: "/vetting",      icon: ShieldCheck     },
   { label: "Collab",       to: "/talent",       icon: Handshake       },
   { label: "Applications", to: "/applications", icon: ClipboardList   },
   { label: "Sonder",       to: "/sonder",       icon: Moon            },

@@ -29,6 +29,7 @@ import PrivacyPolicy    from "./pages/PrivacyPolicy";
 import TermsOfService   from "./pages/TermsOfService";
 import NotFound         from "./pages/NotFound";
 import Waitlist         from "./pages/Waitlist";
+import VettingTrust     from "./pages/VettingTrust";
 
 // ── Onboarding pages ────────────────────────────────────────
 import OnboardingDispatcher from "./pages/onboarding/OnboardingDispatcher";
@@ -61,6 +62,7 @@ import CertificatePage  from "./pages/CertificatePage";
 import CertificateVerify from "./pages/CertificateVerify";
 import CVBuilder        from "./pages/CVBuilder";
 import CVImport         from "./pages/CVImport";
+import Vetting          from "./pages/Vetting";
 import CVEditor         from "./pages/CVEditor";
 import ATSChecker       from "./pages/ATSChecker";
 import LinkedInAnalyzer from "./pages/LinkedInAnalyzer";
@@ -79,6 +81,7 @@ import Admin            from "./pages/Admin";
 import Tiptip           from "./pages/Tiptip";
 import SkillLearningAnalytics from "./pages/admin/SkillLearningAnalytics";
 import WaitlistAdmin     from "./pages/admin/WaitlistAdmin";
+import VettingReview     from "./pages/admin/VettingReview";
 import PaymentCallback  from "./pages/PaymentCallback";
 import PortfolioManager from "./pages/PortfolioManager";
 import PostJob          from "./pages/PostJob";
@@ -115,6 +118,7 @@ export default function App() {
               <Route path="/signup"          element={<Public><Signup /></Public>} />
               <Route path="/pricing"         element={<Public><Pricing /></Public>} />
               <Route path="/waitlist"        element={<Public><Waitlist /></Public>} />
+              <Route path="/vetting/how-it-works" element={<Public><VettingTrust /></Public>} />
               <Route path="/about"           element={<Public><About /></Public>} />
               <Route path="/contact"         element={<Public><Contact /></Public>} />
               <Route path="/careers"         element={<Public><Careers /></Public>} />
@@ -169,6 +173,7 @@ export default function App() {
 
                 {/* Tools */}
                 <Route path="/cv-import"            element={<CVImport />} />
+                <Route path="/vetting"              element={<Vetting />} />
                 <Route path="/cv-builder"           element={<CVBuilder />} />
                 <Route path="/cv-builder/new"       element={<CVEditor />} />
                 <Route path="/cv-builder/:cvId"     element={<CVEditor />} />
@@ -196,6 +201,7 @@ export default function App() {
                 <Route path="/tiptip"              element={<Tiptip />} />
                 <Route path="/admin/skill-learning" element={<SkillLearningAnalytics />} />
                 <Route path="/admin/waitlist"      element={<WaitlistAdmin />} />
+                <Route path="/admin/vetting"       element={<VettingReview />} />
               </Route>
 
               {/* ── Onboarding — no sidebar layout ── */}
