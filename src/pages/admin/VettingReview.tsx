@@ -5,10 +5,12 @@ import { ArrowLeft, Loader2, ExternalLink, Check, X, ShieldCheck } from "lucide-
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import {
   fetchReviewQueue, fetchLatestSkillSubmission, fetchLatestProfCheck,
-  reviewSkill, reviewProfessionalism, PROFESSIONALISM_QUESTIONS,
-  type ReviewQueueItem,
+  reviewSkill, reviewProfessionalism, fetchAllBriefs, upsertBrief, PROFESSIONALISM_QUESTIONS,
+  type ReviewQueueItem, type AdminBrief,
 } from "@/lib/vetting/api";
 
 export default function VettingReview() {
@@ -80,6 +82,8 @@ export default function VettingReview() {
           ))}
         </div>
       )}
+
+      <BriefsEditor />
     </main>
   );
 }
@@ -152,6 +156,69 @@ function ProfReview({ item, onDone }: { item: ReviewQueueItem; onDone: () => voi
         <Button size="sm" disabled={busy} onClick={() => decide(true)}><Check className="mr-1 h-4 w-4" />Approve &amp; issue badge</Button>
         <Button size="sm" variant="outline" disabled={busy} onClick={() => decide(false)}><X className="mr-1 h-4 w-4" />Reject</Button>
       </div>
+    </div>
+  );
+}
+
+// Admin editor for the skill-test briefs — attach the reference template link
+// candidates recreate, and tune the brief/pass criteria per skill.
+function BriefsEditor() {
+  const [briefs, setBriefs] = useState<AdminBrief[]>([]);
+  const [open, setOpen] = useState(false);
+  const [savingId, setSavingId] = useState<string | null>(null);
+
+  useEffect(() => { if (open && briefs.length === 0) fetchAllBriefs().then(setBriefs); }, [open, briefs.length]);
+
+  const patch = (id: string, p: Partial<AdminBrief>) =>
+    setBriefs((bs) => bs.map((b) => (b.id === id ? { ...b, ...p } : b)));
+
+  const save = async (b: AdminBrief) => {
+    setSavingId(b.id);
+    const res = await upsertBrief({
+      id: b.id, skill_category: b.skill_category, title: b.title, brief: b.brief,
+      reference_template_url: b.reference_template_url, pass_criteria: b.pass_criteria, is_active: b.is_active,
+    });
+    setSavingId(null);
+    if (res.ok) toast.success(`${b.skill_category} brief saved`);
+    else toast.error("Couldn't save.");
+  };
+
+  return (
+    <div className="mt-8">
+      <button onClick={() => setOpen((v) => !v)} className="text-sm font-semibold text-primary hover:underline">
+        {open ? "▾ " : "▸ "}Test briefs &amp; reference templates
+      </button>
+      {open && (
+        <div className="mt-3 space-y-3">
+          <p className="text-xs text-muted-foreground">
+            Attach the reference template (a Figma/Drive link) candidates must recreate. It shows as a button in their skill test.
+          </p>
+          {briefs.map((b) => (
+            <Card key={b.id}>
+              <CardHeader className="pb-2"><CardTitle className="text-base">{b.skill_category}</CardTitle></CardHeader>
+              <CardContent className="space-y-3">
+                <div>
+                  <Label className="text-xs">Reference template link</Label>
+                  <Input value={b.reference_template_url ?? ""} placeholder="https://figma.com/… or Drive link"
+                    onChange={(e) => patch(b.id, { reference_template_url: e.target.value })} />
+                </div>
+                <div>
+                  <Label className="text-xs">Brief</Label>
+                  <Textarea rows={3} value={b.brief} onChange={(e) => patch(b.id, { brief: e.target.value })} />
+                </div>
+                <div>
+                  <Label className="text-xs">Pass criteria</Label>
+                  <Textarea rows={2} value={b.pass_criteria ?? ""} onChange={(e) => patch(b.id, { pass_criteria: e.target.value })} />
+                </div>
+                <Button size="sm" disabled={savingId === b.id} onClick={() => save(b)}>
+                  {savingId === b.id ? <><Loader2 className="mr-1 h-4 w-4 animate-spin" />Saving…</> : "Save"}
+                </Button>
+              </CardContent>
+            </Card>
+          ))}
+          {briefs.length === 0 && <p className="text-sm text-muted-foreground">Loading briefs…</p>}
+        </div>
+      )}
     </div>
   );
 }

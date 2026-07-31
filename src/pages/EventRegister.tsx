@@ -159,6 +159,7 @@ function SuccessScreen({ result }: { result: RegisterResult }) {
   const [vetSending, setVetSending] = useState(false);
   const [vetSent, setVetSent] = useState(false);
   const [vetError, setVetError] = useState<string | null>(null);
+  const [skipped, setSkipped] = useState(false);
 
   // Passwordless: email a one-click sign-in link (via Resend) straight to vetting.
   const startVetting = async () => {
@@ -200,17 +201,24 @@ function SuccessScreen({ result }: { result: RegisterResult }) {
           <p className="mt-2 rounded-lg bg-emerald-50 px-3 py-2 text-sm text-emerald-700">
             Check your email — we sent a one-click link to sign in and start vetting. No password needed.
           </p>
+        ) : skipped ? (
+          <p className="mt-2 text-sm text-gray-500">
+            No problem — the {type} group is enough for now. You can get vetted anytime from your dashboard.
+          </p>
         ) : (
           <>
             <p className="mt-1 text-sm text-gray-500">
               Get vetted and start receiving international opportunities. We'll email you a one-click sign-in link — no password to set up.
             </p>
-            <div className="mt-3 flex items-center gap-3">
+            <div className="mt-3 flex flex-col gap-2 sm:flex-row">
               <button onClick={startVetting} disabled={vetSending}
-                className="flex items-center gap-2 rounded-lg bg-[#2563EB] px-4 py-2 text-sm font-semibold text-white hover:bg-[#1d4fd7] disabled:opacity-70">
+                className="flex items-center justify-center gap-2 rounded-lg bg-[#2563EB] px-4 py-2 text-sm font-semibold text-white hover:bg-[#1d4fd7] disabled:opacity-70">
                 {vetSending ? <><Loader2 className="h-4 w-4 animate-spin" />Sending…</> : "Start vetting"}
               </button>
-              <span className="text-sm text-gray-400">Maybe later — the {type} group is enough for now.</span>
+              <button onClick={() => setSkipped(true)}
+                className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50">
+                Maybe later
+              </button>
             </div>
             {vetError && <p className="mt-2 text-sm text-red-600">{vetError}</p>}
           </>
