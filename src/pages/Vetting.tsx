@@ -267,10 +267,15 @@ function StageView(p: StageProps) {
               <p className="flex items-center gap-1.5 font-medium"><FileText className="h-4 w-4" />{brief.title}</p>
               <p className="mt-1 text-muted-foreground">{brief.brief}</p>
               {brief.pass_criteria && <p className="mt-2 text-xs text-muted-foreground"><strong>We're looking for:</strong> {brief.pass_criteria}</p>}
-              {brief.reference_template_url && (
-                <a href={brief.reference_template_url} target="_blank" rel="noreferrer" className="mt-2 inline-flex items-center gap-1 text-xs text-primary underline">
-                  Reference template <ExternalLink className="h-3 w-3" />
+              {brief.reference_template_url ? (
+                <a href={brief.reference_template_url} target="_blank" rel="noreferrer"
+                  className="mt-3 inline-flex items-center gap-2 rounded-lg bg-primary px-3.5 py-2 text-sm font-semibold text-primary-foreground hover:opacity-90">
+                  <FileText className="h-4 w-4" /> Open the reference template <ExternalLink className="h-3.5 w-3.5" />
                 </a>
+              ) : (
+                <p className="mt-2 text-xs text-muted-foreground">
+                  Your reviewer will share the reference material in the community group — recreate it and submit your link below.
+                </p>
               )}
             </div>
           ) : (

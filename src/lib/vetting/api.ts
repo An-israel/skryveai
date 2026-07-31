@@ -139,6 +139,36 @@ export async function reviewProfessionalism(
   return data as { ok: boolean };
 }
 
+// ── Admin: manage test briefs (attach reference templates, edit copy) ────────
+export interface AdminBrief {
+  id: string;
+  skill_category: string;
+  title: string;
+  brief: string;
+  reference_template_url: string | null;
+  pass_criteria: string | null;
+  is_active: boolean;
+}
+
+export async function fetchAllBriefs(): Promise<AdminBrief[]> {
+  const { data, error } = await rpc("vetting_briefs_all");
+  if (error || !Array.isArray(data)) return [];
+  return data as AdminBrief[];
+}
+
+export async function upsertBrief(b: {
+  id?: string | null; skill_category: string; title: string; brief: string;
+  reference_template_url?: string | null; pass_criteria?: string | null; is_active?: boolean;
+}) {
+  const { data, error } = await rpc("vetting_brief_upsert", {
+    _id: b.id ?? null, _skill_category: b.skill_category, _title: b.title, _brief: b.brief,
+    _reference_template_url: b.reference_template_url ?? null, _pass_criteria: b.pass_criteria ?? null,
+    _is_active: b.is_active ?? true,
+  });
+  if (error) return { ok: false as const };
+  return data as { ok: boolean; id?: string };
+}
+
 // The structured professionalism questions (the "attitude" signal). Kept here so
 // the copy is easy to tune.
 export const PROFESSIONALISM_QUESTIONS = [
