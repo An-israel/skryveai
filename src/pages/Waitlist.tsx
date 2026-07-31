@@ -124,7 +124,7 @@ export default function Waitlist() {
 
         {/* Form / success */}
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.08 }}>
-          <div className="rounded-2xl bg-white p-6 text-gray-900 shadow-2xl sm:p-8">
+          <div className="rounded-2xl bg-white p-6 text-gray-900 shadow-2xl [color-scheme:light] sm:p-8">
             {result ? (
               <div className="py-2 text-center">
                 <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-green-100">
@@ -169,7 +169,7 @@ export default function Waitlist() {
                   <input
                     type="email" required value={email} onChange={(e) => setEmail(e.target.value)}
                     placeholder="you@email.com"
-                    className="w-full rounded-lg border border-gray-300 px-3 py-2.5 text-sm outline-none focus:border-[#2563EB] focus:ring-1 focus:ring-[#2563EB]"
+                    className="w-full rounded-lg border border-gray-300 bg-white text-gray-900 placeholder-gray-400 px-3 py-2.5 text-sm outline-none focus:border-[#2563EB] focus:ring-1 focus:ring-[#2563EB]"
                   />
                 </div>
                 <div className="grid grid-cols-2 gap-3">
@@ -177,14 +177,14 @@ export default function Waitlist() {
                     <label className="mb-1 block text-sm font-medium">Full name <span className="text-gray-400">(optional)</span></label>
                     <input
                       value={fullName} onChange={(e) => setFullName(e.target.value)} placeholder="Your name"
-                      className="w-full rounded-lg border border-gray-300 px-3 py-2.5 text-sm outline-none focus:border-[#2563EB] focus:ring-1 focus:ring-[#2563EB]"
+                      className="w-full rounded-lg border border-gray-300 bg-white text-gray-900 placeholder-gray-400 px-3 py-2.5 text-sm outline-none focus:border-[#2563EB] focus:ring-1 focus:ring-[#2563EB]"
                     />
                   </div>
                   <div>
                     <label className="mb-1 block text-sm font-medium">Country</label>
                     <input
                       value={country} onChange={(e) => setCountry(e.target.value)} placeholder="Nigeria"
-                      className="w-full rounded-lg border border-gray-300 px-3 py-2.5 text-sm outline-none focus:border-[#2563EB] focus:ring-1 focus:ring-[#2563EB]"
+                      className="w-full rounded-lg border border-gray-300 bg-white text-gray-900 placeholder-gray-400 px-3 py-2.5 text-sm outline-none focus:border-[#2563EB] focus:ring-1 focus:ring-[#2563EB]"
                     />
                   </div>
                 </div>
@@ -192,7 +192,7 @@ export default function Waitlist() {
                   <label className="mb-1 block text-sm font-medium">Your main skill</label>
                   <select
                     required value={skill} onChange={(e) => setSkill(e.target.value)}
-                    className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm outline-none focus:border-[#2563EB] focus:ring-1 focus:ring-[#2563EB]"
+                    className="w-full rounded-lg border border-gray-300 bg-white text-gray-900 px-3 py-2.5 text-sm outline-none focus:border-[#2563EB] focus:ring-1 focus:ring-[#2563EB]"
                   >
                     <option value="" disabled>Select a skill…</option>
                     {SKILL_CATEGORIES.map((c) => (
@@ -207,14 +207,14 @@ export default function Waitlist() {
                     <label className="mb-1 block text-sm font-medium">Portfolio link <span className="text-gray-400">(optional)</span></label>
                     <input
                       value={portfolio} onChange={(e) => setPortfolio(e.target.value)} placeholder="behance.net/you"
-                      className="w-full rounded-lg border border-gray-300 px-3 py-2.5 text-sm outline-none focus:border-[#2563EB] focus:ring-1 focus:ring-[#2563EB]"
+                      className="w-full rounded-lg border border-gray-300 bg-white text-gray-900 placeholder-gray-400 px-3 py-2.5 text-sm outline-none focus:border-[#2563EB] focus:ring-1 focus:ring-[#2563EB]"
                     />
                   </div>
                   <div>
                     <label className="mb-1 block text-sm font-medium">Years</label>
                     <input
                       type="number" min={0} value={years} onChange={(e) => setYears(e.target.value)} placeholder="3"
-                      className="w-full rounded-lg border border-gray-300 px-3 py-2.5 text-sm outline-none focus:border-[#2563EB] focus:ring-1 focus:ring-[#2563EB]"
+                      className="w-full rounded-lg border border-gray-300 bg-white text-gray-900 placeholder-gray-400 px-3 py-2.5 text-sm outline-none focus:border-[#2563EB] focus:ring-1 focus:ring-[#2563EB]"
                     />
                   </div>
                 </div>
