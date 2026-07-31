@@ -109,22 +109,22 @@ export default function EventRegister() {
             </div>
             {webinar.description && <p className="mt-4 whitespace-pre-wrap text-white/80">{webinar.description}</p>}
 
-            <form onSubmit={submit} className="mt-7 rounded-3xl bg-white p-6 text-gray-900 shadow-2xl ring-1 ring-black/5 sm:p-7">
+            <form onSubmit={submit} className="mt-7 rounded-3xl bg-white p-6 text-gray-900 shadow-2xl ring-1 ring-black/5 [color-scheme:light] sm:p-7">
               <h2 className="text-xl font-bold">Register free</h2>
               <p className="mb-4 text-sm text-gray-500">Save your spot — takes 20 seconds.</p>
               <div className="space-y-3">
                 <input required value={name} onChange={(e) => setName(e.target.value)} placeholder="Full name"
-                  className="w-full rounded-lg border border-gray-300 px-3 py-2.5 text-sm outline-none focus:border-[#2563EB]" />
+                  className="w-full rounded-lg border border-gray-300 bg-white text-gray-900 placeholder-gray-400 px-3 py-2.5 text-sm outline-none focus:border-[#2563EB]" />
                 <input required type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="Email"
-                  className="w-full rounded-lg border border-gray-300 px-3 py-2.5 text-sm outline-none focus:border-[#2563EB]" />
+                  className="w-full rounded-lg border border-gray-300 bg-white text-gray-900 placeholder-gray-400 px-3 py-2.5 text-sm outline-none focus:border-[#2563EB]" />
                 <div className="grid grid-cols-2 gap-3">
                   <input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="Phone (WhatsApp)"
-                    className="w-full rounded-lg border border-gray-300 px-3 py-2.5 text-sm outline-none focus:border-[#2563EB]" />
+                    className="w-full rounded-lg border border-gray-300 bg-white text-gray-900 placeholder-gray-400 px-3 py-2.5 text-sm outline-none focus:border-[#2563EB]" />
                   <input value={country} onChange={(e) => setCountry(e.target.value)} placeholder="Country"
-                    className="w-full rounded-lg border border-gray-300 px-3 py-2.5 text-sm outline-none focus:border-[#2563EB]" />
+                    className="w-full rounded-lg border border-gray-300 bg-white text-gray-900 placeholder-gray-400 px-3 py-2.5 text-sm outline-none focus:border-[#2563EB]" />
                 </div>
                 <select value={skill} onChange={(e) => setSkill(e.target.value)}
-                  className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm outline-none focus:border-[#2563EB]">
+                  className="w-full rounded-lg border border-gray-300 bg-white text-gray-900 px-3 py-2.5 text-sm outline-none focus:border-[#2563EB]">
                   <option value="">Your main skill (optional)</option>
                   {SKILL_CATEGORIES.map((c) => (
                     <optgroup key={c.category} label={c.category}>
@@ -173,7 +173,7 @@ function SuccessScreen({ result }: { result: RegisterResult }) {
     else setVetError(res.error || "Couldn't send the link.");
   };
   return (
-    <div className="rounded-3xl bg-white p-6 text-gray-900 shadow-2xl ring-1 ring-black/5 sm:p-8">
+    <div className="rounded-3xl bg-white p-6 text-gray-900 shadow-2xl ring-1 ring-black/5 [color-scheme:light] sm:p-8">
       <div className="text-center">
         <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-green-100">
           <CheckCircle2 className="h-8 w-8 text-[#059669]" />

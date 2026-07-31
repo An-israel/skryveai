@@ -4,6 +4,7 @@ import { createPortal } from "react-dom";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { uploadAndParseCv } from "@/lib/cv-import/api";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
@@ -19,7 +20,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Separator } from "@/components/ui/separator";
 import {
   Plus, Trash2, Sparkles, Download, Save, ChevronUp, ChevronDown,
-  Loader2, X, Check, AlertCircle, Linkedin, ArrowLeft
+  Loader2, X, Check, AlertCircle, Linkedin, ArrowLeft, Upload
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -202,6 +203,8 @@ export default function CVEditor() {
 
   // Modals
   const [showImportModal, setShowImportModal] = useState(false);
+  const [uploadingCv, setUploadingCv] = useState(false);
+  const cvUploadRef = useRef<HTMLInputElement>(null);
   const [showTemplateModal, setShowTemplateModal] = useState(false);
   const [showATSModal, setShowATSModal] = useState(false);
   const [showAISummarySheet, setShowAISummarySheet] = useState(false);
@@ -350,8 +353,12 @@ export default function CVEditor() {
       };
     }
 
-    if (!profileId) return;
+    await createCvFrom(newData);
+  };
 
+  // Shared: persist a new CV row from form data and open it.
+  const createCvFrom = async (newData: CVFormData) => {
+    if (!profileId) return;
     const { data: cv, error } = await (supabase as any)
       .from("skryve_cvs")
       .insert({
@@ -379,6 +386,58 @@ export default function CVEditor() {
     setDbId(cv.id);
     setCvData(newData);
     navigate(`/cv-builder/${cv.id}`, { replace: true });
+  };
+
+  // Upload an existing CV (PDF/DOCX), parse it, and pre-fill the builder.
+  const handleUploadCv = async (file: File) => {
+    setUploadingCv(true);
+    try {
+      const parsed = await uploadAndParseCv(file);
+      const links = parsed.links || [];
+      const find = (re: RegExp) => links.find((l) => re.test(l)) || "";
+      const newData: CVFormData = {
+        ...defaultFormData,
+        personal_info: {
+          ...defaultPersonalInfo,
+          fullName: parsed.full_name || "",
+          title: parsed.headline || "",
+          email: parsed.email || "",
+          phone: parsed.phone || "",
+          location: parsed.location || "",
+          linkedin: find(/linkedin\.com/i),
+          github: find(/github\.com/i),
+          website: links.find((l) => !/linkedin\.com|github\.com/i.test(l)) || "",
+        },
+        summary: parsed.bio || "",
+        skills: parsed.skills || [],
+        experiences: (parsed.work_experience || []).length
+          ? (parsed.work_experience || []).map((w) => ({
+              jobTitle: w.role || "",
+              company: w.company || "",
+              location: "",
+              startDate: w.start_date || "",
+              endDate: /present|current/i.test(w.end_date || "") ? "" : (w.end_date || ""),
+              isPresent: /present|current/i.test(w.end_date || ""),
+              bullets: w.description ? w.description.split(/\n|•|·|;/).map((s) => s.trim()).filter(Boolean) : [""],
+            }))
+          : [defaultExperience()],
+        education: (parsed.education || []).length
+          ? (parsed.education || []).map((e) => ({
+              degree: e.qualification || "",
+              school: e.institution || "",
+              year: e.year || "",
+              grade: "",
+            }))
+          : [defaultEducation()],
+      };
+      setShowImportModal(false);
+      await createCvFrom(newData);
+      toast({ title: "CV imported", description: "Review and tweak anything below." });
+    } catch (e) {
+      toast({ title: "Couldn't read that CV", description: e instanceof Error ? e.message : undefined, variant: "destructive" });
+    } finally {
+      setUploadingCv(false);
+    }
   };
 
   // ─── AI Summary ─────────────────────────────────────────────────────────────
@@ -1152,12 +1211,24 @@ export default function CVEditor() {
             <Button
               className="bg-[#2563EB] hover:bg-[#1d4ed8]"
               onClick={() => handleImportProfile(true)}
-              disabled={!talentProfile}
+              disabled={!talentProfile || uploadingCv}
             >
               <Check className="w-4 h-4 mr-2" />
               Yes, Import from Profile
             </Button>
-            <Button variant="outline" onClick={() => handleImportProfile(false)}>
+            <input
+              ref={cvUploadRef}
+              type="file"
+              accept=".pdf,.docx,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+              className="hidden"
+              onChange={(e) => { const f = e.target.files?.[0]; if (f) handleUploadCv(f); e.target.value = ""; }}
+            />
+            <Button variant="outline" onClick={() => cvUploadRef.current?.click()} disabled={uploadingCv}>
+              {uploadingCv
+                ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Reading your CV…</>
+                : <><Upload className="w-4 h-4 mr-2" />Upload my CV (PDF/DOCX)</>}
+            </Button>
+            <Button variant="ghost" onClick={() => handleImportProfile(false)} disabled={uploadingCv}>
               Start from Scratch
             </Button>
           </div>
