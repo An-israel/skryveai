@@ -107,11 +107,17 @@ serve(async (req) => {
     // Keep the prompt bounded; a CV rarely needs more than this.
     const clipped = rawText.slice(0, 24000);
 
+    // Plain-JSON prompt (same call shape as the working generate-* functions —
+    // no tool-calling, which is what was failing). Ask for a strict JSON object.
     const systemPrompt =
-      "You extract structured data from a CV/résumé. Return ONLY the extract_profile " +
-      "tool call — no prose. Use only information present in the text. Never invent " +
-      "companies, roles, skills, dates, or achievements. If a field is absent, omit it " +
-      "or use an empty value. Keep skills concise (single words or short phrases).";
+      "You extract structured data from a CV/résumé. Respond with ONLY a valid JSON " +
+      "object — no prose, no markdown, no code fences. Use exactly this shape: " +
+      '{"full_name":"","headline":"","bio":"","location":"","email":"","phone":"",' +
+      '"years_experience":0,"links":[],"skills":[],' +
+      '"work_experience":[{"company":"","role":"","start_date":"","end_date":"","description":""}],' +
+      '"education":[{"institution":"","qualification":"","year":""}]}. ' +
+      "Use only information present in the text — never invent companies, roles, skills, " +
+      "dates, or achievements. Omit or leave empty anything not present. Keep skills concise.";
 
     const aiResponse = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
@@ -126,69 +132,29 @@ serve(async (req) => {
         temperature: 0,
         system: systemPrompt,
         messages: [{ role: "user", content: `CV TEXT:\n\n${clipped}` }],
-        tools: [{
-          name: "extract_profile",
-          description: "Return the structured profile extracted from the CV text.",
-          input_schema: {
-            type: "object",
-            properties: {
-              full_name: { type: "string" },
-              headline: { type: "string", description: "Professional title/headline, e.g. 'Senior Frontend Engineer'" },
-              bio: { type: "string", description: "A 2-4 sentence professional summary drawn from the CV" },
-              location: { type: "string" },
-              email: { type: "string" },
-              phone: { type: "string" },
-              years_experience: { type: "number", description: "Approx total years of professional experience" },
-              links: { type: "array", items: { type: "string" }, description: "Portfolio/LinkedIn/GitHub URLs" },
-              skills: { type: "array", items: { type: "string" } },
-              work_experience: {
-                type: "array",
-                items: {
-                  type: "object",
-                  properties: {
-                    company: { type: "string" },
-                    role: { type: "string" },
-                    start_date: { type: "string" },
-                    end_date: { type: "string" },
-                    description: { type: "string" },
-                  },
-                  required: ["company", "role"],
-                  additionalProperties: false,
-                },
-              },
-              education: {
-                type: "array",
-                items: {
-                  type: "object",
-                  properties: {
-                    institution: { type: "string" },
-                    qualification: { type: "string" },
-                    year: { type: "string" },
-                  },
-                  required: ["institution"],
-                  additionalProperties: false,
-                },
-              },
-            },
-            required: ["full_name"],
-            additionalProperties: false,
-          },
-        }],
-        tool_choice: { type: "tool", name: "extract_profile" },
       }),
     });
 
     if (!aiResponse.ok) {
       const detail = await aiResponse.text();
       console.error("Anthropic error:", aiResponse.status, detail);
-      return json({ error: "The parser is busy right now. Please try again." }, 502);
+      // Surface a short reason so failures are diagnosable instead of opaque.
+      let reason = "";
+      try { reason = JSON.parse(detail)?.error?.message || ""; } catch { reason = detail.slice(0, 140); }
+      return json({ error: `The parser couldn't run${reason ? `: ${reason}` : ". Please try again."}` }, 502);
     }
 
     const aiData = await aiResponse.json();
-    const toolUse = (aiData.content || []).find((c: { type: string }) => c.type === "tool_use");
-    if (!toolUse?.input) return json({ error: "Could not extract data from that CV." }, 422);
-
-    const parsed = toolUse.input as Record<string, unknown>;
+    const rawOut = (aiData.content || []).map((c: { type: string; text?: string }) => c.type === "text" ? (c.text || "") : "").join("").trim();
+    // Strip any accidental markdown fences and grab the JSON object.
+    const jsonText = (rawOut.match(/\{[\s\S]*\}/) || [rawOut])[0];
+    let parsed: Record<string, unknown>;
+    try {
+      parsed = JSON.parse(jsonText);
+    } catch {
+      console.error("parse-cv: model did not return JSON:", rawOut.slice(0, 200));
+      return json({ error: "Couldn't read that CV — please try a cleaner PDF/DOCX." }, 422);
+    }
 
     // Persist the master CV (one row per user; re-upload replaces it).
     const { error: upsertError } = await serviceClient
