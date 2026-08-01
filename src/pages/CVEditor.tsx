@@ -1199,8 +1199,10 @@ export default function CVEditor() {
       </div>
 
       {/* ── Import Profile Modal ─────────────────────────────────────────────── */}
-      <Dialog open={showImportModal} onOpenChange={() => {}}>
-        <DialogContent className="max-w-sm" onPointerDownOutside={e => e.preventDefault()}>
+      {/* Closing (X / Esc / outside click) counts as "Start from Scratch" so the
+          user always lands in a usable editor and the dialog actually closes. */}
+      <Dialog open={showImportModal} onOpenChange={(open) => { if (!open && !uploadingCv) handleImportProfile(false); }}>
+        <DialogContent className="max-w-sm">
           <DialogHeader>
             <DialogTitle>Import from your Skryve profile?</DialogTitle>
             <DialogDescription>
