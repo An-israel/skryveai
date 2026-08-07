@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import {
   ArrowLeft, Loader2, Plus, Copy, Check, Download, Users, TrendingUp,
-  CalendarDays, Power, Link2, ShieldCheck,
+  CalendarDays, Power, Link2, ShieldCheck, Pencil,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -40,6 +40,30 @@ export default function WebinarManager() {
   const [communityLink, setCommunityLink] = useState("");
   const [communityType, setCommunityType] = useState("whatsapp");
   const [saving, setSaving] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
+
+  // ISO → value for <input type="datetime-local"> (local time, no seconds).
+  const toLocalInput = (iso?: string | null) => {
+    if (!iso) return "";
+    const d = new Date(iso);
+    const off = d.getTimezoneOffset() * 60000;
+    return new Date(d.getTime() - off).toISOString().slice(0, 16);
+  };
+
+  const resetForm = () => {
+    setTitle(""); setSlug(""); setSlugEdited(false); setDescription(""); setDatetime("");
+    setHost(""); setCover(""); setCommunityLink(""); setCommunityType("whatsapp"); setEditingId(null);
+  };
+
+  const startEdit = (w: Webinar) => {
+    setEditingId(w.id);
+    setTitle(w.title || ""); setSlug(w.slug || ""); setSlugEdited(true);
+    setDescription(w.description || ""); setDatetime(toLocalInput(w.event_datetime));
+    setHost(w.host_name || ""); setCover(w.cover_image_url || "");
+    setCommunityLink(w.community_link || ""); setCommunityType(w.community_type || "whatsapp");
+    setCreating(true);
+    if (typeof window !== "undefined") window.scrollTo({ top: 0, behavior: "smooth" });
+  };
 
   const reload = async () => {
     const [w, s] = await Promise.all([listWebinars(), fetchDashboardStats()]);
@@ -68,6 +92,7 @@ export default function WebinarManager() {
     const finalSlug = slug.trim() || slugify(title);
     setSaving(true);
     const res = await upsertWebinar({
+      id: editingId,
       title: title.trim(), slug: finalSlug, description, event_type: "webinar",
       event_datetime: datetime ? new Date(datetime).toISOString() : null,
       host_name: host, cover_image_url: cover, community_link: communityLink, community_type: communityType,
@@ -77,8 +102,8 @@ export default function WebinarManager() {
       toast.error(res.reason === "slug_taken" ? "That link is already taken — pick another." : "Couldn't save.");
       return;
     }
-    toast.success("Event created", { description: linkFor(res.slug || finalSlug) });
-    setTitle(""); setSlug(""); setSlugEdited(false); setDescription(""); setDatetime(""); setHost(""); setCover(""); setCommunityLink("");
+    toast.success(editingId ? "Event updated" : "Event created", { description: linkFor(res.slug || finalSlug) });
+    resetForm();
     setCreating(false);
     await reload();
   };
@@ -115,7 +140,9 @@ export default function WebinarManager() {
             <p className="text-sm text-muted-foreground">Run webinars that fill the waitlist automatically.</p>
           </div>
         </div>
-        <Button onClick={() => setCreating((v) => !v)}><Plus className="mr-1 h-4 w-4" />New event</Button>
+        <Button onClick={() => { if (creating) { setCreating(false); resetForm(); } else { resetForm(); setCreating(true); } }}>
+          <Plus className="mr-1 h-4 w-4" />New event
+        </Button>
       </div>
 
       {/* The big numbers */}
@@ -138,7 +165,7 @@ export default function WebinarManager() {
       {/* Create form */}
       {creating && (
         <Card className="mb-6">
-          <CardHeader className="pb-2"><CardTitle className="text-base">New event</CardTitle></CardHeader>
+          <CardHeader className="pb-2"><CardTitle className="text-base">{editingId ? "Edit event" : "New event"}</CardTitle></CardHeader>
           <CardContent className="space-y-3">
             <div>
               <Label>Title</Label>
@@ -175,7 +202,12 @@ export default function WebinarManager() {
                 </select>
               </div>
             </div>
-            <Button onClick={save} disabled={saving}>{saving ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Creating…</> : "Create event & get link"}</Button>
+            <div className="flex gap-2">
+              <Button onClick={save} disabled={saving}>
+                {saving ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Saving…</> : editingId ? "Save changes" : "Create event & get link"}
+              </Button>
+              <Button variant="ghost" onClick={() => { setCreating(false); resetForm(); }}>Cancel</Button>
+            </div>
           </CardContent>
         </Card>
       )}
@@ -199,6 +231,7 @@ export default function WebinarManager() {
                   </p>
                 </div>
                 <div className="flex shrink-0 items-center gap-1">
+                  <Button size="sm" variant="ghost" title="Edit" onClick={() => startEdit(w)}><Pencil className="h-4 w-4" /></Button>
                   <Button size="sm" variant="ghost" title="Export registrants" onClick={() => exportRegistrants(w)}><Download className="h-4 w-4" /></Button>
                   <Button size="sm" variant="ghost" title={w.is_active ? "Deactivate" : "Activate"}
                     onClick={async () => { await toggleWebinar(w.id, !w.is_active); await reload(); }}>
