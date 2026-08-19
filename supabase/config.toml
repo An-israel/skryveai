@@ -33,12 +33,6 @@ project_id = "uwwmwerdfpyekgshkrft"
     verify_jwt = false
   [functions.initialize-payment]
     verify_jwt = false
-  [functions.learning-coach-chat]
-    verify_jwt = false
-  [functions.learning-coach-reminders]
-    verify_jwt = false
-  [functions.learning-review-assignment]
-    verify_jwt = false
   [functions.manage-push]
     verify_jwt = false
   [functions.notify-admin-failed-emails]

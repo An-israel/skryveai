@@ -27,7 +27,6 @@ import { StaffReports } from "@/components/admin/StaffReports";
 import { PageToggleManager } from "@/components/admin/PageToggleManager";
 import { AdminBlogManager } from "@/components/admin/AdminBlogManager";
 import { EventsManager } from "@/components/admin/EventsManager";
-import { SkillsManager } from "@/components/admin/SkillsManager";
 import { UsageManager } from "@/components/admin/UsageManager";
 
 interface AdminStats {
@@ -50,7 +49,7 @@ interface CMSPage {
 }
 
 // Role-based tab definitions
-type TabId = "users" | "pages" | "images" | "staff" | "activity" | "credits" | "analytics" | "reports" | "page-toggle" | "blog" | "events" | "skills" | "usage";
+type TabId = "users" | "pages" | "images" | "staff" | "activity" | "credits" | "analytics" | "reports" | "page-toggle" | "blog" | "events" | "usage";
 
 const TAB_PERMISSIONS: Record<TabId, string[]> = {
   users: ["super_admin", "support_agent"],
@@ -64,7 +63,6 @@ const TAB_PERMISSIONS: Record<TabId, string[]> = {
   "page-toggle": ["super_admin"],
   blog: ["super_admin", "content_editor"],
   events: ["super_admin", "content_editor", "staff"],
-  skills: ["super_admin", "content_editor"],
   usage: ["super_admin"],
 };
 
@@ -644,7 +642,6 @@ export default function Admin() {
                 "page-toggle": <Shield className="w-3.5 h-3.5 shrink-0" />,
                 blog: <FileText className="w-3.5 h-3.5 shrink-0" />,
                 events: <CalendarDays className="w-3.5 h-3.5 shrink-0" />,
-                skills: <GraduationCap className="w-3.5 h-3.5 shrink-0" />,
                 usage: <Activity className="w-3.5 h-3.5 shrink-0" />,
               };
               const labels: Record<TabId, string> = {
@@ -659,7 +656,6 @@ export default function Admin() {
                 "page-toggle": "Visibility",
                 blog: "Blog",
                 events: "Events",
-                skills: "Skills",
                 usage: "Usage",
               };
               return (
@@ -1162,12 +1158,6 @@ export default function Admin() {
             <TabsContent value="usage"><UsageManager /></TabsContent>
           )}
 
-          {/* Skills / Learn Manager Tab */}
-          {hasTabAccess("skills") && (
-            <TabsContent value="skills">
-              <SkillsManager />
-            </TabsContent>
-          )}
         </Tabs>
       </div>
 
