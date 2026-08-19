@@ -28,6 +28,7 @@ export default function ProfileView() {
 
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [talent, setTalent] = useState<any>(null);
+  const [client, setClient] = useState<any>(null);
   const [portfolio, setPortfolio] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
@@ -64,7 +65,24 @@ export default function ProfileView() {
       }
 
       if (!tp) {
-        setNotFound(true);
+        // Not a talent — try client_profiles before giving up, so a client's
+        // profile link (or a client viewing their own) doesn't always 404.
+        const cpq = () => (supabase as any).from("client_profiles").select("*");
+        let cp: any = null;
+        if (UUID_RE.test(username)) {
+          ({ data: cp } = await cpq().eq("user_id", username).maybeSingle());
+          if (!cp) ({ data: cp } = await cpq().eq("id", username).maybeSingle());
+        } else {
+          const nameFromSlug = username.replace(/-/g, " ");
+          const { data: matches } = await cpq().ilike("company_name", nameFromSlug).limit(1);
+          cp = matches?.[0] ?? null;
+        }
+        if (!cp) {
+          setNotFound(true);
+          setLoading(false);
+          return;
+        }
+        setClient(cp);
         setLoading(false);
         return;
       }
@@ -147,6 +165,45 @@ export default function ProfileView() {
         <h2 className="font-display text-2xl font-bold mb-2">Profile not found</h2>
         <p className="text-muted-foreground mb-6">The profile you're looking for doesn't exist or has been removed.</p>
         <Button onClick={() => navigate("/marketplace")}>Browse Talent</Button>
+      </div>
+    );
+  }
+
+  if (client) {
+    const isClientOwner = currentUser?.id === client.user_id;
+    return (
+      <div className="max-w-2xl mx-auto space-y-4">
+        <Card>
+          <CardContent className="p-6 space-y-4">
+            <div className="flex items-center gap-4">
+              <div className="w-16 h-16 rounded-xl bg-muted flex items-center justify-center overflow-hidden shrink-0">
+                {client.logo_url ? (
+                  <img src={client.logo_url} alt={client.company_name} className="w-full h-full object-cover" />
+                ) : (
+                  <Briefcase className="w-7 h-7 text-muted-foreground" />
+                )}
+              </div>
+              <div>
+                <h1 className="font-display text-xl font-bold">{client.company_name || "Company"}</h1>
+                {client.industry && <p className="text-sm text-muted-foreground">{client.industry}</p>}
+              </div>
+              {isClientOwner && (
+                <Button variant="outline" size="sm" className="ml-auto" onClick={() => navigate("/profile")}>
+                  Edit Profile
+                </Button>
+              )}
+            </div>
+            {client.location && (
+              <p className="text-sm text-muted-foreground flex items-center gap-1.5"><MapPin className="w-4 h-4" />{client.location}</p>
+            )}
+            {client.bio && <p className="text-sm whitespace-pre-wrap leading-relaxed">{client.bio}</p>}
+            {client.website && (
+              <a href={client.website} target="_blank" rel="noopener noreferrer" className="text-sm text-primary flex items-center gap-1.5 hover:underline">
+                <Globe className="w-4 h-4" />{client.website}
+              </a>
+            )}
+          </CardContent>
+        </Card>
       </div>
     );
   }

@@ -27,6 +27,8 @@ project_id = "uwwmwerdfpyekgshkrft"
     verify_jwt = false
   [functions.generate-linkedin-guide]
     verify_jwt = false
+  [functions.generate-sitemap]
+    verify_jwt = false
   [functions.get-exchange-rates]
     verify_jwt = false
   [functions.handle-reply]
@@ -68,6 +70,8 @@ project_id = "uwwmwerdfpyekgshkrft"
   [functions.send-push-notifications]
     verify_jwt = false
   [functions.send-team-invite]
+    verify_jwt = false
+  [functions.sonder-agent]
     verify_jwt = false
   [functions.verify-payment]
     verify_jwt = false

@@ -84,10 +84,15 @@ export default function Login() {
       return;
     }
     setResending(true);
-    const { error } = await supabase.auth.resend({ type: "signup", email });
+    // Routed through send-auth-email like Signup/ForgotPassword/VerifyEmail —
+    // not supabase.auth.resend()'s built-in mailer, which the app deliberately
+    // avoids elsewhere (see send-auth-email's own header comment).
+    const { data, error } = await supabase.functions.invoke("send-auth-email", {
+      body: { action: "resend", email, redirectTo: window.location.origin + "/dashboard" },
+    });
     setResending(false);
-    if (error) {
-      toast({ title: "Could not resend", description: error.message, variant: "destructive" });
+    if (error || data?.error) {
+      toast({ title: "Could not resend", description: error?.message || data?.error, variant: "destructive" });
     } else {
       toast({ title: "Verification email sent!", description: "Check your inbox and click the link." });
     }

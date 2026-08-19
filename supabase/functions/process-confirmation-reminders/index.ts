@@ -1,4 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
+import { authorizeAdminOrCron } from "../_shared/cron-auth.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -16,6 +17,11 @@ Deno.serve(async (req) => {
     const resendApiKey = Deno.env.get("RESEND_API_KEY");
 
     const supabase = createClient(supabaseUrl, serviceRoleKey);
+
+    // Previously fully public — anyone who found the URL could trigger real
+    // transactional emails to real users. Admin token, or the daily cron.
+    const authResponse = await authorizeAdminOrCron(req, supabase, corsHeaders, "process-confirmation-reminders:anonymous");
+    if (authResponse) return authResponse;
 
     // Find users who signed up 2+ hours ago but haven't confirmed their email
     const twoHoursAgo = new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString();

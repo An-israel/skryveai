@@ -1,6 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { enforceRateLimit, rateLimitResponse } from "../_shared/rate-limit.ts";
+import { authorizeAdminOrCron } from "../_shared/cron-auth.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -400,25 +400,8 @@ serve(async (req) => {
   // belong to an admin; a request with none is rate-limited hard instead —
   // well under the cron's own 4-hour cadence, so even a discovered URL can't
   // be abused for meaningful cost.
-  const authHeader = req.headers.get("authorization")?.replace("Bearer ", "");
-  if (authHeader) {
-    const { data: { user } } = await supabase.auth.getUser(authHeader);
-    if (!user) {
-      return new Response(JSON.stringify({ error: "Unauthorized" }), {
-        status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-    const { data: roles } = await supabase.from("user_roles").select("role").eq("user_id", user.id);
-    const isAdmin = roles?.some((r) => ["super_admin", "content_editor", "support_agent"].includes(r.role));
-    if (!isAdmin) {
-      return new Response(JSON.stringify({ error: "Forbidden" }), {
-        status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-  } else {
-    const rl = await enforceRateLimit(supabase, "scrape-jobs:anonymous", 2, 3600);
-    if (!rl.allowed) return rateLimitResponse(corsHeaders, rl.retryAfter);
-  }
+  const authResponse = await authorizeAdminOrCron(req, supabase, corsHeaders, "scrape-jobs:anonymous");
+  if (authResponse) return authResponse;
 
   const anthropicKey = Deno.env.get("ANTHROPIC_API_KEY");
 

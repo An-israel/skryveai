@@ -3,6 +3,7 @@
 // deleted/private/region-blocked videos) and a HEAD probe for Vimeo/Loom.
 // Idempotent — safe to call from a cron or admin button.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
+import { requireAdmin } from "../_shared/cron-auth.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -67,6 +68,11 @@ Deno.serve(async (req) => {
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
     );
+
+    // Previously any authenticated user (not just admins) could trigger this —
+    // it has no legitimate anonymous/cron caller, so require admin outright.
+    const authResponse = await requireAdmin(req, supabase, corsHeaders);
+    if (authResponse) return authResponse;
 
     const body = await req.json().catch(() => ({}));
     const onlyStale: boolean = body?.onlyStale ?? true;

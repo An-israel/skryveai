@@ -5,6 +5,7 @@
 // (no body) from the nightly cron.
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
+import { enforceRateLimit } from "../_shared/rate-limit.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -12,6 +13,16 @@ const corsHeaders = {
 };
 
 const SONDER_BOT = "50fde12b-0000-4000-8000-000000000002";
+
+// Hard spend cap (the reason background Sonder was killed entirely in
+// 20260712010000/20260714000000 — see those migrations). Two independent
+// limits, both enforced server-side regardless of what's stored per-user:
+//  - a per-user cap on how many cover letters one run can generate for them,
+//  - a GLOBAL daily cap on total cover letters across every user, shared
+//    across cron runs via the same rate_limit_events table used elsewhere,
+//    so it holds even if the schedule ever fires more than once in a day.
+const PER_USER_RUN_CAP = 10;
+const GLOBAL_DAILY_LETTER_BUDGET = 150;
 
 function scoreJob(job: any, titles: string[], skills: string[]): number {
   const hay = `${job.title || ""} ${(job.skill_tags || []).join(" ")}`.toLowerCase();
@@ -75,7 +86,9 @@ async function runForUser(sb: any, key: string | undefined, pref: any): Promise<
     .map((j: any) => ({ ...j, fit: scoreJob(j, titles, skills) }))
     .filter((j: any) => j.fit >= 40)
     .sort((a: any, b: any) => b.fit - a.fit)
-    .slice(0, pref.daily_limit || 5);
+    // Never trust a client-set daily_limit beyond the hard per-run cap — the
+    // Sonder.tsx UI clamps to 1-20, but that's not enforced server-side.
+    .slice(0, Math.min(pref.daily_limit || 5, PER_USER_RUN_CAP));
 
   if (!scored.length) {
     await sb.from("sonder_preferences").update({ last_run_at: new Date().toISOString() }).eq("user_id", pref.user_id);
@@ -84,8 +97,20 @@ async function runForUser(sb: any, key: string | undefined, pref: any): Promise<
 
   let prepared = 0;
   for (const j of scored) {
-    const needsReview = !j.budget; // no salary listed → ask the user
-    const letter = key && !needsReview ? await coverLetter(key, j, cvText) : "";
+    let needsReview = !j.budget; // no salary listed → ask the user
+    let needsReviewReason = needsReview ? "No salary listed — confirm before applying." : null;
+    let letter = "";
+    if (key && !needsReview) {
+      // Global daily budget, shared across every user and every cron run —
+      // this, not just the per-user cap above, is what actually bounds spend.
+      const budget = await enforceRateLimit(sb, "sonder:cover-letters", GLOBAL_DAILY_LETTER_BUDGET, 86400);
+      if (budget.allowed) {
+        letter = await coverLetter(key, j, cvText);
+      } else {
+        needsReview = true;
+        needsReviewReason = "Today's AI writing budget is used up — write your own cover letter for this one.";
+      }
+    }
     const { error } = await sb.from("sonder_applications").insert({
       user_id: pref.user_id,
       source: "aggregated",
@@ -97,7 +122,7 @@ async function runForUser(sb: any, key: string | undefined, pref: any): Promise<
       fit_score: j.fit,
       status: needsReview ? "needs_review" : "ready",
       cover_letter: letter || null,
-      needs_review_reason: needsReview ? "No salary listed — confirm before applying." : null,
+      needs_review_reason: needsReviewReason,
     });
     if (!error) prepared++;
   }
@@ -132,13 +157,39 @@ serve(async (req) => {
   let body: any = {};
   try { body = await req.json(); } catch { /* cron: no body */ }
 
+  // This function now runs with the gateway's verify_jwt off (config.toml) —
+  // the daily cron calls it with no auth header at all, the same way
+  // scrape-jobs/send-digest/event-reminders do. A manual "Run now" request
+  // (body.userId set) still needs to genuinely be that user, so check it here
+  // instead of relying on the gateway.
+  if (body.userId) {
+    const authHeader = req.headers.get("authorization")?.replace("Bearer ", "");
+    const { data: { user } } = authHeader ? await sb.auth.getUser(authHeader) : { data: { user: null } };
+    if (!user || user.id !== body.userId) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+  }
+
   let prefs: any[] = [];
   if (body.userId) {
     const { data } = await sb.from("sonder_preferences").select("*").eq("user_id", body.userId).eq("active", true);
     prefs = data || [];
   } else {
-    const { data } = await sb.from("sonder_preferences").select("*").eq("active", true).limit(500);
-    prefs = data || [];
+    // Background/cron mode. Sonder is Business-plan-only by product design
+    // (use-entitlements.ts' canUseSonder) — re-check that server-side rather
+    // than trusting sonder_preferences.active alone, since that flag predates
+    // the plan-taxonomy fix and this is the one feature that must never
+    // silently mass-run for free/basic users again.
+    const { data: bizSubs } = await sb.from("subscriptions").select("user_id").eq("plan", "business").eq("status", "active");
+    const { data: ownerProfile } = await sb.from("profiles").select("user_id").ilike("email", "aniekaneazy@gmail.com").maybeSingle();
+    const eligibleIds = [...new Set([...(bizSubs || []).map((s: any) => s.user_id), ownerProfile?.user_id].filter(Boolean))];
+
+    if (eligibleIds.length) {
+      const { data } = await sb.from("sonder_preferences").select("*").eq("active", true).in("user_id", eligibleIds).limit(500);
+      prefs = data || [];
+    }
   }
 
   let total = 0;

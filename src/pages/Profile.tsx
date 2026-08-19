@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { useSkryveRole } from "@/hooks/use-skryve-role";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -10,7 +11,144 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { SearchableMultiSelect } from "@/components/ui/searchable-multi-select";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { User, Upload, CheckCircle, Clock, XCircle } from "lucide-react";
+import { User, Upload, CheckCircle, Clock, XCircle, Loader2 } from "lucide-react";
+
+const INDUSTRIES = [
+  "Technology", "Finance", "Healthcare", "Education", "E-commerce", "Marketing & Advertising",
+  "Media & Entertainment", "Real Estate", "Consulting", "Manufacturing", "Non-profit", "Other",
+];
+
+/** Client-role profile editor — company info, saved to client_profiles. */
+function ClientProfileEditor({ userId }: { userId: string }) {
+  const { toast } = useToast();
+  const logoInputRef = useRef<HTMLInputElement>(null);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [form, setForm] = useState({
+    companyName: "", industry: "", location: "", website: "", bio: "", logoUrl: "",
+  });
+
+  useEffect(() => {
+    (supabase as any).from("client_profiles").select("*").eq("user_id", userId).maybeSingle()
+      .then(({ data }: any) => {
+        if (data) {
+          setForm({
+            companyName: data.company_name || "",
+            industry: data.industry || "",
+            location: data.location || "",
+            website: data.website || "",
+            bio: data.bio || "",
+            logoUrl: data.logo_url || "",
+          });
+        }
+        setLoading(false);
+      });
+  }, [userId]);
+
+  async function handleLogoChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploading(true);
+    const ext = file.name.split(".").pop();
+    const path = `${userId}/logo.${ext}`;
+    const { error } = await supabase.storage.from("logos").upload(path, file, { upsert: true });
+    if (error) {
+      toast({ title: "Upload failed", description: error.message, variant: "destructive" });
+      setUploading(false);
+      return;
+    }
+    const { data: { publicUrl } } = supabase.storage.from("logos").getPublicUrl(path);
+    setForm((p) => ({ ...p, logoUrl: `${publicUrl}?v=${Date.now()}` }));
+    setUploading(false);
+    toast({ title: "Logo uploaded" });
+  }
+
+  async function save() {
+    setSaving(true);
+    const { error } = await (supabase as any).from("client_profiles").upsert({
+      user_id: userId,
+      company_name: form.companyName || null,
+      industry: form.industry || null,
+      location: form.location || null,
+      website: form.website || null,
+      bio: form.bio || null,
+      logo_url: form.logoUrl || null,
+      updated_at: new Date().toISOString(),
+    }, { onConflict: "user_id" });
+    setSaving(false);
+    if (error) toast({ title: "Error", description: error.message, variant: "destructive" });
+    else toast({ title: "Profile Updated" });
+  }
+
+  if (loading) {
+    return <div className="flex justify-center py-16"><Loader2 className="w-6 h-6 animate-spin text-muted-foreground" /></div>;
+  }
+
+  return (
+    <div className="max-w-2xl mx-auto space-y-6">
+      <div>
+        <h1 className="font-display text-2xl font-extrabold tracking-tight">Edit Company Profile</h1>
+        <p className="text-sm text-muted-foreground mt-1">Keep your company info up to date for talent you work with.</p>
+      </div>
+      <Card>
+        <CardHeader><CardTitle className="text-base">Company Information</CardTitle></CardHeader>
+        <CardContent className="space-y-5">
+          <div className="flex flex-col items-center gap-3">
+            <div
+              onClick={() => logoInputRef.current?.click()}
+              className="relative w-24 h-24 rounded-xl border-2 border-dashed border-border cursor-pointer hover:border-primary transition-colors flex items-center justify-center overflow-hidden bg-muted"
+            >
+              {form.logoUrl ? (
+                <img src={form.logoUrl} alt="Logo" className="w-full h-full object-cover" />
+              ) : (
+                <User className="w-10 h-10 text-muted-foreground" />
+              )}
+              <div className="absolute inset-0 bg-black/40 opacity-0 hover:opacity-100 transition-opacity flex items-center justify-center rounded-xl">
+                <Upload className="w-5 h-5 text-white" />
+              </div>
+            </div>
+            <p className="text-xs text-muted-foreground">{uploading ? "Uploading..." : "Click to upload company logo"}</p>
+            <input ref={logoInputRef} type="file" accept="image/*" className="hidden" onChange={handleLogoChange} />
+          </div>
+
+          <div className="space-y-1.5">
+            <Label>Company Name</Label>
+            <Input value={form.companyName} onChange={(e) => setForm((p) => ({ ...p, companyName: e.target.value }))} placeholder="Your company name" />
+          </div>
+          <div className="space-y-1.5">
+            <Label>Industry</Label>
+            <Select value={form.industry} onValueChange={(v) => setForm((p) => ({ ...p, industry: v }))}>
+              <SelectTrigger><SelectValue placeholder="Select industry" /></SelectTrigger>
+              <SelectContent>
+                {INDUSTRIES.map((i) => <SelectItem key={i} value={i}>{i}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-1.5">
+            <Label>Location</Label>
+            <Input value={form.location} onChange={(e) => setForm((p) => ({ ...p, location: e.target.value }))} placeholder="City, Country" />
+          </div>
+          <div className="space-y-1.5">
+            <Label>Website</Label>
+            <Input value={form.website} onChange={(e) => setForm((p) => ({ ...p, website: e.target.value }))} placeholder="https://yourcompany.com" type="url" />
+          </div>
+          <div className="space-y-1.5">
+            <Label>About <span className="text-muted-foreground text-xs">({form.bio.length}/500)</span></Label>
+            <Textarea
+              value={form.bio} maxLength={500} rows={4}
+              onChange={(e) => setForm((p) => ({ ...p, bio: e.target.value }))}
+              placeholder="Tell talent about your company..."
+            />
+          </div>
+          <Button onClick={save} disabled={saving} className="w-full">
+            {saving ? "Saving..." : "Save Changes"}
+          </Button>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
 
 const ALL_SKILLS = [
   "Web Development", "UI/UX Design", "Copywriting", "Video Editing", "Graphic Design",
@@ -50,6 +188,7 @@ export default function Profile() {
   const coverInputRef = useRef<HTMLInputElement>(null);
 
   const [user, setUser] = useState<any>(null);
+  const role = useSkryveRole(user?.id);
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [uploadingCover, setUploadingCover] = useState(false);
@@ -224,6 +363,13 @@ export default function Profile() {
     setSaving(false);
     if (error) toast({ title: "Error", description: error.message, variant: "destructive" });
     else toast({ title: "Profile Updated" });
+  }
+
+  if (role === "loading") {
+    return <div className="flex justify-center py-16"><Loader2 className="w-6 h-6 animate-spin text-muted-foreground" /></div>;
+  }
+  if (role === "client" && user) {
+    return <ClientProfileEditor userId={user.id} />;
   }
 
   return (

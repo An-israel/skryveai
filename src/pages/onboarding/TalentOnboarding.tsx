@@ -191,6 +191,23 @@ export default function TalentOnboarding() {
           preferred_platforms: form.platforms,
           digest_enabled: form.dailyDigest,
         }, { onConflict: 'talent_id' });
+
+        // Portfolio samples collected in step 7 were never persisted anywhere —
+        // silently discarded every time. portfolio_items matches the same
+        // shape PortfolioManager.tsx already writes.
+        const samples = form.portfolio.filter((p) => p.title.trim() && p.url.trim());
+        if (samples.length) {
+          await (supabase as any).from('portfolio_items').insert(
+            samples.map((p) => ({
+              talent_id: talentId,
+              title: p.title.trim(),
+              description: p.description || null,
+              image_url: p.type === 'file' ? p.url : null,
+              project_url: p.type === 'link' ? p.url : null,
+              is_featured: false,
+            }))
+          );
+        }
       }
       await (supabase as any).from('talent_profiles').update({ onboarding_completed: true }).eq('user_id', user.id);
       await (supabase as any).from('profiles').update({ active_role: 'talent' }).eq('user_id', user.id);
