@@ -23,6 +23,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Star, Users, ChevronDown, MessageSquare, Briefcase, BadgeCheck, Lock, Building2 } from "lucide-react";
 import { matchesSkillQuery } from "@/lib/skills";
 import { VettedBadge } from "@/components/vetting/VettedBadge";
+import { PAID_PLANS } from "@/hooks/use-entitlements";
 
 const AVAILABILITY_BADGE: Record<string, { label: string; className: string }> = {
   available: { label: "Available", className: "bg-green-500/10 text-green-600 border-green-500/20" },
@@ -78,7 +79,7 @@ export default function BrowseTalent() {
           .eq("status", "active")
           .maybeSingle()
           .then(({ data }: any) => {
-            setIsPaid(data?.plan === "pro" || data?.plan === "business");
+            setIsPaid(PAID_PLANS.includes(data?.plan));
           });
       }
     });

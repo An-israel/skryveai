@@ -130,7 +130,7 @@ function NegotiateForm({
   const handleSubmit = async () => {
     setSubmitting(true);
     try {
-      await (supabase as any)
+      const { error: statusError } = await (supabase as any)
         .from("job_applications")
         .update({
           status: "countered",
@@ -139,6 +139,7 @@ function NegotiateForm({
           counter_note: counterNote || null,
         })
         .eq("id", app.id);
+      if (statusError) throw statusError;
 
       const job = app.marketplace_jobs;
       if (job?.client_profiles?.user_id) {
@@ -239,14 +240,23 @@ function ApplicationDetailDrawer({
   const status: string = app.status || "pending";
 
   const handleAccept = async () => {
-    await (supabase as any).from("job_applications").update({ status: "hired" }).eq("id", app.id);
+    const { error } = await (supabase as any).from("job_applications").update({ status: "hired" }).eq("id", app.id);
+    if (error) {
+      toast({ title: "Couldn't accept offer", description: "Please try again.", variant: "destructive" });
+      return;
+    }
     onStatusChange(app.id, "hired");
     toast({ title: "Offer accepted!" });
     onClose();
   };
 
   const handleDecline = async () => {
-    await (supabase as any).from("job_applications").update({ status: "rejected" }).eq("id", app.id);
+    const { error } = await (supabase as any).from("job_applications").update({ status: "rejected" }).eq("id", app.id);
+    if (error) {
+      toast({ title: "Couldn't decline offer", description: "Please try again.", variant: "destructive" });
+      setConfirmDecline(false);
+      return;
+    }
     onStatusChange(app.id, "rejected");
     toast({ title: "Offer declined." });
     setConfirmDecline(false);

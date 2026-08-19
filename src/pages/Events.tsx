@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { formatDistanceToNow, format, isPast, isFuture } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -189,6 +190,7 @@ function FeaturedBanner({ event, onRsvp }: { event: any; onRsvp: (id: string) =>
 
 export default function Events() {
   const navigate = useNavigate();
+  const { toast } = useToast();
   const [user, setUser] = useState<any>(null);
   const [events, setEvents] = useState<any[]>([]);
   const [featured, setFeatured] = useState<any | null>(null);
@@ -252,19 +254,32 @@ export default function Events() {
 
   const handleRsvp = async (eventId: string) => {
     if (!user) { navigate("/login"); return; }
-    const existing = events.find((e) => e.id === eventId)?.user_rsvped;
-    if (existing) {
-      await (supabase as any)
-        .from("event_rsvps")
-        .delete()
-        .eq("event_id", eventId)
-        .eq("user_id", user.id);
-    } else {
-      await (supabase as any)
-        .from("event_rsvps")
-        .insert({ event_id: eventId, user_id: user.id, payment_status: "pending" });
+    const target = events.find((e) => e.id === eventId);
+    const existing = target?.user_rsvped;
+    // Paid events need the checkout flow (ticket verified server-side) — that
+    // only lives on the event detail page, not this inline toggle.
+    if (!existing && target?.price_type === "paid") {
+      navigate(`/events/${eventId}`);
+      return;
     }
-    fetchEvents();
+    try {
+      if (existing) {
+        const { error } = await (supabase as any)
+          .from("event_rsvps")
+          .delete()
+          .eq("event_id", eventId)
+          .eq("user_id", user.id);
+        if (error) throw error;
+      } else {
+        const { error } = await (supabase as any)
+          .from("event_rsvps")
+          .insert({ event_id: eventId, user_id: user.id, payment_status: "pending" });
+        if (error) throw error;
+      }
+      fetchEvents();
+    } catch (err: any) {
+      toast({ title: "Couldn't update RSVP", description: err.message, variant: "destructive" });
+    }
   };
 
   const filtered = events.filter((e) =>

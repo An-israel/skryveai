@@ -63,14 +63,10 @@ export default function PaymentRelease() {
   const handleRelease = async () => {
     setReleasing(true);
     try {
-      const { error } = await (supabase as any)
-        .from("projects")
-        .update({
-          payment_status: "released",
-          status: "completed",
-        })
-        .eq("id", projectId);
-
+      // Restricted to the paying client server-side (release_project_payment
+      // RPC) — Skryve doesn't move funds itself yet, so this only confirms
+      // you've paid the talent outside the platform and marks the project done.
+      const { error } = await (supabase as any).rpc("release_project_payment", { _project_id: projectId });
       if (error) throw error;
 
       // Notify talent
@@ -85,8 +81,8 @@ export default function PaymentRelease() {
           notifyUser({
             userId: payTalent.user_id,
             type: "payment",
-            title: "Payment released!",
-            message: `Your payment of ${project.currency} ${project.total_amount} has been released for "${project.title}".`,
+            title: "Client confirmed payment",
+            message: `${project.currency} ${project.total_amount} for "${project.title}" has been confirmed as paid by the client.`,
             link: `/projects/${projectId}`,
             emailCategory: "projects",
           });
@@ -94,9 +90,9 @@ export default function PaymentRelease() {
       }
 
       setReleased(true);
-      toast({ title: "Payment released!", description: "Funds have been released to the talent." });
+      toast({ title: "Payment confirmed", description: "The project is marked complete and the talent has been notified." });
     } catch (err: any) {
-      toast({ title: "Release failed", description: err.message, variant: "destructive" });
+      toast({ title: "Couldn't confirm payment", description: err.message, variant: "destructive" });
     } finally {
       setReleasing(false);
     }
@@ -118,9 +114,9 @@ export default function PaymentRelease() {
         <div className="w-20 h-20 rounded-full bg-green-50 flex items-center justify-center mx-auto mb-6">
           <CheckCircle className="w-10 h-10 text-green-600" />
         </div>
-        <h2 className="text-2xl font-bold text-[#1E3A5F] mb-2">Payment Released!</h2>
+        <h2 className="text-2xl font-bold text-[#1E3A5F] mb-2">Payment Confirmed</h2>
         <p className="text-muted-foreground mb-8">
-          {project?.currency} {project?.total_amount} has been released to {talent?.full_name || "the talent"}.
+          The project is marked complete and {talent?.full_name || "the talent"} has been notified that your {project?.currency} {project?.total_amount} payment is confirmed.
         </p>
         <Button className="bg-[#2563EB] hover:bg-[#1d4ed8]" onClick={() => navigate("/projects")}>
           Back to Projects
@@ -136,8 +132,8 @@ export default function PaymentRelease() {
       </Button>
 
       <div>
-        <h1 className="text-2xl font-bold text-[#1E3A5F]">Release Payment</h1>
-        <p className="text-sm text-muted-foreground">Confirm payment for completed work</p>
+        <h1 className="text-2xl font-bold text-[#1E3A5F]">Confirm Payment</h1>
+        <p className="text-sm text-muted-foreground">Confirm you've paid {talent?.full_name || "the talent"} for completed work</p>
       </div>
 
       {/* Project summary */}
@@ -208,12 +204,12 @@ export default function PaymentRelease() {
         </CardContent>
       </Card>
 
-      {/* Warning */}
+      {/* Notice */}
       <div className="flex gap-3 p-4 bg-amber-50 border border-amber-200 rounded-lg">
         <AlertTriangle className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
         <div className="text-sm text-amber-800">
-          <p className="font-medium mb-1">This action cannot be undone</p>
-          <p>Releasing payment confirms you are satisfied with the work delivered. Only proceed when you have reviewed and accepted all deliverables.</p>
+          <p className="font-medium mb-1">Skryve doesn't process this payment for you</p>
+          <p>Pay {talent?.full_name || "the talent"} directly using the payment details you agreed on, then confirm here. This just marks the project complete on Skryve — it does not send any money. This action cannot be undone.</p>
         </div>
       </div>
 
@@ -223,14 +219,14 @@ export default function PaymentRelease() {
           <AlertDialogTrigger asChild>
             <Button className="w-full bg-[#059669] hover:bg-[#047857]" size="lg">
               <DollarSign className="w-4 h-4 mr-2" />
-              Release Payment — {project?.currency} {project?.total_amount?.toLocaleString()}
+              Confirm Payment Sent — {project?.currency} {project?.total_amount?.toLocaleString()}
             </Button>
           </AlertDialogTrigger>
           <AlertDialogContent>
             <AlertDialogHeader>
-              <AlertDialogTitle>Confirm Payment Release</AlertDialogTitle>
+              <AlertDialogTitle>Confirm you've paid {talent?.full_name}?</AlertDialogTitle>
               <AlertDialogDescription>
-                You are about to release {project?.currency} {project?.total_amount} to {talent?.full_name}. This will mark the project as complete and cannot be reversed.
+                This confirms you've already sent {project?.currency} {project?.total_amount} to {talent?.full_name} outside Skryve, and marks the project as complete. Skryve does not transfer funds on your behalf. This cannot be reversed.
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
@@ -240,7 +236,7 @@ export default function PaymentRelease() {
                 onClick={handleRelease}
                 disabled={releasing}
               >
-                {releasing ? <><Loader2 className="w-4 h-4 animate-spin mr-2" />Releasing...</> : "Yes, Release Payment"}
+                {releasing ? <><Loader2 className="w-4 h-4 animate-spin mr-2" />Confirming...</> : "Yes, I've Paid"}
               </AlertDialogAction>
             </AlertDialogFooter>
           </AlertDialogContent>

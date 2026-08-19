@@ -5,7 +5,16 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { Clock, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { useLimits, type ToolStatus } from "@/hooks/useLimits";
+import type { ToolLimitInfo } from "@/lib/edge-function-error";
 
 const LABEL: Record<string, string> = {
   proposals: "AI proposals",
@@ -81,10 +90,53 @@ export function LimitReachedCard({
       </p>
       <div className="mt-5 flex flex-col sm:flex-row gap-2 justify-center">
         <Button asChild>
-          <Link to="/billing">Upgrade to Pro</Link>
+          <Link to="/pricing">Upgrade to Pro</Link>
         </Button>
         <Button variant="ghost" onClick={onWait}>I’ll wait</Button>
       </div>
     </div>
+  );
+}
+
+/**
+ * Modal counterpart to LimitReachedCard, for flows with no natural inline slot
+ * (e.g. an import/generate action inside a modal or sheet). Same warm, never-a-
+ * wall framing — an upgrade path plus a no-cost dismiss, never just an error.
+ *
+ * Render once per page and drive it with the info returned by a caught
+ * ToolLimitError (see useToolLimitDialog); pass `null` to keep it closed.
+ */
+export function LimitReachedDialog({
+  info,
+  onOpenChange,
+}: {
+  info: ToolLimitInfo | null;
+  onOpenChange: (open: boolean) => void;
+}) {
+  const open = !!info;
+  const tool = info?.tool ?? "";
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-md">
+        <div className="mx-auto mb-1 w-11 h-11 rounded-full bg-primary/10 flex items-center justify-center">
+          <Sparkles className="w-5 h-5 text-primary" />
+        </div>
+        <DialogHeader className="items-center text-center">
+          <DialogTitle>
+            You&rsquo;ve used your{info?.limit ? ` ${info.limit}` : ""} {labelFor(tool)} for this month
+          </DialogTitle>
+          <DialogDescription>
+            You&rsquo;re on the free plan. Upgrade to Pro for unlimited {labelFor(tool)} — and every other AI tool, with no monthly caps.
+          </DialogDescription>
+        </DialogHeader>
+        <DialogFooter className="sm:justify-center gap-2">
+          <Button variant="ghost" onClick={() => onOpenChange(false)}>Maybe later</Button>
+          <Button asChild>
+            <Link to="/pricing" onClick={() => onOpenChange(false)}>Upgrade to Pro</Link>
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }

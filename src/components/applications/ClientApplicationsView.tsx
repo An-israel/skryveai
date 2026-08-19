@@ -236,10 +236,14 @@ export default function ClientApplicationsView({ user }: { user: any }) {
   };
 
   const handleShortlist = async (app: any) => {
-    await (supabase as any)
+    const { error } = await (supabase as any)
       .from("job_applications")
       .update({ status: "shortlisted" })
       .eq("id", app.id);
+    if (error) {
+      toast({ title: "Couldn't shortlist", description: "Please try again.", variant: "destructive" });
+      return;
+    }
 
     notifyUser({
       userId: app.user_id,
@@ -573,10 +577,11 @@ function SendOfferInline({
         .single();
       if (projErr) throw projErr;
 
-      await (supabase as any)
+      const { error: appErr } = await (supabase as any)
         .from("job_applications")
         .update({ status: "offer_received" })
         .eq("id", app.id);
+      if (appErr) throw appErr;
 
       notifyUser({
         userId: app.user_id,

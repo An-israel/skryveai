@@ -130,10 +130,11 @@ export function SendOfferModal({
       }
 
       // Update application to offer_sent
-      await (supabase as any)
+      const { error: appErr } = await (supabase as any)
         .from("job_applications")
         .update({ status: "offer_sent" })
         .eq("id", applicationId);
+      if (appErr) throw appErr;
 
       // Create notification for talent
       // talentId is a talent_profiles.id — resolve the auth user_id to notify.

@@ -292,28 +292,26 @@ export default function LearnPath() {
       currency: "NGN",
       ref: `course_${courseId}_${Date.now()}`,
       metadata: { course_id: courseId, user_id: userId },
-      callback: async () => {
-        // On success: create enrollment
-        if (talentProfile) {
-          try {
-            const { data } = await (supabase as any)
-              .from("enrollments")
-              .insert({
-                course_id: courseId,
-                talent_id: talentProfile.id,
-                payment_status: "paid",
-                progress_percent: 0,
-              })
-              .select("*")
-              .single();
-            setEnrollment(data as Enrollment);
-            toast({ title: "Enrolled!", description: "Payment successful." });
-            if (lessons.length > 0) {
-              navigate(`/learn/${courseId}/${lessons[0].id}`);
-            }
-          } catch {
-            toast({ title: "Payment received, enrollment pending. Please refresh.", variant: "destructive" });
+      callback: async (response: { reference: string }) => {
+        // The Paystack popup's own "success" callback isn't proof a charge went
+        // through — verify server-side (which re-checks amount/course/user
+        // against Paystack directly) before the enrollment is ever marked paid.
+        try {
+          const { data, error } = await supabase.functions.invoke("verify-course-payment", {
+            body: { reference: response.reference, courseId },
+          });
+          if (error) throw error;
+          if (data?.status !== "success") {
+            toast({ title: "Payment not confirmed", description: data?.message || "Please contact support with your reference.", variant: "destructive" });
+            return;
           }
+          setEnrollment(data.enrollment as Enrollment);
+          toast({ title: "Enrolled!", description: "Payment successful." });
+          if (lessons.length > 0) {
+            navigate(`/learn/${courseId}/${lessons[0].id}`);
+          }
+        } catch {
+          toast({ title: "Payment received, enrollment pending", description: "We're confirming your payment — refresh in a moment. Contact support if this doesn't clear.", variant: "destructive" });
         }
       },
       onClose: () => {},

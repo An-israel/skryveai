@@ -43,7 +43,32 @@ export async function enforceToolLimit(
   userId: string,
   tool: string
 ): Promise<ToolGate> {
-  // 0. Global anti-abuse ceiling (per user, across every AI tool). Fail-open on
+  // 0. Owner bypass. Super admins run the platform, they don't consume it — skip
+  // every cap (plan tier AND the anti-abuse burst/day ceiling below) entirely.
+  // Still logged, for admin visibility, just never blocked.
+  try {
+    const { data: role } = await serviceClient
+      .from("user_roles")
+      .select("role")
+      .eq("user_id", userId)
+      .eq("role", "super_admin")
+      .maybeSingle();
+    if (role) {
+      try {
+        await serviceClient
+          .from("tool_usage_events")
+          .insert({ user_id: userId, tool, plan: "owner", blocked: false });
+      } catch (_e) {
+        /* best effort */
+      }
+      return { allowed: true, plan: "owner", tool, limit: null, used: 0, remaining: null };
+    }
+  } catch (_e) {
+    // If the role lookup fails, fall through to normal (safer to under- than
+    // over-grant access).
+  }
+
+  // 1. Global anti-abuse ceiling (per user, across every AI tool). Fail-open on
   // limiter errors — never let it break a legitimate request.
   const burst = await enforceRateLimit(serviceClient, `ai:${userId}`, AI_BURST_PER_MIN, 60);
   if (!burst.allowed) {
@@ -54,9 +79,11 @@ export async function enforceToolLimit(
     return { allowed: false, plan: "free", tool, limit: null, used: 0, remaining: 0, reason: "rate" };
   }
 
-  // 1. Plan. The subscriptions.plan column is a legacy enum
-  // (monthly/yearly/lifetime) in some environments, so only an explicit
-  // 'pro'/'business' counts as paid; everything else is treated as 'free'.
+  // 2. Plan. subscriptions.plan holds one of the real tier names
+  // (basic|pro|unlimited|business|team_basic|team_pro) written by verify-payment,
+  // or "free". Mirrors public.get_user_plan() — any non-"free" value is paid,
+  // which resolves to unlimited below since tool_plan_limits has no rows besides
+  // "free" (the "no row for (plan, tool) == unlimited" convention).
   let plan = "free";
   try {
     const { data: sub } = await serviceClient
@@ -68,12 +95,12 @@ export async function enforceToolLimit(
       .limit(1)
       .maybeSingle();
     const raw = sub?.plan ? String(sub.plan) : "free";
-    plan = raw === "pro" || raw === "business" ? raw : "free";
+    plan = raw && raw !== "free" ? raw : "free";
   } catch (_e) {
     // If subscriptions can't be read, fail closed to "free" (still capped).
   }
 
-  // 2. Limit for (plan, tool).
+  // 3. Limit for (plan, tool).
   let limit: number | null = null;
   try {
     const { data: lim } = await serviceClient
@@ -87,7 +114,7 @@ export async function enforceToolLimit(
     limit = null;
   }
 
-  // 3. Usage this calendar month (non-blocked only).
+  // 4. Usage this calendar month (non-blocked only).
   let used = 0;
   try {
     const { count } = await serviceClient
@@ -104,7 +131,7 @@ export async function enforceToolLimit(
 
   const blocked = limit !== null && used >= limit;
 
-  // 4. Log the event (best effort — never let logging break the tool).
+  // 5. Log the event (best effort — never let logging break the tool).
   try {
     await serviceClient
       .from("tool_usage_events")

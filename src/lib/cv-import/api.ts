@@ -2,7 +2,7 @@
 // parse-cv edge function to extract structured data, and (after the user reviews
 // and edits) commits the result to talent_profiles + work_experience + education.
 import { supabase } from "@/integrations/supabase/client";
-import { getEdgeFunctionErrorMessage } from "@/lib/edge-function-error";
+import { getEdgeFunctionError } from "@/lib/edge-function-error";
 
 export interface CvWorkExperience {
   company: string;
@@ -63,7 +63,7 @@ export async function uploadAndParseCv(file: File): Promise<ParsedCv> {
   const { data, error } = await supabase.functions.invoke("parse-cv", {
     body: { path, fileName: file.name },
   });
-  if (error) throw new Error(await getEdgeFunctionErrorMessage(error, "We couldn't read that CV."));
+  if (error) throw await getEdgeFunctionError(error, "We couldn't read that CV.");
   const parsed = (data as { parsed?: ParsedCv } | null)?.parsed;
   if (!parsed) throw new Error("We couldn't extract anything from that CV.");
   return parsed;

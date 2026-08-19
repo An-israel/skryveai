@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import { formatDistanceToNow, format, startOfMonth } from "date-fns";
 import { Button } from "@/components/ui/button";
@@ -126,14 +126,6 @@ const FEATURE_ROWS = [
   { label: "Priority support", free: "–", pro: "✓", business: "✓" },
 ];
 
-declare global {
-  interface Window {
-    PaystackPop?: {
-      setup: (opts: any) => { openIframe: () => void };
-    };
-  }
-}
-
 export default function Billing() {
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -149,7 +141,6 @@ export default function Billing() {
   const [usageSaved, setUsageSaved] = useState(0);
   const [usageAI, setUsageAI] = useState(0);
 
-  const [processingPlan, setProcessingPlan] = useState<string | null>(null);
   const [showCancelDialog, setShowCancelDialog] = useState(false);
   const [cancelling, setCancelling] = useState(false);
 
@@ -221,82 +212,24 @@ export default function Billing() {
     setUsageAI(aiApps || 0);
   };
 
-  // ── Upgrade via Paystack ───────────────────────────────────────────────────────
-
-  const handleUpgrade = (planId: string, amount: number) => {
-    if (!userId) return;
-    setProcessingPlan(planId);
-
-    const ref = `skryve_${planId}_${Date.now()}`;
-
-    if (!window.PaystackPop) {
-      toast({
-        title: "Paystack not loaded",
-        description: "Please refresh the page and try again.",
-        variant: "destructive",
-      });
-      setProcessingPlan(null);
-      return;
-    }
-
-    window.PaystackPop.setup({
-      key: import.meta.env.VITE_PAYSTACK_PUBLIC_KEY || "",
-      email: userEmail,
-      amount: amount * 100, // kobo
-      currency: "NGN",
-      ref,
-      callback: async (response: { reference: string }) => {
-        // Record billing history
-        await (supabase as any).from("billing_history").insert({
-          user_id: userId,
-          plan: planId,
-          amount,
-          currency: "NGN",
-          status: "paid",
-          paystack_ref: response.reference,
-        });
-
-        // Upsert subscription
-        const now = new Date();
-        const nextMonth = new Date(now);
-        nextMonth.setMonth(nextMonth.getMonth() + 1);
-
-        await (supabase as any).from("subscriptions").upsert(
-          {
-            user_id: userId,
-            plan: planId,
-            status: "active",
-            current_period_start: now.toISOString(),
-            current_period_end: nextMonth.toISOString(),
-            cancel_at_period_end: false,
-            paystack_ref: response.reference,
-            updated_at: now.toISOString(),
-          },
-          { onConflict: "user_id" }
-        );
-
-        await loadSubscription(userId);
-        await loadBillingHistory(userId);
-        toast({ title: "Subscription activated!", description: `Welcome to ${planId} plan.` });
-        setProcessingPlan(null);
-      },
-      onClose: () => {
-        setProcessingPlan(null);
-      },
-    }).openIframe();
-  };
+  // ── Cancel ─────────────────────────────────────────────────────────────────────
+  // Goes through a SECURITY DEFINER RPC rather than a direct table update — the
+  // client no longer has write access to subscriptions at all (a plan is only
+  // ever granted server-side, after Paystack verification; see /pricing).
 
   const cancelSubscription = async () => {
     if (!userId) return;
     setCancelling(true);
-    await (supabase as any)
-      .from("subscriptions")
-      .update({ cancel_at_period_end: true, updated_at: new Date().toISOString() })
-      .eq("user_id", userId);
-    await loadSubscription(userId);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { error } = await (supabase as any).rpc("cancel_own_subscription");
+    if (error) {
+      toast({ title: "Couldn't cancel", description: "Please try again.", variant: "destructive" });
+    } else {
+      await loadSubscription(userId);
+      toast({ title: "Subscription will cancel at period end." });
+    }
     setCancelling(false);
     setShowCancelDialog(false);
-    toast({ title: "Subscription will cancel at period end." });
   };
 
   // ── Derived ────────────────────────────────────────────────────────────────────
@@ -488,15 +421,8 @@ export default function Billing() {
                     {p.id === currentPlan.id ? (
                       <Badge variant="outline">Current</Badge>
                     ) : p.price > 0 ? (
-                      <Button
-                        size="sm"
-                        onClick={() => handleUpgrade(p.id, p.price)}
-                        disabled={processingPlan === p.id}
-                      >
-                        {processingPlan === p.id ? (
-                          <Loader2 className="w-3 h-3 animate-spin mr-1" />
-                        ) : null}
-                        Upgrade
+                      <Button size="sm" asChild>
+                        <Link to="/pricing">Upgrade</Link>
                       </Button>
                     ) : null}
                   </td>
