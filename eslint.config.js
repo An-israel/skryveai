@@ -5,7 +5,12 @@ import reactRefresh from "eslint-plugin-react-refresh";
 import tseslint from "typescript-eslint";
 
 export default tseslint.config(
-  { ignores: ["dist"] },
+  // supabase/functions is Deno code (Deno.env, npm: specifiers, no bundler) —
+  // linting it with this project's browser-globals/React config produced
+  // noise unrelated to either codebase. skryve-marketplace is an orphaned
+  // Next.js-flavored fragment (next/headers-style server/client split) that
+  // isn't wired into this Vite app's build at all.
+  { ignores: ["dist", "supabase/functions", "skryve-marketplace"] },
   {
     extends: [js.configs.recommended, ...tseslint.configs.recommended],
     files: ["**/*.{ts,tsx}"],

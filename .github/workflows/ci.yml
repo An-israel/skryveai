@@ -1,0 +1,27 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      # There's a large pre-existing backlog of `no-explicit-any` lint errors
+      # unrelated to any given PR's diff. Still run it for visibility, but
+      # don't fail CI on debt this workflow didn't introduce — flip this to
+      # blocking once that backlog is paid down.
+      - run: npm run lint
+        continue-on-error: true
+      - run: npx tsc --noEmit
+      - run: npm run test
+      - run: npm run build

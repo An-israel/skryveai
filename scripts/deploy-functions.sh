@@ -1,76 +1,41 @@
 #!/usr/bin/env bash
 # Deploy all Skryve Edge Functions to production Supabase
-# Usage: ./scripts/deploy-functions.sh
+# Usage: SUPABASE_PROJECT_REF=your-project-ref ./scripts/deploy-functions.sh
 #
 # Prerequisites:
 #   npm install -g supabase
 #   supabase login
-#   Set SUPABASE_PROJECT_REF below (or export it before running)
+#
+# This used to hardcode a project ref and a hand-maintained function list —
+# both had drifted from the actual project/functions and would have
+# silently deployed to the wrong project while skipping ~20 real functions
+# (including auth, payment-verification and cron endpoints). Deploys every
+# directory under supabase/functions instead, so it can't go stale again.
 
 set -euo pipefail
 
-PROJECT_REF="${SUPABASE_PROJECT_REF:-dgyuafltlpruhdlgwiew}"
+if [[ -z "${SUPABASE_PROJECT_REF:-}" ]]; then
+  echo "ERROR: SUPABASE_PROJECT_REF is not set." >&2
+  echo "  Find it at: Supabase Dashboard → Project Settings → General → Reference ID" >&2
+  echo "  Usage: SUPABASE_PROJECT_REF=your-project-ref ./scripts/deploy-functions.sh" >&2
+  exit 1
+fi
+PROJECT_REF="$SUPABASE_PROJECT_REF"
 
 echo "→ Deploying Edge Functions to project: $PROJECT_REF"
 echo ""
 
-# Critical functions — deploy these first
-CRITICAL=(
-  auth-email-hook
-  initialize-payment
-  verify-payment
-  paystack-webhook
-  send-welcome-email
-)
+cd "$(dirname "$0")/../supabase/functions"
 
-# Supporting functions
-SUPPORTING=(
-  send-email
-  send-admin-email
-  send-digest
-  send-daily-encouragement
-  send-team-invite
-  send-push-notifications
-  event-reminders
-  learning-coach-reminders
-  learning-coach-chat
-  learning-review-assignment
-  generate-ai-coach
-  generate-cover-letter
-  generate-cv-summary
-  generate-bio
-  generate-job-application
-  generate-proposal
-  generate-pitch
-  generate-linkedin-guide
-  check-ats-score
-  build-cv
-  improve-description
-  search-jobs
-  admin-stats
-  admin-user-auth-actions
-  process-daily-credits
-  process-trial-reminders
-  chat-notify
-  manage-push
-  get-exchange-rates
-  generate-sitemap
-  tiptip-generate
-  tiptip-weekly-summary
-  send-reengagement
-)
-
-echo "── Critical functions ────────────────────────────────"
-for fn in "${CRITICAL[@]}"; do
+for dir in */; do
+  fn="${dir%/}"
+  [[ "$fn" == "_shared" ]] && continue
   echo "  deploying $fn..."
-  supabase functions deploy "$fn" --project-ref "$PROJECT_REF" --no-verify-jwt 2>&1 | tail -1
-done
-
-echo ""
-echo "── Supporting functions ──────────────────────────────"
-for fn in "${SUPPORTING[@]}"; do
-  echo "  deploying $fn..."
-  supabase functions deploy "$fn" --project-ref "$PROJECT_REF" --no-verify-jwt 2>&1 | tail -1
+  # Per-function verify_jwt is set in supabase/config.toml and read
+  # automatically — not passed here, since most functions do their own
+  # inline auth and a small number still rely on gateway JWT verification;
+  # a blanket --no-verify-jwt would have silently disabled that for them.
+  supabase functions deploy "$fn" --project-ref "$PROJECT_REF" 2>&1 | tail -1
 done
 
 echo ""

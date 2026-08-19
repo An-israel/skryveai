@@ -12,6 +12,14 @@ dist
 dist-ssr
 *.local
 
+# Environment variables — never commit real values, see .env.example
+.env
+.env.*
+!.env.example
+
+# Vercel project linking (machine/account-specific)
+.vercel
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
