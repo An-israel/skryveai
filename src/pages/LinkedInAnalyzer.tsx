@@ -13,7 +13,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
 import { extractTextFromPdf } from "@/lib/extract-pdf-text";
-import { getEdgeFunctionErrorMessage } from "@/lib/edge-function-error";
+import { getEdgeFunctionError, getEdgeFunctionErrorMessage } from "@/lib/edge-function-error";
+import { useToolLimitDialog } from "@/hooks/useToolLimitDialog";
 import { FeatureGuide } from "@/components/onboarding/FeatureGuide";
 import { linkedInGuide } from "@/components/onboarding/guideConfigs";
 import {
@@ -134,6 +135,7 @@ export default function LinkedInAnalyzer() {
   const [result, setResult] = useState<AnalysisResult | null>(null);
   const [expandedSection, setExpandedSection] = useState<string | null>(null);
   const [copiedField, setCopiedField] = useState<string | null>(null);
+  const { handle: handleToolLimit, dialog: toolLimitDialog } = useToolLimitDialog();
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -189,7 +191,7 @@ export default function LinkedInAnalyzer() {
       const { data, error } = await supabase.functions.invoke("check-ats-score", {
         body: { mode: "linkedin", profileContent, targetRole: targetRole.trim() || undefined },
       });
-      if (error) throw new Error(error.message || "Analysis failed");
+      if (error) throw await getEdgeFunctionError(error, "Analysis failed");
       if (data?.error) throw new Error(data.error);
       setResult(data as AnalysisResult);
       window.scrollTo({ top: 0, behavior: "smooth" });
@@ -198,6 +200,7 @@ export default function LinkedInAnalyzer() {
         supabase.from("tool_usage").insert({ user_id: user.id, tool_name: "linkedin_analyzer", metadata: { score: data.overallScore, grade: data.grade, profile_strength: data.profileStrength } } as any).then(() => {});
       }
     } catch (err) {
+      if (handleToolLimit(err)) return;
       const description = await getEdgeFunctionErrorMessage(err, "Please try again");
       toast({
         title: "Analysis failed",
@@ -554,6 +557,7 @@ export default function LinkedInAnalyzer() {
           )}
         </AnimatePresence>
       </div>
+      {toolLimitDialog}
     </div>
   );
 }

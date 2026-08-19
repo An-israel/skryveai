@@ -24,6 +24,8 @@ import {
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { useToolLimitDialog } from "@/hooks/useToolLimitDialog";
+import { getEdgeFunctionError } from "@/lib/edge-function-error";
 import CVPreview, { CVData } from "@/components/cv/CVPreview";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -189,6 +191,7 @@ export default function CVEditor() {
   const isNew = cvId === "new" || !cvId;
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { handle: handleToolLimit, dialog: toolLimitDialog } = useToolLimitDialog();
   const [searchParams, setSearchParams] = useSearchParams();
   const autoDownloadDone = useRef(false);
 
@@ -434,6 +437,7 @@ export default function CVEditor() {
       await createCvFrom(newData);
       toast({ title: "CV imported", description: "Review and tweak anything below." });
     } catch (e) {
+      if (handleToolLimit(e)) { setShowImportModal(false); return; }
       toast({ title: "Couldn't read that CV", description: e instanceof Error ? e.message : undefined, variant: "destructive" });
     } finally {
       setUploadingCv(false);
@@ -453,9 +457,10 @@ export default function CVEditor() {
           experience: cvData.experiences.length,
         },
       });
-      if (error) throw error;
+      if (error) throw await getEdgeFunctionError(error);
       setAiSummaryText(data?.text || "");
-    } catch {
+    } catch (e) {
+      if (handleToolLimit(e)) { setShowAISummarySheet(false); return; }
       toast({ title: "AI generation failed", variant: "destructive" });
     } finally {
       setAiGenerating(false);
@@ -487,9 +492,10 @@ export default function CVEditor() {
           bullets: bullets || `Worked as ${cvData.experiences[expIndex]?.jobTitle} at ${cvData.experiences[expIndex]?.company}`,
         },
       });
-      if (error) throw error;
+      if (error) throw await getEdgeFunctionError(error);
       setAiBulletsText(data?.text || "");
-    } catch {
+    } catch (e) {
+      if (handleToolLimit(e)) { setShowAIBulletsSheet(false); return; }
       toast({ title: "AI generation failed", variant: "destructive" });
     } finally {
       setAiGenerating(false);
@@ -1469,6 +1475,8 @@ export default function CVEditor() {
         </div>,
         document.body
       )}
+
+      {toolLimitDialog}
     </div>
   );
 }
