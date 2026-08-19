@@ -20,7 +20,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Separator } from "@/components/ui/separator";
 import {
   Plus, Trash2, Sparkles, Download, Save, ChevronUp, ChevronDown,
-  Loader2, X, Check, AlertCircle, Linkedin, ArrowLeft, Upload
+  Loader2, X, Check, AlertCircle, Linkedin, ArrowLeft, Upload, Copy
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -69,6 +69,21 @@ interface PersonalInfo {
   github: string;
   website: string;
   photoUrl: string;
+}
+
+interface LinkedInGuideSection {
+  title: string;
+  whatItIs: string;
+  whatToPut: string;
+  example: string;
+  proTip?: string;
+}
+
+interface LinkedInGuide {
+  userName: string;
+  headline: string;
+  aboutSection: string;
+  sections: LinkedInGuideSection[];
 }
 
 interface CVFormData {
@@ -213,12 +228,15 @@ export default function CVEditor() {
   const [showAISummarySheet, setShowAISummarySheet] = useState(false);
   const [showAIBulletsSheet, setShowAIBulletsSheet] = useState(false);
   const [showSkryveImportDialog, setShowSkryveImportDialog] = useState(false);
+  const [showLinkedInGuideSheet, setShowLinkedInGuideSheet] = useState(false);
 
   // AI state
   const [aiSummaryText, setAiSummaryText] = useState("");
   const [aiGenerating, setAiGenerating] = useState(false);
   const [aiBulletsText, setAiBulletsText] = useState("");
   const [aiBulletsExpIndex, setAiBulletsExpIndex] = useState(0);
+  const [linkedInGuide, setLinkedInGuide] = useState<LinkedInGuide | null>(null);
+  const [linkedInGuideGenerating, setLinkedInGuideGenerating] = useState(false);
 
   // Skryve cert import
   const [skryveCerts, setSkryveCerts] = useState<Array<{ id: string; name: string; issuer: string; checked: boolean }>>([]);
@@ -591,20 +609,34 @@ export default function CVEditor() {
     return () => { clearTimeout(t); window.removeEventListener("afterprint", done); };
   }, [printing, dbId]);
 
-  // Serialize the CV to plain text and hand it to the LinkedIn optimizer.
-  const openLinkedInGuide = () => {
-    const pi = cvData.personal_info;
-    const text = [
-      `${pi.fullName || ""} — ${pi.title || ""}`.trim(),
-      pi.location, pi.linkedin,
-      cvData.summary && `\nSummary:\n${cvData.summary}`,
-      cvData.skills.length && `\nSkills: ${cvData.skills.join(", ")}`,
-      cvData.experiences.length && "\nExperience:\n" + cvData.experiences
-        .map((e) => `- ${e.jobTitle} at ${e.company}\n  ${(e.bullets || []).filter(Boolean).join("\n  ")}`)
-        .join("\n"),
-      cvData.education.length && "\nEducation:\n" + cvData.education.map((ed) => `- ${ed.degree} at ${ed.school}`).join("\n"),
-    ].filter(Boolean).join("\n");
-    navigate("/linkedin-analyzer", { state: { profileContent: text, targetRole: pi.title || "" } });
+  // Generates a personalized, section-by-section LinkedIn optimization guide
+  // from this CV's data. This used to just navigate to the LinkedIn
+  // Analyzer — a different tool entirely (it scores an existing LinkedIn
+  // profile; it doesn't write one) — so the button never actually produced
+  // a guide.
+  const openLinkedInGuide = async () => {
+    setLinkedInGuide(null);
+    setShowLinkedInGuideSheet(true);
+    setLinkedInGuideGenerating(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("generate-linkedin-guide", {
+        body: { cvData: previewData, userName: cvData.personal_info.fullName || "" },
+      });
+      if (error) throw await getEdgeFunctionError(error);
+      if (!data?.sections?.length) throw new Error("No guide returned");
+      setLinkedInGuide(data);
+    } catch (e) {
+      if (handleToolLimit(e)) { setShowLinkedInGuideSheet(false); return; }
+      toast({ title: "Couldn't generate LinkedIn guide", description: e instanceof Error ? e.message : undefined, variant: "destructive" });
+      setShowLinkedInGuideSheet(false);
+    } finally {
+      setLinkedInGuideGenerating(false);
+    }
+  };
+
+  const copyGuideText = (text: string) => {
+    navigator.clipboard.writeText(text);
+    toast({ title: "Copied to clipboard" });
   };
 
   // ─── Skill input ─────────────────────────────────────────────────────────────
@@ -1422,6 +1454,61 @@ export default function CVEditor() {
                 </div>
               </div>
             )}
+          </div>
+        </SheetContent>
+      </Sheet>
+
+      {/* ── LinkedIn Guide Sheet ─────────────────────────────────────────────── */}
+      <Sheet open={showLinkedInGuideSheet} onOpenChange={setShowLinkedInGuideSheet}>
+        <SheetContent side="right" className="w-full sm:w-[520px] overflow-y-auto">
+          <SheetHeader>
+            <SheetTitle>LinkedIn Optimization Guide</SheetTitle>
+          </SheetHeader>
+          <div className="mt-6">
+            {linkedInGuideGenerating ? (
+              <div className="flex items-center gap-2 text-muted-foreground">
+                <Loader2 className="w-4 h-4 animate-spin" />
+                <span>Generating your personalized guide...</span>
+              </div>
+            ) : linkedInGuide ? (
+              <div className="space-y-6 pb-6">
+                <div>
+                  <div className="flex items-center justify-between mb-1">
+                    <Label className="text-xs uppercase text-muted-foreground">Headline</Label>
+                    <Button variant="ghost" size="sm" className="h-6 px-2" onClick={() => copyGuideText(linkedInGuide.headline)}>
+                      <Copy className="w-3 h-3" />
+                    </Button>
+                  </div>
+                  <p className="text-sm border rounded-md p-3 bg-muted/30">{linkedInGuide.headline}</p>
+                </div>
+                <div>
+                  <div className="flex items-center justify-between mb-1">
+                    <Label className="text-xs uppercase text-muted-foreground">About Section</Label>
+                    <Button variant="ghost" size="sm" className="h-6 px-2" onClick={() => copyGuideText(linkedInGuide.aboutSection)}>
+                      <Copy className="w-3 h-3" />
+                    </Button>
+                  </div>
+                  <p className="text-sm border rounded-md p-3 bg-muted/30 whitespace-pre-wrap">{linkedInGuide.aboutSection}</p>
+                </div>
+                <Separator />
+                {linkedInGuide.sections.map((section, i) => (
+                  <div key={i}>
+                    <h4 className="text-sm font-semibold mb-1">{section.title}</h4>
+                    <p className="text-xs text-muted-foreground mb-2">{section.whatItIs}</p>
+                    <p className="text-xs mb-2"><span className="font-medium">What to put: </span>{section.whatToPut}</p>
+                    <div className="flex items-start justify-between gap-2 border rounded-md p-3 bg-muted/30">
+                      <p className="text-sm whitespace-pre-wrap flex-1">{section.example}</p>
+                      <Button variant="ghost" size="sm" className="h-6 px-2 shrink-0" onClick={() => copyGuideText(section.example)}>
+                        <Copy className="w-3 h-3" />
+                      </Button>
+                    </div>
+                    {section.proTip && (
+                      <p className="text-xs text-muted-foreground mt-2">💡 {section.proTip}</p>
+                    )}
+                  </div>
+                ))}
+              </div>
+            ) : null}
           </div>
         </SheetContent>
       </Sheet>

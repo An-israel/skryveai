@@ -2,7 +2,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, useOutletContext } from "react-router-dom";
 import { ThemeProvider } from "next-themes";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { FloatingWidgets } from "@/components/layout/FloatingWidgets";
@@ -10,6 +10,7 @@ import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { GamificationProvider } from "@/context/GamificationProvider";
 import { DailyCheckIn } from "@/components/credits/DailyCheckIn";
 import { SiteSchema } from "@/components/schema/SiteSchema";
+import { RoleGuard } from "@/components/auth/RoleGuard";
 
 // ── Public pages ────────────────────────────────────────────
 import Landing          from "./pages/Landing";
@@ -97,6 +98,16 @@ const queryClient = new QueryClient();
 // Public routes respect the user's chosen theme (light / dark / system)
 const Public = ({ children }: { children: React.ReactNode }) => <>{children}</>;
 
+// Restricts a route to one Skryve role (talent/client), reading the current
+// user from AppLayout via Outlet context so it doesn't need its own auth
+// fetch. E.g. /marketplace/post lets a talent fill out the whole form only
+// to hit "Client profile not found" on submit — this redirects them before
+// that instead.
+const Gated = ({ role, children }: { role: "talent" | "client"; children: React.ReactNode }) => {
+  const { user } = useOutletContext<{ user: any; role: string }>();
+  return <RoleGuard allowedRole={role} userId={user?.id}>{children}</RoleGuard>;
+};
+
 export default function App() {
   return (
     <ErrorBoundary>
@@ -139,7 +150,7 @@ export default function App() {
                 <Route path="/dashboard"          element={<Dashboard />} />
                 <Route path="/profile"            element={<Profile />} />
                 <Route path="/profile/edit"       element={<Profile />} />
-                <Route path="/profile/portfolio"  element={<PortfolioManager />} />
+                <Route path="/profile/portfolio"  element={<Gated role="talent"><PortfolioManager /></Gated>} />
                 <Route path="/profile/:username"  element={<ProfileView />} />
 
                 {/* Jobs & Marketplace */}
@@ -148,10 +159,10 @@ export default function App() {
                 <Route path="/jobs/saved"           element={<SavedJobs />} />
                 <Route path="/jobs/:jobId"          element={<JobDetail />} />
                 <Route path="/marketplace"              element={<Marketplace />} />
-                <Route path="/marketplace/post"         element={<PostJob />} />
-                <Route path="/marketplace/my-jobs"      element={<MyJobPosts />} />
+                <Route path="/marketplace/post"         element={<Gated role="client"><PostJob /></Gated>} />
+                <Route path="/marketplace/my-jobs"      element={<Gated role="client"><MyJobPosts /></Gated>} />
                 <Route path="/marketplace/:jobId"       element={<MarketplaceJob />} />
-                <Route path="/talent"               element={<BrowseTalent />} />
+                <Route path="/talent"               element={<Gated role="client"><BrowseTalent /></Gated>} />
                 <Route path="/applications"         element={<Applications />} />
                 <Route path="/projects"             element={<Projects />} />
                 <Route path="/projects/:projectId"  element={<ProjectDetail />} />

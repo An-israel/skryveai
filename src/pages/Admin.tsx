@@ -27,7 +27,6 @@ import { StaffReports } from "@/components/admin/StaffReports";
 import { PageToggleManager } from "@/components/admin/PageToggleManager";
 import { AdminBlogManager } from "@/components/admin/AdminBlogManager";
 import { EventsManager } from "@/components/admin/EventsManager";
-import { SkillsManager } from "@/components/admin/SkillsManager";
 import { UsageManager } from "@/components/admin/UsageManager";
 
 interface AdminStats {
@@ -50,7 +49,7 @@ interface CMSPage {
 }
 
 // Role-based tab definitions
-type TabId = "users" | "pages" | "images" | "staff" | "activity" | "credits" | "analytics" | "reports" | "page-toggle" | "blog" | "events" | "skills" | "usage";
+type TabId = "users" | "pages" | "images" | "staff" | "activity" | "credits" | "analytics" | "reports" | "page-toggle" | "blog" | "events" | "usage";
 
 const TAB_PERMISSIONS: Record<TabId, string[]> = {
   users: ["super_admin", "support_agent"],
@@ -64,7 +63,6 @@ const TAB_PERMISSIONS: Record<TabId, string[]> = {
   "page-toggle": ["super_admin"],
   blog: ["super_admin", "content_editor"],
   events: ["super_admin", "content_editor", "staff"],
-  skills: ["super_admin", "content_editor"],
   usage: ["super_admin"],
 };
 
@@ -571,8 +569,8 @@ export default function Admin() {
           )}
         </div>
 
-        {/* Growth tools — events, waitlist + vetting review */}
-        <div className="mb-6 grid gap-3 sm:grid-cols-3">
+        {/* Growth tools — events, waitlist, vetting review + skill learning */}
+        <div className="mb-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
           <button
             onClick={() => navigate("/admin/events")}
             className="flex items-center gap-3 rounded-xl border bg-card p-4 text-left transition-colors hover:border-primary/50"
@@ -609,6 +607,18 @@ export default function Admin() {
               <p className="text-xs text-muted-foreground">Approve skill tests & badges</p>
             </div>
           </button>
+          <button
+            onClick={() => navigate("/admin/skill-learning")}
+            className="flex items-center gap-3 rounded-xl border bg-card p-4 text-left transition-colors hover:border-primary/50"
+          >
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/10">
+              <GraduationCap className="h-5 w-5 text-primary" />
+            </div>
+            <div>
+              <p className="font-semibold">Skill Learning Analytics</p>
+              <p className="text-xs text-muted-foreground">Usage & engagement trends</p>
+            </div>
+          </button>
         </div>
 
         {/* Job aggregator control */}
@@ -632,7 +642,6 @@ export default function Admin() {
                 "page-toggle": <Shield className="w-3.5 h-3.5 shrink-0" />,
                 blog: <FileText className="w-3.5 h-3.5 shrink-0" />,
                 events: <CalendarDays className="w-3.5 h-3.5 shrink-0" />,
-                skills: <GraduationCap className="w-3.5 h-3.5 shrink-0" />,
                 usage: <Activity className="w-3.5 h-3.5 shrink-0" />,
               };
               const labels: Record<TabId, string> = {
@@ -647,7 +656,6 @@ export default function Admin() {
                 "page-toggle": "Visibility",
                 blog: "Blog",
                 events: "Events",
-                skills: "Skills",
                 usage: "Usage",
               };
               return (
@@ -1150,12 +1158,6 @@ export default function Admin() {
             <TabsContent value="usage"><UsageManager /></TabsContent>
           )}
 
-          {/* Skills / Learn Manager Tab */}
-          {hasTabAccess("skills") && (
-            <TabsContent value="skills">
-              <SkillsManager />
-            </TabsContent>
-          )}
         </Tabs>
       </div>
 

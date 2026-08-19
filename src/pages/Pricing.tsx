@@ -325,7 +325,8 @@ export default function Pricing() {
                       {processingPlan === "team_basic" && <Loader2 className="w-4 h-4 animate-spin mr-2" />}
                       Subscribe Monthly
                     </Button>
-                    <Button onClick={() => handleSubscribe("team_basic")} className="w-full" variant="outline" disabled={!!processingPlan}>
+                    <Button onClick={() => handleSubscribe("team_basic_yearly")} className="w-full" variant="outline" disabled={!!processingPlan}>
+                      {processingPlan === "team_basic_yearly" && <Loader2 className="w-4 h-4 animate-spin mr-2" />}
                       Subscribe Yearly (Save {p?.team_basic.yearly?.savings || 15}%)
                     </Button>
                   </div>
@@ -376,7 +377,8 @@ export default function Pricing() {
                       {processingPlan === "team_pro" && <Loader2 className="w-4 h-4 animate-spin mr-2" />}
                       Subscribe Monthly
                     </Button>
-                    <Button onClick={() => handleSubscribe("team_pro")} className="w-full" variant="outline" disabled={!!processingPlan}>
+                    <Button onClick={() => handleSubscribe("team_pro_yearly")} className="w-full" variant="outline" disabled={!!processingPlan}>
+                      {processingPlan === "team_pro_yearly" && <Loader2 className="w-4 h-4 animate-spin mr-2" />}
                       Subscribe Yearly (Save {p?.team_pro.yearly?.savings || 17}%)
                     </Button>
                   </div>

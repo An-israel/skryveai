@@ -2,6 +2,7 @@ import { Outlet, Navigate, useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
 import { AppSidebar } from "./AppSidebar";
 import { AppTopBar } from "./AppTopBar";
+import { PageGuard } from "@/components/PageGuard";
 import { useSkryveRole } from "@/hooks/use-skryve-role";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -118,7 +119,9 @@ export function AppLayout() {
           role={role}
         />
         <main className="flex-1 overflow-auto p-4 md:p-6">
-          <Outlet />
+          <PageGuard>
+            <Outlet context={{ user, role }} />
+          </PageGuard>
         </main>
       </div>
     </div>

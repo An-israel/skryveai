@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { Resend } from "https://esm.sh/resend@2.0.0";
+import { authorizeAdminOrCron } from "../_shared/cron-auth.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -18,6 +19,11 @@ serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
+
+  // Previously fully public — anyone who found the URL could trigger real
+  // transactional emails to real users. Admin token, or the daily cron.
+  const authResponse = await authorizeAdminOrCron(req, supabase, corsHeaders, "process-trial-reminders:anonymous");
+  if (authResponse) return authResponse;
 
   try {
     const now = new Date();

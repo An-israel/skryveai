@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { Resend } from "https://esm.sh/resend@2.0.0";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
+import { authorizeAdminOrCron } from "../_shared/cron-auth.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -27,6 +28,11 @@ serve(async (req) => {
 
     const resend = new Resend(RESEND_API_KEY);
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+
+    // Previously fully public — anyone who found the URL could spam admin
+    // inboxes and burn Resend quota. Admin token, or the scheduled cron.
+    const authResponse = await authorizeAdminOrCron(req, supabase, corsHeaders, "notify-admin-failed-emails:anonymous");
+    if (authResponse) return authResponse;
 
     // Get count of failed emails that haven't been notified yet
     const { data: failedEmails, error: fetchError } = await supabase

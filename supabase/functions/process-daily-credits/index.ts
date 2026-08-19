@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { authorizeAdminOrCron } from "../_shared/cron-auth.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -15,6 +16,13 @@ serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
+
+  // Previously fully public — no auth check, no scheduled caller either (this
+  // was never actually wired to a pg_cron job). Now: an admin token, or the
+  // new daily cron this migration adds (see 20260820010000_*), which — like
+  // every other cron in this app — sends no auth header at all.
+  const authResponse = await authorizeAdminOrCron(req, supabase, corsHeaders, "process-daily-credits:anonymous");
+  if (authResponse) return authResponse;
 
   try {
     console.log("Processing daily credits...");

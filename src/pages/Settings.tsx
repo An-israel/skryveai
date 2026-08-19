@@ -37,6 +37,7 @@ import {
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { useSkryveRole } from "@/hooks/use-skryve-role";
 import { ThemeSelector } from "@/components/settings/ThemeSelector";
 
 // ── Types ──────────────────────────────────────────────────────────────────────
@@ -93,6 +94,8 @@ export default function Settings() {
   const [userEmail, setUserEmail] = useState("");
   const [loading, setLoading] = useState(true);
   const [talentId, setTalentId] = useState<string | null>(null);
+  const role = useSkryveRole(userId);
+  const isClient = role === "client";
 
   // Account
   const [username, setUsername] = useState("");
@@ -100,6 +103,9 @@ export default function Settings() {
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [savingAccount, setSavingAccount] = useState(false);
+  const [showEmailChange, setShowEmailChange] = useState(false);
+  const [newEmail, setNewEmail] = useState("");
+  const [changingEmail, setChangingEmail] = useState(false);
 
   // Notifications
   const [notifPrefs, setNotifPrefs] = useState({
@@ -208,6 +214,11 @@ export default function Settings() {
 
       // Password
       if (newPassword) {
+        if (!currentPassword) {
+          toast({ title: "Enter your current password", variant: "destructive" });
+          setSavingAccount(false);
+          return;
+        }
         if (newPassword !== confirmPassword) {
           toast({ title: "Passwords do not match", variant: "destructive" });
           setSavingAccount(false);
@@ -215,6 +226,17 @@ export default function Settings() {
         }
         if (newPassword.length < 8) {
           toast({ title: "Password must be at least 8 characters", variant: "destructive" });
+          setSavingAccount(false);
+          return;
+        }
+        // Re-authenticate with the current password before changing it — this
+        // field used to be captured but never checked, so a signed-in session
+        // could change the password with no re-auth at all.
+        const { error: reauthError } = await supabase.auth.signInWithPassword({
+          email: userEmail, password: currentPassword,
+        });
+        if (reauthError) {
+          toast({ title: "Current password is incorrect", variant: "destructive" });
           setSavingAccount(false);
           return;
         }
@@ -232,8 +254,29 @@ export default function Settings() {
     setSavingAccount(false);
   };
 
+  const handleChangeEmail = async () => {
+    if (!newEmail || newEmail === userEmail) return;
+    setChangingEmail(true);
+    try {
+      // Sends a confirmation link to the new address — the email only actually
+      // changes once it's clicked (Supabase's own flow), not immediately here.
+      const { error } = await supabase.auth.updateUser({ email: newEmail });
+      if (error) throw error;
+      toast({ title: "Check your new inbox", description: `We sent a confirmation link to ${newEmail}. Your email won't change until you click it.` });
+      setShowEmailChange(false);
+      setNewEmail("");
+    } catch (e: any) {
+      toast({ title: "Couldn't change email", description: e.message, variant: "destructive" });
+    }
+    setChangingEmail(false);
+  };
+
   const saveNotifications = async () => {
-    if (!userId) return;
+    // notif_email_* etc. only exist on talent_profiles — writing this
+    // unconditionally used to create a phantom talent_profiles row for client
+    // accounts. Client-side notification controls aren't built yet (see
+    // send-notification's own client-safe default), so just skip.
+    if (!userId || !talentId) return;
     setSavingNotifs(true);
     try {
       const { error } = await (supabase as any)
@@ -248,7 +291,9 @@ export default function Settings() {
   };
 
   const savePrivacy = async () => {
-    if (!userId) return;
+    // profile_visibility etc. only exist on talent_profiles — same phantom-row
+    // issue as saveNotifications above.
+    if (!userId || !talentId) return;
     setSavingPrivacy(true);
     try {
       const { error } = await (supabase as any)
@@ -331,6 +376,20 @@ export default function Settings() {
       )
     : EXPERTISE_OPTIONS;
 
+  // Notifications/Privacy/Job Preferences aren't wired up for client accounts
+  // yet (see saveNotifications/savePrivacy above) — don't show controls that
+  // silently do nothing.
+  const visibleNavItems = isClient
+    ? NAV_ITEMS.filter((i) => i.value === "account" || i.value === "appearance" || i.value === "danger")
+    : NAV_ITEMS;
+
+  useEffect(() => {
+    if (isClient && !visibleNavItems.some((i) => i.value === activeSection)) {
+      setActiveSection("account");
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isClient, activeSection]);
+
   if (loading) {
     return (
       <div className="flex items-center justify-center py-24">
@@ -349,7 +408,7 @@ export default function Settings() {
         <div className="flex gap-6 lg:items-start">
           {/* Sidebar */}
           <aside className="hidden lg:flex flex-col gap-1 w-52 shrink-0 sticky top-4">
-            {NAV_ITEMS.map((item) => (
+            {visibleNavItems.map((item) => (
               <button
                 key={item.value}
                 onClick={() => setActiveSection(item.value)}
@@ -368,7 +427,7 @@ export default function Settings() {
           {/* Mobile tab bar */}
           <div className="lg:hidden w-full overflow-x-auto mb-2">
             <div className="flex gap-1 border-b pb-2">
-              {NAV_ITEMS.map((item) => (
+              {visibleNavItems.map((item) => (
                 <button
                   key={item.value}
                   onClick={() => setActiveSection(item.value)}
@@ -396,18 +455,32 @@ export default function Settings() {
                   <div className="space-y-2">
                     <Label>Email</Label>
                     <Input value={userEmail} disabled className="bg-muted" />
-                    <button
-                      className="text-sm text-primary hover:underline"
-                      onClick={() =>
-                        toast({
-                          title: "Email change",
-                          description:
-                            "We'll send a verification email to your new address.",
-                        })
-                      }
-                    >
-                      Change Email
-                    </button>
+                    {!showEmailChange ? (
+                      <button
+                        className="text-sm text-primary hover:underline"
+                        onClick={() => setShowEmailChange(true)}
+                      >
+                        Change Email
+                      </button>
+                    ) : (
+                      <div className="flex flex-col sm:flex-row gap-2 pt-1">
+                        <Input
+                          type="email"
+                          value={newEmail}
+                          onChange={(e) => setNewEmail(e.target.value)}
+                          placeholder="new@email.com"
+                          className="flex-1"
+                        />
+                        <div className="flex gap-2">
+                          <Button size="sm" onClick={handleChangeEmail} disabled={changingEmail || !newEmail}>
+                            {changingEmail ? <Loader2 className="w-4 h-4 animate-spin" /> : "Send confirmation"}
+                          </Button>
+                          <Button size="sm" variant="ghost" onClick={() => { setShowEmailChange(false); setNewEmail(""); }}>
+                            Cancel
+                          </Button>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </section>
 

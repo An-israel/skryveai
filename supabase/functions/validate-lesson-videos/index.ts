@@ -3,6 +3,7 @@
 // deleted/private/region-blocked videos) and a HEAD probe for Vimeo/Loom.
 // Idempotent — safe to call from a cron or admin button.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
+import { requireAdmin } from "../_shared/cron-auth.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -68,20 +69,27 @@ Deno.serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
     );
 
+    // Previously any authenticated user (not just admins) could trigger this —
+    // it has no legitimate anonymous/cron caller, so require admin outright.
+    const authResponse = await requireAdmin(req, supabase, corsHeaders);
+    if (authResponse) return authResponse;
+
     const body = await req.json().catch(() => ({}));
     const onlyStale: boolean = body?.onlyStale ?? true;
     const maxAgeHours: number = body?.maxAgeHours ?? 24;
     const limit: number = Math.min(body?.limit ?? 500, 1000);
 
-    // Gather all lesson + module URLs.
-    const [lessonRes, modRes] = await Promise.all([
-      supabase.from("learning_lessons").select("content_url").not("content_url", "is", null),
-      supabase.from("learning_modules").select("content_url").not("content_url", "is", null),
-    ]);
+    // This used to check learning_lessons/learning_modules — the legacy,
+    // never-actually-used learning system's tables — so it never validated
+    // a single URL a real learner would ever see. course_lessons is what
+    // LearnPath/LearnAssignment actually render.
+    const { data: lessonRows } = await supabase
+      .from("course_lessons")
+      .select("content_url")
+      .not("content_url", "is", null);
 
     const urls = new Set<string>();
-    (lessonRes.data || []).forEach((r: any) => r.content_url && urls.add(r.content_url));
-    (modRes.data || []).forEach((r: any) => r.content_url && urls.add(r.content_url));
+    (lessonRows || []).forEach((r: any) => r.content_url && urls.add(r.content_url));
 
     let urlList = Array.from(urls);
 

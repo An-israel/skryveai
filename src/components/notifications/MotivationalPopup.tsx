@@ -54,8 +54,13 @@ export function MotivationalPopup() {
 
       return () => clearTimeout(timer);
     }
+  }, []);
 
-    // Check if we should prompt for push notifications
+  // Separate effect — this used to be an `else` branch of the motivational
+  // popup's effect above, so on every visit where that popup was due (the
+  // common case — the very first visit, or any visit 4+ hours after the
+  // last one), its early `return` meant this code never even ran.
+  useEffect(() => {
     if ("Notification" in window && permission === "default" && !isSubscribed) {
       const pushPromptShown = localStorage.getItem("skryve_push_prompt_shown");
       if (!pushPromptShown) {

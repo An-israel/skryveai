@@ -37,12 +37,15 @@ const scoreJob = (job: any, skills: string[]) => {
 const formatBudget = (job: any) => {
   const currency = job.budget_currency || "NGN";
   const sym = ({ NGN: "₦", USD: "$", GBP: "£", EUR: "€" } as Record<string, string>)[currency] || "₦";
-  if (job.budget_type === "fixed") {
-    if (job.budget_min && job.budget_max && job.budget_min !== job.budget_max)
-      return `${sym}${Number(job.budget_min).toLocaleString()}–${sym}${Number(job.budget_max).toLocaleString()} Fixed`;
-    return `${sym}${Number(job.budget_min || job.budget_max || 0).toLocaleString()} Fixed`;
+  // PostJob.tsx always writes into budget_min/budget_max regardless of
+  // budget_type — there's no separate hourly_rate_min/max column — so read
+  // the same fields for both, just labeled differently.
+  if (job.budget_min && job.budget_max && job.budget_min !== job.budget_max) {
+    const range = `${sym}${Number(job.budget_min).toLocaleString()}–${sym}${Number(job.budget_max).toLocaleString()}`;
+    return job.budget_type === "fixed" ? `${range} Fixed` : `${range}/hr`;
   }
-  return `${sym}${Number(job.hourly_rate_min || 0).toLocaleString()}–${sym}${Number(job.hourly_rate_max || 0).toLocaleString()}/hr`;
+  const amount = `${sym}${Number(job.budget_min || job.budget_max || 0).toLocaleString()}`;
+  return job.budget_type === "fixed" ? `${amount} Fixed` : `${amount}/hr`;
 };
 
 function PageSkeleton() {

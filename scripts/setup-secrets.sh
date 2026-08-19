@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Set all production secrets for Skryve Edge Functions
-# Usage: ./scripts/setup-secrets.sh
+# Usage: SUPABASE_PROJECT_REF=your-project-ref ./scripts/setup-secrets.sh
 #
 # Fill in every value marked REPLACE_ME before running.
 # Get values from:
@@ -12,7 +12,13 @@
 
 set -euo pipefail
 
-PROJECT_REF="${SUPABASE_PROJECT_REF:-dgyuafltlpruhdlgwiew}"
+if [[ -z "${SUPABASE_PROJECT_REF:-}" ]]; then
+  echo "ERROR: SUPABASE_PROJECT_REF is not set." >&2
+  echo "  Find it at: Supabase Dashboard → Project Settings → General → Reference ID" >&2
+  echo "  Usage: SUPABASE_PROJECT_REF=your-project-ref ./scripts/setup-secrets.sh" >&2
+  exit 1
+fi
+PROJECT_REF="$SUPABASE_PROJECT_REF"
 
 echo "→ Setting secrets for project: $PROJECT_REF"
 echo ""

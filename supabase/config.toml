@@ -23,21 +23,15 @@ project_id = "uwwmwerdfpyekgshkrft"
     verify_jwt = false
   [functions.parse-cv]
     verify_jwt = false
-  [functions.generate-job-application]
-    verify_jwt = false
   [functions.generate-linkedin-guide]
+    verify_jwt = false
+  [functions.generate-sitemap]
     verify_jwt = false
   [functions.get-exchange-rates]
     verify_jwt = false
   [functions.handle-reply]
     verify_jwt = false
   [functions.initialize-payment]
-    verify_jwt = false
-  [functions.learning-coach-chat]
-    verify_jwt = false
-  [functions.learning-coach-reminders]
-    verify_jwt = false
-  [functions.learning-review-assignment]
     verify_jwt = false
   [functions.manage-push]
     verify_jwt = false
@@ -63,11 +57,11 @@ project_id = "uwwmwerdfpyekgshkrft"
     verify_jwt = false
   [functions.send-digest]
     verify_jwt = false
-  [functions.send-password-reset]
-    verify_jwt = false
   [functions.send-push-notifications]
     verify_jwt = false
   [functions.send-team-invite]
+    verify_jwt = false
+  [functions.sonder-agent]
     verify_jwt = false
   [functions.verify-payment]
     verify_jwt = false

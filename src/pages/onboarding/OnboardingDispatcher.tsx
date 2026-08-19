@@ -46,6 +46,17 @@ export default function OnboardingDispatcher() {
           return;
         }
 
+        // Google OAuth signup: the role chosen on the Signup page before the
+        // redirect doesn't come back as user_metadata (that's Google's own
+        // profile data), so Signup.tsx stashes it in localStorage instead.
+        const pendingRole = localStorage.getItem('skryve_pending_role');
+        localStorage.removeItem('skryve_pending_role');
+        if (pendingRole === 'talent' || pendingRole === 'client') {
+          setUser(u);
+          await selectRole(pendingRole, u);
+          return;
+        }
+
         setLoading(false);
       } catch (err) {
         console.error("OnboardingDispatcher error:", err);
@@ -55,8 +66,8 @@ export default function OnboardingDispatcher() {
     })();
   }, [navigate, toast]);
 
-  const selectRole = async (role: 'talent' | 'client') => {
-    if (!user) return;
+  const selectRole = async (role: 'talent' | 'client', forUser?: any) => {
+    if (!forUser && !user) return;
     setLoading(true);
     try {
       await supabase.auth.updateUser({ data: { role } });

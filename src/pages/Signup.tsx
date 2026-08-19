@@ -43,6 +43,11 @@ export default function Signup() {
 
   const handleGoogleSignIn = async () => {
     setIsGoogleLoading(true);
+    // The role query param doesn't survive Google's redirect back into the app
+    // (OnboardingDispatcher never reads query params), so the chosen role was
+    // silently discarded. localStorage does survive it — OnboardingDispatcher
+    // checks for this key before falling back to the manual picker.
+    localStorage.setItem("skryve_pending_role", selectedRole);
     const { error } = await supabase.auth.signInWithOAuth({
       provider: "google",
       options: {

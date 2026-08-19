@@ -1,73 +1,65 @@
-# Welcome to your Lovable project
+# Skryve
 
-## Project info
+Skryve is a freelance marketplace: talent profiles, job listings and
+applications, a learning hub with courses/quizzes/certificates, an AI
+career toolkit (CV builder, ATS checker, LinkedIn analyzer, cover letters),
+messaging, events, and billing — plus an admin panel and a set of Supabase
+Edge Functions and scheduled jobs that power all of it.
 
-**URL**: https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID
+## Stack
 
-## How can I edit this code?
+- **Frontend**: Vite + React + TypeScript, shadcn-ui, Tailwind CSS
+- **Backend**: Supabase (Postgres + Row Level Security, Auth, Storage,
+  Edge Functions on Deno, pg_cron)
+- **Payments**: Paystack
 
-There are several ways of editing your application.
-
-**Use Lovable**
-
-Simply visit the [Lovable Project](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and start prompting.
-
-Changes made via Lovable will be committed automatically to this repo.
-
-**Use your preferred IDE**
-
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
-
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
-
-Follow these steps:
+## Getting started
 
 ```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
-
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
-
-# Step 3: Install the necessary dependencies.
-npm i
-
-# Step 4: Start the development server with auto-reloading and an instant preview.
+git clone <this-repo-url>
+cd skryveai
+npm install
+cp .env.example .env   # then fill in your Supabase project's values
 npm run dev
 ```
 
-**Edit a file directly in GitHub**
+The dev server runs at `http://localhost:8080`.
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+### Environment variables
 
-**Use GitHub Codespaces**
+Copy `.env.example` to `.env` and fill in your own Supabase project's
+`VITE_SUPABASE_URL`, `VITE_SUPABASE_PROJECT_ID`, and
+`VITE_SUPABASE_PUBLISHABLE_KEY` (Supabase Dashboard → Project Settings →
+API). `.env` is git-ignored — never commit real values.
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+### Database & Edge Functions
 
-## What technologies are used for this project?
+Migrations live in `supabase/migrations/`; Edge Functions live in
+`supabase/functions/`. With the [Supabase CLI](https://supabase.com/docs/guides/cli)
+installed and linked to your project:
 
-This project is built with:
+```sh
+supabase db push                          # apply migrations
+SUPABASE_PROJECT_REF=your-ref ./scripts/deploy-functions.sh
+SUPABASE_PROJECT_REF=your-ref ./scripts/setup-secrets.sh
+```
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+`scripts/setup-secrets.sh` prints the follow-up Dashboard steps (auth email
+hook, Paystack webhook, Resend domain verification) once secrets are set.
 
-## How can I deploy this project?
+## Scripts
 
-Simply open [Lovable](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and click on Share -> Publish.
+| Command | Purpose |
+|---|---|
+| `npm run dev` | Start the dev server |
+| `npm run build` | Production build |
+| `npm run lint` | Lint the frontend |
+| `npm run test` | Run the test suite |
+| `npm run preview` | Preview a production build locally |
 
-## Can I connect a custom domain to my Lovable project?
+## Project structure
 
-Yes, you can!
-
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
-
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/custom-domain#custom-domain)
+- `src/` — the React app (pages, components, hooks, lib)
+- `supabase/functions/` — Edge Functions (Deno)
+- `supabase/migrations/` — database schema & RLS policies
+- `scripts/` — deploy/ops scripts

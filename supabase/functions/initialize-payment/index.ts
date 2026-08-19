@@ -1,72 +1,13 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
+import { PRICING_NGN, PRICING_NGN_NONAF, PRICING_USD, AFRICAN_COUNTRIES } from "../_shared/pricing.ts";
+import { getCorsHeaders } from "../_shared/cors.ts";
 
 const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
 const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const paystackSecretKey = Deno.env.get("Paystack_API") || Deno.env.get("PAYSTACK_SECRET_KEY") || "";
 
 const supabase = createClient(supabaseUrl, supabaseServiceKey);
-
-// Pricing in kobo (NGN smallest unit) - African base
-const PRICING_NGN: Record<string, number> = {
-  basic: 500000,
-  monthly: 700000,
-  yearly: 7400000,
-  unlimited: 1500000,
-  business: 2500000,          // ₦25,000/mo — Business plan (unlocks Sonder)
-  team_basic: 1800000,
-  team_basic_yearly: 18400000,
-  team_pro: 3000000,
-  team_pro_yearly: 30000000,
-};
-
-// Non-African prices (add 5000 NGN = 500000 kobo on monthly, proportional on yearly)
-const PRICING_NGN_NONAF: Record<string, number> = {
-  basic: 1000000,
-  monthly: 1200000,
-  yearly: 12600000,
-  unlimited: 2000000,
-  business: 3000000,          // ₦30,000/mo — Business plan (non-African)
-  team_basic: 2300000,
-  team_basic_yearly: 23500000,
-  team_pro: 3500000,
-  team_pro_yearly: 35000000,
-};
-
-// USD pricing for non-NGN currencies
-const PRICING_USD: Record<string, number> = {
-  basic: 500,
-  monthly: 800,
-  yearly: 8400,
-  unlimited: 1300,
-  business: 1700,             // ~$17 — Business plan
-  team_basic: 1500,
-  team_basic_yearly: 15300,
-  team_pro: 2500,
-  team_pro_yearly: 25000,
-};
-
-const PLAN_CREDITS: Record<string, number> = {
-  basic: 50,
-  monthly: 100,
-  yearly: 1200,
-  unlimited: -1,
-  business: -1,
-  team_basic: 300,
-  team_basic_yearly: 3600,
-  team_pro: -1,
-  team_pro_yearly: -1,
-};
-
-const AFRICAN_COUNTRIES = [
-  "NG", "GH", "KE", "ZA", "UG", "TZ", "RW", "ET", "EG", "MA",
-  "SN", "CI", "CM", "BJ", "BF", "ML", "NE", "TD", "CF", "CG",
-];
 
 interface InitPaymentRequest {
   plan: string;
@@ -76,6 +17,7 @@ interface InitPaymentRequest {
 }
 
 serve(async (req) => {
+  const corsHeaders = getCorsHeaders(req);
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
