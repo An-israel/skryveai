@@ -571,8 +571,8 @@ export default function Admin() {
           )}
         </div>
 
-        {/* Growth tools — events, waitlist + vetting review */}
-        <div className="mb-6 grid gap-3 sm:grid-cols-3">
+        {/* Growth tools — events, waitlist, vetting review + skill learning */}
+        <div className="mb-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
           <button
             onClick={() => navigate("/admin/events")}
             className="flex items-center gap-3 rounded-xl border bg-card p-4 text-left transition-colors hover:border-primary/50"
@@ -607,6 +607,18 @@ export default function Admin() {
             <div>
               <p className="font-semibold">Vetting review</p>
               <p className="text-xs text-muted-foreground">Approve skill tests & badges</p>
+            </div>
+          </button>
+          <button
+            onClick={() => navigate("/admin/skill-learning")}
+            className="flex items-center gap-3 rounded-xl border bg-card p-4 text-left transition-colors hover:border-primary/50"
+          >
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/10">
+              <GraduationCap className="h-5 w-5 text-primary" />
+            </div>
+            <div>
+              <p className="font-semibold">Skill Learning Analytics</p>
+              <p className="text-xs text-muted-foreground">Usage & engagement trends</p>
             </div>
           </button>
         </div>

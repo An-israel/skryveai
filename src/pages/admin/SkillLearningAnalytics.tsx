@@ -9,10 +9,13 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ArrowLeft, GraduationCap, RefreshCw, Search, Users, BookOpen, Trophy, TrendingUp } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   LineChart, Line, Legend,
 } from "recharts";
+
+const ALLOWED_ROLES = ["super_admin", "content_editor", "support_agent"];
 
 interface UsageRecord {
   id: string;
@@ -35,10 +38,36 @@ const RANGE_DAYS: Record<Range, number | null> = {
 
 export default function SkillLearningAnalytics() {
   const navigate = useNavigate();
+  const { toast } = useToast();
   const [records, setRecords] = useState<UsageRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [range, setRange] = useState<Range>("30d");
   const [search, setSearch] = useState("");
+  const [checkingAccess, setCheckingAccess] = useState(true);
+  const [hasAccess, setHasAccess] = useState(false);
+
+  useEffect(() => {
+    const checkAccess = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        navigate("/login");
+        return;
+      }
+      const { data: roles } = await supabase
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", user.id);
+      const allowed = roles?.some((r) => ALLOWED_ROLES.includes(r.role));
+      if (!allowed) {
+        toast({ title: "Access Denied", description: "You don't have admin privileges", variant: "destructive" });
+        navigate("/dashboard");
+        return;
+      }
+      setHasAccess(true);
+      setCheckingAccess(false);
+    };
+    checkAccess();
+  }, [navigate, toast]);
 
   const fetchData = async () => {
     setLoading(true);
@@ -77,7 +106,7 @@ export default function SkillLearningAnalytics() {
     }
   };
 
-  useEffect(() => { fetchData(); }, [range]);
+  useEffect(() => { if (hasAccess) fetchData(); }, [range, hasAccess]);
 
   const filtered = useMemo(() => {
     if (!search.trim()) return records;
@@ -168,6 +197,14 @@ export default function SkillLearningAnalytics() {
   const totalLessons = filtered.reduce((acc, r) => acc + Number(r.metadata?.lessons_completed || 0), 0);
   const uniqueLearners = new Set(filtered.map((r) => r.user_id)).size;
   const uniqueSkills = new Set(filtered.map((r) => r.metadata?.skill_display || r.metadata?.skill)).size;
+
+  if (checkingAccess || !hasAccess) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <RefreshCw className="w-6 h-6 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background">
