@@ -52,6 +52,26 @@ const TABS: { value: string; label: string }[] = [
   { value: "system", label: "System" },
 ];
 
+// Every notification-creating call site across the app uses its own type
+// string (e.g. "comment", "application_update", "sonder") — none of them
+// match the 8 tab values above. Rather than touch every one of those ~10
+// call sites, map the real values into the tab buckets here. Anything not
+// listed falls back to "system".
+const TAB_TYPE_MAP: Record<string, string[]> = {
+  jobs: ["daily_jobs", "sonder"],
+  applications: ["application", "application_update", "invite"],
+  messages: ["message", "comment", "reply"],
+  offers: ["offer"],
+  projects: ["deliverable", "payment"],
+  events: ["event"],
+  learning: ["learning"],
+  system: ["system", "profile_view", "reengagement", "subscription", "team_invite", "info"],
+};
+
+function typesForTab(tab: string): string[] {
+  return TAB_TYPE_MAP[tab] || [tab];
+}
+
 function notifIcon(type: string) {
   switch (type) {
     case "jobs":
@@ -111,7 +131,8 @@ export default function Notifications() {
         .range(from, to);
 
       if (tab !== "all") {
-        query = query.eq("type", tab);
+        const types = typesForTab(tab);
+        query = types.length ? query.in("type", types) : query.eq("type", "__none__");
       }
 
       const { data, error } = await query;
@@ -152,7 +173,7 @@ export default function Notifications() {
         },
         (payload) => {
           const newNotif = payload.new as Notification;
-          if (activeTab === "all" || newNotif.type === activeTab) {
+          if (activeTab === "all" || typesForTab(activeTab).includes(newNotif.type)) {
             setNotifications((prev) => [newNotif, ...prev]);
           }
         }

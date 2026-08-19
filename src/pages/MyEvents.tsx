@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { format, isPast, isFuture } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
+import { notifyUser } from "@/lib/notify";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -91,8 +92,27 @@ export default function MyEvents() {
     if (!cancelId) return;
     setActing(true);
     try {
+      const { data: event } = await (supabase as any)
+        .from("events").select("title").eq("id", cancelId).maybeSingle();
+
       await (supabase as any).from("events").update({ status: "cancelled" }).eq("id", cancelId);
-      toast({ title: "Event cancelled" });
+
+      // The cancel dialog promises attendees will be notified — actually do
+      // it (was previously just the status update, no notification at all).
+      const { data: rsvps } = await (supabase as any)
+        .from("event_rsvps").select("user_id").eq("event_id", cancelId);
+      for (const rsvp of rsvps || []) {
+        notifyUser({
+          userId: rsvp.user_id,
+          type: "event",
+          title: "Event cancelled",
+          message: `"${event?.title || "An event"}" you RSVP'd to has been cancelled by the organizer.`,
+          link: "/events",
+          emailCategory: "events",
+        });
+      }
+
+      toast({ title: "Event cancelled", description: rsvps?.length ? `${rsvps.length} attendee${rsvps.length !== 1 ? "s" : ""} notified.` : undefined });
       setCancelId(null);
       if (user) fetchEvents(user.id);
     } finally {

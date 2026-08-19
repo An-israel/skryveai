@@ -164,9 +164,22 @@ serve(async (req) => {
       }
 
       if (type === "unsubscribe") {
-        // Mark as unsubscribed (you could create a separate unsubscribe table)
-        console.log(`Unsubscribe requested for email ${emailId}`);
-        
+        // Actually record it — this used to only log to console while the
+        // page told the user they'd been unsubscribed.
+        const { data: emailRow } = await supabase
+          .from("emails")
+          .select("to_email")
+          .eq("id", emailId)
+          .maybeSingle();
+        if (emailRow?.to_email) {
+          const { error: unsubError } = await supabase
+            .from("email_unsubscribes")
+            .upsert({ email: emailRow.to_email, source_email_id: emailId }, { onConflict: "email" });
+          if (unsubError) console.error("Error recording unsubscribe:", unsubError);
+        } else {
+          console.error(`Unsubscribe requested for unknown emailId ${emailId}`);
+        }
+
         return new Response(
           `<!DOCTYPE html>
           <html>
