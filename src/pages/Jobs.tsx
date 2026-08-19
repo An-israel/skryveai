@@ -25,7 +25,8 @@ import { ALL_SKILLS as EXPERTISE_OPTIONS } from "@/lib/skills";
 
 // Open-apply remote job boards aggregated by the scrape-jobs function. Closed
 // bidding/enrolment platforms (Upwork, Fiverr, Freelancer, Toptal) are excluded
-// since talents can't apply to those directly from here.
+// since talents can't apply to those directly from here. Keep in sync with the
+// SOURCES list in supabase/functions/scrape-jobs/index.ts.
 const PLATFORMS = [
   { value: "remoteok", label: "Remote OK" },
   { value: "weworkremotely", label: "We Work Remotely" },
@@ -33,6 +34,10 @@ const PLATFORMS = [
   { value: "arbeitnow", label: "Arbeitnow" },
   { value: "jobicy", label: "Jobicy" },
   { value: "himalayas", label: "Himalayas" },
+  { value: "greenhouse", label: "Greenhouse (company boards)" },
+  { value: "lever", label: "Lever (company boards)" },
+  { value: "ashby", label: "Ashby (company boards)" },
+  { value: "adzuna", label: "Adzuna" },
 ];
 
 const JOB_TYPES = [
@@ -433,7 +438,11 @@ export default function Jobs() {
 
     const { data, count, error } = await query;
 
-    if (error) { setLoading(false); return; }
+    if (error) {
+      setLoading(false);
+      toast({ title: "Couldn't load jobs", description: "Please try again.", variant: "destructive" });
+      return;
+    }
 
     const currentSkills = userSkills;
     const scored: AggJob[] = (data || [])

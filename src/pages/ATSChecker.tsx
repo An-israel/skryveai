@@ -19,6 +19,7 @@ import { RemainingCredits, LimitReachedCard } from "@/components/limits/LimitsUI
 import { useLimits } from "@/hooks/useLimits";
 import { atsCheckerGuide } from "@/components/onboarding/guideConfigs";
 import { extractTextFromPdf } from "@/lib/extract-pdf-text";
+import { extractTextFromDocx } from "@/lib/extract-docx-text";
 import { Link } from "react-router-dom";
 
 interface ATSResult {
@@ -97,10 +98,12 @@ export default function ATSChecker() {
         extracted = await file.text();
       } else if (file.type === "application/pdf" || file.name.endsWith(".pdf")) {
         extracted = await extractTextFromPdf(file);
-      } else if (file.name.endsWith(".docx") || file.name.endsWith(".doc")) {
-        const raw = new TextDecoder("utf-8", { fatal: false }).decode(new Uint8Array(await file.arrayBuffer()));
-        const matches = raw.match(/<w:t[^>]*>([^<]+)<\/w:t>/g) || [];
-        extracted = matches.map(t => t.replace(/<[^>]+>/g, "")).join(" ").replace(/\s{2,}/g, " ").trim();
+      } else if (file.name.endsWith(".docx")) {
+        extracted = await extractTextFromDocx(file);
+      } else if (file.name.endsWith(".doc")) {
+        toast({ title: "Old .doc format not supported", description: "Please save as .docx or PDF, or paste your text directly", variant: "destructive" });
+        setUploadedFileName("");
+        return;
       } else {
         toast({ title: "Unsupported format", description: "Please upload PDF, Word (.docx), or TXT", variant: "destructive" });
         setUploadedFileName("");

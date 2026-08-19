@@ -29,6 +29,30 @@ interface SavedJobRow {
   aggregated_jobs: AggJob;
 }
 
+interface MarketplaceJobRow {
+  id: string;
+  budget_type: string | null;
+  budget_min: number | null;
+  budget_max: number | null;
+  budget_currency: string | null;
+  status: string;
+}
+
+interface SavedMarketplaceRow {
+  id: string;
+  job_id: string;
+  job_posts: MarketplaceJobRow & { title: string };
+}
+
+function formatMktBudget(job: MarketplaceJobRow): string {
+  const sym = ({ NGN: "₦", USD: "$", GBP: "£", EUR: "€" } as Record<string, string>)[job.budget_currency || "NGN"] || "₦";
+  const suffix = job.budget_type === "hourly" ? "/hr" : " Fixed";
+  if (job.budget_min && job.budget_max && job.budget_min !== job.budget_max) {
+    return `${sym}${Number(job.budget_min).toLocaleString()}–${sym}${Number(job.budget_max).toLocaleString()}${suffix}`;
+  }
+  return `${sym}${Number(job.budget_min || job.budget_max || 0).toLocaleString()}${suffix}`;
+}
+
 function platformBadgeClass(platform: string): string {
   const map: Record<string, string> = {
     upwork: "bg-green-500 text-white",
@@ -59,6 +83,8 @@ export default function SavedJobs() {
   const { toast } = useToast();
   const navigate = useNavigate();
   const [savedRows, setSavedRows] = useState<SavedJobRow[]>([]);
+  const [savedMktRows, setSavedMktRows] = useState<SavedMarketplaceRow[]>([]);
+  const [tab, setTab] = useState<"aggregated" | "marketplace">("aggregated");
   const [loading, setLoading] = useState(true);
   const [talentId, setTalentId] = useState<string | null>(null);
 
@@ -75,22 +101,34 @@ export default function SavedJobs() {
       if (!talent) { setLoading(false); return; }
       setTalentId(talent.id);
 
-      const { data, error } = await (supabase as any)
-        .from("saved_jobs")
-        .select("id, agg_job_id, aggregated_jobs(*)")
-        .eq("talent_id", talent.id)
-        .eq("source", "aggregated")
-        .order("saved_at", { ascending: false });
+      const [{ data, error }, { data: mktData, error: mktError }] = await Promise.all([
+        (supabase as any)
+          .from("saved_jobs")
+          .select("id, agg_job_id, aggregated_jobs(*)")
+          .eq("talent_id", talent.id)
+          .eq("source", "aggregated")
+          .order("saved_at", { ascending: false }),
+        // Marketplace-sourced saves were written but never read back anywhere.
+        (supabase as any)
+          .from("saved_jobs")
+          .select("id, job_id, job_posts(id, title, budget_type, budget_min, budget_max, budget_currency, status)")
+          .eq("talent_id", talent.id)
+          .eq("source", "marketplace")
+          .order("saved_at", { ascending: false }),
+      ]);
 
       if (!error && data) {
         setSavedRows(data.filter((r: any) => r.aggregated_jobs));
+      }
+      if (!mktError && mktData) {
+        setSavedMktRows(mktData.filter((r: any) => r.job_posts));
       }
       setLoading(false);
     };
     load();
   }, [user]);
 
-  const handleRemove = async (savedId: string, jobId: string) => {
+  const handleRemove = async (savedId: string) => {
     if (!talentId) return;
     const { error } = await (supabase as any)
       .from("saved_jobs")
@@ -99,6 +137,7 @@ export default function SavedJobs() {
 
     if (!error) {
       setSavedRows(prev => prev.filter(r => r.id !== savedId));
+      setSavedMktRows(prev => prev.filter(r => r.id !== savedId));
       toast({ title: "Job removed from saved" });
     } else {
       toast({ title: "Error removing job", variant: "destructive" });
@@ -118,14 +157,87 @@ export default function SavedJobs() {
             <Heart className="w-5 h-5 text-red-500 fill-red-500" />
             Saved Jobs
           </h1>
-          <p className="text-sm text-muted-foreground">{savedRows.length} saved job{savedRows.length !== 1 ? "s" : ""}</p>
+          <p className="text-sm text-muted-foreground">
+            {tab === "aggregated"
+              ? `${savedRows.length} saved job${savedRows.length !== 1 ? "s" : ""}`
+              : `${savedMktRows.length} saved marketplace job${savedMktRows.length !== 1 ? "s" : ""}`}
+          </p>
         </div>
+      </div>
+
+      <div className="flex gap-2 mb-6 border-b border-border">
+        <button
+          onClick={() => setTab("aggregated")}
+          className={`px-3 py-2 text-sm font-medium border-b-2 -mb-px transition-colors ${
+            tab === "aggregated" ? "border-primary text-foreground" : "border-transparent text-muted-foreground hover:text-foreground"
+          }`}
+        >
+          Job Boards ({savedRows.length})
+        </button>
+        <button
+          onClick={() => setTab("marketplace")}
+          className={`px-3 py-2 text-sm font-medium border-b-2 -mb-px transition-colors ${
+            tab === "marketplace" ? "border-primary text-foreground" : "border-transparent text-muted-foreground hover:text-foreground"
+          }`}
+        >
+          Marketplace ({savedMktRows.length})
+        </button>
       </div>
 
       {loading ? (
         <div className="grid gap-4">
           {Array.from({ length: 4 }).map((_, i) => <SkeletonCard key={i} />)}
         </div>
+      ) : tab === "marketplace" ? (
+        savedMktRows.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-24 text-center">
+            <Briefcase className="w-12 h-12 text-muted-foreground/40 mb-4" />
+            <h3 className="font-semibold text-foreground mb-2">No saved marketplace jobs yet</h3>
+            <p className="text-sm text-muted-foreground max-w-sm mb-6">
+              Save marketplace projects you like — they'll show up here.
+            </p>
+            <Link to="/marketplace">
+              <Button>Browse Marketplace</Button>
+            </Link>
+          </div>
+        ) : (
+          <div className="grid gap-4">
+            {savedMktRows.map((row) => {
+              const job = row.job_posts;
+              return (
+                <div
+                  key={row.id}
+                  className="bg-card border border-border rounded-xl p-5 hover:border-primary/40 transition-all cursor-pointer group"
+                  onClick={() => navigate(`/marketplace/${job.id}`)}
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <h3 className="font-semibold text-foreground text-base mb-1 group-hover:text-primary transition-colors line-clamp-2">
+                      {job.title}
+                    </h3>
+                    <button
+                      onClick={(e) => { e.stopPropagation(); handleRemove(row.id); }}
+                      className="shrink-0 text-red-500 hover:text-red-400 transition-colors"
+                    >
+                      <Heart className="w-4 h-4 fill-red-500" />
+                    </button>
+                  </div>
+                  <div className="flex flex-wrap items-center gap-3 text-sm text-muted-foreground mb-3">
+                    <span className="text-green-600 dark:text-green-400 font-medium">{formatMktBudget(job)}</span>
+                    {job.status !== "published" && <Badge variant="outline" className="capitalize text-xs">{job.status}</Badge>}
+                  </div>
+                  <div className="flex gap-2" onClick={(e) => e.stopPropagation()}>
+                    <Button size="sm" className="flex-1" onClick={() => navigate(`/marketplace/${job.id}`)}>
+                      View Job
+                    </Button>
+                    <Button size="sm" variant="outline" className="text-red-500 hover:text-red-400" onClick={() => handleRemove(row.id)}>
+                      Remove
+                    </Button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )
       ) : savedRows.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-24 text-center">
           <Briefcase className="w-12 h-12 text-muted-foreground/40 mb-4" />
@@ -158,7 +270,7 @@ export default function SavedJobs() {
                     </span>
                   </div>
                   <button
-                    onClick={e => { e.stopPropagation(); handleRemove(row.id, job.id); }}
+                    onClick={e => { e.stopPropagation(); handleRemove(row.id); }}
                     className="shrink-0 text-red-500 hover:text-red-400 transition-colors"
                   >
                     <Heart className="w-4 h-4 fill-red-500" />
@@ -208,7 +320,7 @@ export default function SavedJobs() {
                     size="sm"
                     variant="outline"
                     className="text-red-500 hover:text-red-400"
-                    onClick={() => handleRemove(row.id, job.id)}
+                    onClick={() => handleRemove(row.id)}
                   >
                     Remove
                   </Button>

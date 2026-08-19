@@ -69,8 +69,21 @@ serve(async (req) => {
     }),
   });
 
+  if (!response.ok) {
+    const errText = await response.text();
+    console.error("Anthropic API error:", errText);
+    return new Response(JSON.stringify({ error: "AI generation failed. Please try again." }), {
+      status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
+
   const data = await response.json();
   const proposal = data.content?.[0]?.text || "";
+  if (!proposal) {
+    return new Response(JSON.stringify({ error: "AI generation failed. Please try again." }), {
+      status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
 
   return new Response(JSON.stringify({ proposal }), {
     headers: { ...corsHeaders, "Content-Type": "application/json" },
