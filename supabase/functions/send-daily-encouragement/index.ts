@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { authorizeAdminOrCron } from "../_shared/cron-auth.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -148,6 +149,13 @@ serve(async (req) => {
 
   try {
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
+
+    // This sends to every user with no per-request auth at all — anyone who
+    // found the URL could trigger a full mailing-list blast on demand. Same
+    // admin-or-rate-limited-cron gate as the other bulk mail jobs.
+    const denied = await authorizeAdminOrCron(req, supabase, corsHeaders, "send-daily-encouragement");
+    if (denied) return denied;
+
     const today = new Date().toISOString().split("T")[0];
 
     console.log(`Processing daily encouragement emails for ${today}...`);
@@ -172,8 +180,24 @@ serve(async (req) => {
 
     const sentUserIds = new Set((alreadySent || []).map((s) => s.user_id));
 
-    // Filter out users who already received email today
-    const usersToEmail = profiles.filter((p) => !sentUserIds.has(p.user_id));
+    // This used to email literally every profile, ignoring both the
+    // notif_email_marketing preference send-notification already respects
+    // for every other marketing-category email, and the unsubscribe list.
+    // Same defaults as send-notification: no talent_profiles row (e.g. a
+    // client) means no marketing email; an explicit false opts out.
+    const { data: talentPrefs } = await supabase
+      .from("talent_profiles")
+      .select("user_id, notif_email_marketing");
+    const optedIn = new Set(
+      (talentPrefs || []).filter((t) => t.notif_email_marketing !== false).map((t) => t.user_id)
+    );
+    const { data: unsubbed } = await supabase.from("email_unsubscribes").select("email");
+    const unsubEmails = new Set((unsubbed || []).map((u) => (u.email || "").toLowerCase()));
+
+    // Filter out users who already received email today, opted out, or unsubscribed
+    const usersToEmail = profiles.filter((p) =>
+      !sentUserIds.has(p.user_id) && optedIn.has(p.user_id) && !unsubEmails.has((p.email || "").toLowerCase())
+    );
 
     if (usersToEmail.length === 0) {
       return new Response(JSON.stringify({ sent: 0, message: "All users already emailed today" }), {
