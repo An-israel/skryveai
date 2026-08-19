@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { authorizeAdminOrCron } from "../_shared/cron-auth.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -145,6 +146,12 @@ serve(async (req) => {
 
   try {
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
+
+    // Blasts every subscriber with no per-request auth and no dedup — an
+    // unauthenticated caller could trigger repeated pushes to every user on
+    // demand. Same gate as the other bulk broadcast jobs.
+    const denied = await authorizeAdminOrCron(req, supabase, corsHeaders, "send-push-notifications");
+    if (denied) return denied;
 
     // Get VAPID keys
     const { data: config } = await supabase
