@@ -52,7 +52,10 @@ export default function Waitlist() {
         _country: country.trim() || null,
         _referred_by: refParam || null,
       });
-      if (rpcError || !data?.ok) { setError("Something went wrong. Please try again."); return; }
+      if (rpcError || !data?.ok) {
+        setError(data?.reason === "rate_limited" ? "Too many attempts. Please try again in a bit." : "Something went wrong. Please try again.");
+        return;
+      }
       setCount(data.total ?? null);
       setResult({ referral_code: data.referral_code, position: data.position });
     } catch {

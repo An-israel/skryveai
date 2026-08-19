@@ -1,10 +1,6 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { PRICING_NGN, PRICING_USD, AFRICAN_COUNTRIES } from "../_shared/pricing.ts";
-
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
+import { getCorsHeaders } from "../_shared/cors.ts";
 
 // Fixed prices for specific currencies
 const CURRENCY_CONFIG: Record<string, { symbol: string; name: string; divisor: number }> = {
@@ -30,6 +26,7 @@ function formatPrice(amount: number, config: { symbol: string; divisor: number }
 }
 
 serve(async (req) => {
+  const corsHeaders = getCorsHeaders(req);
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
