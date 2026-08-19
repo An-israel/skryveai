@@ -138,6 +138,10 @@ export default function LearnPath() {
   const [enrolling, setEnrolling] = useState(false);
   const [userId, setUserId] = useState<string | null>(null);
   const [userEmail, setUserEmail] = useState<string | null>(null);
+  const [myReview, setMyReview] = useState<Review | null>(null);
+  const [myRating, setMyRating] = useState(0);
+  const [myReviewText, setMyReviewText] = useState("");
+  const [submittingReview, setSubmittingReview] = useState(false);
 
   useEffect(() => {
     void init();
@@ -197,6 +201,18 @@ export default function LearnPath() {
           .eq("talent_id", profile.id)
           .single();
         if (enr) setEnrollment(enr as Enrollment);
+
+        const { data: existingReview } = await (supabase as any)
+          .from("course_reviews")
+          .select("*")
+          .eq("course_id", courseId)
+          .eq("talent_id", profile.id)
+          .maybeSingle();
+        if (existingReview) {
+          setMyReview(existingReview as Review);
+          setMyRating(existingReview.rating);
+          setMyReviewText(existingReview.review || "");
+        }
       }
     }
 
@@ -239,6 +255,31 @@ export default function LearnPath() {
     if (lessons.length > 0) {
       navigate(`/learn/${courseId}/${lessons[0].id}`);
     }
+  }
+
+  // ── Review ────────────────────────────────────────────────────────────────
+  // Backend (course_reviews, cr_insert_own) has always supported this — there
+  // was just never a UI anywhere that could write to it.
+
+  async function submitReview() {
+    if (!talentProfile || myRating < 1) return;
+    setSubmittingReview(true);
+    const { data, error } = await (supabase as any)
+      .from("course_reviews")
+      .upsert(
+        { course_id: courseId, talent_id: talentProfile.id, rating: myRating, review: myReviewText.trim() || null },
+        { onConflict: "course_id,talent_id" }
+      )
+      .select("*")
+      .single();
+    setSubmittingReview(false);
+    if (error) {
+      toast({ title: "Couldn't save review", description: "Please try again.", variant: "destructive" });
+      return;
+    }
+    setMyReview(data as Review);
+    setReviews((prev) => [data as Review, ...prev.filter((r) => r.id !== data.id)]);
+    toast({ title: myReview ? "Review updated" : "Review posted", description: "Thanks for the feedback!" });
   }
 
   // ── Free enrollment ──────────────────────────────────────────────────────
@@ -504,61 +545,100 @@ export default function LearnPath() {
           )}
 
           {/* Reviews */}
-          {reviews.length > 0 && (
-            <div>
-              <h2 className="font-bold text-lg mb-4">Student Reviews</h2>
-              {/* Rating summary */}
-              <div className="flex items-center gap-6 mb-6">
-                <div className="text-center">
-                  <div className="text-5xl font-bold text-[#2563EB]">
-                    {overallRating.toFixed(1)}
-                  </div>
-                  <StarRating rating={overallRating} />
-                  <p className="text-xs text-muted-foreground mt-1">
-                    {course.review_count} reviews
-                  </p>
-                </div>
-                <div className="flex-1 space-y-1.5">
-                  {[5, 4, 3, 2, 1].map((star) => {
-                    const count = ratingCount(star);
-                    const pct = reviews.length > 0 ? (count / reviews.length) * 100 : 0;
-                    return (
-                      <div key={star} className="flex items-center gap-2 text-sm">
-                        <span className="w-3 text-right">{star}</span>
-                        <Star className="h-3 w-3 fill-yellow-400 text-yellow-400" />
-                        <Progress value={pct} className="h-2 flex-1" />
-                        <span className="w-6 text-xs text-muted-foreground">{count}</span>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
+          <div>
+            <h2 className="font-bold text-lg mb-4">Student Reviews</h2>
 
-              {/* Individual reviews */}
-              <div className="space-y-4">
-                {reviews.map((r) => (
-                  <div key={r.id} className="flex gap-3">
-                    <Avatar className="h-9 w-9 flex-shrink-0">
-                      <AvatarFallback>
-                        {r.talent_id?.slice(0, 1).toUpperCase() ?? "U"}
-                      </AvatarFallback>
-                    </Avatar>
-                    <div>
-                      <div className="flex items-center gap-2 mb-1">
-                        <SmallStars rating={r.rating} />
-                        <span className="text-xs text-muted-foreground">
-                          {formatDistanceToNow(new Date(r.created_at), { addSuffix: true })}
-                        </span>
-                      </div>
-                      {r.review && (
-                        <p className="text-sm text-muted-foreground">{r.review}</p>
-                      )}
+            {reviews.length > 0 && (
+              <>
+                {/* Rating summary */}
+                <div className="flex items-center gap-6 mb-6">
+                  <div className="text-center">
+                    <div className="text-5xl font-bold text-[#2563EB]">
+                      {overallRating.toFixed(1)}
                     </div>
+                    <StarRating rating={overallRating} />
+                    <p className="text-xs text-muted-foreground mt-1">
+                      {course.review_count} reviews
+                    </p>
                   </div>
-                ))}
+                  <div className="flex-1 space-y-1.5">
+                    {[5, 4, 3, 2, 1].map((star) => {
+                      const count = ratingCount(star);
+                      const pct = reviews.length > 0 ? (count / reviews.length) * 100 : 0;
+                      return (
+                        <div key={star} className="flex items-center gap-2 text-sm">
+                          <span className="w-3 text-right">{star}</span>
+                          <Star className="h-3 w-3 fill-yellow-400 text-yellow-400" />
+                          <Progress value={pct} className="h-2 flex-1" />
+                          <span className="w-6 text-xs text-muted-foreground">{count}</span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Individual reviews */}
+                <div className="space-y-4 mb-6">
+                  {reviews.map((r) => (
+                    <div key={r.id} className="flex gap-3">
+                      <Avatar className="h-9 w-9 flex-shrink-0">
+                        <AvatarFallback>
+                          {r.talent_id?.slice(0, 1).toUpperCase() ?? "U"}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div>
+                        <div className="flex items-center gap-2 mb-1">
+                          <SmallStars rating={r.rating} />
+                          <span className="text-xs text-muted-foreground">
+                            {formatDistanceToNow(new Date(r.created_at), { addSuffix: true })}
+                          </span>
+                        </div>
+                        {r.review && (
+                          <p className="text-sm text-muted-foreground">{r.review}</p>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </>
+            )}
+
+            {reviews.length === 0 && (
+              <p className="text-sm text-muted-foreground mb-6">No reviews yet — be the first.</p>
+            )}
+
+            {/* Leave/edit a review — enrolled learners only. course_reviews and
+                its RLS already supported this; there was just no UI. */}
+            {enrollment && (
+              <div className="border border-border rounded-lg p-4 space-y-3">
+                <p className="text-sm font-medium">{myReview ? "Update your review" : "Leave a review"}</p>
+                <div className="flex gap-1">
+                  {[1, 2, 3, 4, 5].map((star) => (
+                    <button
+                      key={star}
+                      type="button"
+                      onClick={() => setMyRating(star)}
+                      aria-label={`${star} star${star > 1 ? "s" : ""}`}
+                    >
+                      <Star className={`h-6 w-6 ${star <= myRating ? "fill-yellow-400 text-yellow-400" : "text-muted-foreground"}`} />
+                    </button>
+                  ))}
+                </div>
+                <textarea
+                  value={myReviewText}
+                  onChange={(e) => setMyReviewText(e.target.value)}
+                  maxLength={1000}
+                  rows={3}
+                  placeholder="What did you think of this course? (optional)"
+                  className="w-full text-sm rounded-md border border-input bg-background px-3 py-2 resize-none"
+                />
+                <Button size="sm" onClick={submitReview} disabled={myRating < 1 || submittingReview}>
+                  {submittingReview ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : null}
+                  {myReview ? "Update Review" : "Post Review"}
+                </Button>
               </div>
-            </div>
-          )}
+            )}
+          </div>
         </div>
 
         {/* ── RIGHT STICKY CARD ── */}

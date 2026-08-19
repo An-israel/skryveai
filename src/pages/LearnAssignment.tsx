@@ -79,6 +79,12 @@ export default function LearnAssignment() {
   const [currentLesson, setCurrentLesson] = useState<Lesson | null>(null);
   const [enrollment, setEnrollment] = useState<Enrollment | null>(null);
   const [completedLessonIds, setCompletedLessonIds] = useState<Set<string>>(new Set());
+  // Synchronous guard against markComplete firing more than once for the same
+  // lesson: handleTimeUpdate fires on every timeupdate tick, and
+  // completedLessonIds (React state) doesn't update until markComplete's
+  // awaits resolve — several ticks can pass the state check before that
+  // happens, each awarding credits/streaks again. A ref updates immediately.
+  const completingLessonsRef = useRef<Set<string>>(new Set());
   const [lessonNote, setLessonNote] = useState("");
   const [loading, setLoading] = useState(true);
   const [courseTitle, setCourseTitle] = useState("");
@@ -100,6 +106,8 @@ export default function LearnAssignment() {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const notesSaveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const ytContainerRef = useRef<HTMLDivElement>(null);
+  const ytPlayerRef = useRef<any>(null);
 
   useEffect(() => {
     void init();
@@ -208,6 +216,10 @@ export default function LearnAssignment() {
 
   const markComplete = useCallback(async () => {
     if (!enrollment || !lessonId || completedLessonIds.has(lessonId)) return;
+    if (completingLessonsRef.current.has(lessonId)) return;
+    completingLessonsRef.current.add(lessonId);
+
+    try {
 
     await (supabase as any).from("lesson_progress").upsert(
       {
@@ -299,6 +311,9 @@ export default function LearnAssignment() {
       if (nextLesson) {
         setTimeout(() => navigate(`/learn/${courseId}/${nextLesson.id}`), 3000);
       }
+    }
+    } finally {
+      completingLessonsRef.current.delete(lessonId);
     }
   }, [enrollment, lessonId, completedLessonIds, lessons, currentLesson, courseId, navigate, toast, award, streak]);
 
@@ -432,6 +447,74 @@ export default function LearnAssignment() {
     } catch {}
     return url;
   }
+
+  function getYouTubeVideoId(url: string): string | null {
+    try {
+      const u = new URL(url);
+      if (!(u.hostname.includes("youtube") || u.hostname === "youtu.be")) return null;
+      if (u.pathname.startsWith("/embed/")) return u.pathname.split("/")[2] || null;
+      return (
+        u.searchParams.get("v") ??
+        (u.pathname.startsWith("/shorts/") ? u.pathname.split("/")[2] : u.pathname.slice(1)) ??
+        null
+      );
+    } catch {
+      return null;
+    }
+  }
+
+  // ── YouTube completion tracking ───────────────────────────────────────────
+  // Embedded video had no player-API integration at all — watch progress and
+  // auto-complete only ever worked for native <video> files. This wires up
+  // the YouTube IFrame Player API (the most common embed source here) to
+  // detect "ended" the same way native video's onEnded does. Vimeo/Loom still
+  // fall back to the manual "Mark Complete" button below.
+  const youTubeVideoId = currentLesson?.content_type === "video" && currentLesson.content_url
+    ? getYouTubeVideoId(currentLesson.content_url)
+    : null;
+
+  useEffect(() => {
+    if (!youTubeVideoId || !ytContainerRef.current) return;
+
+    let cancelled = false;
+
+    function createPlayer() {
+      if (cancelled || !ytContainerRef.current) return;
+      ytPlayerRef.current = new (window as any).YT.Player(ytContainerRef.current, {
+        videoId: youTubeVideoId,
+        events: {
+          onStateChange: (event: any) => {
+            if (event.data === (window as any).YT.PlayerState.ENDED) {
+              if (!completedLessonIds.has(lessonId ?? "")) void markComplete();
+            }
+          },
+        },
+      });
+    }
+
+    if ((window as any).YT?.Player) {
+      createPlayer();
+    } else {
+      const prevCallback = (window as any).onYouTubeIframeAPIReady;
+      (window as any).onYouTubeIframeAPIReady = () => {
+        prevCallback?.();
+        createPlayer();
+      };
+      if (!document.getElementById("youtube-iframe-api")) {
+        const script = document.createElement("script");
+        script.id = "youtube-iframe-api";
+        script.src = "https://www.youtube.com/iframe_api";
+        document.head.appendChild(script);
+      }
+    }
+
+    return () => {
+      cancelled = true;
+      try { ytPlayerRef.current?.destroy?.(); } catch { /* noop */ }
+      ytPlayerRef.current = null;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [youTubeVideoId, lessonId]);
 
   // ── Sidebar module groups ─────────────────────────────────────────────────
 
@@ -600,13 +683,19 @@ export default function LearnAssignment() {
             <div className="mb-6">
               {isEmbedUrl(currentLesson.content_url) ? (
                 <div className="relative pt-[56.25%] rounded-lg overflow-hidden bg-black">
-                  <iframe
-                    className="absolute inset-0 w-full h-full"
-                    src={toEmbedUrl(currentLesson.content_url)}
-                    title={currentLesson.title}
-                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                    allowFullScreen
-                  />
+                  {youTubeVideoId ? (
+                    // YT.Player replaces this element with its own iframe and
+                    // reports "ended" via onStateChange — see the effect above.
+                    <div ref={ytContainerRef} className="absolute inset-0 w-full h-full" />
+                  ) : (
+                    <iframe
+                      className="absolute inset-0 w-full h-full"
+                      src={toEmbedUrl(currentLesson.content_url)}
+                      title={currentLesson.title}
+                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                      allowFullScreen
+                    />
+                  )}
                 </div>
               ) : (
                 <div className="relative rounded-lg overflow-hidden bg-black">

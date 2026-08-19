@@ -32,9 +32,12 @@ interface QuizQuestion {
   question: string;
   question_type: "multiple_choice" | "true_false";
   options: string[];
+  order_index: number;
+}
+
+interface QuizResult {
   correct_answer: string;
   explanation: string | null;
-  order_index: number;
 }
 
 type QuizState = "loading" | "taking" | "results";
@@ -62,6 +65,7 @@ export default function QuizPage() {
   const [score, setScore] = useState(0);
   const [passed, setPassed] = useState(false);
   const [reviewOpen, setReviewOpen] = useState(false);
+  const [results, setResults] = useState<Record<string, QuizResult>>({});
 
   useEffect(() => {
     void init();
@@ -79,8 +83,10 @@ export default function QuizPage() {
     const [{ data: quizData }, { data: questionsData }, { data: courseData }, { data: profile }] =
       await Promise.all([
         (supabase as any).from("quizzes").select("*").eq("id", quizId).single(),
+        // quiz_questions_public omits correct_answer/explanation — the answer
+        // key is only ever revealed after grading, via submit_quiz_attempt().
         (supabase as any)
-          .from("quiz_questions")
+          .from("quiz_questions_public")
           .select("*")
           .eq("quiz_id", quizId)
           .order("order_index", { ascending: true }),
@@ -158,29 +164,22 @@ export default function QuizPage() {
     const finalAnswers = { ...answers, [currentQuestion.id]: selectedAnswer };
     setAnswers(finalAnswers);
 
-    // Calculate score
-    let correct = 0;
-    for (const q of questions) {
-      if (finalAnswers[q.id] === q.correct_answer) correct++;
+    // Grading happens server-side (submit_quiz_attempt) — the client never
+    // had the answer key to begin with, so it can't score itself.
+    const { data, error } = await (supabase as any).rpc("submit_quiz_attempt", {
+      _quiz_id: quizId,
+      _answers: finalAnswers,
+    });
+
+    if (error || !data) {
+      toast({ title: "Couldn't submit quiz", description: "Please try again.", variant: "destructive" });
+      setSubmitting(false);
+      return;
     }
 
-    const pct = Math.round((correct / questions.length) * 100);
-    const didPass = pct >= quiz.pass_threshold;
-
-    // Save attempt
-    if (talentId) {
-      await (supabase as any).from("quiz_attempts").insert({
-        quiz_id: quizId,
-        talent_id: talentId,
-        score: correct,
-        total: questions.length,
-        passed: didPass,
-        answers: finalAnswers,
-      });
-    }
-
-    setScore(correct);
-    setPassed(didPass);
+    setScore(data.score);
+    setPassed(data.passed);
+    setResults(data.results || {});
     setSubmitting(false);
     setQuizState("results");
   }
@@ -273,7 +272,8 @@ export default function QuizPage() {
               <div className="space-y-4">
                 {questions.map((q, i) => {
                   const userAnswer = answers[q.id];
-                  const isCorrect = userAnswer === q.correct_answer;
+                  const result = results[q.id];
+                  const isCorrect = !!result && userAnswer === result.correct_answer;
                   return (
                     <Card key={q.id} className="p-4">
                       <p className="font-semibold text-sm mb-3">
@@ -296,17 +296,17 @@ export default function QuizPage() {
                             Your answer: <strong>{userAnswer || "Not answered"}</strong>
                           </span>
                         </div>
-                        {!isCorrect && (
+                        {!isCorrect && result && (
                           <div className="flex items-center gap-2 px-3 py-2 rounded-md bg-[#059669]/10 text-[#059669]">
                             <CheckCircle className="h-4 w-4 flex-shrink-0" />
                             <span>
-                              Correct answer: <strong>{q.correct_answer}</strong>
+                              Correct answer: <strong>{result.correct_answer}</strong>
                             </span>
                           </div>
                         )}
-                        {q.explanation && (
+                        {result?.explanation && (
                           <p className="text-muted-foreground text-xs mt-2 px-3">
-                            {q.explanation}
+                            {result.explanation}
                           </p>
                         )}
                       </div>
