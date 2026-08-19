@@ -7,10 +7,8 @@ import tseslint from "typescript-eslint";
 export default tseslint.config(
   // supabase/functions is Deno code (Deno.env, npm: specifiers, no bundler) —
   // linting it with this project's browser-globals/React config produced
-  // noise unrelated to either codebase. skryve-marketplace is an orphaned
-  // Next.js-flavored fragment (next/headers-style server/client split) that
-  // isn't wired into this Vite app's build at all.
-  { ignores: ["dist", "supabase/functions", "skryve-marketplace"] },
+  // noise unrelated to either codebase.
+  { ignores: ["dist", "supabase/functions"] },
   {
     extends: [js.configs.recommended, ...tseslint.configs.recommended],
     files: ["**/*.{ts,tsx}"],
