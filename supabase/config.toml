@@ -3,6 +3,8 @@ project_id = "uwwmwerdfpyekgshkrft"
 [functions]
   [functions.admin-stats]
     verify_jwt = false
+  [functions.delete-account]
+    verify_jwt = false
   [functions.auth-email-hook]
     verify_jwt = false
   [functions.build-cv]
@@ -68,4 +70,8 @@ project_id = "uwwmwerdfpyekgshkrft"
   [functions.send-team-invite]
     verify_jwt = false
   [functions.verify-payment]
+    verify_jwt = false
+  [functions.verify-course-payment]
+    verify_jwt = false
+  [functions.verify-event-payment]
     verify_jwt = false

@@ -97,30 +97,88 @@ export default function EventDetail() {
 
   const handleRsvp = async () => {
     if (!user) { navigate("/login"); return; }
-    setRsvpLoading(true);
-    try {
-      if (rsvped) {
-        await (supabase as any)
+    if (rsvped) {
+      setRsvpLoading(true);
+      try {
+        const { error } = await (supabase as any)
           .from("event_rsvps")
           .delete()
           .eq("event_id", eventId)
           .eq("user_id", user.id);
+        if (error) throw error;
         setRsvped(false);
         setEvent((e: any) => ({ ...e, attendee_count: Math.max(0, e.attendee_count - 1) }));
         toast({ title: "RSVP cancelled" });
-      } else {
-        await (supabase as any)
-          .from("event_rsvps")
-          .insert({ event_id: eventId, user_id: user.id, payment_status: "pending" });
-        setRsvped(true);
-        setEvent((e: any) => ({ ...e, attendee_count: e.attendee_count + 1 }));
-        toast({ title: "You're attending!", description: "We'll remind you before the event." });
+      } catch (err: any) {
+        toast({ title: "Error", description: err.message, variant: "destructive" });
+      } finally {
+        setRsvpLoading(false);
       }
+      return;
+    }
+
+    if (event.price_type === "paid") {
+      handlePaidRsvp();
+      return;
+    }
+
+    setRsvpLoading(true);
+    try {
+      const { error } = await (supabase as any)
+        .from("event_rsvps")
+        .insert({ event_id: eventId, user_id: user.id, payment_status: "pending" });
+      if (error) throw error;
+      setRsvped(true);
+      setEvent((e: any) => ({ ...e, attendee_count: e.attendee_count + 1 }));
+      toast({ title: "You're attending!", description: "We'll remind you before the event." });
     } catch (err: any) {
       toast({ title: "Error", description: err.message, variant: "destructive" });
     } finally {
       setRsvpLoading(false);
     }
+  };
+
+  // Paid tickets go through Paystack, then are confirmed server-side (which
+  // re-verifies the charge against Paystack directly) before the RSVP is ever
+  // recorded — the popup's own "success" callback is not proof a charge went
+  // through.
+  const handlePaidRsvp = () => {
+    if (!user?.email) return;
+    const handler = (window as any).PaystackPop?.setup({
+      key: import.meta.env.VITE_PAYSTACK_PUBLIC_KEY || "",
+      email: user.email,
+      amount: Math.round(Number(event.ticket_price || 0) * 100),
+      currency: "USD",
+      ref: `event_${eventId}_${Date.now()}`,
+      metadata: { event_id: eventId, user_id: user.id },
+      callback: async (response: { reference: string }) => {
+        setRsvpLoading(true);
+        try {
+          const { data, error } = await supabase.functions.invoke("verify-event-payment", {
+            body: { reference: response.reference, eventId },
+          });
+          if (error) throw error;
+          if (data?.status !== "success") {
+            toast({ title: "Payment not confirmed", description: data?.message || "Please contact support with your reference.", variant: "destructive" });
+            return;
+          }
+          setRsvped(true);
+          setEvent((e: any) => ({ ...e, attendee_count: e.attendee_count + 1 }));
+          toast({ title: "You're attending!", description: "Payment successful — we'll remind you before the event." });
+        } catch {
+          toast({ title: "Payment received, ticket pending", description: "We're confirming your payment — refresh in a moment. Contact support if this doesn't clear.", variant: "destructive" });
+        } finally {
+          setRsvpLoading(false);
+        }
+      },
+      onClose: () => setRsvpLoading(false),
+    });
+    if (!handler) {
+      toast({ title: "Payment unavailable", description: "Please refresh the page and try again.", variant: "destructive" });
+      return;
+    }
+    setRsvpLoading(true);
+    handler.openIframe();
   };
 
   const handleShare = () => {

@@ -79,9 +79,11 @@ export async function enforceToolLimit(
     return { allowed: false, plan: "free", tool, limit: null, used: 0, remaining: 0, reason: "rate" };
   }
 
-  // 2. Plan. The subscriptions.plan column is a legacy enum
-  // (monthly/yearly/lifetime) in some environments, so only an explicit
-  // 'pro'/'business' counts as paid; everything else is treated as 'free'.
+  // 2. Plan. subscriptions.plan holds one of the real tier names
+  // (basic|pro|unlimited|business|team_basic|team_pro) written by verify-payment,
+  // or "free". Mirrors public.get_user_plan() — any non-"free" value is paid,
+  // which resolves to unlimited below since tool_plan_limits has no rows besides
+  // "free" (the "no row for (plan, tool) == unlimited" convention).
   let plan = "free";
   try {
     const { data: sub } = await serviceClient
@@ -93,7 +95,7 @@ export async function enforceToolLimit(
       .limit(1)
       .maybeSingle();
     const raw = sub?.plan ? String(sub.plan) : "free";
-    plan = raw === "pro" || raw === "business" ? raw : "free";
+    plan = raw && raw !== "free" ? raw : "free";
   } catch (_e) {
     // If subscriptions can't be read, fail closed to "free" (still capped).
   }

@@ -1,7 +1,9 @@
 import { useAuth } from "./use-auth";
 
-// Plans that unlock paid features. Admins/staff always count as paid.
-const PAID_PLANS = ["pro", "business"];
+// Plans that unlock paid features. Admins/staff always count as paid. Mirrors
+// the tiers verify-payment actually writes to subscriptions.plan — keep this in
+// sync with normalizePlanTier() in supabase/functions/verify-payment/index.ts.
+export const PAID_PLANS = ["basic", "pro", "unlimited", "business", "team_basic", "team_pro"];
 
 // Sonder (the autonomous, AI-heavy job-application agent) is expensive to run,
 // so it is intentionally the ONE feature admins do NOT get for free. It is

@@ -1,4 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
+import { enforceToolLimit, limitResponse } from "../_shared/usage-limits.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -11,6 +13,30 @@ serve(async (req) => {
   }
 
   try {
+    // Unlike every sibling AI function (build-cv, check-ats-score, etc.), this
+    // one had no auth check and no rate limit at all — callable anonymously
+    // and without limit by anyone with the public site key.
+    const authHeader = req.headers.get("authorization");
+    if (!authHeader?.startsWith("Bearer ")) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
+    const SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    const serviceClient = createClient(SUPABASE_URL, SERVICE_KEY);
+    const token = authHeader.replace("Bearer ", "");
+    const { data: { user }, error: authError } = await serviceClient.auth.getUser(token);
+    if (authError || !user) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    const gate = await enforceToolLimit(serviceClient, user.id, "cv_builder");
+    if (!gate.allowed) return limitResponse(gate, corsHeaders);
+
     const { action, jobTitle, skills, experience, bullets } = await req.json();
 
     const ANTHROPIC_KEY = Deno.env.get("ANTHROPIC_API_KEY");

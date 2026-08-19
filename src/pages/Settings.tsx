@@ -294,16 +294,15 @@ export default function Settings() {
     if (!userId) return;
     setDeleting(true);
     try {
-      if (talentId) {
-        await (supabase as any)
-          .from("talent_profiles")
-          .update({ is_deleted: true })
-          .eq("id", talentId);
-      }
+      // Actually removes the auth.users row (service-role admin API), which
+      // cascades through every table that references it — not just a
+      // talent_profiles flag, which left the login itself fully intact.
+      const { error } = await supabase.functions.invoke("delete-account");
+      if (error) throw error;
       await supabase.auth.signOut();
       navigate("/");
     } catch (e: any) {
-      toast({ title: "Error", description: e.message, variant: "destructive" });
+      toast({ title: "Couldn't delete account", description: e.message, variant: "destructive" });
     }
     setDeleting(false);
   };

@@ -12,14 +12,33 @@ const paystackSecretKey = Deno.env.get("Paystack_API") || Deno.env.get("PAYSTACK
 
 const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
+// Keyed by the plan_key Paystack metadata carries (set by initialize-payment) —
+// -1 means unlimited credits.
 const PLAN_CREDITS: Record<string, number> = {
   basic: 50,
   monthly: 100,
   yearly: 1200,
   unlimited: -1,
+  business: -1,
   team_basic: 300,
+  team_basic_yearly: 3600,
   team_pro: -1,
+  team_pro_yearly: -1,
 };
+
+// Normalise a plan_key to the tier stored on subscriptions.plan. "monthly" and
+// "yearly" are both the Pro tier billed at different cadences (the cadence
+// itself is captured by current_period_end, not the plan name); the *_yearly
+// team keys collapse to their base tier the same way. Everything else (basic,
+// unlimited, business, team_basic, team_pro) is already a tier name.
+// get_user_plan() treats any non-"free" value here as paid, and
+// use-entitlements.ts / BrowseTalent.tsx specifically check for "pro"/"business".
+function normalizePlanTier(planKey: string): string {
+  if (planKey === "monthly" || planKey === "yearly") return "pro";
+  if (planKey === "team_basic_yearly") return "team_basic";
+  if (planKey === "team_pro_yearly") return "team_pro";
+  return planKey;
+}
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -84,13 +103,20 @@ serve(async (req) => {
 
     // Payment is confirmed by Paystack - process it
     const paymentData = verifyData.data;
-    const planKey = paymentData.metadata?.plan_key || paymentData.metadata?.plan || existingPayment?.plan;
-    const plan = existingPayment?.plan || (planKey?.includes("yearly") ? "yearly" : "monthly");
+    // The real plan key (e.g. "basic", "monthly", "unlimited", "team_pro_yearly")
+    // set as Paystack metadata by initialize-payment. existingPayment.plan is only
+    // ever "monthly"/"yearly"/"lifetime" (payment_history.plan is still the old,
+    // narrow enum) so it's a poor fallback — prefer the metadata every time.
+    const planKey: string | undefined = paymentData.metadata?.plan_key || paymentData.metadata?.plan;
     const paymentUserId = existingPayment?.user_id || user.id;
 
-    if (!plan) {
+    if (!planKey) {
       throw new Error("Could not determine plan from payment");
     }
+
+    // The tier actually stored on subscriptions.plan (collapses monthly/yearly
+    // billing cadence into "pro", *_yearly team keys into their base tier).
+    const planTier = normalizePlanTier(planKey);
 
     // Update payment history
     await supabase
@@ -101,7 +127,7 @@ serve(async (req) => {
     // Update subscription
     const now = new Date();
     let periodEnd: Date;
-    if (planKey?.includes("yearly") || plan === "yearly") {
+    if (planKey.includes("yearly")) {
       periodEnd = new Date(now.getTime());
       periodEnd.setFullYear(periodEnd.getFullYear() + 1);
     } else {
@@ -109,10 +135,8 @@ serve(async (req) => {
       periodEnd.setMonth(periodEnd.getMonth() + 1);
     }
 
-    // Determine if unlimited plan
-    const isUnlimited = planKey === "unlimited" || planKey === "team_pro" || planKey === "team_pro_yearly";
-
-    const creditsToAdd = PLAN_CREDITS[planKey || plan] || PLAN_CREDITS[plan] || 100;
+    const creditsToAdd = PLAN_CREDITS[planKey] ?? 100;
+    const isUnlimited = creditsToAdd === -1;
 
     const { data: currentSub } = await supabase
       .from("subscriptions")
@@ -120,13 +144,13 @@ serve(async (req) => {
       .eq("user_id", paymentUserId)
       .single();
 
-    const newCredits = isUnlimited || creditsToAdd === -1 ? 999999 : (currentSub?.credits || 0) + creditsToAdd;
+    const newCredits = isUnlimited ? 999999 : (currentSub?.credits || 0) + creditsToAdd;
 
     await supabase
       .from("subscriptions")
       .update({
         status: "active",
-        plan: plan as any,
+        plan: planTier,
         current_period_start: new Date().toISOString(),
         current_period_end: periodEnd.toISOString(),
         paystack_customer_code: paymentData.customer?.customer_code,

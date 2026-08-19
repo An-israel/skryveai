@@ -6,6 +6,53 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
+// Resend signs webhook deliveries using Svix — HMAC-SHA256 over
+// "{svix-id}.{svix-timestamp}.{raw body}", keyed by the webhook's signing
+// secret (starts "whsec_"). Verifying this is what stops anyone from forging
+// a POST claiming an email was "delivered"/"bounced"/etc for any emailId.
+// Requires RESEND_WEBHOOK_SECRET to be set (Resend dashboard → Webhooks →
+// this endpoint → Signing Secret); until it is, POSTs are rejected outright
+// (fail closed) rather than silently accepted unverified.
+async function verifyResendSignature(req: Request, rawBody: string): Promise<boolean> {
+  const secret = Deno.env.get("RESEND_WEBHOOK_SECRET");
+  if (!secret) {
+    console.error("RESEND_WEBHOOK_SECRET is not configured — rejecting webhook");
+    return false;
+  }
+
+  const svixId = req.headers.get("svix-id");
+  const svixTimestamp = req.headers.get("svix-timestamp");
+  const svixSignature = req.headers.get("svix-signature");
+  if (!svixId || !svixTimestamp || !svixSignature) return false;
+
+  try {
+    const secretBytes = Uint8Array.from(atob(secret.replace(/^whsec_/, "")), (c) => c.charCodeAt(0));
+    const signedContent = `${svixId}.${svixTimestamp}.${rawBody}`;
+    const key = await crypto.subtle.importKey("raw", secretBytes, { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);
+    const sigBuf = await crypto.subtle.sign("HMAC", key, new TextEncoder().encode(signedContent));
+    const expected = btoa(String.fromCharCode(...new Uint8Array(sigBuf)));
+
+    // Header can carry multiple space-delimited "v1,<base64>" signatures.
+    const candidates = svixSignature.split(" ").map((s) => s.split(",")[1]).filter(Boolean);
+    return candidates.includes(expected);
+  } catch (e) {
+    console.error("Signature verification error:", e);
+    return false;
+  }
+}
+
+// Only ever redirect to an absolute http(s) URL that this email is actually on
+// record as having sent — never trust a bare caller-supplied `url` param
+// as-is, or this is a textbook open redirect off Skryve's own domain.
+function isSafeRedirectTarget(targetUrl: string): boolean {
+  try {
+    const u = new URL(targetUrl);
+    return u.protocol === "http:" || u.protocol === "https:";
+  } catch {
+    return false;
+  }
+}
+
 serve(async (req) => {
   // Handle CORS preflight
   if (req.method === "OPTIONS") {
@@ -145,11 +192,22 @@ serve(async (req) => {
 
       if (type === "click") {
         const targetUrl = url.searchParams.get("url");
-        if (targetUrl) {
-          console.log(`Click tracked for email ${emailId}`);
-          // You could track clicks in a separate table here
-          return Response.redirect(targetUrl, 302);
+        // Require both a well-formed http(s) URL AND a real, known email —
+        // ties the redirect to an actual tracked send instead of accepting any
+        // caller-supplied destination (this endpoint is fully public/GET, so
+        // an unchecked redirect here is an open redirect off skryveai.com).
+        if (targetUrl && isSafeRedirectTarget(targetUrl)) {
+          const { data: knownEmail } = await supabase
+            .from("emails")
+            .select("id")
+            .eq("id", emailId)
+            .maybeSingle();
+          if (knownEmail) {
+            console.log(`Click tracked for email ${emailId}`);
+            return Response.redirect(targetUrl, 302);
+          }
         }
+        return new Response("Invalid link", { status: 400 });
       }
 
       return new Response("Unknown tracking type", { status: 400 });
@@ -157,7 +215,15 @@ serve(async (req) => {
 
     // Handle Resend webhooks (POST requests)
     if (req.method === "POST") {
-      const body = await req.json();
+      const rawBody = await req.text();
+      const verified = await verifyResendSignature(req, rawBody);
+      if (!verified) {
+        return new Response(JSON.stringify({ error: "Invalid signature" }), {
+          status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      const body = JSON.parse(rawBody);
       const eventType = body.type;
       const emailData = body.data;
 
