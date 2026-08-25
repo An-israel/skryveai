@@ -191,7 +191,7 @@ export default function App() {
                 <Route path="/cv-builder/:cvId"     element={<CVEditor />} />
                 <Route path="/ats-checker"          element={<ATSChecker />} />
                 <Route path="/linkedin-analyzer"    element={<LinkedInAnalyzer />} />
-                <Route path="/sonder"               element={<Sonder />} />
+                <Route path="/sonder"               element={<Gated role="talent"><Sonder /></Gated>} />
                 <Route path="/studio"               element={<BlogStudio />} />
 
                 {/* Messaging & Notifications */}
