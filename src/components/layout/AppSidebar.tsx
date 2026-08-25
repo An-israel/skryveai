@@ -48,12 +48,13 @@ const clientNav: NavItem[] = [
 ];
 
 interface AppSidebarProps {
-  role:          SkryveRole;
-  userName:      string;
-  userAvatar?:   string;
-  unreadCount:   number;
-  mobileOpen:    boolean;
-  onMobileClose: () => void;
+  role:            SkryveRole;
+  userName:        string;
+  userAvatar?:     string;
+  unreadCount:     number;
+  unreadMessages:  number;
+  mobileOpen:      boolean;
+  onMobileClose:   () => void;
 }
 
 function NavItem({ label, to, icon: Icon, unreadCount = 0, onClose }: NavItem & { unreadCount?: number; onClose?: () => void }) {
@@ -83,7 +84,7 @@ function NavItem({ label, to, icon: Icon, unreadCount = 0, onClose }: NavItem & 
   );
 }
 
-function SidebarContent({ role, userName, userAvatar, unreadCount, onClose }: Omit<AppSidebarProps, "mobileOpen" | "onMobileClose"> & { onClose?: () => void }) {
+function SidebarContent({ role, userName, userAvatar, unreadCount, unreadMessages, onClose }: Omit<AppSidebarProps, "mobileOpen" | "onMobileClose"> & { onClose?: () => void }) {
   const navigate = useNavigate();
   const { isStaffAdmin } = useAuth(false);
   const nav = [...(role === "client" ? clientNav : talentNav), ...(isStaffAdmin ? adminNav : [])];
@@ -127,7 +128,7 @@ function SidebarContent({ role, userName, userAvatar, unreadCount, onClose }: Om
       {/* Nav */}
       <nav className="flex-1 overflow-y-auto py-3 px-2 space-y-px">
         {nav.map(({ label, to, icon }) => (
-          <NavItem key={to} label={label} to={to} icon={icon} unreadCount={label === "Messages" ? unreadCount : 0} onClose={onClose} />
+          <NavItem key={to} label={label} to={to} icon={icon} unreadCount={label === "Messages" ? unreadMessages : 0} onClose={onClose} />
         ))}
       </nav>
 
@@ -169,18 +170,18 @@ function SidebarContent({ role, userName, userAvatar, unreadCount, onClose }: Om
   );
 }
 
-export function AppSidebar({ role, userName, userAvatar, unreadCount, mobileOpen, onMobileClose }: AppSidebarProps) {
+export function AppSidebar({ role, userName, userAvatar, unreadCount, unreadMessages, mobileOpen, onMobileClose }: AppSidebarProps) {
   return (
     <>
       {/* Desktop sidebar — fixed */}
       <aside className="hidden md:flex flex-col fixed left-0 top-0 bottom-0 w-[220px] z-40">
-        <SidebarContent role={role} userName={userName} userAvatar={userAvatar} unreadCount={unreadCount} />
+        <SidebarContent role={role} userName={userName} userAvatar={userAvatar} unreadCount={unreadCount} unreadMessages={unreadMessages} />
       </aside>
 
       {/* Mobile drawer */}
       <Sheet open={mobileOpen} onOpenChange={onMobileClose}>
         <SheetContent side="left" className="p-0 w-[220px] bg-sidebar border-sidebar-border">
-          <SidebarContent role={role} userName={userName} userAvatar={userAvatar} unreadCount={unreadCount} onClose={onMobileClose} />
+          <SidebarContent role={role} userName={userName} userAvatar={userAvatar} unreadCount={unreadCount} unreadMessages={unreadMessages} onClose={onMobileClose} />
         </SheetContent>
       </Sheet>
     </>

@@ -11,6 +11,7 @@ export function AppLayout() {
   const [authLoading, setLoading] = useState(true);
   const [mobileOpen, setMobile]   = useState(false);
   const [unreadCount, setUnread]  = useState(0);
+  const [unreadMessages, setUnreadMessages] = useState(0);
 
   const role = useSkryveRole(user?.id);
   const navigate = useNavigate();
@@ -57,28 +58,46 @@ export function AppLayout() {
   }, [user?.id, navigate]);
 
   // ── Unread notifications count ────────────────────────────────
+  // Excludes message-type rows (message/comment/reply) — those are counted
+  // separately below via the real messaging tables, so a new DM doesn't
+  // also bump the Notifications bell.
   useEffect(() => {
     if (!user?.id) return;
-    (supabase as any)
-      .from("notifications")
-      .select("id", { count: "exact", head: true })
-      .eq("user_id", user.id)
-      .eq("read", false)
-      .then(({ count }: { count: number | null }) => setUnread(count ?? 0));
+    const fetchUnread = () =>
+      (supabase as any)
+        .from("notifications")
+        .select("id", { count: "exact", head: true })
+        .eq("user_id", user.id)
+        .eq("read", false)
+        .not("type", "in", '("message","comment","reply")')
+        .then(({ count }: { count: number | null }) => setUnread(count ?? 0));
+
+    fetchUnread();
 
     const channel = supabase
       .channel("notifications-count")
       .on("postgres_changes", {
         event: "*", schema: "public", table: "notifications",
         filter: `user_id=eq.${user.id}`,
-      }, () => {
-        (supabase as any)
-          .from("notifications")
-          .select("id", { count: "exact", head: true })
-          .eq("user_id", user.id)
-          .eq("read", false)
-          .then(({ count }: { count: number | null }) => setUnread(count ?? 0));
-      })
+      }, fetchUnread)
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
+  }, [user?.id]);
+
+  // ── Unread messages count (separate from notifications) ────────
+  useEffect(() => {
+    if (!user?.id) return;
+    const fetchUnreadMessages = () =>
+      (supabase as any).rpc("unread_message_count")
+        .then(({ data }: { data: number | null }) => setUnreadMessages(data ?? 0));
+
+    fetchUnreadMessages();
+
+    const channel = supabase
+      .channel("messages-unread-count")
+      .on("postgres_changes", { event: "*", schema: "public", table: "marketplace_messages" }, fetchUnreadMessages)
+      .on("postgres_changes", { event: "*", schema: "public", table: "direct_messages" }, fetchUnreadMessages)
       .subscribe();
 
     return () => { supabase.removeChannel(channel); };
@@ -104,6 +123,7 @@ export function AppLayout() {
         userName={userName}
         userAvatar={userAvatar}
         unreadCount={unreadCount}
+        unreadMessages={unreadMessages}
         mobileOpen={mobileOpen}
         onMobileClose={() => setMobile(false)}
       />
@@ -114,6 +134,7 @@ export function AppLayout() {
           userName={userName}
           userAvatar={userAvatar}
           unreadCount={unreadCount}
+          unreadMessages={unreadMessages}
           onMenuClick={() => setMobile(true)}
           userId={user?.id}
           role={role}
