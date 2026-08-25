@@ -62,6 +62,8 @@ function rangeStartISO(range: string): string | null {
   return new Date(now.getTime() - days * 86400000).toISOString();
 }
 
+const LOG_PAGE_SIZE = 30;
+
 export function UsageManager() {
   const { toast } = useToast();
   const [loading, setLoading] = useState(true);
@@ -70,6 +72,8 @@ export function UsageManager() {
   const [limits, setLimits] = useState<Record<string, number | null>>({});
   const [savingKey, setSavingKey] = useState<string | null>(null);
   const [userSearch, setUserSearch] = useState("");
+  const [toolFilter, setToolFilter] = useState("all");
+  const [logPage, setLogPage] = useState(0);
   const [nameCache, setNameCache] = useState<Record<string, string>>({});
 
   const load = useCallback(async () => {
@@ -96,20 +100,22 @@ export function UsageManager() {
     });
     setLimits(lmap);
 
-    // Resolve display names for the top users in view.
-    const ids = Array.from(new Set((evs || []).map((e: UsageRow) => e.user_id))).slice(0, 200);
+    // Resolve display names for every user in view — profiles covers both
+    // talents and clients (talent_profiles alone missed client-side usage).
+    const ids = Array.from(new Set((evs || []).map((e: UsageRow) => e.user_id)));
     if (ids.length) {
-      const { data: talents } = await (supabase as any)
-        .from("talent_profiles")
-        .select("user_id, full_name")
+      const { data: profs } = await (supabase as any)
+        .from("profiles")
+        .select("user_id, full_name, email")
         .in("user_id", ids);
       const map: Record<string, string> = {};
-      (talents || []).forEach((t: any) => {
-        if (t.full_name) map[t.user_id] = t.full_name;
+      (profs || []).forEach((p: any) => {
+        if (p.full_name || p.email) map[p.user_id] = p.full_name || p.email;
       });
       setNameCache(map);
     }
 
+    setLogPage(0);
     setLoading(false);
   }, [range]);
 
@@ -127,28 +133,40 @@ export function UsageManager() {
   const totalUses = events.filter((e) => !e.blocked).length;
   const totalBlocked = events.filter((e) => e.blocked).length;
 
-  // Per-user breakdown.
-  const perUserMap = new Map<string, { used: number; blocked: number; plan: string }>();
-  events.forEach((e) => {
-    const cur = perUserMap.get(e.user_id) || { used: 0, blocked: 0, plan: e.plan };
+  const nameFor = (userId: string) => nameCache[userId] || userId.slice(0, 8);
+  const matchesSearch = (userId: string) => {
+    if (!userSearch.trim()) return true;
+    const s = userSearch.toLowerCase();
+    return nameFor(userId).toLowerCase().includes(s) || userId.includes(s);
+  };
+  const filteredEvents = events.filter(
+    (e) => (toolFilter === "all" || e.tool === toolFilter) && matchesSearch(e.user_id)
+  );
+
+  // Who used what, how many times, and when they last did it — grouped by
+  // (user, tool) rather than collapsed across every tool into one count.
+  const perUserToolMap = new Map<
+    string,
+    { user_id: string; tool: string; used: number; blocked: number; plan: string; lastUsed: string }
+  >();
+  filteredEvents.forEach((e) => {
+    const key = `${e.user_id}:${e.tool}`;
+    const cur = perUserToolMap.get(key) || {
+      user_id: e.user_id, tool: e.tool, used: 0, blocked: 0, plan: e.plan, lastUsed: e.created_at,
+    };
     if (e.blocked) cur.blocked++;
     else cur.used++;
+    if (e.created_at > cur.lastUsed) cur.lastUsed = e.created_at;
     cur.plan = e.plan;
-    perUserMap.set(e.user_id, cur);
+    perUserToolMap.set(key, cur);
   });
-  let perUser = Array.from(perUserMap.entries()).map(([user_id, v]) => ({
-    user_id,
-    name: nameCache[user_id] || user_id.slice(0, 8),
-    ...v,
-  }));
-  if (userSearch.trim()) {
-    const s = userSearch.toLowerCase();
-    perUser = perUser.filter(
-      (u) => u.name.toLowerCase().includes(s) || u.user_id.includes(s)
-    );
-  }
-  perUser.sort((a, b) => b.used + b.blocked - (a.used + a.blocked));
-  perUser = perUser.slice(0, 100);
+  const perUserTool = Array.from(perUserToolMap.values())
+    .sort((a, b) => b.lastUsed.localeCompare(a.lastUsed))
+    .slice(0, 300);
+
+  // Raw, timestamped activity log — the individual events, paginated.
+  const logTotalPages = Math.max(1, Math.ceil(filteredEvents.length / LOG_PAGE_SIZE));
+  const logPageRows = filteredEvents.slice(logPage * LOG_PAGE_SIZE, logPage * LOG_PAGE_SIZE + LOG_PAGE_SIZE);
 
   const saveLimit = async (plan: string, tool: string, raw: string) => {
     const key = `${plan}:${tool}`;
@@ -182,6 +200,23 @@ export function UsageManager() {
             ))}
           </SelectContent>
         </Select>
+        <Select value={toolFilter} onValueChange={(v) => { setToolFilter(v); setLogPage(0); }}>
+          <SelectTrigger className="w-44">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All tools</SelectItem>
+            {TOOLS.map((t) => (
+              <SelectItem key={t} value={t}>{TOOL_LABELS[t]}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <Input
+          placeholder="Search by name or user id…"
+          value={userSearch}
+          onChange={(e) => { setUserSearch(e.target.value); setLogPage(0); }}
+          className="w-56"
+        />
         <Button variant="outline" size="sm" onClick={load} disabled={loading}>
           <RefreshCw className={`w-4 h-4 mr-1.5 ${loading ? "animate-spin" : ""}`} />
           Refresh
@@ -266,41 +301,39 @@ export function UsageManager() {
             </CardContent>
           </Card>
 
-          {/* Per-user breakdown */}
+          {/* Who used what, how many times */}
           <Card>
             <CardHeader>
-              <CardTitle>Per-user usage</CardTitle>
-              <CardDescription>Top users by activity in the selected range.</CardDescription>
+              <CardTitle>Who used what</CardTitle>
+              <CardDescription>
+                Every user × tool pair active in the selected range, with a use count and when they last used it.
+              </CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="mb-3 max-w-xs">
-                <Input
-                  placeholder="Search by name or user id…"
-                  value={userSearch}
-                  onChange={(e) => setUserSearch(e.target.value)}
-                />
-              </div>
               <div className="overflow-x-auto">
                 <Table>
                   <TableHeader>
                     <TableRow>
                       <TableHead>User</TableHead>
+                      <TableHead>Tool</TableHead>
                       <TableHead>Plan</TableHead>
-                      <TableHead className="text-right">Uses</TableHead>
+                      <TableHead className="text-right">Times used</TableHead>
                       <TableHead className="text-right">Blocked</TableHead>
+                      <TableHead>Last used</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {perUser.length === 0 ? (
+                    {perUserTool.length === 0 ? (
                       <TableRow>
-                        <TableCell colSpan={4} className="text-center text-muted-foreground py-8">
-                          No usage in this range.
+                        <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
+                          No usage matches this range/filter.
                         </TableCell>
                       </TableRow>
                     ) : (
-                      perUser.map((u) => (
-                        <TableRow key={u.user_id}>
-                          <TableCell className="font-medium">{u.name}</TableCell>
+                      perUserTool.map((u) => (
+                        <TableRow key={`${u.user_id}:${u.tool}`}>
+                          <TableCell className="font-medium">{nameFor(u.user_id)}</TableCell>
+                          <TableCell>{TOOL_LABELS[u.tool] || u.tool}</TableCell>
                           <TableCell>
                             <Badge variant="outline" className="capitalize">{u.plan}</Badge>
                           </TableCell>
@@ -312,12 +345,86 @@ export function UsageManager() {
                               "0"
                             )}
                           </TableCell>
+                          <TableCell className="text-muted-foreground text-sm">
+                            {new Date(u.lastUsed).toLocaleString()}
+                          </TableCell>
                         </TableRow>
                       ))
                     )}
                   </TableBody>
                 </Table>
               </div>
+            </CardContent>
+          </Card>
+
+          {/* Raw, timestamped activity log */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Activity log</CardTitle>
+              <CardDescription>Individual tool-use events, most recent first.</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>User</TableHead>
+                      <TableHead>Tool</TableHead>
+                      <TableHead>Time</TableHead>
+                      <TableHead>Status</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {logPageRows.length === 0 ? (
+                      <TableRow>
+                        <TableCell colSpan={4} className="text-center text-muted-foreground py-8">
+                          No events match this range/filter.
+                        </TableCell>
+                      </TableRow>
+                    ) : (
+                      logPageRows.map((e) => (
+                        <TableRow key={e.id}>
+                          <TableCell className="font-medium">{nameFor(e.user_id)}</TableCell>
+                          <TableCell>{TOOL_LABELS[e.tool] || e.tool}</TableCell>
+                          <TableCell className="text-muted-foreground text-sm">
+                            {new Date(e.created_at).toLocaleString()}
+                          </TableCell>
+                          <TableCell>
+                            {e.blocked ? (
+                              <Badge variant="outline" className="text-amber-600 border-amber-300">Blocked</Badge>
+                            ) : (
+                              <Badge variant="outline" className="text-green-600 border-green-300">Used</Badge>
+                            )}
+                          </TableCell>
+                        </TableRow>
+                      ))
+                    )}
+                  </TableBody>
+                </Table>
+              </div>
+              {filteredEvents.length > 0 && (
+                <div className="flex items-center justify-between mt-3 text-sm text-muted-foreground">
+                  <span>
+                    Page {logPage + 1} of {logTotalPages} · {filteredEvents.length.toLocaleString()} events
+                  </span>
+                  <div className="flex gap-2">
+                    <Button
+                      variant="outline" size="sm"
+                      onClick={() => setLogPage((p) => Math.max(0, p - 1))}
+                      disabled={logPage === 0}
+                    >
+                      Previous
+                    </Button>
+                    <Button
+                      variant="outline" size="sm"
+                      onClick={() => setLogPage((p) => Math.min(logTotalPages - 1, p + 1))}
+                      disabled={logPage >= logTotalPages - 1}
+                    >
+                      Next
+                    </Button>
+                  </div>
+                </div>
+              )}
             </CardContent>
           </Card>
         </>

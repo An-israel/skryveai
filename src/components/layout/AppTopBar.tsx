@@ -3,7 +3,7 @@ import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem,
   DropdownMenuSeparator, DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Menu, Bell, Settings, CreditCard, LogOut, User, ChevronRight } from "lucide-react";
+import { Menu, Bell, MessageSquare, Settings, CreditCard, LogOut, User, ChevronRight } from "lucide-react";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { RoleSwitcher } from "./RoleSwitcher";
 import type { SkryveRole } from "@/hooks/use-skryve-role";
@@ -52,15 +52,16 @@ function getBreadcrumbs(pathname: string): string[] {
 }
 
 interface AppTopBarProps {
-  userName:    string;
-  userAvatar?: string;
-  unreadCount: number;
-  onMenuClick: () => void;
-  userId?:     string;
-  role?:       SkryveRole;
+  userName:       string;
+  userAvatar?:    string;
+  unreadCount:    number;
+  unreadMessages: number;
+  onMenuClick:    () => void;
+  userId?:        string;
+  role?:          SkryveRole;
 }
 
-export function AppTopBar({ userName, userAvatar, unreadCount, onMenuClick, userId, role }: AppTopBarProps) {
+export function AppTopBar({ userName, userAvatar, unreadCount, unreadMessages, onMenuClick, userId, role }: AppTopBarProps) {
   const location    = useLocation();
   const navigate    = useNavigate();
   const breadcrumbs = getBreadcrumbs(location.pathname);
@@ -125,6 +126,20 @@ export function AppTopBar({ userName, userAvatar, unreadCount, onMenuClick, user
 
         {/* Theme toggle */}
         <ThemeToggle />
+
+        {/* Messages — separate from notifications so a new DM and a new
+            notification never look like the same thing at a glance. */}
+        <Link
+          to="/messages"
+          className="relative p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-colors"
+        >
+          <MessageSquare className="w-4 h-4" />
+          {unreadMessages > 0 && (
+            <span className="absolute top-0.5 right-0.5 flex h-[14px] min-w-[14px] items-center justify-center rounded-full bg-primary text-primary-foreground text-[9px] font-bold leading-none px-0.5">
+              {unreadMessages > 9 ? "9+" : unreadMessages}
+            </span>
+          )}
+        </Link>
 
         {/* Notifications */}
         <Link

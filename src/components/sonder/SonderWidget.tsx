@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { Moon, X, Sparkles, Lock, ArrowRight } from "lucide-react";
 import { useEntitlements } from "@/hooks/use-entitlements";
+import { useSkryveRole } from "@/hooks/use-skryve-role";
 
 // How often Sonder nudges the user. Free users get pestered more often (it's an
 // upsell for them); paid users just get the occasional friendly reminder.
@@ -13,6 +14,7 @@ const FIRST_NUDGE_MS = 12 * 1000;      // first appearance after page settles
 export function SonderWidget() {
   const navigate = useNavigate();
   const { user, canUseSonder, loading } = useEntitlements();
+  const role = useSkryveRole(user?.id);
   const [open, setOpen] = useState(false);   // bubble visible
   const [panel, setPanel] = useState(false); // full mini-panel expanded
 
@@ -30,11 +32,14 @@ export function SonderWidget() {
   }, [canUseSonder]);
 
   useEffect(() => {
-    if (!user) return;
+    if (!user || role !== "talent") return;
     return scheduleNudges();
-  }, [user, scheduleNudges]);
+  }, [user, role, scheduleNudges]);
 
-  if (loading || !user) return null;
+  // Sonder applies to jobs on the user's behalf — a client has no jobs to
+  // apply to, so it never made sense for them. It used to show for every
+  // logged-in user regardless of role.
+  if (loading || !user || role === "loading" || role === "client") return null;
 
   const goToSonder = () => {
     setOpen(false); setPanel(false);
