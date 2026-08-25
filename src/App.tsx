@@ -162,7 +162,7 @@ export default function App() {
                 <Route path="/marketplace/post"         element={<Gated role="client"><PostJob /></Gated>} />
                 <Route path="/marketplace/my-jobs"      element={<Gated role="client"><MyJobPosts /></Gated>} />
                 <Route path="/marketplace/:jobId"       element={<MarketplaceJob />} />
-                <Route path="/talent"               element={<Gated role="client"><BrowseTalent /></Gated>} />
+                <Route path="/talent"               element={<BrowseTalent />} />
                 <Route path="/applications"         element={<Applications />} />
                 <Route path="/projects"             element={<Projects />} />
                 <Route path="/projects/:projectId"  element={<ProjectDetail />} />
