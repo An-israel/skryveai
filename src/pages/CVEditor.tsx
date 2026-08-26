@@ -266,6 +266,21 @@ export default function CVEditor() {
       if (profile) {
         setProfileId(profile.id);
         setTalentProfile(profile);
+      } else {
+        // No talent_profiles row yet — e.g. a client-mode user, or someone who
+        // hasn't finished talent onboarding, opening CV Builder directly.
+        // Without this, createCvFrom silently no-ops below: the form stays
+        // fully editable but Save/PDF stay permanently disabled with no
+        // explanation, and nothing is ever persisted.
+        const { data: created } = await (supabase as any)
+          .from("talent_profiles")
+          .upsert({ user_id: user.id, full_name: user.user_metadata?.full_name || null }, { onConflict: "user_id" })
+          .select("id, full_name, primary_skill, secondary_skills, bio, certifications")
+          .single();
+        if (created) {
+          setProfileId(created.id);
+          setTalentProfile(created);
+        }
       }
 
       if (isNew) {
@@ -379,7 +394,10 @@ export default function CVEditor() {
 
   // Shared: persist a new CV row from form data and open it.
   const createCvFrom = async (newData: CVFormData) => {
-    if (!profileId) return;
+    if (!profileId) {
+      toast({ title: "Couldn't create CV", description: "Please refresh the page and try again.", variant: "destructive" });
+      return;
+    }
     const { data: cv, error } = await (supabase as any)
       .from("skryve_cvs")
       .insert({
