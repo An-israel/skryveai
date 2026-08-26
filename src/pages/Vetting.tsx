@@ -13,16 +13,11 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { VettedBadge } from "@/components/vetting/VettedBadge";
 import {
-  fetchMyVetting, fetchBriefsFor, startVetting, submitSkillWork, submitProfessionalism,
+  fetchMyVetting, fetchBriefsFor, fetchAvailableSkills, startVetting, submitSkillWork, submitProfessionalism,
   PROFESSIONALISM_QUESTIONS,
   type VettingApplication, type TestBrief,
 } from "@/lib/vetting/api";
 import { supabase } from "@/integrations/supabase/client";
-
-const AVAILABLE_SKILLS = [
-  "Graphic Design", "UI/UX Design", "Web Development", "Frontend Development",
-  "Copywriting", "Content Writing", "Video Editing", "Social Media Management",
-];
 
 function statusChip(app: VettingApplication) {
   switch (app.status) {
@@ -41,6 +36,7 @@ export default function Vetting() {
   const [loading, setLoading] = useState(true);
   const [active, setActive] = useState<VettingApplication | null>(null);
   const [briefs, setBriefs] = useState<TestBrief[]>([]);
+  const [availableSkills, setAvailableSkills] = useState<string[]>([]);
   const [busy, setBusy] = useState(false);
 
   // skill-stage form
@@ -60,7 +56,7 @@ export default function Vetting() {
     (async () => {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session?.user) { navigate("/login"); return; }
-      await reload();
+      await Promise.all([reload(), fetchAvailableSkills().then(setAvailableSkills)]);
       setLoading(false);
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -125,7 +121,7 @@ export default function Vetting() {
   }
 
   const startedSkills = new Set(apps.map((a) => a.skill_category));
-  const startable = AVAILABLE_SKILLS.filter((s) => !startedSkills.has(s));
+  const startable = availableSkills.filter((s) => !startedSkills.has(s));
 
   return (
     <main className="container mx-auto max-w-2xl px-0 pb-16">
@@ -258,6 +254,7 @@ function StageView(p: StageProps) {
   if (app.status === "skill_pending") {
     if (app.skill_test_status === "submitted") return <UnderReview label="Your skill submission is under review." />;
     const brief = p.briefs[0];
+    const deadline = brief ? new Date(new Date(app.updated_at).getTime() + brief.submit_within_days * 86400000) : null;
     return (
       <Card>
         <CardHeader className="pb-2"><CardTitle className="text-base">Skill test — {app.skill_category}</CardTitle></CardHeader>
@@ -265,18 +262,37 @@ function StageView(p: StageProps) {
           {brief ? (
             <div className="rounded-lg border bg-muted/40 p-3 text-sm">
               <p className="flex items-center gap-1.5 font-medium"><FileText className="h-4 w-4" />{brief.title}</p>
-              <p className="mt-1 text-muted-foreground">{brief.brief}</p>
-              {brief.pass_criteria && <p className="mt-2 text-xs text-muted-foreground"><strong>We're looking for:</strong> {brief.pass_criteria}</p>}
+              <p className="mt-1 whitespace-pre-wrap text-muted-foreground">{brief.brief}</p>
+
+              {brief.submit_format && (
+                <p className="mt-3 text-xs"><strong>How to submit:</strong> <span className="text-muted-foreground">{brief.submit_format}</span></p>
+              )}
+              {brief.resources && (
+                <p className="mt-1 text-xs"><strong>Resources:</strong> <span className="text-muted-foreground">{brief.resources}</span></p>
+              )}
+              {brief.hands_on_time && (
+                <p className="mt-1 text-xs"><strong>Expect this to take:</strong> <span className="text-muted-foreground">{brief.hands_on_time}</span></p>
+              )}
+              {deadline && (
+                <p className="mt-1 text-xs">
+                  <strong>Suggested deadline:</strong>{" "}
+                  <span className="text-muted-foreground">{deadline.toLocaleDateString()} — not enforced, just a pace guide.</span>
+                </p>
+              )}
+              {brief.reviewer_checklist?.length > 0 && (
+                <div className="mt-3">
+                  <p className="text-xs font-medium">What reviewers look for:</p>
+                  <ul className="mt-1 list-disc space-y-0.5 pl-4 text-xs text-muted-foreground">
+                    {brief.reviewer_checklist.map((c, i) => <li key={i}>{c}</li>)}
+                  </ul>
+                </div>
+              )}
               {brief.reference_template_url ? (
                 <a href={brief.reference_template_url} target="_blank" rel="noreferrer"
                   className="mt-3 inline-flex items-center gap-2 rounded-lg bg-primary px-3.5 py-2 text-sm font-semibold text-primary-foreground hover:opacity-90">
                   <FileText className="h-4 w-4" /> Open the reference template <ExternalLink className="h-3.5 w-3.5" />
                 </a>
-              ) : (
-                <p className="mt-2 text-xs text-muted-foreground">
-                  Your reviewer will share the reference material in the community group — recreate it and submit your link below.
-                </p>
-              )}
+              ) : null}
             </div>
           ) : (
             <p className="text-sm text-muted-foreground">A brief for this skill will appear here.</p>
