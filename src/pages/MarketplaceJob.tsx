@@ -20,6 +20,7 @@ import {
   AlertCircle,
 } from "lucide-react";
 import { ApplyWizard } from "@/components/jobs/ApplyWizard";
+import { JobComments } from "@/components/marketplace/JobComments";
 
 const scoreJob = (job: any, skills: string[]) => {
   if (!skills.length) return 0;
@@ -312,6 +313,13 @@ export default function MarketplaceJob() {
           )}
 
           <AIMatchScore job={job} userSkills={userSkills} />
+
+          <JobComments
+            jobId={job.id}
+            jobTitle={job.title}
+            clientUserId={client?.user_id}
+            userId={user?.id}
+          />
         </div>
 
         <div className="lg:col-span-1">
