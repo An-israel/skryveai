@@ -137,11 +137,11 @@ serve(async (req) => {
 
     if (!aiResponse.ok) {
       const detail = await aiResponse.text();
+      // Log the full provider response for diagnosis — never echo it to the
+      // client, since it can contain internal account/billing details (e.g.
+      // Anthropic's "organization has been disabled" for our own account).
       console.error("Anthropic error:", aiResponse.status, detail);
-      // Surface a short reason so failures are diagnosable instead of opaque.
-      let reason = "";
-      try { reason = JSON.parse(detail)?.error?.message || ""; } catch { reason = detail.slice(0, 140); }
-      return json({ error: `The parser couldn't run${reason ? `: ${reason}` : ". Please try again."}` }, 502);
+      return json({ error: "The CV parser is temporarily unavailable. Please try again shortly." }, 502);
     }
 
     const aiData = await aiResponse.json();
