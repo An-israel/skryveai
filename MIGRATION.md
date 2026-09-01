@@ -100,7 +100,7 @@ Set the rest with values from the old project / your providers:
 ```bash
 supabase secrets set \
   RESEND_API_KEY=... \
-  SITE_URL=https://skryveai.com \
+  SITE_URL=https://skryve.app \
   ANTHROPIC_API_KEY=... \
   GOOGLE_CLIENT_ID=... GOOGLE_CLIENT_SECRET=... GOOGLE_PLACES_API_KEY=... \
   PAYSTACK_SECRET_KEY=... Paystack_API=... \
@@ -131,8 +131,8 @@ which links, pushes migrations, and deploys everything.
 ## 6. Configure Auth
 
 In the new project: **Authentication → URL Configuration**
-- **Site URL**: `https://skryveai.com`
-- **Redirect URLs**: add `https://skryveai.com/login`, `/dashboard`,
+- **Site URL**: `https://skryve.app`
+- **Redirect URLs**: add `https://skryve.app/login`, `/dashboard`,
   `/reset-password` (and your Vercel preview domain if you want previews to work).
 
 **Authentication → Providers → Email**: keep "Confirm email" ON, but you can
@@ -147,8 +147,8 @@ new project's callback URL to the Google Cloud console authorised redirect URIs.
 
 ## 7. Verify the sender domain in Resend
 
-In Resend, verify **`skryveai.com`** (add the SPF + DKIM DNS records). Until this
-is done, emails from `noreply@skryveai.com` / `outreach@skryveai.com` will fail
+In Resend, verify **`skryve.app`** (add the SPF + DKIM DNS records). Until this
+is done, emails from `noreply@skryve.app` / `outreach@skryve.app` will fail
 or land in spam. This is the single most common cause of "no email received".
 
 ---
@@ -177,8 +177,8 @@ output `dist` (already in `vercel.json`), add the three env vars, deploy.
 
 ## 9. Move the domain
 
-1. In Lovable, disconnect `skryveai.com`.
-2. In Vercel → Project → Domains, add `skryveai.com` (and `www`) and set the DNS
+1. In Lovable, disconnect `skryve.app`.
+2. In Vercel → Project → Domains, add `skryve.app` (and `www`) and set the DNS
    records Vercel shows at your registrar.
 3. Re-check that the Auth redirect URLs (step 6) and Resend domain (step 7) use
    the final domain.

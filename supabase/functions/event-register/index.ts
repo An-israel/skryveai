@@ -9,8 +9,8 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
 import { Resend } from "https://esm.sh/resend@2.0.0";
 import { magicEmailHtml } from "../_shared/magic-email.ts";
 
-const FROM = "Skryve <welcome@skryveai.com>";
-const ROOT = "https://skryveai.com";
+const FROM = "Skryve <welcome@skryve.app>";
+const ROOT = "https://skryve.app";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",

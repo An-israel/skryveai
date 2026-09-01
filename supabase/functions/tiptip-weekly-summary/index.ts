@@ -60,14 +60,14 @@ serve(async (req) => {
     <h3 style="font-size:14px;margin:0 0 8px">✍️ In progress</h3>
     <ul style="padding-left:18px;margin:0 0 20px;font-size:14px">${list(drafting.slice(0, 10))}</ul>
     <p style="font-size:13px;color:#6b7280">Technical SEO checklist: ${tasksDone}/${(tasks || []).length} done.</p>
-    <div style="margin-top:24px"><a href="https://skryveai.com/tiptip" style="display:inline-block;background:#2563EB;color:#fff;padding:11px 24px;border-radius:8px;text-decoration:none;font-weight:600;font-size:14px">Open tiptip</a></div>
+    <div style="margin-top:24px"><a href="https://skryve.app/tiptip" style="display:inline-block;background:#2563EB;color:#fff;padding:11px 24px;border-radius:8px;text-decoration:none;font-weight:600;font-size:14px">Open tiptip</a></div>
   </body></html>`;
 
   const res = await fetch("https://api.resend.com/emails", {
     method: "POST",
     headers: { Authorization: `Bearer ${RESEND_API_KEY}`, "Content-Type": "application/json" },
     body: JSON.stringify({
-      from: "Skryve <outreach@skryveai.com>",
+      from: "Skryve <outreach@skryve.app>",
       to: [OWNER_EMAIL],
       subject: `tiptip weekly — ${ready.length} ready to publish`,
       html,

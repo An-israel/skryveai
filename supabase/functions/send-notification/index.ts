@@ -14,8 +14,8 @@ const corsHeaders = {
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
-const FROM = "Skryve <noreply@skryveai.com>";
-const APP_URL = "https://skryveai.com";
+const FROM = "Skryve <noreply@skryve.app>";
+const APP_URL = "https://skryve.app";
 
 // emailCategory -> talent_profiles preference column
 const PREF_COLUMN: Record<string, string> = {

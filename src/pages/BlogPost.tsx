@@ -12,7 +12,7 @@ import { BlogCard, type BlogPost as BlogPostCard } from "@/components/blog/BlogC
 import { Loader2, Calendar, Clock, Eye, ArrowLeft, Share2, Twitter, Linkedin, Facebook } from "lucide-react";
 import { toast } from "sonner";
 
-const SITE_URL = "https://skryveai.com";
+const SITE_URL = "https://skryve.app";
 
 interface FullPost {
   id: string;

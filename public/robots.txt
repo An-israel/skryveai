@@ -34,4 +34,4 @@ Disallow: /referrals
 Disallow: /payment/
 Disallow: /reply
 
-Sitemap: https://skryveai.com/sitemap.xml
+Sitemap: https://skryve.app/sitemap.xml

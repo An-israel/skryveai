@@ -135,7 +135,7 @@ serve(async (req) => {
         <p>Please log in to the admin panel to retry or investigate these failures.</p>
         
         <p style="margin-top: 30px;">
-          <a href="https://skryveai.com/admin" style="background: #0ea5e9; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px;">Go to Admin Panel</a>
+          <a href="https://skryve.app/admin" style="background: #0ea5e9; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px;">Go to Admin Panel</a>
         </p>
         
         <hr style="border: none; border-top: 1px solid #eee; margin: 32px 0;">
@@ -146,7 +146,7 @@ serve(async (req) => {
 
     // Send notification to all admins
     const { data: emailResponse, error: sendError } = await resend.emails.send({
-      from: "SkryveAI Alerts <alerts@skryveai.com>",
+      from: "SkryveAI Alerts <alerts@skryve.app>",
       to: adminEmails,
       subject: `⚠️ ${failedEmails.length} Failed Emails Need Attention`,
       html: htmlBody,

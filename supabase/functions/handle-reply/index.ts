@@ -72,7 +72,7 @@ async function sendReplyAlertEmail(toEmail: string, toName: string, fromEmail: s
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        from: "Skryve <outreach@skryveai.com>",
+        from: "Skryve <outreach@skryve.app>",
         to: [toEmail],
         subject: `🎉 Reply received from ${fromEmail}`,
         html: htmlBody,

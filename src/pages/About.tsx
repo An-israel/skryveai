@@ -38,7 +38,7 @@ export default function About() {
       <SEOHead
         title="About Skryve — The AI-Powered Career Platform for Talent"
         description="Learn how Skryve was built to level the playing field for talent everywhere. Find jobs, build ATS-ready CVs, write winning proposals, learn in-demand skills, and get hired — all in one platform."
-        canonical="https://skryveai.com/about"
+        canonical="https://skryve.app/about"
         keywords="about Skryve, AI career platform, freelancer tools, find jobs, CV builder, ATS checker, talent marketplace, learn skills"
       />
       <Header />
