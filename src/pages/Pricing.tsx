@@ -116,7 +116,7 @@ export default function Pricing() {
       <SEOHead
         title="Skryve Pricing — Find Work, Get Hired, Grow Your Career"
         description="Simple, transparent pricing for Skryve, the freelance marketplace. Start free, then upgrade to Pro for more applications, visibility to clients, learning, and premium tools."
-        canonical="https://skryveai.com/pricing"
+        canonical="https://skryve.app/pricing"
         keywords="Skryve pricing, freelance marketplace, find jobs, get hired, CV builder, ATS checker, LinkedIn analyzer"
       />
       <div className="max-w-6xl mx-auto">

@@ -124,7 +124,7 @@ serve(async (req) => {
 
     // Also deliver the digest as a "Daily Jobs" DM inside the app.
     try {
-      const siteUrl = Deno.env.get("SITE_URL") || "https://www.skryveai.com";
+      const siteUrl = Deno.env.get("SITE_URL") || "https://www.skryve.app";
       const top = scored.slice(0, 5);
       const dmBody =
         `☀️ Your ${scored.length} job matches for today:\n\n` +

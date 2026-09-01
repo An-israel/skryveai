@@ -6,8 +6,8 @@
 // tricked into pasting their own token into a third-party page's fetch).
 // Reflect the origin only when it's one we actually serve from.
 const ALLOWED_ORIGINS = [
-  "https://skryveai.com",
-  "https://www.skryveai.com",
+  "https://skryve.app",
+  "https://www.skryve.app",
   "http://localhost:5173",
   "http://localhost:8080",
 ];

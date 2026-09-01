@@ -2,7 +2,7 @@
 // schema.org objects to feed into SEOHead's `jsonLd` prop (or SiteSchema).
 // Validate output against Google's Rich Results Test.
 
-export const SITE_URL = "https://skryveai.com";
+export const SITE_URL = "https://skryve.app";
 const LOGO = `${SITE_URL}/logo.png`;
 
 const SOCIALS = [

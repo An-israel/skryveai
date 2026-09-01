@@ -112,7 +112,7 @@ Deno.serve(async (req) => {
     const trackingPixelUrl = `${baseUrl}/email-webhook?type=admin-open&adminEmailId=${adminEmailId}`;
 
     // Build reply link URL
-    const appUrl = "https://skryveai.com";
+    const appUrl = "https://skryve.app";
     const replyLink = `${appUrl}/reply?id=${adminEmailId}`;
 
     // Build HTML email with tracking pixel and reply link
@@ -143,7 +143,7 @@ Deno.serve(async (req) => {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        from: "Skryve <outreach@skryveai.com>",
+        from: "Skryve <outreach@skryve.app>",
         to: [toEmail],
         subject,
         html: htmlBody,

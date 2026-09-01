@@ -165,10 +165,10 @@ serve(async (req) => {
     // Send invitation email
     if (RESEND_API_KEY) {
       const resend = new Resend(RESEND_API_KEY);
-      const appUrl = req.headers.get("origin") || "https://skryveai.com";
+      const appUrl = req.headers.get("origin") || "https://skryve.app";
 
       await resend.emails.send({
-        from: `Skryve <outreach@skryveai.com>`,
+        from: `Skryve <outreach@skryve.app>`,
         to: [email],
         subject: `You've been invited to join ${team.name} on Skryve`,
         html: `

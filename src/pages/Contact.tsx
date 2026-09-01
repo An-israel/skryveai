@@ -43,7 +43,7 @@ export default function Contact() {
       <SEOHead
         title="Contact Skryve — Get Help & Support"
         description="Contact Skryve for questions about finding jobs, the marketplace, CV builder, ATS checker, learning courses, or your account. We respond within 24 hours."
-        canonical="https://skryveai.com/contact"
+        canonical="https://skryve.app/contact"
         keywords="contact Skryve, Skryve support, career platform help"
       />
       <Header />

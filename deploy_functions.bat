@@ -39,5 +39,5 @@ if errorlevel 1 (
 echo.
 echo Done! If auth/notification emails still don't arrive, confirm:
 echo   - secret RESEND_API_KEY is set (supabase secrets set RESEND_API_KEY=...)
-echo   - skryveai.com is a verified sender domain in Resend (SPF/DKIM)
+echo   - skryve.app is a verified sender domain in Resend (SPF/DKIM)
 pause

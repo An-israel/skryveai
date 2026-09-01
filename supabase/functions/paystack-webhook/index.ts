@@ -66,7 +66,7 @@ async function sendSubscriptionReceipt(email: string, plan: string, amount: numb
       method: "POST",
       headers: { "Authorization": `Bearer ${RESEND_API_KEY}`, "Content-Type": "application/json" },
       body: JSON.stringify({
-        from: "Skryve <outreach@skryveai.com>",
+        from: "Skryve <outreach@skryve.app>",
         to: [email],
         subject: `🎉 Welcome to Skryve ${planNames[plan] || plan} — Payment Confirmed`,
         html: htmlBody,

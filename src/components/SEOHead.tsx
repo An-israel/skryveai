@@ -11,7 +11,7 @@ interface SEOHeadProps {
   noindex?: boolean;
 }
 
-const DEFAULT_IMAGE = "https://skryveai.com/og-image.png";
+const DEFAULT_IMAGE = "https://skryve.app/og-image.png";
 
 export function SEOHead({
   title,
@@ -24,7 +24,7 @@ export function SEOHead({
   noindex = false,
 }: SEOHeadProps) {
   const fullTitle = title.includes("SkryveAI") ? title : `${title} | SkryveAI`;
-  const url = canonical || "https://skryveai.com";
+  const url = canonical || "https://skryve.app";
 
   return (
     <Helmet>

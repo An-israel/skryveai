@@ -103,7 +103,7 @@ export default function Careers() {
       <SEOHead
         title="Careers at SkryveAI — Join Our Remote Team"
         description="Join SkryveAI and help empower freelancers and startups worldwide. We're hiring for remote roles in marketing, customer success, and more."
-        canonical="https://skryveai.com/careers"
+        canonical="https://skryve.app/careers"
         keywords="SkryveAI careers, SkryveAI jobs, remote jobs AI startup"
       />
       <Header />

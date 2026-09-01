@@ -50,7 +50,7 @@ serve(async (req) => {
 
     // Send email notification if Resend is configured
     if (RESEND_API_KEY) {
-      const adminUrl = `https://skryveai.com/admin`;
+      const adminUrl = `https://skryve.app/admin`;
       const emailHtml = `
         <div style="font-family: sans-serif; max-width: 520px; margin: 0 auto;">
           <h2 style="color: #1a1a1a;">💬 New Chat Message</h2>
@@ -79,7 +79,7 @@ serve(async (req) => {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          from: "Skryve Support <support@skryveai.com>",
+          from: "Skryve Support <support@skryve.app>",
           to: [ADMIN_EMAIL],
           subject: `💬 New message from ${userName || user.email}`,
           html: emailHtml,

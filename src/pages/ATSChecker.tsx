@@ -145,13 +145,13 @@ export default function ATSChecker() {
       <SEOHead
         title="Free ATS Score Checker — Check Your Resume ATS Score Instantly | SkryveAI"
         description="Check your resume's ATS score instantly. SkryveAI's ATS Checker scores your CV against any job description, identifies keyword gaps, and tells you exactly what to fix to pass ATS filters."
-        canonical="https://skryveai.com/ats-checker"
+        canonical="https://skryve.app/ats-checker"
         keywords="ATS score checker, ATS resume checker, check ATS score, resume ATS score free, ATS compatibility checker, resume keyword checker, ATS friendly resume checker, resume scanner, CV ATS check, free ATS checker online, best ATS checker 2026"
         jsonLd={{
           "@context": "https://schema.org",
           "@type": "WebApplication",
           name: "SkryveAI ATS Score Checker",
-          url: "https://skryveai.com/ats-checker",
+          url: "https://skryve.app/ats-checker",
           applicationCategory: "BusinessApplication",
           description: "Free AI-powered ATS score checker that analyzes your resume against job descriptions and identifies keyword gaps.",
           offers: { "@type": "Offer", price: "0", priceCurrency: "USD", description: "Free trial available" }

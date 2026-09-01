@@ -6,7 +6,7 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-const SITE = "https://skryveai.com";
+const SITE = "https://skryve.app";
 
 const STATIC_ROUTES: Array<{ loc: string; changefreq: string; priority: string }> = [
   { loc: "/", changefreq: "weekly", priority: "1.0" },

@@ -21,7 +21,7 @@ const MAX_AGE_DAYS = 7;
 const MAX_AGE_MS = MAX_AGE_DAYS * 24 * 60 * 60 * 1000;
 const ATS_STALE_DAYS = 4;
 const ATS_STALE_MS = ATS_STALE_DAYS * 24 * 60 * 60 * 1000;
-const UA = "Skryve Job Aggregator/1.0 (+https://skryveai.com)";
+const UA = "Skryve Job Aggregator/1.0 (+https://skryve.app)";
 const MAX_TRANSLATIONS = 60; // per run, to bound cost/latency
 
 type SourceType = "fresh" | "ats";

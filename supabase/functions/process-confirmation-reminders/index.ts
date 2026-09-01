@@ -80,7 +80,7 @@ Deno.serve(async (req) => {
               Authorization: `Bearer ${resendApiKey}`,
             },
             body: JSON.stringify({
-              from: "Skryve <noreply@skryveai.com>",
+              from: "Skryve <noreply@skryve.app>",
               to: [profile.email],
               subject: "Confirm Your Skryve Account ✉️",
               html: `

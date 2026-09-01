@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Loader2, Search, BookOpen } from "lucide-react";
 
-const SITE_URL = "https://skryveai.com";
+const SITE_URL = "https://skryve.app";
 
 export default function Blog() {
   const [posts, setPosts] = useState<BlogPost[]>([]);

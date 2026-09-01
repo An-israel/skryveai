@@ -205,7 +205,7 @@ serve(async (req) => {
         // Require both a well-formed http(s) URL AND a real, known email —
         // ties the redirect to an actual tracked send instead of accepting any
         // caller-supplied destination (this endpoint is fully public/GET, so
-        // an unchecked redirect here is an open redirect off skryveai.com).
+        // an unchecked redirect here is an open redirect off skryve.app).
         if (targetUrl && isSafeRedirectTarget(targetUrl)) {
           const { data: knownEmail } = await supabase
             .from("emails")
