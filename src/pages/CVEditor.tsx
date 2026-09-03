@@ -20,7 +20,8 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Separator } from "@/components/ui/separator";
 import {
   Plus, Trash2, Sparkles, Download, Save, ChevronUp, ChevronDown,
-  Loader2, X, Check, AlertCircle, Linkedin, ArrowLeft, Upload, Copy
+  Loader2, X, Check, AlertCircle, Linkedin, ArrowLeft, Upload, Copy,
+  RotateCcw, Wand2,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -96,6 +97,33 @@ interface CVFormData {
   skills: string[];
   certifications: CertificationEntry[];
   projects: ProjectEntry[];
+}
+
+// ─── Before/after CV import review ─────────────────────────────────────────
+
+interface ImportReviewExperience {
+  jobTitle: string;
+  company: string;
+  startDate: string;
+  endDate: string;
+  isPresent: boolean;
+  before: string;
+  after: string;
+}
+
+interface ImportReviewState {
+  fullName: string;
+  email: string;
+  phone: string;
+  location: string;
+  links: string[];
+  skills: string[];
+  education: EducationEntry[];
+  headlineBefore: string;
+  headlineAfter: string;
+  bioBefore: string;
+  bioAfter: string;
+  experiences: ImportReviewExperience[];
 }
 
 const defaultPersonalInfo: PersonalInfo = {
@@ -223,6 +251,12 @@ export default function CVEditor() {
   const [showImportModal, setShowImportModal] = useState(false);
   const [uploadingCv, setUploadingCv] = useState(false);
   const cvUploadRef = useRef<HTMLInputElement>(null);
+
+  // Before/after review after an "Upload my CV" parse — shown instead of
+  // jumping straight into the builder, so the user sees what changed and can
+  // edit the AI-polished version before it becomes their CV.
+  const [importReview, setImportReview] = useState<ImportReviewState | null>(null);
+  const [creatingFromImport, setCreatingFromImport] = useState(false);
   const [showTemplateModal, setShowTemplateModal] = useState(false);
   const [showATSModal, setShowATSModal] = useState(false);
   const [showAISummarySheet, setShowAISummarySheet] = useState(false);
@@ -427,51 +461,46 @@ export default function CVEditor() {
     navigate(`/cv-builder/${cv.id}`, { replace: true });
   };
 
-  // Upload an existing CV (PDF/DOCX), parse it, and pre-fill the builder.
+  // Upload an existing CV (PDF/DOCX), parse it, and show a before/after review
+  // — the raw extraction next to an AI-polished rewrite — before it becomes
+  // the actual CV. The user picks/edits per section, then continues into the
+  // normal editable builder.
   const handleUploadCv = async (file: File) => {
     setUploadingCv(true);
     try {
-      const parsed = await uploadAndParseCv(file);
+      const { parsed, improved } = await uploadAndParseCv(file);
       const links = parsed.links || [];
-      const find = (re: RegExp) => links.find((l) => re.test(l)) || "";
-      const newData: CVFormData = {
-        ...defaultFormData,
-        personal_info: {
-          ...defaultPersonalInfo,
-          fullName: parsed.full_name || "",
-          title: parsed.headline || "",
-          email: parsed.email || "",
-          phone: parsed.phone || "",
-          location: parsed.location || "",
-          linkedin: find(/linkedin\.com/i),
-          github: find(/github\.com/i),
-          website: links.find((l) => !/linkedin\.com|github\.com/i.test(l)) || "",
-        },
-        summary: parsed.bio || "",
+      const workExp = parsed.work_experience || [];
+      const improvedWork = improved.work_experience || [];
+      setImportReview({
+        fullName: parsed.full_name || "",
+        email: parsed.email || "",
+        phone: parsed.phone || "",
+        location: parsed.location || "",
+        links,
         skills: parsed.skills || [],
-        experiences: (parsed.work_experience || []).length
-          ? (parsed.work_experience || []).map((w) => ({
+        education: (parsed.education || []).length
+          ? (parsed.education || []).map((e) => ({
+              degree: e.qualification || "", school: e.institution || "", year: e.year || "", grade: "",
+            }))
+          : [defaultEducation()],
+        headlineBefore: parsed.headline || "",
+        headlineAfter: improved.headline?.trim() || parsed.headline || "",
+        bioBefore: parsed.bio || "",
+        bioAfter: improved.bio?.trim() || parsed.bio || "",
+        experiences: workExp.length
+          ? workExp.map((w, i) => ({
               jobTitle: w.role || "",
               company: w.company || "",
-              location: "",
               startDate: w.start_date || "",
               endDate: /present|current/i.test(w.end_date || "") ? "" : (w.end_date || ""),
               isPresent: /present|current/i.test(w.end_date || ""),
-              bullets: w.description ? w.description.split(/\n|•|·|;/).map((s) => s.trim()).filter(Boolean) : [""],
+              before: w.description || "",
+              after: improvedWork[i]?.description?.trim() || w.description || "",
             }))
-          : [defaultExperience()],
-        education: (parsed.education || []).length
-          ? (parsed.education || []).map((e) => ({
-              degree: e.qualification || "",
-              school: e.institution || "",
-              year: e.year || "",
-              grade: "",
-            }))
-          : [defaultEducation()],
-      };
+          : [],
+      });
       setShowImportModal(false);
-      await createCvFrom(newData);
-      toast({ title: "CV imported", description: "Review and tweak anything below." });
     } catch (e) {
       if (handleToolLimit(e)) { setShowImportModal(false); return; }
       toast({ title: "Couldn't read that CV", description: e instanceof Error ? e.message : undefined, variant: "destructive" });
@@ -479,6 +508,53 @@ export default function CVEditor() {
       setUploadingCv(false);
     }
   };
+
+  // Turn the (possibly hand-edited) "after" review into a real CV and land in
+  // the normal builder.
+  const confirmImportReview = async () => {
+    if (!importReview) return;
+    const r = importReview;
+    const find = (re: RegExp) => r.links.find((l) => re.test(l)) || "";
+    const newData: CVFormData = {
+      ...defaultFormData,
+      personal_info: {
+        ...defaultPersonalInfo,
+        fullName: r.fullName,
+        title: r.headlineAfter,
+        email: r.email,
+        phone: r.phone,
+        location: r.location,
+        linkedin: find(/linkedin\.com/i),
+        github: find(/github\.com/i),
+        website: r.links.find((l) => !/linkedin\.com|github\.com/i.test(l)) || "",
+      },
+      summary: r.bioAfter,
+      skills: r.skills,
+      experiences: r.experiences.length
+        ? r.experiences.map((e) => ({
+            jobTitle: e.jobTitle,
+            company: e.company,
+            location: "",
+            startDate: e.startDate,
+            endDate: e.endDate,
+            isPresent: e.isPresent,
+            bullets: (() => {
+              const b = e.after.split(/\n|•|·/).map((s) => s.trim()).filter(Boolean);
+              return b.length ? b : [""];
+            })(),
+          }))
+        : [defaultExperience()],
+      education: r.education.length ? r.education : [defaultEducation()],
+    };
+    setCreatingFromImport(true);
+    await createCvFrom(newData);
+    setCreatingFromImport(false);
+    setImportReview(null);
+    toast({ title: "CV created", description: "Keep editing anything below, then download when ready." });
+  };
+
+  const patchImportExperience = (i: number, after: string) =>
+    setImportReview((r) => (r ? { ...r, experiences: r.experiences.map((e, idx) => (idx === i ? { ...e, after } : e)) } : r));
 
   // ─── AI Summary ─────────────────────────────────────────────────────────────
 
@@ -702,6 +778,145 @@ export default function CVEditor() {
     return (
       <div className="flex items-center justify-center h-screen">
         <Loader2 className="w-8 h-8 animate-spin text-[#2563EB]" />
+      </div>
+    );
+  }
+
+  // ─── Before/after import review ───────────────────────────────────────────
+
+  if (importReview) {
+    const r = importReview;
+    return (
+      <div className="mx-auto max-w-4xl px-4 py-8 pb-28">
+        <div className="mb-6 flex items-center gap-2">
+          <Wand2 className="w-5 h-5 text-[#2563EB]" />
+          <div>
+            <h1 className="text-xl font-bold">Here's what we found — and how we'd tweak it</h1>
+            <p className="text-sm text-muted-foreground">
+              Left is exactly what your CV says. Right is our polished rewrite — edit it however you like, then continue.
+            </p>
+          </div>
+        </div>
+
+        <div className="space-y-5">
+          {/* Headline */}
+          <div className="rounded-lg border p-4">
+            <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Headline</p>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <div>
+                <p className="mb-1 text-[11px] font-medium text-muted-foreground">Before</p>
+                <p className="rounded-md bg-muted/50 p-2 text-sm text-muted-foreground min-h-[38px]">
+                  {r.headlineBefore || <span className="italic">Not found</span>}
+                </p>
+              </div>
+              <div>
+                <div className="mb-1 flex items-center justify-between">
+                  <p className="text-[11px] font-medium text-[#2563EB]">After (editable)</p>
+                  {r.headlineAfter !== r.headlineBefore && (
+                    <button
+                      onClick={() => setImportReview((p) => (p ? { ...p, headlineAfter: p.headlineBefore } : p))}
+                      className="flex items-center gap-1 text-[11px] text-muted-foreground hover:text-foreground"
+                    >
+                      <RotateCcw className="w-3 h-3" /> Use original
+                    </button>
+                  )}
+                </div>
+                <Input
+                  value={r.headlineAfter}
+                  onChange={(e) => setImportReview((p) => (p ? { ...p, headlineAfter: e.target.value } : p))}
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Summary */}
+          <div className="rounded-lg border p-4">
+            <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Summary</p>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <div>
+                <p className="mb-1 text-[11px] font-medium text-muted-foreground">Before</p>
+                <p className="whitespace-pre-wrap rounded-md bg-muted/50 p-2 text-sm text-muted-foreground min-h-[80px]">
+                  {r.bioBefore || <span className="italic">Not found</span>}
+                </p>
+              </div>
+              <div>
+                <div className="mb-1 flex items-center justify-between">
+                  <p className="text-[11px] font-medium text-[#2563EB]">After (editable)</p>
+                  {r.bioAfter !== r.bioBefore && (
+                    <button
+                      onClick={() => setImportReview((p) => (p ? { ...p, bioAfter: p.bioBefore } : p))}
+                      className="flex items-center gap-1 text-[11px] text-muted-foreground hover:text-foreground"
+                    >
+                      <RotateCcw className="w-3 h-3" /> Use original
+                    </button>
+                  )}
+                </div>
+                <Textarea
+                  rows={4}
+                  value={r.bioAfter}
+                  onChange={(e) => setImportReview((p) => (p ? { ...p, bioAfter: e.target.value } : p))}
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Experience */}
+          {r.experiences.map((e, i) => (
+            <div key={i} className="rounded-lg border p-4">
+              <p className="mb-2 text-sm font-semibold">
+                {e.jobTitle || "Role"} {e.company && <span className="font-normal text-muted-foreground">· {e.company}</span>}
+              </p>
+              <div className="grid gap-3 sm:grid-cols-2">
+                <div>
+                  <p className="mb-1 text-[11px] font-medium text-muted-foreground">Before</p>
+                  <p className="whitespace-pre-wrap rounded-md bg-muted/50 p-2 text-sm text-muted-foreground min-h-[80px]">
+                    {e.before || <span className="italic">Not found</span>}
+                  </p>
+                </div>
+                <div>
+                  <div className="mb-1 flex items-center justify-between">
+                    <p className="text-[11px] font-medium text-[#2563EB]">After (editable)</p>
+                    {e.after !== e.before && (
+                      <button
+                        onClick={() => patchImportExperience(i, e.before)}
+                        className="flex items-center gap-1 text-[11px] text-muted-foreground hover:text-foreground"
+                      >
+                        <RotateCcw className="w-3 h-3" /> Use original
+                      </button>
+                    )}
+                  </div>
+                  <Textarea rows={4} value={e.after} onChange={(ev) => patchImportExperience(i, ev.target.value)} />
+                </div>
+              </div>
+            </div>
+          ))}
+
+          {r.skills.length > 0 && (
+            <div className="rounded-lg border p-4">
+              <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Skills found</p>
+              <div className="flex flex-wrap gap-1.5">
+                {r.skills.map((s, i) => <Badge key={i} variant="secondary">{s}</Badge>)}
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Sticky action bar */}
+        <div className="fixed bottom-0 left-0 right-0 z-10 border-t bg-background/95 backdrop-blur px-4 py-3">
+          <div className="mx-auto flex max-w-4xl items-center justify-between gap-3">
+            <button
+              onClick={() => setImportReview(null)}
+              className="text-sm text-muted-foreground hover:text-foreground"
+            >
+              Start over
+            </button>
+            <Button onClick={confirmImportReview} disabled={creatingFromImport} className="bg-[#2563EB] hover:bg-[#1d4ed8]">
+              {creatingFromImport
+                ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Creating…</>
+                : <>Continue to editor<ArrowLeft className="w-4 h-4 ml-2 rotate-180" /></>}
+            </Button>
+          </div>
+        </div>
       </div>
     );
   }

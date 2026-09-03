@@ -34,7 +34,7 @@ export default function CVImport() {
     if (file.size > MAX_CV_BYTES) { toast.error("That file is over 10MB."); return; }
     setPhase("parsing");
     try {
-      const parsed = await uploadAndParseCv(file);
+      const { parsed } = await uploadAndParseCv(file);
       setCv(parsed);
       setPhase("review");
       toast.success("We built your profile — review it below.");

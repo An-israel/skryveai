@@ -34,13 +34,7 @@ async function extractPdf(bytes: Uint8Array): Promise<string> {
   return (Array.isArray(text) ? text.join("\n") : text) ?? "";
 }
 
-async function extractDocx(bytes: Uint8Array): Promise<string> {
-  // A .docx is a zip; the body text lives in word/document.xml. We unzip it and
-  // strip the XML rather than pull in a Node-oriented DOCX lib (unreliable on Deno).
-  const zip = await JSZip.loadAsync(bytes);
-  const doc = zip.file("word/document.xml");
-  if (!doc) return "";
-  const xml = await doc.async("string");
+function xmlToText(xml: string): string {
   const withBreaks = xml
     .replace(/<\/w:p>/g, "\n")     // paragraph end → newline
     .replace(/<w:tab\b[^>]*\/>/g, "\t")
@@ -49,6 +43,27 @@ async function extractDocx(bytes: Uint8Array): Promise<string> {
   return text
     .replace(/&amp;/g, "&").replace(/&lt;/g, "<").replace(/&gt;/g, ">")
     .replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/&apos;/g, "'");
+}
+
+async function extractDocx(bytes: Uint8Array): Promise<string> {
+  // A .docx is a zip; the body text lives in word/document.xml. We unzip it and
+  // strip the XML rather than pull in a Node-oriented DOCX lib (unreliable on Deno).
+  //
+  // Many resume templates put the name/contact block in a header, footer, or a
+  // sidebar built from a header — none of that lives in document.xml, so a
+  // template-styled two-column resume can extract as "empty" even though the
+  // file has plenty of text. Pull in every header/footer part too.
+  const zip = await JSZip.loadAsync(bytes);
+  const doc = zip.file("word/document.xml");
+  if (!doc) return "";
+
+  const parts = [doc];
+  for (const name of Object.keys(zip.files)) {
+    if (/^word\/(header|footer)\d*\.xml$/.test(name)) parts.push(zip.file(name)!);
+  }
+
+  const texts = await Promise.all(parts.map(async (p) => xmlToText(await p.async("string"))));
+  return texts.join("\n");
 }
 
 serve(async (req) => {
@@ -108,16 +123,28 @@ serve(async (req) => {
     const clipped = rawText.slice(0, 24000);
 
     // Plain-JSON prompt (same call shape as the working generate-* functions —
-    // no tool-calling, which is what was failing). Ask for a strict JSON object.
+    // no tool-calling, which is what was failing). Ask for a strict JSON object
+    // with two parallel shapes: the raw extraction ("original") and a lightly
+    // polished rewrite of the summary/bullets ("improved"), so the client can
+    // show a before/after and let the user pick per-section.
     const systemPrompt =
-      "You extract structured data from a CV/résumé. Respond with ONLY a valid JSON " +
-      "object — no prose, no markdown, no code fences. Use exactly this shape: " +
-      '{"full_name":"","headline":"","bio":"","location":"","email":"","phone":"",' +
+      "You extract structured data from a CV/résumé AND produce a polished rewrite of its " +
+      "summary and role bullet points. Respond with ONLY a valid JSON object — no prose, no " +
+      "markdown, no code fences. Use exactly this shape: " +
+      '{"original":{"full_name":"","headline":"","bio":"","location":"","email":"","phone":"",' +
       '"years_experience":0,"links":[],"skills":[],' +
       '"work_experience":[{"company":"","role":"","start_date":"","end_date":"","description":""}],' +
-      '"education":[{"institution":"","qualification":"","year":""}]}. ' +
-      "Use only information present in the text — never invent companies, roles, skills, " +
-      "dates, or achievements. Omit or leave empty anything not present. Keep skills concise.";
+      '"education":[{"institution":"","qualification":"","year":""}]},' +
+      '"improved":{"headline":"","bio":"","work_experience":[{"description":""}]}}. ' +
+      "For \"original\": use only information present in the text — never invent companies, " +
+      "roles, skills, dates, or achievements. Omit or leave empty anything not present. Keep " +
+      "skills concise. For \"improved\": rewrite original.headline and original.bio to read " +
+      "more polished and professional — concise, active voice, no fluff or clichés — and " +
+      "rewrite each work_experience entry's description into 2 to 4 punchy bullet points " +
+      "(separate bullets with \\n) using strong action verbs. Only improve the WRITING — never " +
+      "invent facts, numbers, companies, dates, or achievements not already present in " +
+      "original. improved.work_experience must have exactly the same number of entries, in the " +
+      "same order, as original.work_experience.";
 
     const aiResponse = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
@@ -128,7 +155,7 @@ serve(async (req) => {
       },
       body: JSON.stringify({
         model: "claude-haiku-4-5-20251001",
-        max_tokens: 4096,
+        max_tokens: 6144,
         temperature: 0,
         system: systemPrompt,
         messages: [{ role: "user", content: `CV TEXT:\n\n${clipped}` }],
@@ -148,12 +175,26 @@ serve(async (req) => {
     const rawOut = (aiData.content || []).map((c: { type: string; text?: string }) => c.type === "text" ? (c.text || "") : "").join("").trim();
     // Strip any accidental markdown fences and grab the JSON object.
     const jsonText = (rawOut.match(/\{[\s\S]*\}/) || [rawOut])[0];
-    let parsed: Record<string, unknown>;
+    let result: { original?: Record<string, unknown>; improved?: Record<string, unknown> };
     try {
-      parsed = JSON.parse(jsonText);
+      result = JSON.parse(jsonText);
     } catch {
       console.error("parse-cv: model did not return JSON:", rawOut.slice(0, 200));
       return json({ error: "Couldn't read that CV — please try a cleaner PDF/DOCX." }, 422);
+    }
+    const original = result.original ?? {};
+    const improved = result.improved ?? {};
+
+    // Tell the user honestly if nothing useful was extracted, instead of
+    // silently "succeeding" with an empty CV (e.g. a template layout our
+    // extractor couldn't read, or a scan with a little garbled OCR text).
+    const workExp = original.work_experience;
+    const hasContent =
+      !!(original.full_name || original.email) ||
+      (Array.isArray(workExp) && workExp.length > 0) ||
+      (typeof original.bio === "string" && original.bio.trim().length > 20);
+    if (!hasContent) {
+      return json({ error: "We opened your file but couldn't find recognizable resume content. Try exporting it as a standard (non-scanned) PDF, or fill in the builder manually." }, 422);
     }
 
     // Persist the master CV (one row per user; re-upload replaces it).
@@ -164,13 +205,13 @@ serve(async (req) => {
         file_url: path,
         file_name: fileName ?? path.split("/").pop() ?? null,
         raw_text: rawText,
-        parsed_json: parsed,
+        parsed_json: original,
         uploaded_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
       }, { onConflict: "user_id" });
     if (upsertError) console.error("master_cvs upsert failed:", upsertError.message);
 
-    return json({ parsed });
+    return json({ parsed: original, improved });
   } catch (e) {
     console.error("parse-cv fatal:", e);
     return json({ error: "Something went wrong parsing your CV." }, 500);
