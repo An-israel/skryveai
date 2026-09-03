@@ -399,8 +399,6 @@ export default function CVEditor() {
   // ─── Import from profile ────────────────────────────────────────────────────
 
   const handleImportProfile = async (doImport: boolean) => {
-    setShowImportModal(false);
-
     let newData = { ...defaultFormData };
 
     if (doImport && talentProfile) {
@@ -423,14 +421,19 @@ export default function CVEditor() {
       };
     }
 
-    await createCvFrom(newData);
+    const ok = await createCvFrom(newData);
+    if (ok) setShowImportModal(false); // keep the modal open on failure so the user can retry, instead of dropping them into an empty, unexplained builder
   };
 
-  // Shared: persist a new CV row from form data and open it.
-  const createCvFrom = async (newData: CVFormData) => {
+  // Shared: persist a new CV row from form data and open it. Returns whether
+  // it actually succeeded — callers must check this before treating the CV as
+  // created (a previous version showed "CV created" unconditionally, even
+  // when this failed, which silently discarded the user's reviewed data and
+  // left them staring at an empty builder with no explanation).
+  const createCvFrom = async (newData: CVFormData): Promise<boolean> => {
     if (!profileId) {
       toast({ title: "Couldn't create CV", description: "Please refresh the page and try again.", variant: "destructive" });
-      return;
+      return false;
     }
     const { data: cv, error } = await (supabase as any)
       .from("skryve_cvs")
@@ -452,13 +455,14 @@ export default function CVEditor() {
       .single();
 
     if (error || !cv) {
-      toast({ title: "Failed to create CV", variant: "destructive" });
-      return;
+      toast({ title: "Failed to create CV", description: error?.message, variant: "destructive" });
+      return false;
     }
 
     setDbId(cv.id);
     setCvData(newData);
     navigate(`/cv-builder/${cv.id}`, { replace: true });
+    return true;
   };
 
   // Upload an existing CV (PDF/DOCX), parse it, and show a before/after review
@@ -547,8 +551,9 @@ export default function CVEditor() {
       education: r.education.length ? r.education : [defaultEducation()],
     };
     setCreatingFromImport(true);
-    await createCvFrom(newData);
+    const ok = await createCvFrom(newData);
     setCreatingFromImport(false);
+    if (!ok) return; // error already toasted inside createCvFrom — keep the review open so nothing's lost
     setImportReview(null);
     toast({ title: "CV created", description: "Keep editing anything below, then download when ready." });
   };
