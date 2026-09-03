@@ -291,18 +291,22 @@ export default function CVEditor() {
   // Called both on load and again, just-in-time, right before creating a CV,
   // so a failure/race at load time doesn't permanently block CV creation the
   // way it did before (createCvFrom used to just fail with no retry).
-  const ensureProfileId = async (): Promise<string | null> => {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return null;
+  const ensureProfileId = async (): Promise<{ id: string | null; error?: string }> => {
+    const { data: { user }, error: authErr } = await supabase.auth.getUser();
+    if (!user) return { id: null, error: authErr?.message || "Not signed in." };
 
-    const { data: profile } = await (supabase as any)
+    const { data: profile, error: selectErr } = await (supabase as any)
       .from("talent_profiles")
       .select("id, full_name, primary_skill, secondary_skills, bio, certifications")
       .eq("user_id", user.id)
       .maybeSingle();
     if (profile) {
       setTalentProfile(profile);
-      return profile.id;
+      return { id: profile.id };
+    }
+    if (selectErr) {
+      console.error("ensureProfileId: select failed:", selectErr.message);
+      return { id: null, error: selectErr.message };
     }
 
     const { data: created, error } = await (supabase as any)
@@ -312,10 +316,10 @@ export default function CVEditor() {
       .single();
     if (error || !created) {
       console.error("ensureProfileId: couldn't create talent profile:", error?.message);
-      return null;
+      return { id: null, error: error?.message || "Unknown error creating profile." };
     }
     setTalentProfile(created);
-    return created.id;
+    return { id: created.id };
   };
 
   const init = async () => {
@@ -324,7 +328,7 @@ export default function CVEditor() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) { navigate("/login"); return; }
 
-      const id = await ensureProfileId();
+      const { id } = await ensureProfileId();
       if (id) setProfileId(id);
 
       if (isNew) {
@@ -445,12 +449,13 @@ export default function CVEditor() {
     if (!id) {
       // Load-time provisioning can race or fail silently — retry it here,
       // right before it's actually needed, instead of just giving up.
-      id = await ensureProfileId();
+      const r = await ensureProfileId();
+      id = r.id;
       if (id) setProfileId(id);
-    }
-    if (!id) {
-      toast({ title: "Couldn't create CV", description: "We couldn't set up your profile. Please refresh the page and try again.", variant: "destructive" });
-      return false;
+      if (!id) {
+        toast({ title: "Couldn't create CV", description: r.error || "We couldn't set up your profile. Please refresh the page and try again.", variant: "destructive" });
+        return false;
+      }
     }
     const { data: cv, error } = await (supabase as any)
       .from("skryve_cvs")
