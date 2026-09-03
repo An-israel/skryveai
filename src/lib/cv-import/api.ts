@@ -33,6 +33,13 @@ export interface ParsedCv {
   education?: CvEducation[];
 }
 
+/** An AI-polished rewrite of the summary/bullets, same order as ParsedCv.work_experience. */
+export interface ImprovedCv {
+  headline?: string;
+  bio?: string;
+  work_experience?: { description?: string }[];
+}
+
 export const MAX_CV_BYTES = 10 * 1024 * 1024; // 10MB
 
 export function isSupportedCvFile(file: File): boolean {
@@ -40,12 +47,17 @@ export function isSupportedCvFile(file: File): boolean {
   return n.endsWith(".pdf") || n.endsWith(".docx");
 }
 
+export interface UploadAndParseResult {
+  parsed: ParsedCv;
+  improved: ImprovedCv;
+}
+
 /**
  * Upload the file to the user's folder in the private bucket, then parse it.
- * Returns the structured data for the review screen. Throws with a friendly
- * message on failure.
+ * Returns the raw extraction plus an AI-polished rewrite for a before/after
+ * review. Throws with a friendly message on failure.
  */
-export async function uploadAndParseCv(file: File): Promise<ParsedCv> {
+export async function uploadAndParseCv(file: File): Promise<UploadAndParseResult> {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) throw new Error("Please sign in to continue.");
 
@@ -65,8 +77,9 @@ export async function uploadAndParseCv(file: File): Promise<ParsedCv> {
   });
   if (error) throw await getEdgeFunctionError(error, "We couldn't read that CV.");
   const parsed = (data as { parsed?: ParsedCv } | null)?.parsed;
+  const improved = (data as { improved?: ImprovedCv } | null)?.improved;
   if (!parsed) throw new Error("We couldn't extract anything from that CV.");
-  return parsed;
+  return { parsed, improved: improved ?? {} };
 }
 
 /** Fetch the user's stored master CV (parsed data), if any. */
