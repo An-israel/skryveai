@@ -20,8 +20,14 @@ DROP TABLE IF EXISTS public.learning_lessons CASCADE;
 DROP TABLE IF EXISTS public.learning_modules CASCADE;
 DROP TABLE IF EXISTS public.learning_paths CASCADE;
 
-DELETE FROM storage.objects WHERE bucket_id = 'learning-submissions';
-DELETE FROM storage.buckets WHERE id = 'learning-submissions';
+-- Supabase's hosted Postgres blocks direct DML on storage.objects/buckets
+-- from migrations ("Direct deletion from storage tables is not allowed. Use
+-- the Storage API instead.", SQLSTATE 42501) — this isn't a permission we
+-- can grant ourselves. The learning-submissions bucket and its files are
+-- orphaned now that the tables referencing them are gone; clean it up
+-- separately via the dashboard (Storage → learning-submissions → delete) or
+-- the Storage API, not SQL. Only the policies (regular Postgres RLS policy
+-- objects, not storage-managed rows) can be dropped here.
 DROP POLICY IF EXISTS "Users upload own submission files" ON storage.objects;
 DROP POLICY IF EXISTS "Users view own submission files" ON storage.objects;
 DROP POLICY IF EXISTS "Users delete own submission files" ON storage.objects;
