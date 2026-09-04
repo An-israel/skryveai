@@ -142,12 +142,14 @@ IMPORTANT PARSING RULES for LinkedIn PDF exports:
       });
 
       if (!aiResponse.ok) {
+        const errText = await aiResponse.text();
+        console.error("AI error:", aiResponse.status, errText);
         if (aiResponse.status === 429) {
           return new Response(JSON.stringify({ error: "Rate limit reached. Try again shortly." }), {
             status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" },
           });
         }
-        throw new Error("Failed to analyze LinkedIn profile");
+        throw new Error(`Failed to analyze LinkedIn profile (AI service returned ${aiResponse.status})`);
       }
 
       const aiData = await aiResponse.json();
@@ -246,7 +248,7 @@ Provide specific, actionable improvement suggestions.`,
           status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
-      throw new Error("Failed to analyze CV");
+      throw new Error(`Failed to analyze CV (AI service returned ${aiResponse.status})`);
     }
 
     const aiData = await aiResponse.json();

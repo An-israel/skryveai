@@ -68,6 +68,9 @@ serve(async (req) => {
     }),
   });
 
+  if (!response.ok) {
+    console.error("Anthropic API error:", response.status, await response.text());
+  }
   const data = await response.json();
   const improved = data.content?.[0]?.text || description;
 

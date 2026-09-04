@@ -199,7 +199,7 @@ Return using the generate_cv function.`;
           status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
-      throw new Error("Failed to generate CV");
+      throw new Error(`Failed to generate CV (AI service returned ${aiResponse.status})`);
     }
 
     const aiData = await aiResponse.json();

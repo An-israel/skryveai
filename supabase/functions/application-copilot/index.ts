@@ -86,7 +86,7 @@ serve(async (req) => {
     if (!response.ok) {
       const errText = await response.text();
       console.error("Copilot AI error:", response.status, errText);
-      return new Response(JSON.stringify({ error: "Copilot is unavailable right now" }), {
+      return new Response(JSON.stringify({ error: `Copilot is unavailable right now (AI service returned ${response.status})` }), {
         status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }

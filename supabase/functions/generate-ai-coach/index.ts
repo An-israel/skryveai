@@ -61,6 +61,9 @@ Be concise and practical. Max 150 words per response.`;
     }),
   });
 
+  if (!response.ok) {
+    console.error("Anthropic API error:", response.status, await response.text());
+  }
   const data = await response.json();
   const reply = data.content?.[0]?.text || "I couldn't process that. Please try again.";
 

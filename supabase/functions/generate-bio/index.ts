@@ -58,7 +58,7 @@ Write 2-3 sentences, max 80 words, first person, confident and friendly tone, hi
       const errText = await resp.text();
       console.error("Anthropic API error:", errText);
       return new Response(
-        JSON.stringify({ error: "AI generation failed" }),
+        JSON.stringify({ error: `AI generation failed (AI service returned ${resp.status})` }),
         { status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }

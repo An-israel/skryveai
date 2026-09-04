@@ -71,8 +71,8 @@ serve(async (req) => {
 
   if (!response.ok) {
     const errText = await response.text();
-    console.error("Anthropic API error:", errText);
-    return new Response(JSON.stringify({ error: "AI generation failed. Please try again." }), {
+    console.error("Anthropic API error:", response.status, errText);
+    return new Response(JSON.stringify({ error: `AI generation failed (AI service returned ${response.status}). Please try again.` }), {
       status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
