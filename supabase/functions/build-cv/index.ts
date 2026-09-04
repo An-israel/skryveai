@@ -131,7 +131,6 @@ Return using the generate_cv function.`;
       body: JSON.stringify({
         model: "claude-opus-4-8",
         max_tokens: 8192,
-        temperature: 0,
         system: systemPrompt,
         messages: [
           { role: "user", content: userPrompt },
@@ -222,7 +221,6 @@ Return using the generate_cv function.`;
       body: JSON.stringify({
         model: "claude-opus-4-8",
         max_tokens: 2048,
-        temperature: 0,
         system: `You are an ATS (Applicant Tracking System) scoring expert. Score the CV on these criteria:
 - Keyword optimization (does it include relevant industry keywords?)
 - Formatting (clean structure, no tables/graphics that ATS can't read)
