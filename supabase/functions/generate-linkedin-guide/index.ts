@@ -95,7 +95,6 @@ Return using the generate_guide function.`;
       body: JSON.stringify({
         model: "claude-opus-4-8",
         max_tokens: 8192,
-        temperature: 0,
         system: systemPrompt,
         messages: [
           { role: "user", content: userPrompt },

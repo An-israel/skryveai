@@ -71,7 +71,6 @@ serve(async (req) => {
         body: JSON.stringify({
           model: MODEL,
           max_tokens: 4096,
-          temperature: 0,
           system: `You are a LinkedIn profile optimization expert. You know exactly how LinkedIn's algorithm ranks profiles, what recruiters and clients look for, and how professionals get discovered and hired through LinkedIn.
 
 Analyze the profile content provided and give honest, specific, actionable feedback. Reference actual content from the profile — never give generic advice.
@@ -185,7 +184,6 @@ IMPORTANT PARSING RULES for LinkedIn PDF exports:
       body: JSON.stringify({
         model: MODEL,
         max_tokens: 4096,
-        temperature: 0,
         system: `You are an expert ATS (Applicant Tracking System) analyzer. Score the CV rigorously and honestly on these criteria:
 
 1. **Keyword Optimization** (0-100): Does the CV include relevant industry keywords? If a job description is provided, are the keywords from the JD present?
