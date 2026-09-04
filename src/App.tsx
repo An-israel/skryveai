@@ -66,6 +66,7 @@ import CVImport         from "./pages/CVImport";
 import Vetting          from "./pages/Vetting";
 import CVEditor         from "./pages/CVEditor";
 import ATSChecker       from "./pages/ATSChecker";
+import TailorCv         from "./pages/TailorCv";
 import LinkedInAnalyzer from "./pages/LinkedInAnalyzer";
 import Sonder           from "./pages/Sonder";
 import BlogStudio       from "./pages/BlogStudio";
@@ -190,6 +191,7 @@ export default function App() {
                 <Route path="/cv-builder/new"       element={<CVEditor />} />
                 <Route path="/cv-builder/:cvId"     element={<CVEditor />} />
                 <Route path="/ats-checker"          element={<ATSChecker />} />
+                <Route path="/tailor-cv"            element={<TailorCv />} />
                 <Route path="/linkedin-analyzer"    element={<LinkedInAnalyzer />} />
                 <Route path="/sonder"               element={<Gated role="talent"><Sonder /></Gated>} />
                 <Route path="/studio"               element={<BlogStudio />} />
