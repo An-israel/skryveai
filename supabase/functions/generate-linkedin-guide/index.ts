@@ -135,13 +135,17 @@ Return using the generate_guide function.`;
 
     if (!aiResponse.ok) {
       const errText = await aiResponse.text();
+      // Log the full provider response for diagnosis — never echo it to the
+      // client (it can contain internal account/billing details), but the
+      // status code alone is safe and tells us whether this is an account
+      // issue (401/403), a bad request (400), or transient (5xx).
       console.error("AI error:", aiResponse.status, errText);
       if (aiResponse.status === 429) {
         return new Response(JSON.stringify({ error: "Rate limit reached. Try again shortly." }), {
           status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
-      throw new Error("Failed to generate LinkedIn guide");
+      throw new Error(`Failed to generate LinkedIn guide (AI service returned ${aiResponse.status})`);
     }
 
     const aiData = await aiResponse.json();

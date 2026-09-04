@@ -4,7 +4,7 @@ import {
   LayoutDashboard, Briefcase, Store, ClipboardList, FolderOpen,
   CalendarDays, MessageSquare, FileText, Users,
   PlusCircle, Settings, LogOut, Bell, ChevronRight,
-  Handshake, PenSquare, Coins, ShieldCheck,
+  Handshake, PenSquare, Coins, ShieldCheck, Target, Linkedin,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
@@ -26,6 +26,8 @@ const talentNav: NavItem[] = [
   { label: "Events",       to: "/events",       icon: CalendarDays    },
   { label: "Messages",     to: "/messages",     icon: MessageSquare   },
   { label: "CV Builder",   to: "/cv-builder",   icon: FileText        },
+  { label: "ATS Checker",  to: "/ats-checker",  icon: Target          },
+  { label: "LinkedIn Analyzer", to: "/linkedin-analyzer", icon: Linkedin },
   { label: "Wallet",       to: "/wallet",       icon: Coins           },
 ];
 
