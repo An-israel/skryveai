@@ -21,12 +21,13 @@ import { Separator } from "@/components/ui/separator";
 import {
   Plus, Trash2, Sparkles, Download, Save, ChevronUp, ChevronDown,
   Loader2, X, Check, AlertCircle, Linkedin, ArrowLeft, Upload, Copy,
-  RotateCcw, Wand2,
+  RotateCcw, Wand2, FileText,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useToolLimitDialog } from "@/hooks/useToolLimitDialog";
 import { getEdgeFunctionError } from "@/lib/edge-function-error";
+import { downloadCvAsDocx } from "@/lib/cv-download";
 import CVPreview, { CVData } from "@/components/cv/CVPreview";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -278,6 +279,7 @@ export default function CVEditor() {
   // Skill input
   const [skillInput, setSkillInput] = useState("");
   const [printing, setPrinting] = useState(false);
+  const [downloadingDocx, setDownloadingDocx] = useState(false);
 
   // ─── Load on mount ──────────────────────────────────────────────────────────
 
@@ -730,6 +732,26 @@ export default function CVEditor() {
     return () => { clearTimeout(t); window.removeEventListener("afterprint", done); };
   }, [printing, dbId]);
 
+  // ─── Word (DOCX) Download ───────────────────────────────────────────────────
+
+  const downloadDocx = async () => {
+    setDownloadingDocx(true);
+    try {
+      await downloadCvAsDocx(previewData);
+      if (dbId) {
+        (supabase as any)
+          .from("skryve_cvs")
+          .update({ last_downloaded_at: new Date().toISOString() })
+          .eq("id", dbId)
+          .then(() => {});
+      }
+    } catch (e) {
+      toast({ title: "Couldn't generate Word document", description: e instanceof Error ? e.message : undefined, variant: "destructive" });
+    } finally {
+      setDownloadingDocx(false);
+    }
+  };
+
   // Generates a personalized, section-by-section LinkedIn optimization guide
   // from this CV's data. This used to just navigate to the LinkedIn
   // Analyzer — a different tool entirely (it scores an existing LinkedIn
@@ -1004,6 +1026,15 @@ export default function CVEditor() {
         >
           <Download className="w-3 h-3 mr-1" />
           PDF
+        </Button>
+        <Button
+          size="sm"
+          variant="outline"
+          onClick={downloadDocx}
+          disabled={!dbId || downloadingDocx}
+        >
+          {downloadingDocx ? <Loader2 className="w-3 h-3 animate-spin mr-1" /> : <FileText className="w-3 h-3 mr-1" />}
+          Word
         </Button>
         <Button
           size="sm"
