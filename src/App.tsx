@@ -1,8 +1,9 @@
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { useEffect } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, useOutletContext } from "react-router-dom";
+import { BrowserRouter, Routes, Route, useOutletContext, useLocation, useNavigate } from "react-router-dom";
 import { ThemeProvider } from "next-themes";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { FloatingWidgets } from "@/components/layout/FloatingWidgets";
@@ -109,6 +110,32 @@ const Gated = ({ role, children }: { role: "talent" | "client"; children: React.
   return <RoleGuard allowedRole={role} userId={user?.id}>{children}</RoleGuard>;
 };
 
+// The admin panel lives on its own subdomain (admin.skryve.app) instead of
+// skryve.app/admin, so it gets its own browser origin — a separate login
+// session isolated from the main site. Both domains serve this same build;
+// this just bridges the two so old /admin links and the bare subdomain both
+// land in the right place.
+const ADMIN_HOST = "admin.skryve.app";
+const MAIN_HOSTS = ["skryve.app", "www.skryve.app"];
+
+const AdminSubdomainRouter = () => {
+  const location = useLocation();
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    const host = window.location.hostname;
+    if (host === ADMIN_HOST) {
+      if (location.pathname === "/") navigate("/admin", { replace: true });
+      return;
+    }
+    if (MAIN_HOSTS.includes(host) && location.pathname.startsWith("/admin")) {
+      window.location.replace(`https://${ADMIN_HOST}${location.pathname}${location.search}`);
+    }
+  }, [location, navigate]);
+
+  return null;
+};
+
 export default function App() {
   return (
     <ErrorBoundary>
@@ -119,6 +146,7 @@ export default function App() {
           <Sonner />
           <BrowserRouter>
             <GamificationProvider>
+            <AdminSubdomainRouter />
             <SiteSchema />
             <DailyCheckIn />
             <FloatingWidgets />
