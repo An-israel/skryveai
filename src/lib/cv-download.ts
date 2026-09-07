@@ -1,23 +1,28 @@
 import jsPDF from "jspdf";
-import { Document, Packer, Paragraph, TextRun, HeadingLevel, AlignmentType, BorderStyle, TabStopPosition, TabStopType } from "docx";
+import { Document, Packer, Paragraph, TextRun, AlignmentType, BorderStyle, TabStopPosition, TabStopType } from "docx";
 import { saveAs } from "file-saver";
-
-interface CVData {
-  fullName: string;
-  contactInfo: string;
-  professionalSummary: string;
-  keyCompetencies: string[];
-  experience: Array<{ jobTitle: string; company: string; duration: string; bullets: string[] }>;
-  education: Array<{ course: string; institution: string }>;
-  certifications?: string[];
-  technicalTools?: string[];
-}
+import type { CVData } from "@/components/cv/CVPreview";
 
 interface LinkedInGuide {
   userName: string;
   headline: string;
   aboutSection: string;
   sections: Array<{ title: string; whatItIs: string; whatToPut: string; example: string; proTip?: string }>;
+}
+
+function contactLine(personal: CVData["personal_info"]): string {
+  return [personal.email, personal.phone, personal.location, personal.linkedin]
+    .filter(Boolean)
+    .join("  |  ");
+}
+
+function dateRange(exp: CVData["experiences"][number]): string {
+  const end = exp.isPresent ? "Present" : exp.endDate;
+  return [exp.startDate, end].filter(Boolean).join(" – ");
+}
+
+function fileBaseName(personal: CVData["personal_info"]): string {
+  return (personal.fullName || "CV").replace(/\s+/g, "_");
 }
 
 // ── PDF Download ──
@@ -32,17 +37,28 @@ export function downloadCvAsPdf(cv: CVData) {
   const addPage = () => { doc.addPage(); y = 20; };
   const checkPage = (needed: number) => { if (y + needed > 270) addPage(); };
 
+  const { personal_info: personal, summary, experiences, education, skills, certifications, projects } = cv;
+
   // Name
   doc.setFont("helvetica", "bold");
   doc.setFontSize(18);
-  doc.text(cv.fullName || "Professional CV", pageWidth / 2, y, { align: "center" });
-  y += 7;
+  doc.text(personal.fullName || "Professional CV", pageWidth / 2, y, { align: "center" });
+  y += 6;
+
+  if (personal.title) {
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(11);
+    doc.setTextColor(80);
+    doc.text(personal.title, pageWidth / 2, y, { align: "center" });
+    doc.setTextColor(0);
+    y += 6;
+  }
 
   // Contact
   doc.setFont("helvetica", "normal");
   doc.setFontSize(9);
   doc.setTextColor(100);
-  doc.text(cv.contactInfo || "", pageWidth / 2, y, { align: "center" });
+  doc.text(contactLine(personal), pageWidth / 2, y, { align: "center" });
   doc.setTextColor(0);
   y += 5;
 
@@ -65,107 +81,130 @@ export function downloadCvAsPdf(cv: CVData) {
     doc.setTextColor(0);
   };
 
-  // Professional Summary
-  sectionTitle("Professional Summary");
-  doc.setFont("helvetica", "normal");
-  doc.setFontSize(9);
-  const summaryLines = doc.splitTextToSize(cv.professionalSummary || "", contentWidth);
-  checkPage(summaryLines.length * 4);
-  doc.text(summaryLines, margin, y);
-  y += summaryLines.length * 4 + 4;
-
-  // Key Competencies
-  if (cv.keyCompetencies?.length) {
-    sectionTitle("Key Competencies");
+  // Summary
+  if (summary) {
+    sectionTitle("Summary");
+    doc.setFont("helvetica", "normal");
     doc.setFontSize(9);
-    const skills = cv.keyCompetencies.join("  •  ");
-    const skillLines = doc.splitTextToSize(skills, contentWidth);
+    const summaryLines = doc.splitTextToSize(summary, contentWidth);
+    checkPage(summaryLines.length * 4);
+    doc.text(summaryLines, margin, y);
+    y += summaryLines.length * 4 + 4;
+  }
+
+  // Skills
+  if (skills?.length) {
+    sectionTitle("Skills");
+    doc.setFontSize(9);
+    const skillLines = doc.splitTextToSize(skills.join("  •  "), contentWidth);
     checkPage(skillLines.length * 4);
     doc.text(skillLines, margin, y);
     y += skillLines.length * 4 + 4;
   }
 
   // Experience
-  sectionTitle("Professional Experience");
-  cv.experience?.forEach(exp => {
-    checkPage(20);
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(10);
-    doc.text(exp.jobTitle || "", margin, y);
-    doc.setFont("helvetica", "normal");
-    doc.setFontSize(8);
-    doc.setTextColor(100);
-    doc.text(exp.duration || "", pageWidth - margin, y, { align: "right" });
-    y += 4;
-    doc.setFontSize(9);
-    doc.text(exp.company || "", margin, y);
-    doc.setTextColor(0);
-    y += 5;
-
-    exp.bullets?.forEach(bullet => {
+  if (experiences?.length) {
+    sectionTitle("Experience");
+    experiences.forEach(exp => {
+      checkPage(20);
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(10);
+      doc.text(exp.jobTitle || "", margin, y);
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(8);
+      doc.setTextColor(100);
+      doc.text(dateRange(exp), pageWidth - margin, y, { align: "right" });
+      y += 4;
       doc.setFontSize(9);
-      const bulletText = `•  ${bullet}`;
-      const lines = doc.splitTextToSize(bulletText, contentWidth - 4);
-      checkPage(lines.length * 4);
-      doc.text(lines, margin + 2, y);
-      y += lines.length * 4;
+      doc.setTextColor(0);
+      doc.text([exp.company, exp.location].filter(Boolean).join(", "), margin, y);
+      y += 5;
+
+      exp.bullets?.forEach(bullet => {
+        doc.setFontSize(9);
+        const lines = doc.splitTextToSize(`•  ${bullet}`, contentWidth - 4);
+        checkPage(lines.length * 4);
+        doc.text(lines, margin + 2, y);
+        y += lines.length * 4;
+      });
+      y += 3;
     });
-    y += 3;
-  });
+  }
 
   // Education
-  if (cv.education?.length) {
+  if (education?.length) {
     sectionTitle("Education");
-    cv.education.forEach(edu => {
+    education.forEach(edu => {
       checkPage(8);
       doc.setFont("helvetica", "normal");
       doc.setFontSize(9);
-      doc.text(`•  ${edu.course} — ${edu.institution}`, margin + 2, y);
+      const line = [edu.degree, edu.school].filter(Boolean).join(" — ") + (edu.year ? ` (${edu.year})` : "");
+      doc.text(`•  ${line}`, margin + 2, y);
       y += 5;
     });
     y += 2;
   }
 
   // Certifications
-  if (cv.certifications?.length) {
+  if (certifications?.length) {
     sectionTitle("Certifications");
-    cv.certifications.forEach(cert => {
+    certifications.forEach(cert => {
       checkPage(6);
       doc.setFontSize(9);
-      doc.text(`•  ${cert}`, margin + 2, y);
+      const line = [cert.name, cert.issuer].filter(Boolean).join(" — ") + (cert.year ? ` (${cert.year})` : "");
+      doc.text(`•  ${line}`, margin + 2, y);
       y += 5;
     });
     y += 2;
   }
 
-  // Technical Tools
-  if (cv.technicalTools?.length) {
-    sectionTitle("Technical Tools & Software");
-    doc.setFontSize(9);
-    const tools = cv.technicalTools.join("  •  ");
-    const toolLines = doc.splitTextToSize(tools, contentWidth);
-    checkPage(toolLines.length * 4);
-    doc.text(toolLines, margin, y);
+  // Projects
+  if (projects?.length) {
+    sectionTitle("Projects");
+    projects.forEach(proj => {
+      checkPage(10);
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(9);
+      doc.text(proj.name || "", margin + 2, y);
+      y += 4;
+      if (proj.description) {
+        doc.setFont("helvetica", "normal");
+        const lines = doc.splitTextToSize(proj.description, contentWidth - 4);
+        checkPage(lines.length * 4);
+        doc.text(lines, margin + 2, y);
+        y += lines.length * 4;
+      }
+      y += 2;
+    });
   }
 
-  doc.save(`${cv.fullName?.replace(/\s+/g, "_") || "CV"}.pdf`);
+  doc.save(`${fileBaseName(personal)}.pdf`);
 }
 
 // ── DOCX Download ──
 
 export async function downloadCvAsDocx(cv: CVData) {
+  const { personal_info: personal, summary, experiences, education, skills, certifications, projects } = cv;
   const children: Paragraph[] = [];
 
   // Name
   children.push(new Paragraph({
-    children: [new TextRun({ text: cv.fullName || "Professional CV", bold: true, size: 32, font: "Calibri" })],
+    children: [new TextRun({ text: personal.fullName || "Professional CV", bold: true, size: 32, font: "Calibri" })],
     alignment: AlignmentType.CENTER,
-    spacing: { after: 100 },
+    spacing: { after: 60 },
   }));
+
+  if (personal.title) {
+    children.push(new Paragraph({
+      children: [new TextRun({ text: personal.title, size: 22, color: "444444", font: "Calibri" })],
+      alignment: AlignmentType.CENTER,
+      spacing: { after: 100 },
+    }));
+  }
 
   // Contact
   children.push(new Paragraph({
-    children: [new TextRun({ text: cv.contactInfo || "", size: 18, color: "666666", font: "Calibri" })],
+    children: [new TextRun({ text: contactLine(personal), size: 18, color: "666666", font: "Calibri" })],
     alignment: AlignmentType.CENTER,
     spacing: { after: 200 },
     border: { bottom: { style: BorderStyle.SINGLE, size: 1, color: "CCCCCC" } },
@@ -178,51 +217,56 @@ export async function downloadCvAsDocx(cv: CVData) {
   });
 
   // Summary
-  children.push(sectionHeading("Professional Summary"));
-  children.push(new Paragraph({
-    children: [new TextRun({ text: cv.professionalSummary || "", size: 20, font: "Calibri" })],
-    spacing: { after: 200 },
-  }));
-
-  // Key Competencies
-  if (cv.keyCompetencies?.length) {
-    children.push(sectionHeading("Key Competencies"));
+  if (summary) {
+    children.push(sectionHeading("Summary"));
     children.push(new Paragraph({
-      children: [new TextRun({ text: cv.keyCompetencies.join("  •  "), size: 20, font: "Calibri" })],
+      children: [new TextRun({ text: summary, size: 20, font: "Calibri" })],
+      spacing: { after: 200 },
+    }));
+  }
+
+  // Skills
+  if (skills?.length) {
+    children.push(sectionHeading("Skills"));
+    children.push(new Paragraph({
+      children: [new TextRun({ text: skills.join("  •  "), size: 20, font: "Calibri" })],
       spacing: { after: 200 },
     }));
   }
 
   // Experience
-  children.push(sectionHeading("Professional Experience"));
-  cv.experience?.forEach(exp => {
-    children.push(new Paragraph({
-      children: [
-        new TextRun({ text: exp.jobTitle || "", bold: true, size: 22, font: "Calibri" }),
-        new TextRun({ text: `\t${exp.duration || ""}`, size: 18, color: "888888", font: "Calibri" }),
-      ],
-      tabStops: [{ type: TabStopType.RIGHT, position: TabStopPosition.MAX }],
-      spacing: { before: 150 },
-    }));
-    children.push(new Paragraph({
-      children: [new TextRun({ text: exp.company || "", italics: true, size: 20, color: "555555", font: "Calibri" })],
-      spacing: { after: 80 },
-    }));
-    exp.bullets?.forEach(bullet => {
+  if (experiences?.length) {
+    children.push(sectionHeading("Experience"));
+    experiences.forEach(exp => {
       children.push(new Paragraph({
-        children: [new TextRun({ text: bullet, size: 20, font: "Calibri" })],
-        bullet: { level: 0 },
-        spacing: { after: 40 },
+        children: [
+          new TextRun({ text: exp.jobTitle || "", bold: true, size: 22, font: "Calibri" }),
+          new TextRun({ text: `\t${dateRange(exp)}`, size: 18, color: "888888", font: "Calibri" }),
+        ],
+        tabStops: [{ type: TabStopType.RIGHT, position: TabStopPosition.MAX }],
+        spacing: { before: 150 },
       }));
+      children.push(new Paragraph({
+        children: [new TextRun({ text: [exp.company, exp.location].filter(Boolean).join(", "), italics: true, size: 20, color: "555555", font: "Calibri" })],
+        spacing: { after: 80 },
+      }));
+      exp.bullets?.forEach(bullet => {
+        children.push(new Paragraph({
+          children: [new TextRun({ text: bullet, size: 20, font: "Calibri" })],
+          bullet: { level: 0 },
+          spacing: { after: 40 },
+        }));
+      });
     });
-  });
+  }
 
   // Education
-  if (cv.education?.length) {
+  if (education?.length) {
     children.push(sectionHeading("Education"));
-    cv.education.forEach(edu => {
+    education.forEach(edu => {
+      const line = [edu.degree, edu.school].filter(Boolean).join(" — ") + (edu.year ? ` (${edu.year})` : "");
       children.push(new Paragraph({
-        children: [new TextRun({ text: `${edu.course} — ${edu.institution}`, size: 20, font: "Calibri" })],
+        children: [new TextRun({ text: line, size: 20, font: "Calibri" })],
         bullet: { level: 0 },
         spacing: { after: 40 },
       }));
@@ -230,23 +274,33 @@ export async function downloadCvAsDocx(cv: CVData) {
   }
 
   // Certifications
-  if (cv.certifications?.length) {
+  if (certifications?.length) {
     children.push(sectionHeading("Certifications"));
-    cv.certifications.forEach(cert => {
+    certifications.forEach(cert => {
+      const line = [cert.name, cert.issuer].filter(Boolean).join(" — ") + (cert.year ? ` (${cert.year})` : "");
       children.push(new Paragraph({
-        children: [new TextRun({ text: cert, size: 20, font: "Calibri" })],
+        children: [new TextRun({ text: line, size: 20, font: "Calibri" })],
         bullet: { level: 0 },
         spacing: { after: 40 },
       }));
     });
   }
 
-  // Technical Tools
-  if (cv.technicalTools?.length) {
-    children.push(sectionHeading("Technical Tools & Software"));
-    children.push(new Paragraph({
-      children: [new TextRun({ text: cv.technicalTools.join("  •  "), size: 20, font: "Calibri" })],
-    }));
+  // Projects
+  if (projects?.length) {
+    children.push(sectionHeading("Projects"));
+    projects.forEach(proj => {
+      children.push(new Paragraph({
+        children: [new TextRun({ text: proj.name || "", bold: true, size: 20, font: "Calibri" })],
+        spacing: { before: 100 },
+      }));
+      if (proj.description) {
+        children.push(new Paragraph({
+          children: [new TextRun({ text: proj.description, size: 20, font: "Calibri" })],
+          spacing: { after: 60 },
+        }));
+      }
+    });
   }
 
   const doc = new Document({
@@ -254,7 +308,7 @@ export async function downloadCvAsDocx(cv: CVData) {
   });
 
   const blob = await Packer.toBlob(doc);
-  saveAs(blob, `${cv.fullName?.replace(/\s+/g, "_") || "CV"}.docx`);
+  saveAs(blob, `${fileBaseName(personal)}.docx`);
 }
 
 // ── LinkedIn Guide PDF ──

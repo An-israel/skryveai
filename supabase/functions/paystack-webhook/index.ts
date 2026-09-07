@@ -149,7 +149,22 @@ serve(async (req) => {
     switch (event.event) {
       case "charge.success": {
         const { reference, customer, amount, currency, authorization } = event.data;
-        
+
+        // This webhook and verify-payment (called by the client right after
+        // the checkout redirect) both process the same charge — whichever
+        // runs second must be a no-op, or a single payment grants credits
+        // twice. verify-payment already guards on this; mirror it here.
+        const { data: existingPayment } = await supabase
+          .from("payment_history")
+          .select("status, plan")
+          .eq("paystack_reference", reference)
+          .single();
+
+        if (existingPayment?.status === "success") {
+          console.log("Payment already processed, skipping:", reference);
+          break;
+        }
+
         // Get user by email
         const { data: profile } = await supabase
           .from("profiles")
@@ -164,12 +179,7 @@ serve(async (req) => {
             .update({ status: "success" })
             .eq("paystack_reference", reference);
 
-          // Get payment to determine plan
-          const { data: payment } = await supabase
-            .from("payment_history")
-            .select("plan")
-            .eq("paystack_reference", reference)
-            .single();
+          const payment = existingPayment;
 
           if (payment) {
             const now = new Date();
