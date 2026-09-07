@@ -173,7 +173,7 @@ serve(async (req) => {
     if (profile?.referred_by) {
       const { data: referral } = await supabase
         .from("referrals")
-        .select("id, commission_rate, status, created_at")
+        .select("id, commission_rate, commission_amount, status, created_at")
         .eq("referred_id", paymentUserId)
         .single();
 
@@ -192,7 +192,7 @@ serve(async (req) => {
             .from("referrals")
             .update({
               status: "completed",
-              commission_amount: (referral.status === "completed" ? 0 : 0) + commissionAmount,
+              commission_amount: (referral.commission_amount || 0) + commissionAmount,
               commission_currency: paymentData.currency,
               completed_at: new Date().toISOString(),
             })

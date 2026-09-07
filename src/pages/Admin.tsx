@@ -97,6 +97,9 @@ export default function Admin() {
   const [editUserName, setEditUserName] = useState("");
   const [editUserEmail, setEditUserEmail] = useState("");
   const [savingUser, setSavingUser] = useState(false);
+  const [grantPlan, setGrantPlan] = useState<"pro" | "business">("pro");
+  const [grantDays, setGrantDays] = useState("30");
+  const [grantingPlan, setGrantingPlan] = useState(false);
 
   // CMS state
   const [showPageEditor, setShowPageEditor] = useState(false);
@@ -347,6 +350,45 @@ export default function Admin() {
       toast({ title: "Failed to update user", variant: "destructive" });
     } finally {
       setSavingUser(false);
+    }
+  };
+
+  const handleGrantPlan = async () => {
+    if (!editingUser) return;
+    const days = parseInt(grantDays, 10);
+    if (!days || days <= 0) {
+      toast({ title: "Enter a number of days", variant: "destructive" });
+      return;
+    }
+    setGrantingPlan(true);
+    try {
+      const { data, error } = await (supabase as any).rpc("admin_grant_plan", {
+        _user_id: editingUser.user_id, _plan: grantPlan, _days: days,
+        _note: `Granted by admin — ${days} day(s)`,
+      });
+      if (error || !data?.ok) throw error || new Error(data?.reason || "Failed");
+      toast({ title: `${grantPlan === "pro" ? "Pro" : "Business"} granted for ${days} day(s)`, description: `Expires ${new Date(data.expires_at).toLocaleDateString()}` });
+      loadData();
+    } catch (e: any) {
+      toast({ title: "Couldn't grant plan", description: e?.message, variant: "destructive" });
+    } finally {
+      setGrantingPlan(false);
+    }
+  };
+
+  const handleRevokePlan = async () => {
+    if (!editingUser) return;
+    if (!confirm(`Revoke ${editingUser.full_name || editingUser.email}'s current plan and return them to Free?`)) return;
+    setGrantingPlan(true);
+    try {
+      const { data, error } = await (supabase as any).rpc("admin_revoke_plan", { _user_id: editingUser.user_id });
+      if (error || !data?.ok) throw error || new Error("Failed");
+      toast({ title: "Plan revoked — user is back on Free" });
+      loadData();
+    } catch (e: any) {
+      toast({ title: "Couldn't revoke plan", description: e?.message, variant: "destructive" });
+    } finally {
+      setGrantingPlan(false);
     }
   };
 
@@ -1196,7 +1238,55 @@ export default function Admin() {
               <div className="text-xs text-muted-foreground border rounded p-2 space-y-0.5">
                 <p><span className="font-medium">User ID:</span> {editingUser.user_id}</p>
                 <p><span className="font-medium">Joined:</span> {editingUser.created_at ? new Date(editingUser.created_at).toLocaleDateString() : "—"}</p>
-                <p><span className="font-medium">Subscription:</span> {editingUser.subscriptions?.status || "none"}</p>
+                <p>
+                  <span className="font-medium">Subscription:</span>{" "}
+                  {editingUser.subscriptions?.status || "none"}
+                  {editingUser.subscriptions?.plan ? ` (${editingUser.subscriptions.plan})` : ""}
+                  {editingUser.subscriptions?.current_period_end
+                    ? ` — expires ${new Date(editingUser.subscriptions.current_period_end).toLocaleDateString()}`
+                    : ""}
+                </p>
+              </div>
+            )}
+            {editingUser && (
+              <div className="space-y-2 border rounded p-3">
+                <Label className="text-sm font-medium">Grant temporary access</Label>
+                <div className="flex flex-wrap gap-2 items-end">
+                  <div className="space-y-1">
+                    <Label className="text-xs text-muted-foreground">Tier</Label>
+                    <Select value={grantPlan} onValueChange={(v) => setGrantPlan(v as "pro" | "business")}>
+                      <SelectTrigger className="w-[130px]">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="pro">Pro</SelectItem>
+                        <SelectItem value="business">Business</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs text-muted-foreground">Days</Label>
+                    <Input
+                      type="number"
+                      min={1}
+                      value={grantDays}
+                      onChange={(e) => setGrantDays(e.target.value)}
+                      className="w-[90px]"
+                    />
+                  </div>
+                  <Button size="sm" onClick={handleGrantPlan} disabled={grantingPlan}>
+                    Grant
+                  </Button>
+                  {editingUser.subscriptions?.status === "active" && (
+                    <Button size="sm" variant="outline" onClick={handleRevokePlan} disabled={grantingPlan}>
+                      Revoke
+                    </Button>
+                  )}
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Grants Pro or Business access for the chosen number of days, then the user automatically
+                  reverts to Free. This overwrites any existing plan on the account.
+                </p>
               </div>
             )}
           </div>
