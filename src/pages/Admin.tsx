@@ -9,6 +9,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   LayoutDashboard, Users, CreditCard, FileText, Image, UserCog, Activity,
   Loader2, Plus, Trash2, Edit, Search, Download, RefreshCw, BarChart3,
@@ -100,6 +101,12 @@ export default function Admin() {
   const [grantPlan, setGrantPlan] = useState<"pro" | "business">("pro");
   const [grantDays, setGrantDays] = useState("30");
   const [grantingPlan, setGrantingPlan] = useState(false);
+
+  // Bulk grant — same admin_grant_plan RPC, called once per selected user
+  const [selectedUserIds, setSelectedUserIds] = useState<Set<string>>(new Set());
+  const [bulkGrantPlan, setBulkGrantPlan] = useState<"pro" | "business">("pro");
+  const [bulkGrantDays, setBulkGrantDays] = useState("30");
+  const [bulkGranting, setBulkGranting] = useState(false);
 
   // CMS state
   const [showPageEditor, setShowPageEditor] = useState(false);
@@ -389,6 +396,62 @@ export default function Admin() {
       toast({ title: "Couldn't revoke plan", description: e?.message, variant: "destructive" });
     } finally {
       setGrantingPlan(false);
+    }
+  };
+
+  const toggleUserSelected = (userId: string, checked: boolean) => {
+    setSelectedUserIds(prev => {
+      const next = new Set(prev);
+      if (checked) next.add(userId); else next.delete(userId);
+      return next;
+    });
+  };
+
+  const toggleSelectAllFiltered = (userIds: string[], checked: boolean) => {
+    setSelectedUserIds(prev => {
+      const next = new Set(prev);
+      userIds.forEach(id => { if (checked) next.add(id); else next.delete(id); });
+      return next;
+    });
+  };
+
+  // Same admin_grant_plan RPC as the single-user dialog, just fired once per
+  // selected user — each grant is independent, so a partial failure only
+  // affects that one user rather than the whole batch.
+  const handleBulkGrantPlan = async () => {
+    const days = parseInt(bulkGrantDays, 10);
+    if (!days || days <= 0) {
+      toast({ title: "Enter a number of days", variant: "destructive" });
+      return;
+    }
+    const userIds = Array.from(selectedUserIds);
+    if (userIds.length === 0) return;
+    if (!confirm(`Grant ${bulkGrantPlan === "pro" ? "Pro" : "Business"} access for ${days} day(s) to ${userIds.length} user(s)?`)) return;
+
+    setBulkGranting(true);
+    try {
+      const results = await Promise.allSettled(
+        userIds.map(userId =>
+          (supabase as any).rpc("admin_grant_plan", {
+            _user_id: userId, _plan: bulkGrantPlan, _days: days,
+            _note: `Bulk granted by admin — ${days} day(s)`,
+          }).then(({ data, error }: any) => {
+            if (error || !data?.ok) throw error || new Error(data?.reason || "Failed");
+          })
+        )
+      );
+      const failed = results.filter(r => r.status === "rejected").length;
+      const succeeded = results.length - failed;
+      toast({
+        title: failed === 0
+          ? `${bulkGrantPlan === "pro" ? "Pro" : "Business"} granted to ${succeeded} user(s)`
+          : `${succeeded} granted, ${failed} failed`,
+        variant: failed === 0 ? "default" : "destructive",
+      });
+      setSelectedUserIds(new Set());
+      loadData();
+    } finally {
+      setBulkGranting(false);
     }
   };
 
@@ -760,10 +823,53 @@ export default function Admin() {
                      </div>
                   </div>
                 </CardHeader>
+                {isSuperAdmin && selectedUserIds.size > 0 && (
+                  <div className="mx-6 mb-4 flex flex-wrap items-end gap-2 rounded-lg border bg-muted/40 p-3">
+                    <span className="text-sm font-medium mr-1">{selectedUserIds.size} selected</span>
+                    <div className="space-y-1">
+                      <Label className="text-xs text-muted-foreground">Tier</Label>
+                      <Select value={bulkGrantPlan} onValueChange={(v) => setBulkGrantPlan(v as "pro" | "business")}>
+                        <SelectTrigger className="w-[130px]">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="pro">Pro</SelectItem>
+                          <SelectItem value="business">Business</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-xs text-muted-foreground">Days</Label>
+                      <Input
+                        type="number"
+                        min={1}
+                        value={bulkGrantDays}
+                        onChange={(e) => setBulkGrantDays(e.target.value)}
+                        className="w-[90px]"
+                      />
+                    </div>
+                    <Button size="sm" onClick={handleBulkGrantPlan} disabled={bulkGranting}>
+                      {bulkGranting ? <Loader2 className="w-3.5 h-3.5 animate-spin mr-1" /> : null}
+                      Grant to {selectedUserIds.size} user{selectedUserIds.size === 1 ? "" : "s"}
+                    </Button>
+                    <Button size="sm" variant="ghost" onClick={() => setSelectedUserIds(new Set())} disabled={bulkGranting}>
+                      Clear selection
+                    </Button>
+                  </div>
+                )}
                 <CardContent>
                   <Table>
                     <TableHeader>
                       <TableRow>
+                         {isSuperAdmin && (
+                           <TableHead className="w-8">
+                             <Checkbox
+                               checked={filteredUsers.length > 0 && filteredUsers.every(u => selectedUserIds.has(u.user_id))}
+                               onCheckedChange={(checked) => toggleSelectAllFiltered(filteredUsers.map(u => u.user_id), checked === true)}
+                               aria-label="Select all users"
+                             />
+                           </TableHead>
+                         )}
                          <TableHead>Name</TableHead>
                          <TableHead>Type</TableHead>
                          <TableHead>Email</TableHead>
@@ -780,6 +886,15 @@ export default function Admin() {
                         const isLoadingAuth = loadingAuthStatus[user.user_id];
                         return (
                         <TableRow key={user.id}>
+                          {isSuperAdmin && (
+                            <TableCell>
+                              <Checkbox
+                                checked={selectedUserIds.has(user.user_id)}
+                                onCheckedChange={(checked) => toggleUserSelected(user.user_id, checked === true)}
+                                aria-label={`Select ${user.full_name || user.email}`}
+                              />
+                            </TableCell>
+                          )}
                           <TableCell className="font-medium">{user.full_name}</TableCell>
                           <TableCell>
                             {user.userType === "both" ? (
