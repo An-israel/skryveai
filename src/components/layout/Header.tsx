@@ -124,9 +124,9 @@ export function Header({ isAuthenticated: isAuthenticatedProp, onLogout }: Heade
               </Link>
 
               {isAdmin && (
-                <Link to="/admin" className="p-2 ml-1 text-muted-foreground hover:text-foreground transition-colors rounded-lg hover:bg-muted/50">
+                <a href="https://admin.skryve.app" className="p-2 ml-1 text-muted-foreground hover:text-foreground transition-colors rounded-lg hover:bg-muted/50">
                   <Shield className="w-4 h-4" />
-                </Link>
+                </a>
               )}
               <NotificationBell />
               <Link to="/settings" className="flex items-center gap-2 px-2.5 py-1.5 text-muted-foreground hover:text-foreground transition-colors rounded-lg hover:bg-muted/50">
@@ -201,10 +201,10 @@ export function Header({ isAuthenticated: isAuthenticatedProp, onLogout }: Heade
                     CV Builder
                   </Link>
                   {isAdmin && (
-                    <Link to="/admin" className="py-2.5 px-3 text-sm font-medium text-muted-foreground hover:text-foreground rounded-lg hover:bg-muted/50 flex items-center gap-2 transition-colors">
+                    <a href="https://admin.skryve.app" className="py-2.5 px-3 text-sm font-medium text-muted-foreground hover:text-foreground rounded-lg hover:bg-muted/50 flex items-center gap-2 transition-colors">
                       <Shield className="w-4 h-4" />
                       Admin
-                    </Link>
+                    </a>
                   )}
                   <div className="flex items-center gap-2 py-2 px-3">
                     <NotificationBell />
