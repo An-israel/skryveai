@@ -116,6 +116,22 @@ export function AppLayout() {
   const userName   = user.user_metadata?.full_name || user.email || "";
   const userAvatar = user.user_metadata?.avatar_url;
 
+  // admin.skryve.app is a dedicated subdomain for the admin panel — it should
+  // never show the regular consumer sidebar/topbar (Feed, Jobs, Marketplace,
+  // Learn, Messages, Settings…). Admin.tsx and its sub-pages already render
+  // their own header and navigation, so on this host the layout is just the
+  // page itself.
+  const isAdminHost = typeof window !== "undefined" && window.location.hostname === "admin.skryve.app";
+  if (isAdminHost) {
+    return (
+      <div className="min-h-screen bg-background">
+        <PageGuard>
+          <Outlet context={{ user, role }} />
+        </PageGuard>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen flex bg-background">
       <AppSidebar
