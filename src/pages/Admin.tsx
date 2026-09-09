@@ -430,18 +430,34 @@ export default function Admin() {
 
     setBulkGranting(true);
     try {
-      const results = await Promise.allSettled(
-        userIds.map(userId =>
-          (supabase as any).rpc("admin_grant_plan", {
-            _user_id: userId, _plan: bulkGrantPlan, _days: days,
-            _note: `Bulk granted by admin — ${days} day(s)`,
-          }).then(({ data, error }: any) => {
-            if (error || !data?.ok) throw error || new Error(data?.reason || "Failed");
-          })
-        )
-      );
-      const failed = results.filter(r => r.status === "rejected").length;
-      const succeeded = results.length - failed;
+      // Firing every grant at once floods the database with concurrent writes
+      // — at any real scale (dozens+ of users) this can exhaust the project's
+      // connection pool and degrade the whole site for everyone, not just
+      // slow down this batch. Process in small chunks instead.
+      const BATCH_SIZE = 5;
+      const BATCH_DELAY_MS = 400;
+      let succeeded = 0;
+      let failed = 0;
+
+      for (let i = 0; i < userIds.length; i += BATCH_SIZE) {
+        const batch = userIds.slice(i, i + BATCH_SIZE);
+        const results = await Promise.allSettled(
+          batch.map(userId =>
+            (supabase as any).rpc("admin_grant_plan", {
+              _user_id: userId, _plan: bulkGrantPlan, _days: days,
+              _note: `Bulk granted by admin — ${days} day(s)`,
+            }).then(({ data, error }: any) => {
+              if (error || !data?.ok) throw error || new Error(data?.reason || "Failed");
+            })
+          )
+        );
+        failed += results.filter(r => r.status === "rejected").length;
+        succeeded += results.length - results.filter(r => r.status === "rejected").length;
+        if (i + BATCH_SIZE < userIds.length) {
+          await new Promise(resolve => setTimeout(resolve, BATCH_DELAY_MS));
+        }
+      }
+
       toast({
         title: failed === 0
           ? `${bulkGrantPlan === "pro" ? "Pro" : "Business"} granted to ${succeeded} user(s)`
