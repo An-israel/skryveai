@@ -84,6 +84,13 @@ serve(async (req) => {
             period: "month",
           },
         },
+        business: {
+          monthly: {
+            amount: prices.business,
+            display: formatPrice(prices.business, config),
+            period: "month",
+          },
+        },
         team_basic: {
           monthly: {
             amount: prices.team_basic,

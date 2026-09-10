@@ -5,7 +5,7 @@ import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Check, Crown, Loader2, Users, Zap, Star } from "lucide-react";
+import { Check, Crown, Loader2, Users, Zap, Star, Moon } from "lucide-react";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -25,6 +25,7 @@ interface PricingData {
     basic: { monthly: PlanPricing };
     popular: { monthly: PlanPricing; yearly: PlanPricing };
     unlimited: { monthly: PlanPricing };
+    business: { monthly: PlanPricing };
     team_basic: { monthly: PlanPricing; yearly: PlanPricing };
     team_pro: { monthly: PlanPricing; yearly: PlanPricing };
   };
@@ -119,7 +120,7 @@ export default function Pricing() {
         canonical="https://skryve.app/pricing"
         keywords="Skryve pricing, freelance marketplace, find jobs, get hired, CV builder, ATS checker, LinkedIn analyzer"
       />
-      <div className="max-w-6xl mx-auto">
+      <div className="max-w-7xl mx-auto">
         <Link to="/" className="flex items-center justify-center gap-2 mb-8 sm:mb-12">
           <img src="/logo.png" alt="Skryve logo" className="w-8 h-8 object-contain" />
           <span className="font-bold text-2xl sm:text-3xl" style={{ color: '#0B162B' }}>Skryve</span>
@@ -149,7 +150,7 @@ export default function Pricing() {
         </div>
 
         {tab === "individual" ? (
-          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4 sm:gap-6">
             {/* Free */}
             <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.05 }}>
               <Card className="relative h-full">
@@ -192,7 +193,7 @@ export default function Pricing() {
                 </CardHeader>
                 <CardContent>
                   <ul className="space-y-2.5 mb-6">
-                    {["Everything in Free", "Unlimited AI job proposals", "Full AI CV builder + downloads", "Unlimited ATS scans", "LinkedIn profile analyzer", "Apply to marketplace projects"].map(f => (
+                    {["Everything in Free", "Unlimited AI job proposals", "Full AI CV builder — PDF & Word downloads", "Unlimited ATS scans", "LinkedIn profile analyzer", "Apply to marketplace projects"].map(f => (
                       <li key={f} className="flex items-start gap-2">
                         <Check className="w-4 h-4 text-primary mt-0.5 shrink-0" />
                         <span className="text-sm">{f}</span>
@@ -277,6 +278,38 @@ export default function Pricing() {
                   <Button onClick={() => handleSubscribe("unlimited")} className="w-full bg-gradient-accent" disabled={!!processingPlan}>
                     {processingPlan === "unlimited" && <Loader2 className="w-4 h-4 animate-spin mr-2" />}
                     Go Unlimited
+                  </Button>
+                </CardContent>
+              </Card>
+            </motion.div>
+
+            {/* Business — unlocks Sonder, the autonomous job-application agent */}
+            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }}>
+              <Card className="relative h-full border-2 border-[#7C3AED]/40 bg-gradient-to-br from-[#7C3AED]/5 to-card">
+                <div className="absolute -top-3 left-1/2 -translate-x-1/2">
+                  <Badge className="bg-[#7C3AED] gap-1"><Moon className="w-3 h-3" /> AI Auto-Apply</Badge>
+                </div>
+                <CardHeader>
+                  <CardTitle className="text-lg sm:text-xl">Business</CardTitle>
+                  <CardDescription>Let Sonder apply while you sleep</CardDescription>
+                  <div className="mt-4">
+                    <span className="text-3xl sm:text-4xl font-bold">{p?.business.monthly.display || "₦25,000"}</span>
+                    <span className="text-muted-foreground">/month</span>
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-1">Unlimited AI credits</p>
+                </CardHeader>
+                <CardContent>
+                  <ul className="space-y-2.5 mb-6">
+                    {["Everything in Unlimited", "Sonder: autonomous AI job-application agent", "Applies to matching jobs overnight — you just review & submit", "Highest client search priority", "Concierge onboarding"].map(f => (
+                      <li key={f} className="flex items-start gap-2">
+                        <Check className="w-4 h-4 text-[#7C3AED] mt-0.5 shrink-0" />
+                        <span className="text-sm">{f}</span>
+                      </li>
+                    ))}
+                  </ul>
+                  <Button onClick={() => handleSubscribe("business")} className="w-full bg-[#7C3AED] hover:bg-[#6D28D9]" disabled={!!processingPlan}>
+                    {processingPlan === "business" && <Loader2 className="w-4 h-4 animate-spin mr-2" />}
+                    Unlock Sonder
                   </Button>
                 </CardContent>
               </Card>
