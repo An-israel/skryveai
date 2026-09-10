@@ -5,7 +5,7 @@ import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Check, Crown, Loader2, Users, Zap, Star, Moon } from "lucide-react";
+import { Check, Crown, Loader2, Users, Star, Moon } from "lucide-react";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -150,7 +150,7 @@ export default function Pricing() {
         </div>
 
         {tab === "individual" ? (
-          <div className="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4 sm:gap-6">
+          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
             {/* Free */}
             <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.05 }}>
               <Card className="relative h-full">
@@ -251,38 +251,6 @@ export default function Pricing() {
               </Card>
             </motion.div>
 
-            {/* Unlimited */}
-            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}>
-              <Card className="relative h-full bg-gradient-to-br from-card to-accent/10">
-                <div className="absolute -top-3 left-1/2 -translate-x-1/2">
-                  <Badge variant="secondary" className="gap-1"><Zap className="w-3 h-3" /> Unlimited</Badge>
-                </div>
-                <CardHeader>
-                  <CardTitle className="text-lg sm:text-xl">Unlimited</CardTitle>
-                  <CardDescription>No limits, ever</CardDescription>
-                  <div className="mt-4">
-                    <span className="text-3xl sm:text-4xl font-bold">{p?.unlimited.monthly.display || "₦15,000"}</span>
-                    <span className="text-muted-foreground">/month</span>
-                  </div>
-                  <p className="text-xs text-muted-foreground mt-1">Unlimited AI credits</p>
-                </CardHeader>
-                <CardContent>
-                  <ul className="space-y-2.5 mb-6">
-                    {["Everything in Pro", "Unlimited AI credits", "Top placement in client searches", "Early access to new features", "Dedicated priority support"].map(f => (
-                      <li key={f} className="flex items-start gap-2">
-                        <Check className="w-4 h-4 text-primary mt-0.5 shrink-0" />
-                        <span className="text-sm">{f}</span>
-                      </li>
-                    ))}
-                  </ul>
-                  <Button onClick={() => handleSubscribe("unlimited")} className="w-full bg-gradient-accent" disabled={!!processingPlan}>
-                    {processingPlan === "unlimited" && <Loader2 className="w-4 h-4 animate-spin mr-2" />}
-                    Go Unlimited
-                  </Button>
-                </CardContent>
-              </Card>
-            </motion.div>
-
             {/* Business — unlocks Sonder, the autonomous job-application agent */}
             <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }}>
               <Card className="relative h-full border-2 border-[#7C3AED]/40 bg-gradient-to-br from-[#7C3AED]/5 to-card">
@@ -300,7 +268,7 @@ export default function Pricing() {
                 </CardHeader>
                 <CardContent>
                   <ul className="space-y-2.5 mb-6">
-                    {["Everything in Unlimited", "Sonder: autonomous AI job-application agent", "Applies to matching jobs overnight — you just review & submit", "Highest client search priority", "Concierge onboarding"].map(f => (
+                    {["Everything in Pro", "Unlimited AI credits", "Sonder: autonomous AI job-application agent", "Applies to matching jobs overnight — you just review & submit", "Top placement in client searches", "Concierge onboarding"].map(f => (
                       <li key={f} className="flex items-start gap-2">
                         <Check className="w-4 h-4 text-[#7C3AED] mt-0.5 shrink-0" />
                         <span className="text-sm">{f}</span>
