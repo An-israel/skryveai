@@ -50,7 +50,7 @@ async function callClaude(system: string, user: string, maxTokens: number) {
     method: "POST",
     headers: { "x-api-key": key, "anthropic-version": "2023-06-01", "content-type": "application/json" },
     body: JSON.stringify({
-      model: "claude-sonnet-4-20250514",
+      model: "claude-sonnet-5",
       max_tokens: maxTokens,
       system,
       messages: [{ role: "user", content: user }],
@@ -149,7 +149,7 @@ Keyword tier: ${content.keyword_tier || "n/a"}. Make it genuinely useful and cit
       faq: Array.isArray(a.faq) ? a.faq : [],
       internal_links: Array.isArray(a.internal_links) ? a.internal_links : [],
       status: "ready",
-      generation_meta: { generated_at: new Date().toISOString(), model: "claude-sonnet-4-20250514" },
+      generation_meta: { generated_at: new Date().toISOString(), model: "claude-sonnet-5" },
       updated_at: new Date().toISOString(),
     }).eq("id", content_id);
     if (uErr) throw new Error(uErr.message);
