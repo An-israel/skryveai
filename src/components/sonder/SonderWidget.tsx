@@ -13,7 +13,7 @@ const FIRST_NUDGE_MS = 12 * 1000;      // first appearance after page settles
 
 export function SonderWidget() {
   const navigate = useNavigate();
-  const { user, canUseSonder, loading } = useEntitlements();
+  const { user, canUseSonder, sonderPromoActive, loading } = useEntitlements();
   const role = useSkryveRole(user?.id);
   const [open, setOpen] = useState(false);   // bubble visible
   const [panel, setPanel] = useState(false); // full mini-panel expanded
@@ -85,6 +85,11 @@ export function SonderWidget() {
 
               {canUseSonder ? (
                 <>
+                  {sonderPromoActive && (
+                    <div className="rounded-lg bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 px-3 py-2 text-xs font-medium">
+                      🎉 Free for 48 hours — our webinar thank-you. Business plan keeps it after that.
+                    </div>
+                  )}
                   <p className="text-xs text-muted-foreground">Tell me when to start and I'll get to work tonight.</p>
                   <button
                     onClick={goToSonder}

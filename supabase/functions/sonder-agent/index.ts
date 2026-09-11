@@ -181,14 +181,30 @@ serve(async (req) => {
     // (use-entitlements.ts' canUseSonder) — re-check that server-side rather
     // than trusting sonder_preferences.active alone, since that flag predates
     // the plan-taxonomy fix and this is the one feature that must never
-    // silently mass-run for free/basic users again.
-    const { data: bizSubs } = await sb.from("subscriptions").select("user_id").eq("plan", "business").eq("status", "active");
-    const { data: ownerProfile } = await sb.from("profiles").select("user_id").ilike("email", "aniekaneazy@gmail.com").maybeSingle();
-    const eligibleIds = [...new Set([...(bizSubs || []).map((s: any) => s.user_id), ownerProfile?.user_id].filter(Boolean))];
+    // silently mass-run for free/basic users again. The one exception is an
+    // active platform_promotions('sonder_webinar_promo') window — same row
+    // the client checks — which opens eligibility to everyone with Sonder
+    // turned on, without touching anyone's actual plan. It expires on its
+    // own; no separate revert path needed here.
+    const { data: promo } = await sb
+      .from("platform_promotions")
+      .select("expires_at")
+      .eq("key", "sonder_webinar_promo")
+      .maybeSingle();
+    const promoActive = !!promo?.expires_at && new Date(promo.expires_at) > new Date();
 
-    if (eligibleIds.length) {
-      const { data } = await sb.from("sonder_preferences").select("*").eq("active", true).in("user_id", eligibleIds).limit(500);
+    if (promoActive) {
+      const { data } = await sb.from("sonder_preferences").select("*").eq("active", true).limit(500);
       prefs = data || [];
+    } else {
+      const { data: bizSubs } = await sb.from("subscriptions").select("user_id").eq("plan", "business").eq("status", "active");
+      const { data: ownerProfile } = await sb.from("profiles").select("user_id").ilike("email", "aniekaneazy@gmail.com").maybeSingle();
+      const eligibleIds = [...new Set([...(bizSubs || []).map((s: any) => s.user_id), ownerProfile?.user_id].filter(Boolean))];
+
+      if (eligibleIds.length) {
+        const { data } = await sb.from("sonder_preferences").select("*").eq("active", true).in("user_id", eligibleIds).limit(500);
+        prefs = data || [];
+      }
     }
   }
 

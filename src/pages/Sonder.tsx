@@ -43,7 +43,7 @@ const TABS: { id: Status; label: string; icon: any }[] = [
 export default function Sonder() {
   const { toast } = useToast();
   const navigate = useNavigate();
-  const { canUseSonder, loading: entLoading } = useEntitlements();
+  const { canUseSonder, sonderPromoActive, loading: entLoading } = useEntitlements();
   const [userId, setUserId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [pref, setPref] = useState<any>(null);
@@ -184,6 +184,12 @@ export default function Sonder() {
           )}
         </div>
       </div>
+
+      {sonderPromoActive && (
+        <div className="rounded-xl border border-indigo-500/30 bg-indigo-500/10 text-indigo-700 dark:text-indigo-300 px-4 py-3 text-sm font-medium">
+          🎉 Free for 48 hours — our webinar thank-you to every Skryve user. Stay on Business after that to keep it.
+        </div>
+      )}
 
       {!canUseSonder ? (
         <div className="rounded-xl border bg-card p-6 space-y-5 text-center">
